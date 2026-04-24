@@ -295,3 +295,47 @@ body {
     overflow-x: hidden;
   }
 }
+
+/* ═══════════════════════════════════════
+   PRESUPUESTO HEADER BUTTONS
+   ═══════════════════════════════════════ */
+
+/* Desktop: show desktop buttons, hide mobile */
+.header-actions-desktop {
+  display: flex !important;
+}
+.header-actions-mobile {
+  display: none !important;
+}
+
+/* Mobile: hide desktop buttons, show mobile */
+@media (max-width: 768px) {
+  .header-actions-desktop {
+    display: none !important;
+  }
+  .header-actions-mobile {
+    display: flex !important;
+  }
+}
+
+/* ═══════════════════════════════════════
+   MENU COTIZADOR NAV BUTTONS
+   ═══════════════════════════════════════ */
+
+/* Desktop: mostrar nav, ocultar mobile */
+.menu-desktop-nav {
+  display: flex !important;
+}
+.menu-mobile-nav {
+  display: none !important;
+}
+
+/* Mobile: ocultar nav desktop, mostrar mobile */
+@media (max-width: 768px) {
+  .menu-desktop-nav {
+    display: none !important;
+  }
+  .menu-mobile-nav {
+    display: flex !important;
+  }
+}

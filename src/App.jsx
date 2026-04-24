@@ -6,10 +6,6 @@ import Onboarding from './pages/Onboarding';
 import AdminPanel from './pages/admin/AdminPanel';
 import MenuCotizador from './pages/cotizador/Menu';
 import Presupuesto from './pages/cotizador/Presupuesto';
-import Materiales from './pages/cotizador/Materiales';
-import ManoObra from './pages/cotizador/ManoObra';
-import Maquinaria from './pages/cotizador/Maquinaria';
-import AnalisisCostos from './pages/cotizador/AnalisisCostos';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'https://obras-backend-production.up.railway.app';
 
@@ -21,19 +17,17 @@ export function authHeaders() {
 }
 
 const menuItems = [
-  { id: 'cotizador', label: '📋 Cotizador', path: '/app' },
-  { id: 'financiero', label: '💰 Control Financiero', path: '/app/financiero' },
-  { id: 'fiscal', label: '🧾 Fiscal', path: '/app/fiscal' },
+  { id: 'cotizador', label: '📋 Cotizador' },
+  { id: 'clientes', label: '👥 Clientes' },
+  { id: 'financiero', label: '💰 Control Financiero' },
+  { id: 'fiscal', label: '🧾 Fiscal' },
 ];
 
-function Sidebar({ user, tenant, logout }) {
-  const navigate = useNavigate();
+function Sidebar({ activeTab, setActiveTab, user, tenant, logout }) {
   const color = tenant?.color_primario || '#7c3aed';
-  const current = window.location.pathname;
-
   return (
-    <div style={{ width: 200, background: '#1a1a2e', borderRight: '1px solid #2a2a3a', display: 'flex', flexDirection: 'column', flexShrink: 0, height: '100vh' }}>
-      <div style={{ padding: '18px 14px', borderBottom: '1px solid #2a2a3a' }}>
+    <div style={{ width: 200, background: '#1a1a2e', borderRight: '1px solid #2a2a3a', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+      <div style={{ padding: '20px 14px', borderBottom: '1px solid #2a2a3a' }}>
         {tenant?.logo_url
           ? <img src={tenant.logo_url} alt="logo" style={{ height: 36, objectFit: 'contain' }} />
           : <div style={{ fontSize: 16, fontWeight: 800, color }}>{tenant?.nombre || 'OBRAS'}</div>}
@@ -41,14 +35,14 @@ function Sidebar({ user, tenant, logout }) {
       </div>
       <nav style={{ flex: 1, padding: '10px 8px' }}>
         {menuItems.map(item => (
-          <button key={item.id} onClick={() => navigate(item.path)}
-            style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', marginBottom: 2, fontSize: 13, background: current === item.path || (item.path !== '/app' && current.startsWith(item.path)) ? `${color}33` : 'transparent', color: current === item.path || (item.path !== '/app' && current.startsWith(item.path)) ? color : '#94a3b8', fontWeight: 500 }}>
+          <button key={item.id} onClick={() => setActiveTab(item.id)}
+            style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', marginBottom: 2, fontSize: 13, background: activeTab === item.id ? `${color}33` : 'transparent', color: activeTab === item.id ? color : '#94a3b8', fontWeight: activeTab === item.id ? 600 : 400 }}>
             {item.label}
           </button>
         ))}
         {user?.rol === 'admin' && (
-          <button onClick={() => navigate('/app/accesos')}
-            style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', marginBottom: 2, fontSize: 13, background: current === '/app/accesos' ? `${color}33` : 'transparent', color: current === '/app/accesos' ? color : '#94a3b8' }}>
+          <button onClick={() => setActiveTab('accesos')}
+            style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', marginBottom: 2, fontSize: 13, background: activeTab === 'accesos' ? `${color}33` : 'transparent', color: activeTab === 'accesos' ? color : '#94a3b8' }}>
             🔑 Accesos
           </button>
         )}
@@ -62,12 +56,18 @@ function Sidebar({ user, tenant, logout }) {
   );
 }
 
-function Layout({ children, user, tenant, logout }) {
+function Dashboard({ user, tenant, logout }) {
+  const [activeTab, setActiveTab] = useState('cotizador');
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f8f9fa' }}>
-      <Sidebar user={user} tenant={tenant} logout={logout} />
+    <div style={{ display: 'flex', height: '100vh', background: '#0f0f1a', color: '#e2e8f0', fontFamily: 'Inter, sans-serif', overflow: 'hidden' }}>
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} tenant={tenant} logout={logout} />
       <div style={{ flex: 1, overflow: 'auto' }}>
-        {children}
+        {activeTab === 'cotizador' && <MenuCotizador />}
+        {activeTab === 'clientes' && <PlaceholderView title="Clientes" icon="👥" />}
+        {activeTab === 'financiero' && <PlaceholderView title="Control Financiero" icon="💰" />}
+        {activeTab === 'fiscal' && <PlaceholderView title="Fiscal" icon="🧾" />}
+        {activeTab === 'accesos' && <AdminPanel />}
       </div>
     </div>
   );
@@ -77,8 +77,19 @@ function PlaceholderView({ title, icon }) {
   return (
     <div style={{ textAlign: 'center', marginTop: 80, color: '#64748b' }}>
       <div style={{ fontSize: 56 }}>{icon}</div>
-      <h2 style={{ fontSize: 22, fontWeight: 700, margin: '16px 0 8px', color: '#1a1a2e' }}>{title}</h2>
+      <h2 style={{ fontSize: 22, fontWeight: 700, margin: '16px 0 8px', color: '#e2e8f0' }}>{title}</h2>
       <p>Próximamente disponible</p>
+    </div>
+  );
+}
+
+function PresupuestoPage({ user, tenant, logout }) {
+  const color = tenant?.color_primario || '#7c3aed';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f0f1a', color: '#e2e8f0', fontFamily: 'Inter, sans-serif', overflow: 'hidden' }}>
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        <Presupuesto />
+      </div>
     </div>
   );
 }
@@ -96,7 +107,7 @@ function AppRouter() {
         if (s.user && s.token) { setUser(s.user); setTenant(s.tenant); }
       } catch {}
     }
-    setTimeout(() => setLoading(false), 200);
+    setTimeout(() => setLoading(false), 300);
   }, []);
 
   const login = (userData, tenantData, token) => {
@@ -111,15 +122,7 @@ function AppRouter() {
     localStorage.removeItem('obras_session');
   };
 
-  if (loading) return <div style={{ background: '#f8f9fa', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', fontSize: 18 }}>Cargando...</div>;
-
-  const wrap = (Component) => user ? (
-    <Layout user={user} tenant={tenant} logout={logout}>
-      <Component />
-    </Layout>
-  ) : <Navigate to="/login" />;
-
-  const wrapFull = (Component) => user ? <Component /> : <Navigate to="/login" />;
+  if (loading) return <div style={{ background: '#0f0f1a', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', fontSize: 18 }}>Cargando...</div>;
 
   return (
     <AuthContext.Provider value={{ user, tenant, login, logout, API: API_BASE }}>
@@ -129,20 +132,8 @@ function AppRouter() {
           <Route path="/registro" element={user ? <Navigate to="/app" /> : <Auth mode="register" />} />
           <Route path="/login" element={user ? <Navigate to="/app" /> : <Auth mode="login" />} />
           <Route path="/onboarding" element={user ? <Onboarding /> : <Navigate to="/login" />} />
-
-          {/* App con sidebar */}
-          <Route path="/app" element={wrap(MenuCotizador)} />
-          <Route path="/app/financiero" element={wrap(() => <PlaceholderView title="Control Financiero" icon="💰" />)} />
-          <Route path="/app/fiscal" element={wrap(() => <PlaceholderView title="Fiscal" icon="🧾" />)} />
-          <Route path="/app/accesos" element={wrap(AdminPanel)} />
-          <Route path="/app/cotizador/materiales" element={wrap(Materiales)} />
-          <Route path="/app/cotizador/mano-obra" element={wrap(ManoObra)} />
-          <Route path="/app/cotizador/maquinaria" element={wrap(Maquinaria)} />
-          <Route path="/app/cotizador/analisis-costos" element={wrap(AnalisisCostos)} />
-
-          {/* Presupuesto — pantalla completa sin sidebar de obras */}
-          <Route path="/app/cotizador/presupuesto/:id" element={wrapFull(Presupuesto)} />
-
+          <Route path="/app" element={user ? <Dashboard user={user} tenant={tenant} logout={logout} /> : <Navigate to="/login" />} />
+          <Route path="/app/cotizador/presupuesto/:id" element={user ? <PresupuestoPage user={user} tenant={tenant} logout={logout} /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </BrowserRouter>
