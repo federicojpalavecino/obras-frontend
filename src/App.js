@@ -50,9 +50,9 @@ function AppInner({user, onLogout}) {
         <div className="header">
           <div style={{display:"flex", alignItems:"center", gap:16}}>
             <div onClick={()=>navigate("/")} className="header-logo" style={{cursor:"pointer"}}>
-              FIMA
+              FAIM OBRAS
               <span style={{marginLeft:8, fontSize:14, fontWeight:400, color:C.muted}}>
-                {currentModule ? "/ " + currentModule.label : "— Estudio de Arquitectura"}
+                {currentModule ? "/ " + currentModule.label : "— Gestión para Estudios y Empresas"}
               </span>
             </div>
           </div>
