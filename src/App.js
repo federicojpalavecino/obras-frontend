@@ -17,6 +17,7 @@ import ListadoMateriales from "./cotizador/pages/ListadoMateriales";
 import ClientePortal from "./pages/ClientePortal";
 import PersonalPortal from "./pages/PersonalPortal";
 import AccesosClientes from "./pages/AccesosClientes";
+import "./index.css";
 
 const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
 
@@ -58,7 +59,7 @@ function AppInner({user, onLogout}) {
           </div>
           <div style={{display:"flex", alignItems:"center", gap:12}}>
             <div style={{width:32, height:32, borderRadius:"50%", background:C.surface2, border:"1px solid " + C.border2, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:C.accent, fontFamily:"'IBM Plex Mono', monospace"}}>
-              {user.email.slice(0,2).toUpperCase()}
+              {(user.nombre || user.email).slice(0,2).toUpperCase()}
             </div>
             <button onClick={onLogout} style={{fontSize:12, color:C.muted, background:"none", border:"none", cursor:"pointer", fontFamily:"'Syne', sans-serif"}}>Salir</button>
           </div>
@@ -114,15 +115,13 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   useEffect(()=>{
     // Restaurar sesión desde localStorage
-    const savedSession = localStorage.getItem("obras_session");
-    const savedCliente = localStorage.getItem("obras_cliente");
-    const savedEstudio = localStorage.getItem("obras_estudio");
-
-    if (savedCliente) {
-      try {
+    try {
+      const savedCliente = localStorage.getItem("obras_cliente");
+      if (savedCliente) {
         const ci = JSON.parse(savedCliente);
         if (ci?.email && ci?.cliente_id) {
           setClienteInfo(ci);
@@ -130,10 +129,12 @@ export default function App() {
           setLoading(false);
           return;
         }
-      } catch { localStorage.removeItem("obras_cliente"); }
-    }
-    if (savedEstudio) {
-      try {
+      }
+    } catch { localStorage.removeItem("obras_cliente"); }
+
+    try {
+      const savedEstudio = localStorage.getItem("obras_estudio");
+      if (savedEstudio) {
         const ei = JSON.parse(savedEstudio);
         if (ei?.email && ei?.rol) {
           setEstudioInfo(ei);
@@ -141,26 +142,30 @@ export default function App() {
           setLoading(false);
           return;
         }
-      } catch { localStorage.removeItem("obras_estudio"); }
-    }
-    if (savedSession) {
-      try {
+      }
+    } catch { localStorage.removeItem("obras_estudio"); }
+
+    try {
+      const savedSession = localStorage.getItem("obras_session");
+      if (savedSession) {
         const s = JSON.parse(savedSession);
         if (s?.user && s?.token) {
           setUser(s.user);
           setLoading(false);
           return;
         }
-      } catch { localStorage.removeItem("obras_session"); }
-    }
+      }
+    } catch { localStorage.removeItem("obras_session"); }
+
     setLoading(false);
   },[]);
 
   const login = async () => {
     setError("");
+    setLoginLoading(true);
     const emailLower = email.toLowerCase().trim();
 
-    // 1. Intentar login de cliente
+    // 1. Login cliente
     try {
       const res = await fetch(`${API}/cliente/login`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -172,11 +177,12 @@ export default function App() {
         localStorage.setItem("obras_cliente", JSON.stringify(ci));
         setClienteInfo(ci);
         setUser({ email: data.email, nombre: data.nombre });
+        setLoginLoading(false);
         return;
       }
     } catch {}
 
-    // 2. Intentar login de usuario estudio
+    // 2. Login usuario estudio
     try {
       const res = await fetch(`${API}/estudio/login`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -184,15 +190,17 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        const ei = { nombre: data.nombre, rol: data.rol, presupuestos_asignados: data.presupuestos_asignados, email: data.email };
+        const ei = { nombre: data.nombre, rol: data.rol, presupuestos_asignados: data.presupuestos_asignados || [], email: data.email, token: data.token };
         localStorage.setItem("obras_estudio", JSON.stringify(ei));
+        localStorage.setItem("obras_token", data.token);
         setEstudioInfo(ei);
         setUser({ email: data.email, nombre: data.nombre, rol: data.rol });
+        setLoginLoading(false);
         return;
       }
     } catch {}
 
-    // 3. Login admin via JWT
+    // 3. Login admin/tenant
     try {
       const res = await fetch(`${API}/auth/login`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -203,11 +211,13 @@ export default function App() {
         localStorage.setItem("obras_token", data.token);
         localStorage.setItem("obras_session", JSON.stringify({ user: data.usuario, tenant: data.tenant, token: data.token }));
         setUser(data.usuario);
+        setLoginLoading(false);
         return;
       }
     } catch {}
 
     setError("Email o contraseña incorrectos");
+    setLoginLoading(false);
   };
 
   const handleLogout = () => {
@@ -220,7 +230,11 @@ export default function App() {
     setEstudioInfo(null);
   };
 
-  if(loading) return <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#059669",fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800}}>FAIM OBRAS</div>;
+  if(loading) return (
+    <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#059669",fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800}}>
+      FAIM OBRAS
+    </div>
+  );
 
   if(!user) return (
     <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Syne',sans-serif"}}>
@@ -236,7 +250,9 @@ export default function App() {
           <input value={pass} onChange={e=>setPass(e.target.value)} type="password" className="input" style={{width:"100%",boxSizing:"border-box"}} onKeyDown={e=>e.key==="Enter"&&login()}/>
         </div>
         {error&&<div style={{fontSize:13,color:"#f87171",marginBottom:12,textAlign:"center"}}>{error}</div>}
-        <button onClick={login} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center"}}>Ingresar</button>
+        <button onClick={login} disabled={loginLoading} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center",opacity:loginLoading?0.7:1}}>
+          {loginLoading ? "Ingresando..." : "Ingresar"}
+        </button>
       </div>
     </div>
   );
