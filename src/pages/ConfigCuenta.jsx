@@ -32,7 +32,19 @@ export default function ConfigCuenta({ user, onUpdate }) {
   const guardar = async () => {
     setSaving(true); setMsg("");
     const res = await fetch(`${API}/tenant`, { method:"PUT", headers:{...headers,"Content-Type":"application/json"}, body: JSON.stringify(form) });
-    if (res.ok) { setMsg("Guardado correctamente"); if (onUpdate) onUpdate(form); }
+    if (res.ok) {
+      setMsg("Guardado correctamente");
+      // Update localStorage so header reflects changes
+      const session = localStorage.getItem("obras_session");
+      if (session) {
+        try {
+          const s = JSON.parse(session);
+          s.tenant = { ...s.tenant, ...form };
+          localStorage.setItem("obras_session", JSON.stringify(s));
+        } catch {}
+      }
+      if (onUpdate) onUpdate(form);
+    }
     else setMsg("Error al guardar");
     setSaving(false);
     setTimeout(() => setMsg(""), 3000);

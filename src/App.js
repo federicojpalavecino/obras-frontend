@@ -168,7 +168,7 @@ function AppInner({user, tenant, onLogout}) {
         <Route path="/fiscal/*" element={<Fiscal user={user} />}/>
         <Route path="/clientes/*" element={<Clientes user={user} />}/>
         <Route path="/accesos-clientes" element={<AccesosClientes user={user} />}/>
-        <Route path="/config" element={<ConfigCuenta user={user} />}/>
+        <Route path="/config" element={<ConfigCuenta user={user} onUpdate={(data) => setTenant(t => ({...t, ...data}))} />}/>
       </Routes>
     </div>
   );
