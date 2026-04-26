@@ -29,10 +29,96 @@ const C = {
   green:"#10b981", red:"#ef4444", blue:"#3b82f6",
 };
 
-function AppInner({user, onLogout}) {
+// ── Página de suscripción ─────────────────────────────────────────────────────
+function Suscripcion({ user, onLogout }) {
+  const [pagando, setPagando] = useState(false);
+  const [estado, setEstado] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("obras_token");
+    fetch(`${API}/suscripcion/estado`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(setEstado).catch(() => {});
+  }, []);
+
+  const iniciarPago = async () => {
+    setPagando(true);
+    const token = localStorage.getItem("obras_token");
+    try {
+      const r = await fetch(`${API}/suscripcion/crear`, {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+      });
+      const data = await r.json();
+      if (data.init_point) window.location.href = data.init_point;
+      else alert("Error al crear suscripción.");
+    } catch { alert("Error de conexión."); }
+    setPagando(false);
+  };
+
+  const diasRestantes = estado?.dias_restantes || 0;
+  const esVencido = estado?.trial_vencido;
+
+  return (
+    <div style={{minHeight:"100vh", background:C.bg, fontFamily:"'Syne', sans-serif", display:"flex", alignItems:"center", justifyContent:"center", padding:24}}>
+      <div style={{maxWidth:460, width:"100%"}}>
+        <div style={{textAlign:"center", marginBottom:28}}>
+          <div style={{fontSize:28, fontWeight:800, color:C.accent, letterSpacing:"-0.5px", marginBottom:8}}>FAIM OBRAS</div>
+          {esVencido
+            ? <><div style={{fontSize:18, fontWeight:700, color:C.red, marginBottom:6}}>Tu período de prueba venció</div><div style={{fontSize:13, color:C.muted}}>Suscribite para seguir usando el sistema</div></>
+            : <><div style={{fontSize:18, fontWeight:700, color:C.text, marginBottom:6}}>Te quedan {diasRestantes} días de prueba</div><div style={{fontSize:13, color:C.muted}}>Suscribite ahora para no perder el acceso</div></>
+          }
+        </div>
+        <div style={{background:C.surface, border:"1px solid " + C.border, borderRadius:12, padding:28, marginBottom:12, boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+          <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:18}}>
+            <div>
+              <div style={{fontSize:16, fontWeight:700, color:C.text, marginBottom:3}}>Plan Profesional</div>
+              <div style={{fontSize:12, color:C.muted}}>Facturación mensual</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:26, fontWeight:800, color:C.accent2, fontFamily:"'IBM Plex Mono', monospace"}}>$40.000</div>
+              <div style={{fontSize:11, color:C.muted}}>por mes</div>
+            </div>
+          </div>
+          <div style={{borderTop:"1px solid " + C.border, paddingTop:14, marginBottom:18}}>
+            {["✓ Cotizador completo con 500+ ítems de obra","✓ Certificados, Gantt y curva de inversión","✓ Control financiero semanal","✓ Portal de clientes","✓ 2 usuarios incluidos","✓ Soporte técnico"].map((item, i) => (
+              <div key={i} style={{fontSize:13, color:C.text, marginBottom:7}}>{item}</div>
+            ))}
+          </div>
+          <button onClick={iniciarPago} disabled={pagando} style={{width:"100%", padding:"13px", borderRadius:8, border:"none", background: pagando ? C.muted : C.accent2, color:"white", fontSize:14, fontWeight:700, cursor: pagando ? "not-allowed" : "pointer", fontFamily:"'Syne', sans-serif"}}>
+            {pagando ? "Redirigiendo..." : "Suscribirme con MercadoPago"}
+          </button>
+          <div style={{fontSize:11, color:C.muted, textAlign:"center", marginTop:8}}>Sin cargos ocultos. Cancelá cuando quieras.</div>
+        </div>
+        <div style={{textAlign:"center"}}>
+          <button onClick={onLogout} style={{fontSize:12, color:C.muted, background:"none", border:"none", cursor:"pointer", fontFamily:"'Syne', sans-serif"}}>Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Banner de trial ───────────────────────────────────────────────────────────
+function BannerTrial({ diasRestantes, onSuscribir }) {
+  if (diasRestantes > 7) return null;
+  return (
+    <div style={{background: diasRestantes <= 3 ? "#fef2f2" : "#fffbeb", borderBottom: `1px solid ${diasRestantes <= 3 ? "#fecaca" : "#fde68a"}`, padding:"8px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", fontSize:13}}>
+      <span style={{color: diasRestantes <= 3 ? C.red : C.warn, fontWeight:600}}>
+        {diasRestantes <= 0 ? "⚠️ Tu trial venció" : `⏰ Te quedan ${diasRestantes} días de prueba`}
+      </span>
+      <button onClick={onSuscribir} style={{padding:"5px 14px", borderRadius:6, border:"none", background:C.accent2, color:"white", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"'Syne', sans-serif"}}>
+        Suscribirme
+      </button>
+    </div>
+  );
+}
+
+// ── App Inner ─────────────────────────────────────────────────────────────────
+function AppInner({user, onLogout, suscripcion}) {
   const navigate = useNavigate();
   const location = useLocation();
   const isCotizador = location.pathname.startsWith("/cotizador");
+  const [showSuscripcion, setShowSuscripcion] = useState(false);
+
+  if (showSuscripcion) return <Suscripcion user={user} onLogout={onLogout} />;
 
   const modules = [
     { id:"finanzas", path:"/finanzas", icon:"💰", label:"Control Financiero", desc:"Ingresos, egresos y distribucion semanal", color:C.accent },
@@ -47,6 +133,9 @@ function AppInner({user, onLogout}) {
 
   return (
     <div style={{minHeight:"100vh", background:C.bg, color:C.text, fontFamily:"'Syne', sans-serif"}}>
+      {suscripcion?.en_trial && (
+        <BannerTrial diasRestantes={suscripcion.dias_restantes} onSuscribir={() => setShowSuscripcion(true)} />
+      )}
       {!isCotizador && (
         <div className="header">
           <div style={{display:"flex", alignItems:"center", gap:16}}>
@@ -107,28 +196,24 @@ function AppInner({user, onLogout}) {
   );
 }
 
+// ── App principal ─────────────────────────────────────────────────────────────
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [clienteInfo, setClienteInfo] = useState(null);
   const [estudioInfo, setEstudioInfo] = useState(null);
+  const [suscripcion, setSuscripcion] = useState(null);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
 
   useEffect(()=>{
-    // Restaurar sesión desde localStorage
     try {
       const savedCliente = localStorage.getItem("obras_cliente");
       if (savedCliente) {
         const ci = JSON.parse(savedCliente);
-        if (ci?.email && ci?.cliente_id) {
-          setClienteInfo(ci);
-          setUser({ email: ci.email, nombre: ci.nombre });
-          setLoading(false);
-          return;
-        }
+        if (ci?.email && ci?.cliente_id) { setClienteInfo(ci); setUser({ email: ci.email, nombre: ci.nombre }); setLoading(false); return; }
       }
     } catch { localStorage.removeItem("obras_cliente"); }
 
@@ -136,12 +221,7 @@ export default function App() {
       const savedEstudio = localStorage.getItem("obras_estudio");
       if (savedEstudio) {
         const ei = JSON.parse(savedEstudio);
-        if (ei?.email && ei?.rol) {
-          setEstudioInfo(ei);
-          setUser({ email: ei.email, nombre: ei.nombre, rol: ei.rol });
-          setLoading(false);
-          return;
-        }
+        if (ei?.email && ei?.rol) { setEstudioInfo(ei); setUser({ email: ei.email, nombre: ei.nombre, rol: ei.rol }); setLoading(false); return; }
       }
     } catch { localStorage.removeItem("obras_estudio"); }
 
@@ -149,71 +229,41 @@ export default function App() {
       const savedSession = localStorage.getItem("obras_session");
       if (savedSession) {
         const s = JSON.parse(savedSession);
-        if (s?.user && s?.token) {
-          setUser(s.user);
-          setLoading(false);
-          return;
-        }
+        if (s?.user && s?.token) { setUser(s.user); setLoading(false); return; }
       }
     } catch { localStorage.removeItem("obras_session"); }
 
     setLoading(false);
   },[]);
 
+  // Cargar estado de suscripción cuando hay usuario
+  useEffect(() => {
+    if (!user) return;
+    const token = localStorage.getItem("obras_token");
+    if (!token) return;
+    fetch(`${API}/suscripcion/estado`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setSuscripcion(data); })
+      .catch(() => {});
+  }, [user]);
+
   const login = async () => {
-    setError("");
-    setLoginLoading(true);
+    setError(""); setLoginLoading(true);
     const emailLower = email.toLowerCase().trim();
 
-    // 1. Login cliente
     try {
-      const res = await fetch(`${API}/cliente/login`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailLower, password: pass }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const ci = { cliente_id: data.cliente_id, nombre: data.nombre, email: data.email };
-        localStorage.setItem("obras_cliente", JSON.stringify(ci));
-        setClienteInfo(ci);
-        setUser({ email: data.email, nombre: data.nombre });
-        setLoginLoading(false);
-        return;
-      }
+      const res = await fetch(`${API}/cliente/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
+      if (res.ok) { const data = await res.json(); const ci = {cliente_id:data.cliente_id, nombre:data.nombre, email:data.email}; localStorage.setItem("obras_cliente", JSON.stringify(ci)); setClienteInfo(ci); setUser({email:data.email, nombre:data.nombre}); setLoginLoading(false); return; }
     } catch {}
 
-    // 2. Login usuario estudio
     try {
-      const res = await fetch(`${API}/estudio/login`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailLower, password: pass }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const ei = { nombre: data.nombre, rol: data.rol, presupuestos_asignados: data.presupuestos_asignados || [], email: data.email, token: data.token };
-        localStorage.setItem("obras_estudio", JSON.stringify(ei));
-        localStorage.setItem("obras_token", data.token);
-        setEstudioInfo(ei);
-        setUser({ email: data.email, nombre: data.nombre, rol: data.rol });
-        setLoginLoading(false);
-        return;
-      }
+      const res = await fetch(`${API}/estudio/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
+      if (res.ok) { const data = await res.json(); const ei = {nombre:data.nombre, rol:data.rol, presupuestos_asignados:data.presupuestos_asignados||[], email:data.email, token:data.token}; localStorage.setItem("obras_estudio", JSON.stringify(ei)); localStorage.setItem("obras_token", data.token); setEstudioInfo(ei); setUser({email:data.email, nombre:data.nombre, rol:data.rol}); setLoginLoading(false); return; }
     } catch {}
 
-    // 3. Login admin/tenant
     try {
-      const res = await fetch(`${API}/auth/login`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailLower, password: pass }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem("obras_token", data.token);
-        localStorage.setItem("obras_session", JSON.stringify({ user: data.usuario, tenant: data.tenant, token: data.token }));
-        setUser(data.usuario);
-        setLoginLoading(false);
-        return;
-      }
+      const res = await fetch(`${API}/auth/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
+      if (res.ok) { const data = await res.json(); localStorage.setItem("obras_token", data.token); localStorage.setItem("obras_session", JSON.stringify({user:data.usuario, tenant:data.tenant, token:data.token})); setUser(data.usuario); setLoginLoading(false); return; }
     } catch {}
 
     setError("Email o contraseña incorrectos");
@@ -221,35 +271,27 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("obras_token");
-    localStorage.removeItem("obras_session");
-    localStorage.removeItem("obras_cliente");
-    localStorage.removeItem("obras_estudio");
-    setUser(null);
-    setClienteInfo(null);
-    setEstudioInfo(null);
+    localStorage.removeItem("obras_token"); localStorage.removeItem("obras_session");
+    localStorage.removeItem("obras_cliente"); localStorage.removeItem("obras_estudio");
+    setUser(null); setClienteInfo(null); setEstudioInfo(null); setSuscripcion(null);
   };
 
-  if(loading) return (
-    <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#059669",fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800}}>
-      FAIM OBRAS
-    </div>
-  );
+  if(loading) return <div style={{background:C.bg,height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:C.accent,fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800}}>FAIM OBRAS</div>;
 
   if(!user) return (
-    <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Syne',sans-serif"}}>
+    <div style={{background:C.bg,height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Syne',sans-serif"}}>
       <div style={{width:"100%",maxWidth:360}}>
-        <div style={{fontSize:42,fontWeight:800,color:"#059669",letterSpacing:"-1px",marginBottom:4}}>FAIM OBRAS</div>
-        <div style={{fontSize:12,color:"#6b7280",marginBottom:40,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"2px"}}>GESTIÓN PARA ESTUDIOS Y EMPRESAS</div>
+        <div style={{fontSize:42,fontWeight:800,color:C.accent,letterSpacing:"-1px",marginBottom:4}}>FAIM OBRAS</div>
+        <div style={{fontSize:12,color:C.muted,marginBottom:40,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"2px"}}>GESTIÓN PARA ESTUDIOS Y EMPRESAS</div>
         <div style={{marginBottom:14}}>
-          <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Email</label>
+          <label style={{display:"block",fontSize:11,color:C.muted,marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Email</label>
           <input value={email} onChange={e=>setEmail(e.target.value)} type="email" className="input" style={{width:"100%",boxSizing:"border-box"}}/>
         </div>
         <div style={{marginBottom:14}}>
-          <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Contraseña</label>
+          <label style={{display:"block",fontSize:11,color:C.muted,marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Contraseña</label>
           <input value={pass} onChange={e=>setPass(e.target.value)} type="password" className="input" style={{width:"100%",boxSizing:"border-box"}} onKeyDown={e=>e.key==="Enter"&&login()}/>
         </div>
-        {error&&<div style={{fontSize:13,color:"#f87171",marginBottom:12,textAlign:"center"}}>{error}</div>}
+        {error&&<div style={{fontSize:13,color:C.red,marginBottom:12,textAlign:"center"}}>{error}</div>}
         <button onClick={login} disabled={loginLoading} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center",opacity:loginLoading?0.7:1}}>
           {loginLoading ? "Ingresando..." : "Ingresar"}
         </button>
@@ -257,24 +299,17 @@ export default function App() {
     </div>
   );
 
-  if (clienteInfo) {
-    return <ClientePortal user={user} clienteId={clienteInfo.cliente_id} clienteNombre={clienteInfo.nombre} onLogout={handleLogout} />;
+  // Trial vencido — mostrar página de suscripción
+  if (suscripcion?.trial_vencido && !clienteInfo && !estudioInfo) {
+    return <Suscripcion user={user} onLogout={handleLogout} />;
   }
+
+  if (clienteInfo) return <ClientePortal user={user} clienteId={clienteInfo.cliente_id} clienteNombre={clienteInfo.nombre} onLogout={handleLogout} />;
 
   if (estudioInfo) {
-    if (estudioInfo.rol === "personal") {
-      return <PersonalPortal user={user} userInfo={estudioInfo} onLogout={handleLogout} />;
-    }
-    return (
-      <BrowserRouter>
-        <AppInner user={{ ...user, rol: estudioInfo.rol, nombre: estudioInfo.nombre }} onLogout={handleLogout} />
-      </BrowserRouter>
-    );
+    if (estudioInfo.rol === "personal") return <PersonalPortal user={user} userInfo={estudioInfo} onLogout={handleLogout} />;
+    return <BrowserRouter><AppInner user={{...user, rol:estudioInfo.rol, nombre:estudioInfo.nombre}} onLogout={handleLogout} suscripcion={suscripcion} /></BrowserRouter>;
   }
 
-  return (
-    <BrowserRouter>
-      <AppInner user={user} onLogout={handleLogout} />
-    </BrowserRouter>
-  );
+  return <BrowserRouter><AppInner user={user} onLogout={handleLogout} suscripcion={suscripcion} /></BrowserRouter>;
 }
