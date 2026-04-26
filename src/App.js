@@ -203,7 +203,7 @@ export default function App() {
   const [clienteInfo, setClienteInfo] = useState(null);
   const [estudioInfo, setEstudioInfo] = useState(null);
   const [suscripcion, setSuscripcion] = useState(null);
-  const [suscripcionLoading, setSuscripcionLoading] = useState(false);
+  const [suscripcionLoading, setSuscripcionLoading] = useState(true);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
@@ -277,7 +277,7 @@ export default function App() {
     setUser(null); setClienteInfo(null); setEstudioInfo(null); setSuscripcion(null);
   };
 
-  if(loading) return <div style={{background:C.bg,height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:C.accent,fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800}}>FAIM OBRAS</div>;
+  if(loading || (user && !clienteInfo && !estudioInfo && suscripcionLoading)) return <div style={{background:C.bg,height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:C.accent,fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800}}>FAIM OBRAS</div>;
 
   if(!user) return (
     <div style={{background:C.bg,height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Syne',sans-serif"}}>
