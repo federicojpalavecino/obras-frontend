@@ -289,10 +289,11 @@ export default function App() {
       const data = await res.json();
       if (res.ok) {
         const token = data.token;
+        const userData = data.usuario || { email: email.toLowerCase().trim(), nombre: regNombre.trim(), rol: "admin" };
         localStorage.setItem("obras_token", token);
-        localStorage.setItem("obras_session", JSON.stringify({ user: data.usuario, tenant: data.tenant, token }));
+        localStorage.setItem("obras_session", JSON.stringify({ user: userData, tenant: data.tenant, token }));
         await checkSuscripcion(token);
-        setUser(data.usuario);
+        setUser(userData);
       } else {
         setError(data.detail || "Error al registrarse");
       }
