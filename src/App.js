@@ -344,11 +344,11 @@ export default function App() {
           <>
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Nombre del estudio o empresa</label>
-              <input value={regEstudio} onChange={e=>setRegEstudio(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: Estudio Palavecino"/>
+              <input value={regEstudio} onChange={e=>setRegEstudio(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: FIMA Arquitectura"/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Tu nombre</label>
-              <input value={regNombre} onChange={e=>setRegNombre(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: Federico"/>
+              <input value={regNombre} onChange={e=>setRegNombre(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: Matias"/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Email</label>
