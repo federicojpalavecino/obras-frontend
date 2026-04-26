@@ -40,16 +40,25 @@ export default function ConfigCuenta({ user, onUpdate }) {
 
   const subirLogo = async (e) => {
     const file = e.target.files[0]; if (!file) return;
-    const fd = new FormData(); fd.append("file", file);
+    if (file.size > 2 * 1024 * 1024) { setMsg("El archivo es muy grande (máx 2MB)"); return; }
     setSaving(true); setMsg("");
-    const res = await fetch(`${API}/tenant/logo`, { method:"POST", headers, body: fd });
-    if (res.ok) {
-      const d = await res.json();
-      setTenant(prev => ({ ...prev, logo_url: d.logo_url }));
-      setMsg("Logo actualizado");
-    } else setMsg("Error al subir logo");
-    setSaving(false);
-    setTimeout(() => setMsg(""), 3000);
+    // Convert to base64 and send as JSON to /tenant endpoint
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target.result; // data:image/png;base64,...
+      const res = await fetch(`${API}/tenant`, {
+        method: "PUT",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ logo_url: base64 })
+      });
+      if (res.ok) {
+        setTenant(prev => ({ ...prev, logo_url: base64 }));
+        setMsg("Logo actualizado");
+      } else setMsg("Error al subir logo");
+      setSaving(false);
+      setTimeout(() => setMsg(""), 3000);
+    };
+    reader.readAsDataURL(file);
   };
 
   const eliminarLogo = async () => {
