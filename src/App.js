@@ -174,6 +174,10 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
+  const [modo, setModo] = useState("login"); // "login" | "registro"
+  const [regNombre, setRegNombre] = useState("");
+  const [regEstudio, setRegEstudio] = useState("");
+  const [regLoading, setRegLoading] = useState(false);
 
   const checkSuscripcion = async (token) => {
     try {
@@ -271,6 +275,31 @@ export default function App() {
     setError("Email o contraseña incorrectos");
   };
 
+  const registrar = async () => {
+    setError("");
+    if (!regEstudio.trim() || !regNombre.trim() || !email.trim() || !pass.trim()) {
+      setError("Completá todos los campos"); return;
+    }
+    setRegLoading(true);
+    try {
+      const res = await fetch(`${API}/auth/register`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre_estudio: regEstudio.trim(), nombre_usuario: regNombre.trim(), email: email.toLowerCase().trim(), password: pass })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const token = data.token;
+        localStorage.setItem("obras_token", token);
+        localStorage.setItem("obras_session", JSON.stringify({ user: data.usuario, tenant: data.tenant, token }));
+        await checkSuscripcion(token);
+        setUser(data.usuario);
+      } else {
+        setError(data.detail || "Error al registrarse");
+      }
+    } catch { setError("Error de conexión"); }
+    setRegLoading(false);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("obras_token");
     localStorage.removeItem("obras_session");
@@ -285,22 +314,57 @@ export default function App() {
     </div>
   );
 
-  // Login screen
+  // Login / Registro screen
   if (!user) return (
     <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Syne',sans-serif"}}>
       <div style={{width:"100%",maxWidth:360}}>
         <div style={{fontSize:42,fontWeight:800,color:"#059669",letterSpacing:"-1px",marginBottom:4}}>FAIM OBRAS</div>
-        <div style={{fontSize:12,color:"#6b7280",marginBottom:40,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"2px"}}>GESTIÓN PARA ESTUDIOS Y EMPRESAS</div>
-        <div style={{marginBottom:14}}>
-          <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Email</label>
-          <input value={email} onChange={e=>setEmail(e.target.value)} type="email" className="input" style={{width:"100%",boxSizing:"border-box"}}/>
+        <div style={{fontSize:12,color:"#6b7280",marginBottom:32,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"2px"}}>GESTIÓN PARA ESTUDIOS Y EMPRESAS</div>
+
+        {/* Tabs */}
+        <div style={{display:"flex",gap:4,marginBottom:24,background:"#f1f3f5",borderRadius:8,padding:4}}>
+          <button onClick={()=>{setModo("login");setError("");}} style={{flex:1,padding:"8px",borderRadius:6,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13,background:modo==="login"?"#fff":"transparent",color:modo==="login"?"#1a1a2e":"#6b7280",boxShadow:modo==="login"?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>Ingresar</button>
+          <button onClick={()=>{setModo("registro");setError("");}} style={{flex:1,padding:"8px",borderRadius:6,border:"none",cursor:"pointer",fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13,background:modo==="registro"?"#fff":"transparent",color:modo==="registro"?"#1a1a2e":"#6b7280",boxShadow:modo==="registro"?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>Registrarme</button>
         </div>
-        <div style={{marginBottom:14}}>
-          <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Contraseña</label>
-          <input value={pass} onChange={e=>setPass(e.target.value)} type="password" className="input" style={{width:"100%",boxSizing:"border-box"}} onKeyDown={e=>e.key==="Enter"&&login()}/>
-        </div>
-        {error&&<div style={{fontSize:13,color:"#f87171",marginBottom:12,textAlign:"center"}}>{error}</div>}
-        <button onClick={login} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center"}}>Ingresar</button>
+
+        {modo === "login" ? (
+          <>
+            <div style={{marginBottom:14}}>
+              <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Email</label>
+              <input value={email} onChange={e=>setEmail(e.target.value)} type="email" className="input" style={{width:"100%",boxSizing:"border-box"}}/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Contraseña</label>
+              <input value={pass} onChange={e=>setPass(e.target.value)} type="password" className="input" style={{width:"100%",boxSizing:"border-box"}} onKeyDown={e=>e.key==="Enter"&&login()}/>
+            </div>
+            {error&&<div style={{fontSize:13,color:"#f87171",marginBottom:12,textAlign:"center"}}>{error}</div>}
+            <button onClick={login} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center"}}>Ingresar</button>
+          </>
+        ) : (
+          <>
+            <div style={{marginBottom:14}}>
+              <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Nombre del estudio o empresa</label>
+              <input value={regEstudio} onChange={e=>setRegEstudio(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: Estudio Palavecino"/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Tu nombre</label>
+              <input value={regNombre} onChange={e=>setRegNombre(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: Federico"/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Email</label>
+              <input value={email} onChange={e=>setEmail(e.target.value)} type="email" className="input" style={{width:"100%",boxSizing:"border-box"}}/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Contraseña</label>
+              <input value={pass} onChange={e=>setPass(e.target.value)} type="password" className="input" style={{width:"100%",boxSizing:"border-box"}} onKeyDown={e=>e.key==="Enter"&&registrar()}/>
+            </div>
+            {error&&<div style={{fontSize:13,color:"#f87171",marginBottom:12,textAlign:"center"}}>{error}</div>}
+            <button onClick={registrar} disabled={regLoading} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center",opacity:regLoading?0.7:1}}>
+              {regLoading ? "Creando cuenta..." : "Comenzar prueba gratuita 30 días"}
+            </button>
+            <div style={{fontSize:12,color:"#6b7280",textAlign:"center",marginTop:12}}>Sin tarjeta requerida</div>
+          </>
+        )}
       </div>
     </div>
   );
