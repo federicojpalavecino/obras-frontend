@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ControlFinanciero from "./pages/ControlFinanciero";
 import Planner from "./pages/Planner";
 import Fiscal from "./pages/Fiscal";
@@ -308,6 +309,11 @@ export default function App() {
     localStorage.removeItem("obras_estudio");
     setUser(null); setClienteInfo(null); setEstudioInfo(null); setSuscripcion(null);
   };
+
+  // Super admin panel — ruta directa
+  if (window.location.pathname === "/admin-panel") {
+    return <AdminSuperPanel />;
+  }
 
   if (loading) return (
     <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#059669",fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800}}>
