@@ -1,103 +1,73 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import ControlFinanciero from "./pages/ControlFinanciero";
+import Planner from "./pages/Planner";
+import Fiscal from "./pages/Fiscal";
+import Gantt from "./cotizador/pages/Gantt";
+import Maquinaria from "./cotizador/pages/Maquinaria";
+import Menu from "./cotizador/pages/Menu";
+import Clientes from "./pages/Clientes";
+import Presupuesto from "./cotizador/pages/Presupuesto";
+import Materiales from "./cotizador/pages/Materiales";
+import ManoObra from "./cotizador/pages/ManoObra";
+import AnalisisCostos from "./cotizador/pages/AnalisisCostos";
+import Certificado from "./cotizador/pages/Certificado";
+import CurvaInversion from "./cotizador/pages/CurvaInversion";
+import ListadoMateriales from "./cotizador/pages/ListadoMateriales";
+import ClientePortal from "./pages/ClientePortal";
+import PersonalPortal from "./pages/PersonalPortal";
+import AccesosClientes from "./pages/AccesosClientes";
 
-import Menu from './cotizador/pages/Menu';
-import Presupuesto from './cotizador/pages/Presupuesto';
-import Certificado from './cotizador/pages/Certificado';
-import Materiales from './cotizador/pages/Materiales';
-import ManoObra from './cotizador/pages/ManoObra';
-import AnalisisCostos from './cotizador/pages/AnalisisCostos';
-import './cotizador/index.css';
+const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://obras-backend-production.up.railway.app';
-const AuthContext = createContext(null);
-export const useAuth = () => useContext(AuthContext);
+const C = {
+  bg:"#f8f9fa", surface:"#ffffff", surface2:"#f1f3f5",
+  border:"#e0e0e8", border2:"#d0d0dc",
+  text:"#1a1a2e", muted:"#6b7280",
+  accent:"#059669", accent2:"#7c3aed", warn:"#d97706",
+  green:"#10b981", red:"#ef4444", blue:"#3b82f6",
+};
 
-/* ── Subscription blocked ─────────────────────────────────────────────────── */
+// ── Subscription wall ─────────────────────────────────────────────────────────
 function SuscripcionVencida({ suscripcion, onLogout }) {
   const [loading, setLoading] = useState(false);
-
   const handlePagar = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('obras_token');
-      const res = await fetch(`${API_URL}/suscripcion/crear-preferencia`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      const token = localStorage.getItem("obras_token");
+      const res = await fetch(`${API}/suscripcion/crear-preferencia`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
       });
       const data = await res.json();
       if (data.init_point) window.location.href = data.init_point;
-      else alert('Error al crear el pago. Contactá a soporte.');
-    } catch (e) { alert('Error de conexión.'); }
+      else alert("Error al crear el pago. Contactá a soporte.");
+    } catch (e) { alert("Error de conexión."); }
     setLoading(false);
   };
-
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: 'var(--sans)',
-      padding: '20px'
-    }}>
-      <div style={{
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: '16px',
-        padding: '48px',
-        maxWidth: '480px',
-        width: '100%',
-        textAlign: 'center',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.06)'
-      }}>
-        <div style={{ fontSize: '40px', marginBottom: '16px' }}>🔒</div>
-        <h2 style={{ color: 'var(--text)', fontSize: '22px', fontWeight: '800', margin: '0 0 6px 0', fontFamily: 'var(--sans)' }}>
-          FAIM OBRAS
-        </h2>
-        <p style={{ color: 'var(--muted)', marginBottom: '28px', fontSize: '14px' }}>
-          Tu período de prueba ha vencido
-        </p>
-
-        <div style={{
-          background: '#f0fdf4',
-          border: '1px solid #bbf7d0',
-          borderRadius: '12px',
-          padding: '20px',
-          margin: '0 0 24px 0'
-        }}>
-          <p style={{ color: 'var(--accent)', fontSize: '30px', fontWeight: '700', margin: '0 0 2px 0', fontFamily: 'var(--mono)' }}>
-            ${(suscripcion?.precio_mensual || 40000).toLocaleString('es-AR')}
-          </p>
-          <p style={{ color: 'var(--muted)', fontSize: '13px', margin: '0' }}>por mes · 2 usuarios incluidos</p>
+    <div style={{ background: C.bg, height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Syne', sans-serif" }}>
+      <div style={{ width: "100%", maxWidth: 440, background: C.surface, border: "1px solid " + C.border, borderRadius: 16, padding: 40, boxShadow: "0 4px 24px rgba(0,0,0,0.06)", textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
+        <div style={{ fontSize: 24, fontWeight: 800, color: C.accent, letterSpacing: "-1px", marginBottom: 4 }}>FAIM OBRAS</div>
+        <div style={{ fontSize: 12, color: C.muted, marginBottom: 28, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "2px" }}>PERÍODO DE PRUEBA VENCIDO</div>
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
+          <div style={{ fontSize: 28, fontWeight: 700, color: C.accent, fontFamily: "'IBM Plex Mono', monospace" }}>
+            ${(suscripcion?.precio_mensual || 40000).toLocaleString("es-AR")}
+          </div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>por mes · 2 usuarios incluidos</div>
         </div>
-
-        <ul style={{ textAlign: 'left', color: 'var(--text)', fontSize: '13px', margin: '0 0 28px 0', paddingLeft: '0', listStyle: 'none' }}>
-          {['Cotizador completo con catálogo actualizado','Certificados y control de avance','Panel financiero y Gantt','Múltiples presupuestos y clientes'].map(f => (
-            <li key={f} style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: 'var(--accent)', fontWeight: '700' }}>✓</span> {f}
-            </li>
+        <div style={{ textAlign: "left", marginBottom: 24 }}>
+          {["Cotizador completo con catálogo actualizado", "Certificados y control de avance", "Panel financiero y Gantt", "Múltiples presupuestos y clientes"].map(f => (
+            <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.text, marginBottom: 8 }}>
+              <span style={{ color: C.accent, fontWeight: 700 }}>✓</span> {f}
+            </div>
           ))}
-        </ul>
-
-        <button
-          onClick={handlePagar}
-          disabled={loading}
-          style={{
-            width: '100%', padding: '13px',
-            background: loading ? 'var(--border)' : 'var(--accent)',
-            color: 'white', border: 'none', borderRadius: '8px',
-            fontSize: '15px', fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer',
-            marginBottom: '12px', fontFamily: 'var(--sans)'
-          }}
-        >
-          {loading ? 'Procesando...' : 'Suscribirme con MercadoPago'}
+        </div>
+        <button onClick={handlePagar} disabled={loading} className="btn btn-primary" style={{ width: "100%", padding: 12, justifyContent: "center", fontSize: 15, marginBottom: 10, background: loading ? C.border : C.accent2, opacity: loading ? 0.7 : 1 }}>
+          {loading ? "Procesando..." : "Suscribirme con MercadoPago"}
         </button>
-        <button onClick={onLogout} style={{
-          background: 'none', border: 'none', color: 'var(--muted)',
-          cursor: 'pointer', fontSize: '13px', fontFamily: 'var(--sans)'
-        }}>
+        <button onClick={onLogout} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Syne', sans-serif" }}>
           Cerrar sesión
         </button>
       </div>
@@ -105,215 +75,252 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
   );
 }
 
-/* ── Trial banner ─────────────────────────────────────────────────────────── */
+// ── Trial banner ──────────────────────────────────────────────────────────────
 function TrialBanner({ diasRestantes }) {
   if (diasRestantes > 7) return null;
   return (
-    <div style={{
-      background: diasRestantes <= 2 ? '#fef2f2' : '#fffbeb',
-      borderBottom: `1px solid ${diasRestantes <= 2 ? '#fecaca' : '#fde68a'}`,
-      color: diasRestantes <= 2 ? 'var(--danger)' : 'var(--warn)',
-      textAlign: 'center', padding: '8px 16px',
-      fontSize: '13px', fontFamily: 'var(--sans)'
-    }}>
-      ⚠️ Te {diasRestantes === 1 ? 'queda' : 'quedan'} <strong>{diasRestantes} día{diasRestantes !== 1 ? 's' : ''}</strong> de prueba gratuita.
-      {diasRestantes <= 3 && ' Suscribite para no perder el acceso.'}
+    <div style={{ background: diasRestantes <= 2 ? "#fef2f2" : "#fffbeb", borderBottom: `1px solid ${diasRestantes <= 2 ? "#fecaca" : "#fde68a"}`, color: diasRestantes <= 2 ? C.red : C.warn, textAlign: "center", padding: "7px 16px", fontSize: 13, fontFamily: "'Syne', sans-serif" }}>
+      ⚠️ Te {diasRestantes === 1 ? "queda" : "quedan"} <strong>{diasRestantes} día{diasRestantes !== 1 ? "s" : ""}</strong> de prueba gratuita.
+      {diasRestantes <= 3 && " Suscribite para no perder el acceso."}
     </div>
   );
 }
 
-/* ── Login ────────────────────────────────────────────────────────────────── */
-function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+// ── Main app (identical to FIMA) ──────────────────────────────────────────────
+function AppInner({user, onLogout}) {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const isCotizador = location.pathname.startsWith("/cotizador");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    // tenant login
-    try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        await login(data.token, data.usuario, data.tenant);
-        navigate('/'); return;
-      }
-    } catch (e) {}
-    // admin login
-    try {
-      const res = await fetch(`${API_URL}/admin/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('obras_token', data.token);
-        localStorage.setItem('obras_session', JSON.stringify({ user: { email, rol: 'superadmin' }, isAdmin: true }));
-        navigate('/'); return;
-      }
-    } catch (e) {}
-    setError('Email o contraseña incorrectos');
-    setLoading(false);
-  };
+  const modules = [
+    { id:"finanzas", path:"/finanzas", icon:"💰", label:"Control Financiero", desc:"Ingresos, egresos y distribucion semanal", color:C.accent },
+    { id:"cotizador", path:"/cotizador", icon:"📋", label:"Cotizador", desc:"Presupuestos, analisis de costos y certificados", color:C.accent2 },
+    { id:"planner", path:"/planner", icon:"📅", label:"Planner", desc:"Tablero de tareas y calendario", color:C.warn },
+    { id:"fiscal", path:"/fiscal", icon:"🧾", label:"Gestion Fiscal", desc:"ARCA, facturacion y analisis fiscal", color:C.blue },
+    { id:"clientes", path:"/clientes", icon:"👥", label:"Clientes y Proyectos", desc:"Gestion de clientes, obras y contactos", color:C.green },
+    { id:"accesos", path:"/accesos-clientes", icon:"🔑", label:"Accesos de clientes", desc:"Gestionar portal de clientes", color:C.accent2 },
+  ];
 
-  const inputStyle = {
-    width: '100%', padding: '10px 12px',
-    background: 'var(--surface2)', border: '1px solid var(--border)',
-    borderRadius: '8px', color: 'var(--text)', fontSize: '14px',
-    boxSizing: 'border-box', outline: 'none', fontFamily: 'var(--sans)'
-  };
+  const currentModule = modules.find(m => location.pathname.startsWith(m.path));
 
   return (
-    <div style={{
-      minHeight: '100vh', background: 'var(--bg)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'var(--sans)', padding: '20px'
-    }}>
-      <div style={{
-        background: 'var(--surface)', border: '1px solid var(--border)',
-        borderRadius: '16px', padding: '48px', maxWidth: '400px', width: '100%',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.06)'
-      }}>
-        <h1 style={{ color: 'var(--text)', fontSize: '26px', fontWeight: '800', margin: '0 0 4px 0' }}>
-          FAIM OBRAS
-        </h1>
-        <p style={{ color: 'var(--muted)', fontSize: '13px', marginBottom: '32px' }}>
-          Gestión para estudios y empresas
-        </p>
-
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', color: 'var(--text)', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
+    <div style={{minHeight:"100vh", background:C.bg, color:C.text, fontFamily:"'Syne', sans-serif"}}>
+      {!isCotizador && (
+        <div className="header">
+          <div style={{display:"flex", alignItems:"center", gap:16}}>
+            <div onClick={()=>navigate("/")} className="header-logo" style={{cursor:"pointer"}}>
+              FAIM OBRAS
+              <span style={{marginLeft:8, fontSize:14, fontWeight:400, color:C.muted}}>
+                {currentModule ? "/ " + currentModule.label : "— Gestión para estudios y empresas"}
+              </span>
+            </div>
           </div>
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', color: 'var(--text)', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>Contraseña</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
+          <div style={{display:"flex", alignItems:"center", gap:12}}>
+            <div style={{width:32, height:32, borderRadius:"50%", background:C.surface2, border:"1px solid " + C.border2, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:C.accent, fontFamily:"'IBM Plex Mono', monospace"}}>
+              {user.email.slice(0,2).toUpperCase()}
+            </div>
+            <button onClick={onLogout} style={{fontSize:12, color:C.muted, background:"none", border:"none", cursor:"pointer", fontFamily:"'Syne', sans-serif"}}>Salir</button>
           </div>
-          {error && <p style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '16px', textAlign: 'center' }}>{error}</p>}
-          <button type="submit" disabled={loading} style={{
-            width: '100%', padding: '12px',
-            background: loading ? 'var(--border)' : 'var(--accent)',
-            color: 'white', border: 'none', borderRadius: '8px',
-            fontSize: '15px', fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer',
-            fontFamily: 'var(--sans)'
-          }}>
-            {loading ? 'Ingresando...' : 'Ingresar'}
-          </button>
-        </form>
-      </div>
+        </div>
+      )}
+      <Routes>
+        <Route path="/" element={
+          <div style={{maxWidth:640, margin:"0 auto", padding:"clamp(24px, 5vw, 48px) clamp(16px, 4vw, 24px)"}}>
+            <div style={{marginBottom:"clamp(24px, 5vw, 40px)"}}>
+              <div style={{fontSize:"clamp(20px, 5vw, 28px)", fontWeight:800, letterSpacing:"-0.5px", marginBottom:6}}>Bienvenido, {user.nombre || user.email.split("@")[0]}</div>
+              <div style={{fontSize:14, color:C.muted}}>¿Con qué querés trabajar hoy?</div>
+            </div>
+            <div style={{display:"flex", flexDirection:"column", gap:10}}>
+              {modules.map(m=>(
+                <button key={m.id} onClick={()=>navigate(m.path)}
+                  style={{background:C.surface, border:"1px solid " + C.border, boxShadow:"0 1px 3px rgba(0,0,0,0.06)", borderRadius:10, padding:"clamp(14px, 3vw, 18px) clamp(14px, 3vw, 20px)", cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:16, width:"100%"}}>
+                  <div style={{width:44, height:44, borderRadius:8, background:C.surface2, border:"1px solid " + C.border2, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0}}>{m.icon}</div>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontSize:"clamp(14px, 3.5vw, 16px)", fontWeight:700, color:C.text, marginBottom:3}}>{m.label}</div>
+                    <div style={{fontSize:"clamp(11px, 2.8vw, 13px)", color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{m.desc}</div>
+                  </div>
+                  <div style={{color:m.color, fontSize:18, fontWeight:700, flexShrink:0}}>→</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        }/>
+        <Route path="/finanzas/*" element={<ControlFinanciero user={user} />}/>
+        <Route path="/cotizador" element={<Menu />}/>
+        <Route path="/cotizador/presupuesto/:id" element={<Presupuesto />}/>
+        <Route path="/cotizador/materiales" element={<Materiales />}/>
+        <Route path="/cotizador/mano-obra" element={<ManoObra />}/>
+        <Route path="/cotizador/analisis-costos" element={<AnalisisCostos />}/>
+        <Route path="/cotizador/presupuesto/:id/certificado" element={<Certificado />}/>
+        <Route path="/cotizador/gantt/:id" element={<Gantt />}/>
+        <Route path="/cotizador/presupuesto/:id/curva" element={<CurvaInversion />}/>
+        <Route path="/cotizador/presupuesto/:id/materiales" element={<ListadoMateriales />}/>
+        <Route path="/cotizador/maquinaria" element={<Maquinaria />}/>
+        <Route path="/planner/*" element={<Planner user={user} />}/>
+        <Route path="/fiscal/*" element={<Fiscal user={user} />}/>
+        <Route path="/clientes/*" element={<Clientes user={user} />}/>
+        <Route path="/accesos-clientes" element={<AccesosClientes user={user} />}/>
+      </Routes>
     </div>
   );
 }
 
-/* ── Auth Provider ────────────────────────────────────────────────────────── */
-function AuthProvider({ children }) {
+export default function App() {
   const [user, setUser] = useState(null);
-  const [tenant, setTenant] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [suscripcion, setSuscripcion] = useState(null);
-  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [clienteInfo, setClienteInfo] = useState(null);
+  const [estudioInfo, setEstudioInfo] = useState(null);
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [error, setError] = useState("");
 
   const checkSuscripcion = async (token) => {
     try {
-      const res = await fetch(`${API_URL}/suscripcion/estado`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch(`${API}/suscripcion/estado`, {
+        headers: { "Authorization": `Bearer ${token}` }
       });
-      if (res.ok) { const data = await res.json(); setSuscripcion(data); return data; }
+      if (res.ok) { const data = await res.json(); setSuscripcion(data); }
     } catch (e) {}
-    return null;
   };
 
-  useEffect(() => {
+  useEffect(()=>{
     const restore = async () => {
-      const token = localStorage.getItem('obras_token');
-      const sessionStr = localStorage.getItem('obras_session');
-      if (!token || !sessionStr) { setLoadingAuth(false); return; }
-      try {
-        const session = JSON.parse(sessionStr);
-        setUser(session.user);
-        setTenant(session.tenant);
-        await checkSuscripcion(token);
-      } catch (e) {
-        localStorage.removeItem('obras_token');
-        localStorage.removeItem('obras_session');
+      const savedSession = localStorage.getItem("obras_session");
+      const savedCliente = localStorage.getItem("obras_cliente");
+      const savedEstudio = localStorage.getItem("obras_estudio");
+      const token = localStorage.getItem("obras_token");
+
+      if (savedCliente) {
+        try {
+          const ci = JSON.parse(savedCliente);
+          if (ci?.email && ci?.cliente_id) { setClienteInfo(ci); setUser({ email: ci.email, nombre: ci.nombre }); setLoading(false); return; }
+        } catch { localStorage.removeItem("obras_cliente"); }
       }
-      setLoadingAuth(false);
+      if (savedEstudio) {
+        try {
+          const ei = JSON.parse(savedEstudio);
+          if (ei?.email && ei?.rol) { setEstudioInfo(ei); setUser({ email: ei.email, nombre: ei.nombre, rol: ei.rol }); setLoading(false); return; }
+        } catch { localStorage.removeItem("obras_estudio"); }
+      }
+      if (savedSession && token) {
+        try {
+          const s = JSON.parse(savedSession);
+          if (s?.user && s?.token) {
+            setUser(s.user);
+            await checkSuscripcion(token);
+            setLoading(false);
+            return;
+          }
+        } catch { localStorage.removeItem("obras_session"); }
+      }
+      setLoading(false);
     };
     restore();
-  }, []);
+  },[]);
 
-  const login = async (token, userData, tenantData) => {
-    localStorage.setItem('obras_token', token);
-    localStorage.setItem('obras_session', JSON.stringify({ user: userData, tenant: tenantData, token }));
-    setUser(userData);
-    setTenant(tenantData);
-    await checkSuscripcion(token);
+  const login = async () => {
+    setError("");
+    const emailLower = email.toLowerCase().trim();
+
+    try {
+      const res = await fetch(`${API}/cliente/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
+      if (res.ok) {
+        const data = await res.json();
+        const ci = { cliente_id: data.cliente_id, nombre: data.nombre, email: data.email };
+        localStorage.setItem("obras_cliente", JSON.stringify(ci));
+        setClienteInfo(ci); setUser({ email: data.email, nombre: data.nombre }); return;
+      }
+    } catch {}
+
+    try {
+      const res = await fetch(`${API}/estudio/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
+      if (res.ok) {
+        const data = await res.json();
+        const ei = { nombre: data.nombre, rol: data.rol, presupuestos_asignados: data.presupuestos_asignados, email: data.email };
+        localStorage.setItem("obras_estudio", JSON.stringify(ei));
+        setEstudioInfo(ei); setUser({ email: data.email, nombre: data.nombre, rol: data.rol }); return;
+      }
+    } catch {}
+
+    try {
+      const res = await fetch(`${API}/auth/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
+      if (res.ok) {
+        const data = await res.json();
+        const token = data.token;
+        localStorage.setItem("obras_token", token);
+        localStorage.setItem("obras_session", JSON.stringify({ user: data.usuario, tenant: data.tenant, token }));
+        setUser(data.usuario);
+        await checkSuscripcion(token);
+        return;
+      }
+    } catch {}
+
+    setError("Email o contraseña incorrectos");
   };
 
-  const logout = () => {
-    localStorage.removeItem('obras_token');
-    localStorage.removeItem('obras_session');
-    setUser(null); setTenant(null); setSuscripcion(null);
+  const handleLogout = () => {
+    localStorage.removeItem("obras_token");
+    localStorage.removeItem("obras_session");
+    localStorage.removeItem("obras_cliente");
+    localStorage.removeItem("obras_estudio");
+    setUser(null); setClienteInfo(null); setEstudioInfo(null); setSuscripcion(null);
   };
 
-  return (
-    <AuthContext.Provider value={{ user, tenant, suscripcion, loadingAuth, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+  if (loading) return (
+    <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#059669",fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800}}>
+      FAIM OBRAS
+    </div>
   );
-}
 
-/* ── App Content ──────────────────────────────────────────────────────────── */
-function AppContent() {
-  const { user, suscripcion, loadingAuth, logout } = useAuth();
-
-  if (loadingAuth) {
-    return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--sans)' }}>
-        <span style={{ color: 'var(--muted)', fontSize: '14px' }}>Cargando...</span>
+  // Login screen
+  if (!user) return (
+    <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Syne',sans-serif"}}>
+      <div style={{width:"100%",maxWidth:360}}>
+        <div style={{fontSize:42,fontWeight:800,color:"#059669",letterSpacing:"-1px",marginBottom:4}}>FAIM OBRAS</div>
+        <div style={{fontSize:12,color:"#6b7280",marginBottom:40,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"2px"}}>GESTIÓN PARA ESTUDIOS Y EMPRESAS</div>
+        <div style={{marginBottom:14}}>
+          <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Email</label>
+          <input value={email} onChange={e=>setEmail(e.target.value)} type="email" className="input" style={{width:"100%",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Contraseña</label>
+          <input value={pass} onChange={e=>setPass(e.target.value)} type="password" className="input" style={{width:"100%",boxSizing:"border-box"}} onKeyDown={e=>e.key==="Enter"&&login()}/>
+        </div>
+        {error&&<div style={{fontSize:13,color:"#f87171",marginBottom:12,textAlign:"center"}}>{error}</div>}
+        <button onClick={login} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center"}}>Ingresar</button>
       </div>
+    </div>
+  );
+
+  // Subscription wall — only for JWT users
+  if (user && suscripcion && suscripcion.trial_vencido) {
+    return <SuscripcionVencida suscripcion={suscripcion} onLogout={handleLogout} />;
+  }
+
+  // Trial banner wrapper
+  const banner = suscripcion && suscripcion.en_trial ? <TrialBanner diasRestantes={suscripcion.dias_restantes} /> : null;
+
+  if (clienteInfo) {
+    return <ClientePortal user={user} clienteId={clienteInfo.cliente_id} clienteNombre={clienteInfo.nombre} onLogout={handleLogout} />;
+  }
+
+  if (estudioInfo) {
+    if (estudioInfo.rol === "personal") {
+      return <PersonalPortal user={user} userInfo={estudioInfo} onLogout={handleLogout} />;
+    }
+    return (
+      <BrowserRouter>
+        {banner}
+        <AppInner user={{ ...user, rol: estudioInfo.rol, nombre: estudioInfo.nombre }} onLogout={handleLogout} />
+      </BrowserRouter>
     );
   }
 
-  if (!user) {
-    return <Routes><Route path="*" element={<LoginPage />} /></Routes>;
-  }
-
-  if (suscripcion && suscripcion.trial_vencido) {
-    return <SuscripcionVencida suscripcion={suscripcion} onLogout={logout} />;
-  }
-
-  return (
-    <>
-      {suscripcion && suscripcion.en_trial && <TrialBanner diasRestantes={suscripcion.dias_restantes} />}
-      <Routes>
-        <Route path="/" element={<Menu />} />
-        <Route path="/presupuesto/:id" element={<Presupuesto />} />
-        <Route path="/presupuesto/:id/certificado" element={<Certificado />} />
-        <Route path="/materiales" element={<Materiales />} />
-        <Route path="/mano-obra" element={<ManoObra />} />
-        <Route path="/analisis" element={<AnalisisCostos />} />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </>
-  );
-}
-
-/* ── Root ─────────────────────────────────────────────────────────────────── */
-export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      {banner}
+      <AppInner user={user} onLogout={handleLogout} />
     </BrowserRouter>
   );
 }
