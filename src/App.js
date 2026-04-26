@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
+import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
 import Planner from "./pages/Planner";
 import Fiscal from "./pages/Fiscal";
@@ -88,18 +89,21 @@ function TrialBanner({ diasRestantes }) {
 }
 
 // ── Main app (identical to FIMA) ──────────────────────────────────────────────
-function AppInner({user, onLogout}) {
+function AppInner({user, tenant, onLogout}) {
   const navigate = useNavigate();
   const location = useLocation();
   const isCotizador = location.pathname.startsWith("/cotizador");
+  const nombreMarca = tenant?.nombre || "FAIM OBRAS";
+  const logoUrl = tenant?.logo_url || null;
+  const colorAccent = tenant?.color_primario || C.accent;
 
   const modules = [
-    { id:"finanzas", path:"/finanzas", icon:"💰", label:"Control Financiero", desc:"Ingresos, egresos y distribucion semanal", color:C.accent },
     { id:"cotizador", path:"/cotizador", icon:"📋", label:"Cotizador", desc:"Presupuestos, analisis de costos y certificados", color:C.accent2 },
+    { id:"finanzas", path:"/finanzas", icon:"💰", label:"Control Financiero", desc:"Ingresos, egresos y distribucion semanal", color:C.accent },
     { id:"planner", path:"/planner", icon:"📅", label:"Planner", desc:"Tablero de tareas y calendario", color:C.warn },
-    { id:"fiscal", path:"/fiscal", icon:"🧾", label:"Gestion Fiscal", desc:"ARCA, facturacion y analisis fiscal", color:C.blue },
     { id:"clientes", path:"/clientes", icon:"👥", label:"Clientes y Proyectos", desc:"Gestion de clientes, obras y contactos", color:C.green },
     { id:"accesos", path:"/accesos-clientes", icon:"🔑", label:"Accesos de clientes", desc:"Gestionar portal de clientes", color:C.accent2 },
+    { id:"config", path:"/config", icon:"⚙️", label:"Configuración", desc:"Logo, nombre y datos del estudio", color:C.muted },
   ];
 
   const currentModule = modules.find(m => location.pathname.startsWith(m.path));
@@ -109,10 +113,13 @@ function AppInner({user, onLogout}) {
       {!isCotizador && (
         <div className="header">
           <div style={{display:"flex", alignItems:"center", gap:16}}>
-            <div onClick={()=>navigate("/")} className="header-logo" style={{cursor:"pointer"}}>
-              FAIM OBRAS
-              <span style={{marginLeft:8, fontSize:14, fontWeight:400, color:C.muted}}>
-                {currentModule ? "/ " + currentModule.label : "— Gestión para estudios y empresas"}
+            <div onClick={()=>navigate("/")} className="header-logo" style={{cursor:"pointer", display:"flex", alignItems:"center", gap:10}}>
+              {logoUrl
+                ? <img src={logoUrl} alt="logo" style={{height:28, objectFit:"contain"}} />
+                : <span style={{color:colorAccent}}>{nombreMarca}</span>
+              }
+              <span style={{fontSize:14, fontWeight:400, color:C.muted}}>
+                {currentModule ? "/ " + currentModule.label : ""}
               </span>
             </div>
           </div>
@@ -161,6 +168,7 @@ function AppInner({user, onLogout}) {
         <Route path="/fiscal/*" element={<Fiscal user={user} />}/>
         <Route path="/clientes/*" element={<Clientes user={user} />}/>
         <Route path="/accesos-clientes" element={<AccesosClientes user={user} />}/>
+        <Route path="/config" element={<ConfigCuenta user={user} />}/>
       </Routes>
     </div>
   );
@@ -405,7 +413,7 @@ export default function App() {
     return (
       <BrowserRouter>
         {banner}
-        <AppInner user={{ ...user, rol: estudioInfo.rol, nombre: estudioInfo.nombre }} onLogout={handleLogout} />
+        <AppInner user={{ ...user, rol: estudioInfo.rol, nombre: estudioInfo.nombre }} tenant={tenant} onLogout={handleLogout} />
       </BrowserRouter>
     );
   }
@@ -413,7 +421,7 @@ export default function App() {
   return (
     <BrowserRouter>
       {banner}
-      <AppInner user={user} onLogout={handleLogout} />
+      <AppInner user={user} tenant={tenant} onLogout={handleLogout} />
     </BrowserRouter>
   );
 }
