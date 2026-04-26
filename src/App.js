@@ -250,8 +250,9 @@ export default function App() {
         const token = data.token;
         localStorage.setItem("obras_token", token);
         localStorage.setItem("obras_session", JSON.stringify({ user: data.usuario, tenant: data.tenant, token }));
-        setUser(data.usuario);
+        // Check subscription BEFORE setting user to prevent premature render
         await checkSuscripcion(token);
+        setUser(data.usuario);
         return;
       }
     } catch {}
