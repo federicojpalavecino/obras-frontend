@@ -200,7 +200,13 @@ export default function App() {
       if (savedEstudio) {
         try {
           const ei = JSON.parse(savedEstudio);
-          if (ei?.email && ei?.rol) { setEstudioInfo(ei); setUser({ email: ei.email, nombre: ei.nombre, rol: ei.rol }); setLoading(false); return; }
+          if (ei?.email && ei?.rol) {
+            setEstudioInfo(ei);
+            setUser({ email: ei.email, nombre: ei.nombre, rol: ei.rol });
+            const token = localStorage.getItem("obras_token");
+            if (token) await checkSuscripcion(token);
+            setLoading(false); return;
+          }
         } catch { localStorage.removeItem("obras_estudio"); }
       }
       if (savedSession && token) {
@@ -239,6 +245,11 @@ export default function App() {
         const data = await res.json();
         const ei = { nombre: data.nombre, rol: data.rol, presupuestos_asignados: data.presupuestos_asignados, email: data.email };
         localStorage.setItem("obras_estudio", JSON.stringify(ei));
+        // Check subscription using the token from estudio login
+        if (data.token) {
+          localStorage.setItem("obras_token", data.token);
+          await checkSuscripcion(data.token);
+        }
         setEstudioInfo(ei); setUser({ email: data.email, nombre: data.nombre, rol: data.rol }); return;
       }
     } catch {}
