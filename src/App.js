@@ -273,6 +273,16 @@ export default function App() {
       }
     } catch {}
 
+    try {
+      const res = await fetch(`${API}/admin/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem("obras_admin_token", data.token);
+        window.location.href = "/admin-panel";
+        return;
+      }
+    } catch {}
+
     setError("Email o contraseña incorrectos");
   };
 
