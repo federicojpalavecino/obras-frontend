@@ -176,6 +176,7 @@ function AppInner({user, tenant, onLogout}) {
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [suscripcion, setSuscripcion] = useState(null);
   const [clienteInfo, setClienteInfo] = useState(null);
@@ -227,6 +228,7 @@ export default function App() {
           const s = JSON.parse(savedSession);
           if (s?.user && s?.token) {
             setUser(s.user);
+            if (s.tenant) setTenant(s.tenant);
             await checkSuscripcion(token);
             setLoading(false);
             return;
@@ -274,9 +276,9 @@ export default function App() {
         const token = data.token;
         localStorage.setItem("obras_token", token);
         localStorage.setItem("obras_session", JSON.stringify({ user: data.usuario, tenant: data.tenant, token }));
-        // Check subscription BEFORE setting user to prevent premature render
-        await checkSuscripcion(token);
         setUser(data.usuario);
+        if (data.tenant) setTenant(data.tenant);
+        await checkSuscripcion(token);
         return;
       }
     } catch {}
@@ -311,6 +313,7 @@ export default function App() {
         const userData = data.usuario || { email: email.toLowerCase().trim(), nombre: regNombre.trim(), rol: "admin" };
         localStorage.setItem("obras_token", token);
         localStorage.setItem("obras_session", JSON.stringify({ user: userData, tenant: data.tenant, token }));
+        if (data.tenant) setTenant(data.tenant);
         await checkSuscripcion(token);
         setUser(userData);
       } else {
@@ -325,7 +328,7 @@ export default function App() {
     localStorage.removeItem("obras_session");
     localStorage.removeItem("obras_cliente");
     localStorage.removeItem("obras_estudio");
-    setUser(null); setClienteInfo(null); setEstudioInfo(null); setSuscripcion(null);
+    setUser(null); setClienteInfo(null); setEstudioInfo(null); setSuscripcion(null); setTenant(null);
   };
 
   // Super admin panel — ruta directa
