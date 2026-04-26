@@ -36,7 +36,7 @@ function Suscripcion({ user, onLogout }) {
 
   useEffect(() => {
     const token = localStorage.getItem("obras_token");
-    fetch(`${API}/suscripcion/estado`, { headers: { Authorization: `Bearer ${token}` } })
+    setSuscripcionLoading(true); fetch(`${API}/suscripcion/estado`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(setEstado).catch(() => {});
   }, []);
 
@@ -203,6 +203,7 @@ export default function App() {
   const [clienteInfo, setClienteInfo] = useState(null);
   const [estudioInfo, setEstudioInfo] = useState(null);
   const [suscripcion, setSuscripcion] = useState(null);
+  const [suscripcionLoading, setSuscripcionLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
@@ -241,7 +242,7 @@ export default function App() {
     if (!user) return;
     const token = localStorage.getItem("obras_token");
     if (!token) return;
-    fetch(`${API}/suscripcion/estado`, { headers: { Authorization: `Bearer ${token}` } })
+    setSuscripcionLoading(true); fetch(`${API}/suscripcion/estado`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setSuscripcion(data); })
       .catch(() => {});
@@ -300,7 +301,7 @@ export default function App() {
   );
 
   // Trial vencido — mostrar página de suscripción
-  if (suscripcion?.trial_vencido && !clienteInfo && !estudioInfo) {
+  if (!suscripcionLoading && suscripcion?.trial_vencido && !clienteInfo && !estudioInfo) {
     return <Suscripcion user={user} onLogout={handleLogout} />;
   }
 
