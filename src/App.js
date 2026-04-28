@@ -116,7 +116,7 @@ function AppInner({user, tenant, onLogout}) {
             <div onClick={()=>navigate("/")} className="header-logo" style={{cursor:"pointer", display:"flex", alignItems:"center", gap:10}}>
               {logoUrl
                 ? <img src={logoUrl} alt="logo" style={{height:28, objectFit:"contain"}} />
-                : <span style={{color:colorAccent}}>{nombreMarca}</span>
+                : <span>{nombreMarca}</span>
               }
               <span style={{fontSize:14, fontWeight:400, color:C.muted}}>
                 {currentModule ? "/ " + currentModule.label : ""}
