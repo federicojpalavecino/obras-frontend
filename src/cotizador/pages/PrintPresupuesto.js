@@ -14,6 +14,10 @@ export default function PrintPresupuesto({ data, modo }) {
   const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
   const cerrado = data.estado === 'cerrado';
   const esComercial = modo === 'comercial';
+  // Tenant info from session
+  const _session = (() => { try { return JSON.parse(localStorage.getItem('obras_session') || '{}'); } catch { return {}; } })();
+  const tenantNombre = _session?.tenant?.nombre || 'FAIM OBRAS';
+  const tenantLogo = _session?.tenant?.logo_url || null;
 
   return (
     <div className="print-container" style={{ background: 'white', color: '#111', fontFamily: 'Arial, sans-serif' }}>
@@ -22,7 +26,11 @@ export default function PrintPresupuesto({ data, modo }) {
       <div className="print-header">
         <div className="print-header-top">
           <div>
-            <div className="print-empresa">Fima Arquitectura</div>
+            <div className="print-empresa">
+              {tenantLogo
+                ? <img src={tenantLogo} alt="logo" style={{ height: 32, objectFit: 'contain', marginBottom: 4 }} />
+                : tenantNombre}
+            </div>
             <div className="print-titulo">
               {esComercial ? 'Presupuesto' : 'Presupuesto de ejecución (uso interno)'}
             </div>
@@ -179,7 +187,7 @@ export default function PrintPresupuesto({ data, modo }) {
 
       {/* PIE */}
       <div className="print-footer" style={{ background: 'white', color: '#888' }}>
-        <span>Fima Arquitectura — {hoy}</span>
+        <span>{tenantNombre} — {hoy}</span>
         <span>{data.nombre_obra}{data.ubicacion ? ` · ${data.ubicacion}` : ''}</span>
       </div>
     </div>
