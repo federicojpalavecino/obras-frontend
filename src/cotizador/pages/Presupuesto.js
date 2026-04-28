@@ -468,12 +468,6 @@ export default function Presupuesto() {
     const coefs = !esComercial ? `<div class="coefs"><b>Coeficientes:</b> K Mat: ${coeficientes?.k_materiales} · K MO: ${coeficientes?.k_mano_obra} · K Maq: ${coeficientes?.k_maquinaria} · GG: ${coeficientes?.gg_porcentaje}% · Ben: ${coeficientes?.ben_porcentaje}% · IVA: ${coeficientes?.iva_porcentaje}%</div>` : '';
     const firma = esComercial ? `<div class="firma"><div class="firma-linea">Firma y sello</div></div>` : '';
 
-    // Get tenant info
-    const _sess = (() => { try { return JSON.parse(localStorage.getItem('obras_session') || '{}'); } catch { return {}; } })();
-    const _tenantNombre = _sess?.tenant?.nombre || 'FAIM OBRAS';
-    const _tenantLogo = _sess?.tenant?.logo_url || null;
-    const _empresaHTML = _tenantLogo ? `<img src="${_tenantLogo}" style="height:32px;object-fit:contain" />` : _tenantNombre;
-
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esComercial ? 'Presupuesto' : 'Presupuesto Interno'} — ${data.nombre_obra}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -515,7 +509,7 @@ footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;ju
 </style></head><body>
 <div class="top">
   <div>
-    <div class="empresa">${_empresaHTML}</div>
+    <div class="empresa">Fima Arquitectura</div>
     <div class="titulo">${esComercial ? 'Presupuesto' : 'Presupuesto de ejecución (uso interno)'}</div>
     <div class="datos"><strong>Obra:</strong> ${data.nombre_obra}${data.ubicacion ? ' &nbsp;·&nbsp; <strong>Ubicación:</strong> ' + data.ubicacion : ''}</div>
     ${esComercial ? `<div class="datos" style="margin-top:4px"><strong>Vigencia:</strong> ${data.dias_vigencia || coefs?.dias_vigencia || 30} días desde la fecha</div>` : ''}
@@ -541,7 +535,7 @@ footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;ju
 ${coefs}
 ${observaciones ? '<div style="margin-top:20px;padding:12px 16px;border:1px solid #e0e0e8;border-radius:6px;page-break-inside:avoid"><div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-bottom:6px">Observaciones</div><div style="font-size:10pt;color:#1a1a2e;white-space:pre-wrap">' + observaciones + '</div></div>' : ''}
 ${firma}
-<footer><span>${_tenantNombre} — ${hoy}</span><span>${data.nombre_obra}${data.ubicacion ? ' · ' + data.ubicacion : ''}</span></footer>
+<footer><span>Fima Arquitectura — ${hoy}</span><span>${data.nombre_obra}${data.ubicacion ? ' · ' + data.ubicacion : ''}</span></footer>
 </body></html>`;
 
     const blob = new Blob([html], { type: 'text/html' });
@@ -554,9 +548,9 @@ ${firma}
   const handleRenombrarLinea = async (lineaId, nuevoNombre) => {
     if (!nuevoNombre || !nuevoNombre.trim()) { setEditandoNombreId(null); return; }
     try {
-      const res = await fetch(`https://fima-backend-production.up.railway.app/presupuestos/${id}/lineas/${lineaId}`, {
+      const res = await fetch(`https://obras-backend-production.up.railway.app/presupuestos/${id}/lineas/${lineaId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('obras_token')}` },
         body: JSON.stringify({ nombre_override: nuevoNombre.trim() }),
       });
       if (!res.ok) {
@@ -579,9 +573,9 @@ ${firma}
     try {
       await Promise.all(
         rubro.lineas.map(l =>
-          fetch(`https://fima-backend-production.up.railway.app/presupuestos/${id}/lineas/${l.id}`, {
+          fetch(`https://obras-backend-production.up.railway.app/presupuestos/${id}/lineas/${l.id}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('obras_token')}` },
             body: JSON.stringify({ categoria_nombre: nuevoNombre.trim() }),
           })
         )
@@ -615,7 +609,7 @@ ${firma}
         {/* HEADER — responsive */}
         <div className="header" style={{ flexWrap: 'wrap', gap: 6, minHeight: 'auto', padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')}>FIMA</span>
+            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')}>{(() => { try { const s=JSON.parse(localStorage.getItem('obras_session')||'{}'); return s?.tenant?.nombre||'FAIM OBRAS'; } catch(e){return 'FAIM OBRAS';} })()}</span>
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/cotizador')} style={{ flexShrink: 0 }}>
               <ArrowLeft size={14} />
             </button>
