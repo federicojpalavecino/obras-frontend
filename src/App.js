@@ -116,7 +116,7 @@ function AppInner({user, tenant, onLogout}) {
             <div onClick={()=>navigate("/")} className="header-logo" style={{cursor:"pointer", display:"flex", alignItems:"center", gap:10}}>
               {logoUrl
                 ? <img src={logoUrl} alt="logo" style={{height:28, objectFit:"contain"}} />
-                : <span>{nombreMarca}</span>
+                : <span style={{color:colorAccent}}>{nombreMarca}</span>
               }
               <span style={{fontSize:14, fontWeight:400, color:C.muted}}>
                 {currentModule ? "/ " + currentModule.label : ""}
@@ -230,6 +230,19 @@ export default function App() {
             setUser(s.user);
             if (s.tenant) setTenant(s.tenant);
             await checkSuscripcion(token);
+            // Refresh tenant data from server to get latest nombre/logo
+            try {
+              const tr = await fetch((process.env.REACT_APP_API_URL || 'https://obras-backend-production.up.railway.app') + '/tenant', {
+                headers: { Authorization: 'Bearer ' + token }
+              });
+              if (tr.ok) {
+                const td = await tr.json();
+                setTenant(td);
+                const ns = JSON.parse(localStorage.getItem('obras_session') || '{}');
+                ns.tenant = td;
+                localStorage.setItem('obras_session', JSON.stringify(ns));
+              }
+            } catch(e) {}
             setLoading(false);
             return;
           }
