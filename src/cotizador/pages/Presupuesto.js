@@ -468,6 +468,11 @@ export default function Presupuesto() {
     const coefs = !esComercial ? `<div class="coefs"><b>Coeficientes:</b> K Mat: ${coeficientes?.k_materiales} · K MO: ${coeficientes?.k_mano_obra} · K Maq: ${coeficientes?.k_maquinaria} · GG: ${coeficientes?.gg_porcentaje}% · Ben: ${coeficientes?.ben_porcentaje}% · IVA: ${coeficientes?.iva_porcentaje}%</div>` : '';
     const firma = esComercial ? `<div class="firma"><div class="firma-linea">Firma y sello</div></div>` : '';
 
+    const _sess2 = (() => { try { return JSON.parse(localStorage.getItem('obras_session') || '{}'); } catch { return {}; } })();
+    const _tenantNombre2 = _sess2?.tenant?.nombre || 'FAIM OBRAS';
+    const _tenantLogo2 = _sess2?.tenant?.logo_url || null;
+    const _empresaHTML = _tenantLogo2 ? '<img src="' + _tenantLogo2 + '" style="height:32px;object-fit:contain" />' : _tenantNombre2;
+
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esComercial ? 'Presupuesto' : 'Presupuesto Interno'} — ${data.nombre_obra}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -509,7 +514,7 @@ footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;ju
 </style></head><body>
 <div class="top">
   <div>
-    <div class="empresa">Fima Arquitectura</div>
+    <div class="empresa">${_empresaHTML}</div>
     <div class="titulo">${esComercial ? 'Presupuesto' : 'Presupuesto de ejecución (uso interno)'}</div>
     <div class="datos"><strong>Obra:</strong> ${data.nombre_obra}${data.ubicacion ? ' &nbsp;·&nbsp; <strong>Ubicación:</strong> ' + data.ubicacion : ''}</div>
     ${esComercial ? `<div class="datos" style="margin-top:4px"><strong>Vigencia:</strong> ${data.dias_vigencia || coefs?.dias_vigencia || 30} días desde la fecha</div>` : ''}
@@ -535,7 +540,7 @@ footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;ju
 ${coefs}
 ${observaciones ? '<div style="margin-top:20px;padding:12px 16px;border:1px solid #e0e0e8;border-radius:6px;page-break-inside:avoid"><div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-bottom:6px">Observaciones</div><div style="font-size:10pt;color:#1a1a2e;white-space:pre-wrap">' + observaciones + '</div></div>' : ''}
 ${firma}
-<footer><span>Fima Arquitectura — ${hoy}</span><span>${data.nombre_obra}${data.ubicacion ? ' · ' + data.ubicacion : ''}</span></footer>
+<footer><span>${_tenantNombre2} — ${hoy}</span><span>${data.nombre_obra}${data.ubicacion ? ' · ' + data.ubicacion : ''}</span></footer>
 </body></html>`;
 
     const blob = new Blob([html], { type: 'text/html' });
