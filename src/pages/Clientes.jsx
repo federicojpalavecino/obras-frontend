@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const sb = createClient('https://bomxksdisszrhhsctowd.supabase.co','sb_publishable_mMVi2QnQ2kHRY6nwCeg4lQ_aOG9Kvg2');
-const API = 'https://fima-backend-production.up.railway.app';
+const API = 'https://obras-backend-production.up.railway.app';
+const getToken = () => localStorage.getItem('obras_token') || '';
+const authHeaders = () => ({'Content-Type':'application/json','Authorization':`Bearer ${getToken()}`});
 
 const C = {
   bg:'#f8f9fa', surface:'#ffffff', surface2:'#f1f3f5',
@@ -47,7 +49,7 @@ export default function Clientes({user}) {
 
   const cargarTodo = async () => {
     const [cRes, pRes] = await Promise.all([
-      fetch(`${API}/clientes`).then(r=>r.json()).catch(()=>({clientes:[]})),
+      fetch(`${API}/clientes`, {headers: authHeaders()}).then(r=>r.json()).catch(()=>[]),
       sb.from('proyectos').select('*').order('nombre'),
     ]);
     setClientes(cRes.clientes || cRes || []);
@@ -58,9 +60,9 @@ export default function Clientes({user}) {
   const guardarCliente = async (form) => {
     try {
       if(form.id) {
-        await fetch(`${API}/clientes/${form.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form) });
+        await fetch(`${API}/clientes/${form.id}`, { method:'PUT', headers: authHeaders(), body:JSON.stringify(form) });
       } else {
-        await fetch(`${API}/clientes`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form) });
+        await fetch(`${API}/clientes`, { method:'POST', headers: authHeaders(), body:JSON.stringify(form) });
       }
       setModalCliente(null);
       showToast('✓ Cliente guardado');
@@ -70,7 +72,7 @@ export default function Clientes({user}) {
 
   const eliminarCliente = async (id) => {
     if(!window.confirm('¿Eliminar cliente?')) return;
-    await fetch(`${API}/clientes/${id}`, {method:'DELETE'});
+    await fetch(`${API}/clientes/${id}`, {method:'DELETE', headers: authHeaders()});
     showToast('✓ Eliminado');
     cargarTodo();
   };

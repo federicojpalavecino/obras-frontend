@@ -19,6 +19,7 @@ import ListadoMateriales from "./cotizador/pages/ListadoMateriales";
 import ClientePortal from "./pages/ClientePortal";
 import PersonalPortal from "./pages/PersonalPortal";
 import AccesosClientes from "./pages/AccesosClientes";
+import Landing from "./pages/Landing";
 
 const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
 
@@ -366,6 +367,8 @@ export default function App() {
   );
 
   // Login / Registro screen
+  // Show landing if accessing root without being logged in
+  if (!user && window.location.pathname === '/landing') return <BrowserRouter><Landing /></BrowserRouter>;
   if (!user) return (
     <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Syne',sans-serif"}}>
       <div style={{width:"100%",maxWidth:360}}>

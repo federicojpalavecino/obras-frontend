@@ -8,6 +8,75 @@ const C = {
   accent:"#059669", accent2:"#7c3aed", red:"#ef4444",
 };
 
+
+function UsuariosSection({ token }) {
+  const [usuarios, setUsuarios] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [form, setForm] = React.useState({ nombre:'', email:'', password:'', rol:'admin' });
+  const [msg, setMsg] = React.useState('');
+  const headers = { 'Content-Type':'application/json', Authorization: `Bearer ${token}` };
+
+  const cargar = () => {
+    fetch(`${API}/estudio/usuarios`, { headers })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { setUsuarios(Array.isArray(d) ? d : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+
+  React.useEffect(() => { cargar(); }, []);
+
+  const agregar = async () => {
+    if (!form.nombre || !form.email || !form.password) { setMsg('Completá todos los campos'); return; }
+    const res = await fetch(`${API}/estudio/usuarios`, { method:'POST', headers, body: JSON.stringify(form) });
+    if (res.ok) { setMsg('Usuario creado'); setForm({ nombre:'', email:'', password:'', rol:'admin' }); cargar(); }
+    else { const d = await res.json(); setMsg(d.detail || 'Error'); }
+    setTimeout(() => setMsg(''), 3000);
+  };
+
+  const eliminar = async (email) => {
+    if (!window.confirm(`¿Eliminar usuario ${email}?`)) return;
+    await fetch(`${API}/estudio/usuarios/${encodeURIComponent(email)}`, { method:'DELETE', headers });
+    cargar();
+  };
+
+  const inp = { width:'100%', padding:'9px 12px', border:`1px solid ${C.border}`, borderRadius:8, fontSize:14, background:C.surface2, outline:'none', boxSizing:'border-box', fontFamily:"'Syne',sans-serif" };
+
+  if (loading) return <div style={{color:C.muted, fontSize:13}}>Cargando...</div>;
+
+  return (
+    <div>
+      {usuarios.length === 0 && <div style={{color:C.muted, fontSize:13, marginBottom:16}}>No hay usuarios adicionales configurados.</div>}
+      {usuarios.map(u => (
+        <div key={u.email} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:`1px solid ${C.border}` }}>
+          <div>
+            <div style={{ fontSize:14, fontWeight:600 }}>{u.nombre}</div>
+            <div style={{ fontSize:12, color:C.muted }}>{u.email} · {u.rol}</div>
+          </div>
+          <button onClick={() => eliminar(u.email)} style={{ padding:'4px 10px', background:'none', border:`1px solid ${C.border}`, borderRadius:6, color:'#ef4444', cursor:'pointer', fontSize:12, fontFamily:"'Syne',sans-serif" }}>Eliminar</button>
+        </div>
+      ))}
+      <div style={{ marginTop:16, display:'grid', gap:10 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:'0.5px' }}>Agregar usuario</div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          <input value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} placeholder="Nombre" style={inp} />
+          <input value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="Email" type="email" style={inp} />
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          <input value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder="Contraseña" type="password" style={inp} />
+          <select value={form.rol} onChange={e=>setForm(f=>({...f,rol:e.target.value}))} style={inp}>
+            <option value="admin">Admin</option>
+            <option value="personal">Personal</option>
+          </select>
+        </div>
+        {msg && <div style={{ fontSize:13, color: msg.includes('Error') || msg.includes('Completá') ? '#ef4444' : C.accent }}>{msg}</div>}
+        <button onClick={agregar} style={{ padding:'9px 16px', background:C.accent, color:'white', border:'none', borderRadius:8, fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'Syne',sans-serif", textAlign:'left' }}>
+          + Agregar usuario
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ConfigCuenta({ user, onUpdate }) {
   const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -168,6 +237,12 @@ export default function ConfigCuenta({ user, onUpdate }) {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* USUARIOS */}
+      <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:24, marginBottom:24 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:16, textTransform:"uppercase", letterSpacing:"0.5px" }}>Usuarios del estudio</div>
+        <UsuariosSection token={token} />
       </div>
 
       {msg && <div style={{ fontSize:13, color: msg.includes("Error") ? C.red : C.accent, marginBottom:12, textAlign:"center" }}>{msg}</div>}

@@ -123,7 +123,7 @@ export default function ControlFinanciero({ user, onLogout }) {
         // Cargar clientes desde Railway (backend) y obras desde Supabase
         const obrasSet = new Set(OBRAS_DEFAULT);
         // Clientes del sistema
-        const resClientes = await fetch('https://fima-backend-production.up.railway.app/clientes');
+        const resClientes = await fetch('https://obras-backend-production.up.railway.app/clientes', {headers: {'Authorization': `Bearer ${localStorage.getItem('obras_token')}`}});
         if (resClientes.ok) {
           const clientes = await resClientes.json();
           clientes.forEach(c => obrasSet.add(c.nombre));
@@ -210,7 +210,7 @@ export default function ControlFinanciero({ user, onLogout }) {
     setImportCertTab('items');
     try {
       const [resItems, resEg] = await Promise.all([
-        fetch('https://fima-backend-production.up.railway.app/certificados/todos'),
+        fetch('https://obras-backend-production.up.railway.app/certificados/todos', {headers: {'Authorization': `Bearer ${localStorage.getItem('obras_token')}`}}),
         sb.from('cert_egresos').select('*').order('created_at', { ascending: false }),
       ]);
       const dataItems = await resItems.json();
