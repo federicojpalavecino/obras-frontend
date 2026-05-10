@@ -1,4 +1,4 @@
-// FAIM OBRAS Menu build 1778443758
+// FAIM OBRAS Menu build 1778444181
 import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -128,7 +128,7 @@ export default function Menu() {
     <div>
       <div className="header" style={{ flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontWeight: 900, fontSize: 20, letterSpacing: -0.5, cursor: 'pointer', color: 'var(--accent)' }} onClick={() => navigate('/')}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');const t=s?.tenant?.nombre;if(t)return t;const td=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(td?.nombre)return td.nombre;return 'FAIM OBRAS';}catch(e){return 'FAIM OBRAS';}})()}</div>
+          <div style={{ fontWeight: 900, fontSize: 20, letterSpacing: -0.5, cursor: 'pointer', color: (()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');return s?.tenant?.color_primario||JSON.parse(localStorage.getItem('obras_tenant')||'{}')?.color_primario||'var(--accent)';}catch(e){return 'var(--accent)';}})() }} onClick={() => navigate('/')}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');const t=s?.tenant?.nombre;if(t)return t;const td=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(td?.nombre)return td.nombre;return 'FAIM OBRAS';}catch(e){return 'FAIM OBRAS';}})()}</div>
           <div style={{ width: 1, height: 24, background: 'var(--border)' }}></div>
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>Cotizador</div>
         </div>
