@@ -97,9 +97,7 @@ export default function Presupuesto() {
     setLoading(false);
   };
 
-  const cargarAdicionales = async () => {
-    setAdicionales([]);
-  };
+  const cargarAdicionales = async () => { setAdicionales([]); };
 
   const crearAdicional = async () => {
     setCreandoAdic(true);
@@ -245,10 +243,6 @@ export default function Presupuesto() {
       if (rubroDestino) {
         payload.categoria_numero = rubroDestino.numero;
         payload.categoria_nombre = rubroDestino.nombre;
-      } else if (!rubros || rubros.length === 0) {
-        // No rubros yet - assign default category 1
-        payload.categoria_numero = 1;
-        payload.categoria_nombre = 'General';
       }
       await agregarLinea(id, payload);
       cargar();
@@ -469,11 +463,10 @@ export default function Presupuesto() {
     const coefs = !esComercial ? `<div class="coefs"><b>Coeficientes:</b> K Mat: ${coeficientes?.k_materiales} · K MO: ${coeficientes?.k_mano_obra} · K Maq: ${coeficientes?.k_maquinaria} · GG: ${coeficientes?.gg_porcentaje}% · Ben: ${coeficientes?.ben_porcentaje}% · IVA: ${coeficientes?.iva_porcentaje}%</div>` : '';
     const firma = esComercial ? `<div class="firma"><div class="firma-linea">Firma y sello</div></div>` : '';
 
-    const _pSess = (() => { try { return JSON.parse(localStorage.getItem('obras_session')||'{}'); } catch{return{};} })();
-    const _pNombre = _pSess?.tenant?.nombre || 'FAIM OBRAS';
-    const _pLogo = _pSess?.tenant?.logo_url;
-    const _pEmpresa = _pLogo ? '<img src="' + _pLogo + '" style="height:36px;object-fit:contain;display:block" />' : _pNombre;
-
+    const _pS=(()=>{try{return JSON.parse(localStorage.getItem('obras_session')||'{}');}catch{return{};}})();
+    const _pN=_pS?.tenant?.nombre||'FAIM OBRAS';
+    const _pL=_pS?.tenant?.logo_url;
+    const _pE=_pL?'<img src="'+_pL+'" style="height:36px;object-fit:contain" />':_pN;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esComercial ? 'Presupuesto' : 'Presupuesto Interno'} — ${data.nombre_obra}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -515,7 +508,7 @@ footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;ju
 </style></head><body>
 <div class="top">
   <div>
-    <div class="empresa">${_pEmpresa}</div>
+    <div class="empresa">${_pE}</div>
     <div class="titulo">${esComercial ? 'Presupuesto' : 'Presupuesto de ejecución (uso interno)'}</div>
     <div class="datos"><strong>Obra:</strong> ${data.nombre_obra}${data.ubicacion ? ' &nbsp;·&nbsp; <strong>Ubicación:</strong> ' + data.ubicacion : ''}</div>
     ${esComercial ? `<div class="datos" style="margin-top:4px"><strong>Vigencia:</strong> ${data.dias_vigencia || coefs?.dias_vigencia || 30} días desde la fecha</div>` : ''}
@@ -541,7 +534,7 @@ footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;ju
 ${coefs}
 ${observaciones ? '<div style="margin-top:20px;padding:12px 16px;border:1px solid #e0e0e8;border-radius:6px;page-break-inside:avoid"><div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-bottom:6px">Observaciones</div><div style="font-size:10pt;color:#1a1a2e;white-space:pre-wrap">' + observaciones + '</div></div>' : ''}
 ${firma}
-<footer><span>${_pNombre} — ${hoy}</span><span>${data.nombre_obra}${data.ubicacion ? ' · ' + data.ubicacion : ''}</span></footer>
+<footer><span>${_pN} — ${hoy}</span><span>${data.nombre_obra}${data.ubicacion ? ' · ' + data.ubicacion : ''}</span></footer>
 </body></html>`;
 
     const blob = new Blob([html], { type: 'text/html' });
@@ -615,7 +608,7 @@ ${firma}
         {/* HEADER — responsive */}
         <div className="header" style={{ flexWrap: 'wrap', gap: 6, minHeight: 'auto', padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')}>{(() => { try { const _s=JSON.parse(localStorage.getItem('obras_session')||'{}'); return _s?.tenant?.nombre||'FAIM OBRAS'; } catch(e){return 'FAIM OBRAS';} })()}</span>
+            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');return s?.tenant?.nombre||'FAIM OBRAS';}catch(e){return 'FAIM OBRAS';}})()}</span>
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/cotizador')} style={{ flexShrink: 0 }}>
               <ArrowLeft size={14} />
             </button>
