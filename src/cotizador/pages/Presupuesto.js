@@ -63,7 +63,7 @@ export default function Presupuesto() {
   const [showLibreAdic, setShowLibreAdic] = useState(false);
   const [creandoAdic, setCreandoAdic] = useState(false);
 
-  useEffect(() => { cargar(); cargarAdicionales(); getCategorias().then(r => setCategorias(r.data)); }, [id]);
+  useEffect(() => { cargar(); getCategorias().then(r => setCategorias(r.data)); }, [id]);
   useEffect(() => {
     if (catSeleccionada) getItems(catSeleccionada).then(r => setItems(r.data));
     else getItems().then(r => setItems(r.data));
@@ -98,10 +98,8 @@ export default function Presupuesto() {
   };
 
   const cargarAdicionales = async () => {
-    try {
-      const res = await api.get(`/presupuestos/${id}/adicionales`);
-      setAdicionales(res.data || []);
-    } catch(e) { setAdicionales([]); }
+    // Adicionales not yet implemented - return empty
+    setAdicionales([]);
   };
 
   const crearAdicional = async () => {
