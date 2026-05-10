@@ -1,4 +1,4 @@
-// FAIM OBRAS build 1778433436
+// FAIM OBRAS build 1778438940
 import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -467,7 +467,7 @@ export default function Presupuesto() {
     const _pS=(()=>{try{return JSON.parse(localStorage.getItem('obras_session')||'{}');}catch{return{};}})();
     const _pN=_pS?.tenant?.nombre||'FAIM OBRAS';
     const _pL=_pS?.tenant?.logo_url;
-    const _pE=_pL?'<img src="'+_pL+'" style="height:36px;object-fit:contain" />':_pN;
+    const _pE=_pL?'<img src="'+_pL+'" style="height:36px;object-fit:contain;display:block" />':_pN;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esComercial ? 'Presupuesto' : 'Presupuesto Interno'} — ${data.nombre_obra}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -843,7 +843,7 @@ ${firma}
                       <div style={{ fontSize: 11, lineHeight: 1.3 }}>{item.nombre}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
                         <span style={{ fontSize: 9, fontFamily: 'var(--mono)', color: 'var(--muted)' }}>{item.codigo} · {item.unidad_ejecucion}</span>
-                        <span style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--ejec)' }}>{fmt(item.costo_total)}</span>
+                        <span style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--ejec)' }}>{item.precio_con_iva > 0 ? fmt(item.precio_con_iva) : ''}</span>
                       </div>
                     </div>
                   ))}
