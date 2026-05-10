@@ -218,7 +218,13 @@ export default function App() {
             setEstudioInfo(ei);
             setUser({ email: ei.email, nombre: ei.nombre, rol: ei.rol });
             const token = localStorage.getItem("obras_token");
-            if (token) await checkSuscripcion(token);
+            if (token) {
+              await checkSuscripcion(token);
+              try {
+                const tr = await fetch(`${API}/tenant`, { headers: { Authorization: `Bearer ${token}` } });
+                if (tr.ok) { const td = await tr.json(); setTenant(td); }
+              } catch(e) {}
+            }
             setLoading(false); return;
           }
         } catch { localStorage.removeItem("obras_estudio"); }
@@ -277,6 +283,10 @@ export default function App() {
         if (data.token) {
           localStorage.setItem("obras_token", data.token);
           await checkSuscripcion(data.token);
+          try {
+            const tr = await fetch(`${API}/tenant`, { headers: { Authorization: `Bearer ${data.token}` } });
+            if (tr.ok) { const td = await tr.json(); setTenant(td); }
+          } catch(e) {}
         }
         setEstudioInfo(ei); setUser({ email: data.email, nombre: data.nombre, rol: data.rol }); return;
       }
