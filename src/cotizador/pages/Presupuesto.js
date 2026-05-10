@@ -1,4 +1,4 @@
-// FAIM OBRAS build 1778438940
+// FAIM OBRAS build 1778440866
 import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -464,9 +464,9 @@ export default function Presupuesto() {
     const coefs = !esComercial ? `<div class="coefs"><b>Coeficientes:</b> K Mat: ${coeficientes?.k_materiales} · K MO: ${coeficientes?.k_mano_obra} · K Maq: ${coeficientes?.k_maquinaria} · GG: ${coeficientes?.gg_porcentaje}% · Ben: ${coeficientes?.ben_porcentaje}% · IVA: ${coeficientes?.iva_porcentaje}%</div>` : '';
     const firma = esComercial ? `<div class="firma"><div class="firma-linea">Firma y sello</div></div>` : '';
 
-    const _pS=(()=>{try{return JSON.parse(localStorage.getItem('obras_session')||'{}');}catch{return{};}})();
-    const _pN=_pS?.tenant?.nombre||'FAIM OBRAS';
-    const _pL=_pS?.tenant?.logo_url;
+    const _pS=(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');if(s?.tenant?.nombre)return s.tenant;const t=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(t)return t;return{};}catch{return{};}})();
+    const _pN=_pS?.nombre||'FAIM OBRAS';
+    const _pL=_pS?.logo_url;
     const _pE=_pL?'<img src="'+_pL+'" style="height:36px;object-fit:contain;display:block" />':_pN;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esComercial ? 'Presupuesto' : 'Presupuesto Interno'} — ${data.nombre_obra}</title>
 <style>
@@ -609,7 +609,7 @@ ${firma}
         {/* HEADER — responsive */}
         <div className="header" style={{ flexWrap: 'wrap', gap: 6, minHeight: 'auto', padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');return s?.tenant?.nombre||'FAIM OBRAS';}catch(e){return 'FAIM OBRAS';}})()}</span>
+            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');const t=s?.tenant?.nombre;if(t)return t;const td=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(td?.nombre)return td.nombre;return 'FAIM OBRAS';}catch(e){return 'FAIM OBRAS';}})()}</span>
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/cotizador')} style={{ flexShrink: 0 }}>
               <ArrowLeft size={14} />
             </button>
@@ -843,7 +843,7 @@ ${firma}
                       <div style={{ fontSize: 11, lineHeight: 1.3 }}>{item.nombre}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
                         <span style={{ fontSize: 9, fontFamily: 'var(--mono)', color: 'var(--muted)' }}>{item.codigo} · {item.unidad_ejecucion}</span>
-                        <span style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--ejec)' }}>{item.precio_con_iva > 0 ? fmt(item.precio_con_iva) : ''}</span>
+                        <span style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--ejec)' }}>{fmt(item.costo_total)}</span>
                       </div>
                     </div>
                   ))}

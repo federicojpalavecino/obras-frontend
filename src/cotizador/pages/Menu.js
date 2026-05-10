@@ -1,3 +1,4 @@
+// FAIM OBRAS Menu build 1778440836
 import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -30,13 +31,30 @@ export default function Menu() {
       const [menuRes, clientesRes] = await Promise.all([getMenu(), getClientes()]);
       setClientes(clientesRes.data);
       const presupPorCliente = {};
-      (menuRes.data?.por_cliente || []).forEach(grupo => {
-        presupPorCliente[grupo.cliente_id] = grupo.presupuestos || [];
-      });
+      // Support both flat list and por_cliente format
+      const presupList = Array.isArray(menuRes.data) ? menuRes.data : [];
+      const porClienteData = menuRes.data?.por_cliente || [];
+      if (porClienteData.length > 0) {
+        porClienteData.forEach(grupo => {
+          presupPorCliente[grupo.cliente_id] = grupo.presupuestos || [];
+        });
+      } else {
+        // Flat list - group by cliente_id
+        presupList.forEach(p => {
+          const cid = p.cliente_id || 'sin_cliente';
+          if (!presupPorCliente[cid]) presupPorCliente[cid] = [];
+          presupPorCliente[cid].push(p);
+        });
+      }
       const menuCompleto = clientesRes.data.map(c => ({
         ...c,
         presupuestos: presupPorCliente[c.id] || [],
       }));
+      // Add presupuestos without client
+      const sinCliente = presupPorCliente['sin_cliente'] || [];
+      if (sinCliente.length > 0) {
+        menuCompleto.push({ cliente_id: null, cliente_nombre: 'Sin cliente', presupuestos: sinCliente });
+      }
       setMenu(menuCompleto);
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -69,9 +87,9 @@ export default function Menu() {
   };
 
   const handleCrearPresupuesto = async () => {
-    if (!formPresupuesto.nombre_obra || !formPresupuesto.cliente_id) return;
+    if (!formPresupuesto.nombre_obra) return;
     try {
-      const res = await crearPresupuesto({ ...formPresupuesto, cliente_id: parseInt(formPresupuesto.cliente_id) });
+      const payload = { ...formPresupuesto }; if (payload.cliente_id) payload.cliente_id = parseInt(payload.cliente_id); else delete payload.cliente_id; const res = await crearPresupuesto(payload);
       setModalPresupuesto(false);
       setFormPresupuesto({ nombre_obra: '', ubicacion: '', cliente_id: '' });
       navigate(`/cotizador/presupuesto/${res.data.id}`);

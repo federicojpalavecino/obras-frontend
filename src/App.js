@@ -222,7 +222,7 @@ export default function App() {
               await checkSuscripcion(token);
               try {
                 const tr = await fetch(`${API}/tenant`, { headers: { Authorization: `Bearer ${token}` } });
-                if (tr.ok) { const td = await tr.json(); setTenant(td); }
+                if (tr.ok) { const td = await tr.json(); setTenant(td); localStorage.setItem("obras_tenant", JSON.stringify(td)); }
               } catch(e) {}
             }
             setLoading(false); return;
@@ -243,7 +243,7 @@ export default function App() {
               });
               if (tr.ok) {
                 const td = await tr.json();
-                setTenant(td);
+                setTenant(td); localStorage.setItem("obras_tenant", JSON.stringify(td));
                 const ns = JSON.parse(localStorage.getItem('obras_session') || '{}');
                 ns.tenant = td;
                 localStorage.setItem('obras_session', JSON.stringify(ns));
