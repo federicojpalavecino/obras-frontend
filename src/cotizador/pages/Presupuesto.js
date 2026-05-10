@@ -98,7 +98,7 @@ export default function Presupuesto() {
   };
 
   const cargarAdicionales = async () => {
-    setAdicionales([]); // disabled - CORS issue with adicionales endpoint
+    setAdicionales([]);
   };
 
   const crearAdicional = async () => {
@@ -245,6 +245,10 @@ export default function Presupuesto() {
       if (rubroDestino) {
         payload.categoria_numero = rubroDestino.numero;
         payload.categoria_nombre = rubroDestino.nombre;
+      } else if (!rubros || rubros.length === 0) {
+        // No rubros yet - assign default category 1
+        payload.categoria_numero = 1;
+        payload.categoria_nombre = 'General';
       }
       await agregarLinea(id, payload);
       cargar();
