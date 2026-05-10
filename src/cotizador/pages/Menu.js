@@ -1,4 +1,4 @@
-// FAIM OBRAS Menu build 1778440836
+// FAIM OBRAS Menu build 1778441720
 import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -31,15 +31,11 @@ export default function Menu() {
       const [menuRes, clientesRes] = await Promise.all([getMenu(), getClientes()]);
       setClientes(clientesRes.data);
       const presupPorCliente = {};
-      // Support both flat list and por_cliente format
       const presupList = Array.isArray(menuRes.data) ? menuRes.data : [];
       const porClienteData = menuRes.data?.por_cliente || [];
       if (porClienteData.length > 0) {
-        porClienteData.forEach(grupo => {
-          presupPorCliente[grupo.cliente_id] = grupo.presupuestos || [];
-        });
+        porClienteData.forEach(g => { presupPorCliente[g.cliente_id] = g.presupuestos || []; });
       } else {
-        // Flat list - group by cliente_id
         presupList.forEach(p => {
           const cid = p.cliente_id || 'sin_cliente';
           if (!presupPorCliente[cid]) presupPorCliente[cid] = [];
@@ -50,11 +46,8 @@ export default function Menu() {
         ...c,
         presupuestos: presupPorCliente[c.id] || [],
       }));
-      // Add presupuestos without client
       const sinCliente = presupPorCliente['sin_cliente'] || [];
-      if (sinCliente.length > 0) {
-        menuCompleto.push({ cliente_id: null, cliente_nombre: 'Sin cliente', presupuestos: sinCliente });
-      }
+      if (sinCliente.length > 0) menuCompleto.push({ id: 'sin_cliente', nombre: 'Sin cliente', email: '', presupuestos: sinCliente });
       setMenu(menuCompleto);
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -72,7 +65,7 @@ export default function Menu() {
 
   const handleEditarCliente = async (id) => {
     try {
-      await api.patch(`/clientes/${id}`, formCliente);
+      await api.put(`/clientes/${id}`, formCliente);
       setEditandoCliente(null);
       cargar();
     } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
