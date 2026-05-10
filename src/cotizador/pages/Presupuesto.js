@@ -471,7 +471,7 @@ export default function Presupuesto() {
     const _pSess = (() => { try { return JSON.parse(localStorage.getItem('obras_session')||'{}'); } catch{return{};} })();
     const _pNombre = _pSess?.tenant?.nombre || 'FAIM OBRAS';
     const _pLogo = _pSess?.tenant?.logo_url;
-    const _pEmpresa = _pLogo ? `<img src="${_pLogo}" style="height:36px;object-fit:contain;display:block" />` : _pNombre;
+    const _pEmpresa = _pLogo ? '<img src="' + _pLogo + '" style="height:36px;object-fit:contain;display:block" />' : _pNombre;
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esComercial ? 'Presupuesto' : 'Presupuesto Interno'} — ${data.nombre_obra}</title>
 <style>
@@ -555,7 +555,7 @@ ${firma}
     try {
       const res = await fetch(`https://obras-backend-production.up.railway.app/presupuestos/${id}/lineas/${lineaId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('obras_token')}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre_override: nuevoNombre.trim() }),
       });
       if (!res.ok) {
@@ -580,7 +580,7 @@ ${firma}
         rubro.lineas.map(l =>
           fetch(`https://obras-backend-production.up.railway.app/presupuestos/${id}/lineas/${l.id}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('obras_token')}` },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ categoria_nombre: nuevoNombre.trim() }),
           })
         )
@@ -614,7 +614,7 @@ ${firma}
         {/* HEADER — responsive */}
         <div className="header" style={{ flexWrap: 'wrap', gap: 6, minHeight: 'auto', padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')}>{(() => { try { const s=JSON.parse(localStorage.getItem('obras_session')||'{}'); return s?.tenant?.nombre||'FAIM OBRAS'; } catch(e){return 'FAIM OBRAS';} })()}</span>
+            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')}>{(() => { try { const _s=JSON.parse(localStorage.getItem('obras_session')||'{}'); return _s?.tenant?.nombre||'FAIM OBRAS'; } catch(e){return 'FAIM OBRAS';} })()}</span>
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/cotizador')} style={{ flexShrink: 0 }}>
               <ArrowLeft size={14} />
             </button>
