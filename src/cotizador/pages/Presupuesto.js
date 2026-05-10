@@ -1,4 +1,4 @@
-// FAIM OBRAS build 1778444181
+// FAIM OBRAS build 1778444697
 import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -609,7 +609,7 @@ ${firma}
         {/* HEADER — responsive */}
         <div className="header" style={{ flexWrap: 'wrap', gap: 6, minHeight: 'auto', padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')} style={{color:(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');return s?.tenant?.color_primario||JSON.parse(localStorage.getItem('obras_tenant')||'{}')?.color_primario||'var(--accent)';}catch(e){return 'var(--accent)';}})()}}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');const t=s?.tenant?.nombre;if(t)return t;const td=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(td?.nombre)return td.nombre;return 'FAIM OBRAS';}catch(e){return 'FAIM OBRAS';}})()}</span>
+            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: (()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');return s?.tenant?.color_primario||JSON.parse(localStorage.getItem('obras_tenant')||'{}')?.color_primario||'var(--accent)';}catch(e){return 'var(--accent)';}})(), cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');const t=s?.tenant?.nombre;if(t)return t;const td=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(td?.nombre)return td.nombre;return 'FAIM OBRAS';}catch(e){return 'FAIM OBRAS';}})()}</span>
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/cotizador')} style={{ flexShrink: 0 }}>
               <ArrowLeft size={14} />
             </button>
