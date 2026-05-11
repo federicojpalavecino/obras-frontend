@@ -1,4 +1,4 @@
-// FAIM OBRAS build 1778444697
+// FAIM OBRAS build 1778463399
 import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -609,7 +609,7 @@ ${firma}
         {/* HEADER — responsive */}
         <div className="header" style={{ flexWrap: 'wrap', gap: 6, minHeight: 'auto', padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: (()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');return s?.tenant?.color_primario||JSON.parse(localStorage.getItem('obras_tenant')||'{}')?.color_primario||'var(--accent)';}catch(e){return 'var(--accent)';}})(), cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');const t=s?.tenant?.nombre;if(t)return t;const td=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(td?.nombre)return td.nombre;return 'FAIM OBRAS';}catch(e){return 'FAIM OBRAS';}})()}</span>
+            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')} style={{color:(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');return s?.tenant?.color_primario||JSON.parse(localStorage.getItem('obras_tenant')||'{}')?.color_primario||'var(--accent)';}catch(e){return 'var(--accent)';}})()}}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');const t=s?.tenant?.nombre;if(t)return t;const td=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(td?.nombre)return td.nombre;return 'FAIM OBRAS';}catch(e){return 'FAIM OBRAS';}})()}</span>
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/cotizador')} style={{ flexShrink: 0 }}>
               <ArrowLeft size={14} />
             </button>
@@ -761,10 +761,10 @@ ${firma}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 11, color: 'var(--muted)' }}>Factor cargas</div>
-                      <div style={{ fontSize: 9, color: 'var(--border2)' }}>1 = 100%, 0.5 = 50%</div>
+                      <div style={{ fontSize: 9, color: 'var(--border2)' }}>0% = sin cargas, 50% = 50% extra</div>
                     </div>
-                    <input type="number" step="0.01" min="0" max="1" className="input input-mono"
-                      style={{ width: 68, padding: '3px 6px', fontSize: 12 }} value={coefs?.cargas_sociales_factor ?? 1}
+                    <input type="number" step="1" min="0" max="200" className="input input-mono"
+                      style={{ width: 68, padding: '3px 6px', fontSize: 12 }} value={coefs?.cargas_sociales_factor ?? 0}
                       disabled={cerrado} onChange={e => setCoefs(prev => ({ ...prev, cargas_sociales_factor: parseFloat(e.target.value) || 0 }))} />
                   </div>
                 )}
