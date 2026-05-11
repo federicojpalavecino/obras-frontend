@@ -10,10 +10,10 @@ const C = {
 
 
 function UsuariosSection({ token }) {
-  const [usuarios, setUsuarios] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [form, setForm] = React.useState({ nombre:'', email:'', password:'', rol:'admin' });
-  const [msg, setMsg] = React.useState('');
+  const [usuarios, setUsuarios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ nombre:'', email:'', password:'', rol:'admin' });
+  const [msg, setMsg] = useState('');
   const headers = { 'Content-Type':'application/json', Authorization: `Bearer ${token}` };
 
   const cargar = () => {
@@ -23,7 +23,7 @@ function UsuariosSection({ token }) {
       .catch(() => setLoading(false));
   };
 
-  React.useEffect(() => { cargar(); }, []);
+  useEffect(() => { cargar(); }, []);
 
   const agregar = async () => {
     if (!form.nombre || !form.email || !form.password) { setMsg('Completá todos los campos'); return; }
