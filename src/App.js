@@ -90,7 +90,7 @@ function TrialBanner({ diasRestantes }) {
 }
 
 // ── Main app (identical to FIMA) ──────────────────────────────────────────────
-function AppInner({user, tenant, onLogout}) {
+function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   const navigate = useNavigate();
   const location = useLocation();
   const isCotizador = location.pathname.startsWith("/cotizador");
@@ -169,7 +169,7 @@ function AppInner({user, tenant, onLogout}) {
         <Route path="/fiscal/*" element={<Fiscal user={user} />}/>
         <Route path="/clientes/*" element={<Clientes user={user} />}/>
         <Route path="/accesos-clientes" element={<AccesosClientes user={user} />}/>
-        <Route path="/config" element={<ConfigCuenta user={user} onUpdate={(data) => setTenant(t => ({...t, ...data}))} />}/>
+        <Route path="/config" element={<ConfigCuenta user={user} onUpdate={onTenantUpdate} />}/>
       </Routes>
     </div>
   );
@@ -442,7 +442,7 @@ export default function App() {
     return (
       <BrowserRouter>
         {banner}
-        <AppInner user={{ ...user, rol: estudioInfo.rol, nombre: estudioInfo.nombre }} tenant={tenant} onLogout={handleLogout} />
+        <AppInner user={{ ...user, rol: estudioInfo.rol, nombre: estudioInfo.nombre }} tenant={tenant} onLogout={handleLogout} onTenantUpdate={(data) => setTenant(t => ({...t, ...data}))} />
       </BrowserRouter>
     );
   }
@@ -450,7 +450,7 @@ export default function App() {
   return (
     <BrowserRouter>
       {banner}
-      <AppInner user={user} tenant={tenant} onLogout={handleLogout} />
+      <AppInner user={user} tenant={tenant} onLogout={handleLogout} onTenantUpdate={(data) => setTenant(t => ({...t, ...data}))} />
     </BrowserRouter>
   );
 }
