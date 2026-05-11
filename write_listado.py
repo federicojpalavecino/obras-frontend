@@ -1,4 +1,8 @@
-import '../index.css';
+import os
+
+path = r'C:\obras-frontend\src\cotizador\pages\ListadoMateriales.jsx'
+
+content = r"""import '../index.css';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
@@ -226,3 +230,9 @@ export default function ListadoMateriales() {
 
 const th = { padding: '8px 12px', textAlign: 'left', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--muted)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' };
 const td = { padding: '8px 12px', verticalAlign: 'middle' };
+"""
+
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, 'w', encoding='utf-8') as f:
+    f.write(content)
+print(f"Written {len(content)} chars to {path}")

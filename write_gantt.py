@@ -1,4 +1,8 @@
-import '../index.css';
+import os
+
+path = r'C:\obras-frontend\src\cotizador\pages\Gantt.jsx'
+
+content = r"""import '../index.css';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import MobileMenu from './MobileMenu';
@@ -259,3 +263,9 @@ export default function Gantt() {
     </div>
   );
 }
+"""
+
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, 'w', encoding='utf-8') as f:
+    f.write(content)
+print(f"Written {len(content)} chars to Gantt.jsx")

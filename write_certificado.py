@@ -1,4 +1,8 @@
-import '../index.css';
+import os
+
+path = r'C:\obras-frontend\src\cotizador\pages\Certificado.js'
+
+content = r"""import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
@@ -332,3 +336,9 @@ export default function Certificado() {
 
 const th = { padding: '6px 12px', textAlign: 'left', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--muted)', borderBottom: '1px solid var(--border)' };
 const td = { padding: '6px 12px', verticalAlign: 'middle' };
+"""
+
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, 'w', encoding='utf-8') as f:
+    f.write(content)
+print(f"Written {len(content)} chars to {path}")
