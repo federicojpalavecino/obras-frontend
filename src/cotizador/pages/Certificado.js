@@ -402,6 +402,7 @@ ${certEg ? `
 
   // Función reutilizable de impresión del cert de egresos (standalone)
   const imprimirCertEgresos = (sel, total, vinculadoNum) => {
+    const __tenantNombre2 = (()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}')||{};if(s?.tenant?.nombre)return s.tenant.nombre;const t=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(t?.nombre)return t.nombre;}catch(e){}return 'FAIM OBRAS';})();
     const now = new Date().toLocaleDateString("es-AR",{day:"2-digit",month:"long",year:"numeric"});
     const certNumLabel = vinculadoNum ? ("Nº " + vinculadoNum) : "";
     const obraNombre = presupuesto?.nombre_obra || "";
@@ -435,7 +436,8 @@ ${certEg ? `
     win.document.write("footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;justify-content:space-between;font-size:8pt;color:#888}");
     win.document.write("</style></head><body>");
     win.document.write("<div class=\"top\"><div>");
-    win.document.write("<div class=\"empresa\">{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');if(s?.tenant?.nombre)return s.tenant.nombre;const t=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(t?.nombre)return t.nombre;}catch(e){}return 'FAIM OBRAS';})()}</div>");
+    const __tenantNombre = (()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');if(s?.tenant?.nombre)return s.tenant.nombre;const t=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(t?.nombre)return t.nombre;}catch(e){}return 'FAIM OBRAS';})();
+    win.document.write("<div class=\"empresa\">" + __tenantNombre + "</div>");
     win.document.write("<div class=\"titulo\">Certificado de Egresos / Materiales " + certNumLabel + "</div>");
     win.document.write("<div class=\"datos\"><strong>Obra:</strong> " + obraNombre + "</div>");
     win.document.write("<div class=\"datos\"><strong>Fecha:</strong> " + now + "</div>");
@@ -445,7 +447,7 @@ ${certEg ? `
     win.document.write("<tr class=\"total-row\"><td>Total</td><td class=\"n\">$" + totalFmt + "</td><td></td><td></td></tr>");
     win.document.write("</tbody></table>");
     win.document.write("<div class=\"firmas\"><div class=\"firma\"><div>Firma dirección de obra</div></div><div class=\"firma\"><div>Firma comitente</div></div></div>");
-    win.document.write("<footer><span>Fima Arquitectura — Cert. Egresos " + certNumLabel + " — " + now + "</span><span>" + obraNombre + "</span></footer>");
+    win.document.write("<footer><span>" + __tenantNombre2 + " — Cert. Egresos " + certNumLabel + " — " + now + "</span><span>" + obraNombre + "</span></footer>");
     win.document.write("</body></html>");
     win.document.close();
     setTimeout(function(){ win.document.body.style.background="white"; win.print(); }, 600);
@@ -1184,7 +1186,7 @@ ${certEg ? `
           </div>
 
           <div className="print-footer">
-            <span>Fima Arquitectura — Certificado Nº {certDetalle.certificado?.numero} — {hoy}</span>
+            <span>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}')||{};if(s?.tenant?.nombre)return s.tenant.nombre;const t=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(t?.nombre)return t.nombre;}catch(e){}return 'FAIM OBRAS';})()}{" — Certificado Nº "}{certDetalle.certificado?.numero}{" — "}{hoy}</span>
             <span>{presupuesto?.nombre_obra}</span>
           </div>
         </div>
