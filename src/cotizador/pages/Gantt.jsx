@@ -8,9 +8,13 @@ import api from '../api';
 const COLORES = ['#6ee7b7','#a78bfa','#38bdf8','#fbbf24','#f87171','#fb923c','#e879f9','#a3e635','#34d399','#60a5fa'];
 
 const addDias = (fecha, dias) => {
-  const d = new Date(fecha + 'T12:00:00');
-  d.setDate(d.getDate() + dias);
-  return d.toISOString().split('T')[0];
+  if (!fecha) return new Date().toISOString().split('T')[0];
+  try {
+    const d = new Date(fecha + 'T12:00:00');
+    if (isNaN(d.getTime())) return new Date().toISOString().split('T')[0];
+    d.setDate(d.getDate() + dias);
+    return d.toISOString().split('T')[0];
+  } catch(e) { return new Date().toISOString().split('T')[0]; }
 };
 
 const diasEntre = (a, b) => {
