@@ -71,14 +71,7 @@ export default function Gantt() {
     const fechaInicio = config.fecha_inicio_obra;
     
     // Obtener horas reales de MO desde el backend (análisis de costos real)
-    let horasPorLinea = {};
-    try {
-      // horas-mo not available in OBRAS backend
-      if (res.ok) {
-        const data = await res.json();
-        data.forEach(d => { horasPorLinea[d.linea_id] = d.horas_mo; });
-      }
-    } catch (e) { console.error('horas-mo:', e); }
+    // horas-mo not needed - using backend generar
 
     // Eliminar tareas existentes
     // tareas se borran via generar endpoint
