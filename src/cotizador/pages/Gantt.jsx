@@ -73,7 +73,7 @@ export default function Gantt() {
     // Obtener horas reales de MO desde el backend (análisis de costos real)
     let horasPorLinea = {};
     try {
-      const res = await fetch(`https://fima-backend-production.up.railway.app/presupuestos/${id}/horas-mo`);
+      // horas-mo not available in OBRAS backend
       if (res.ok) {
         const data = await res.json();
         data.forEach(d => { horasPorLinea[d.linea_id] = d.horas_mo; });
@@ -152,26 +152,9 @@ export default function Gantt() {
     let proyectoId = proyectos?.find(p => p.presupuesto_id === parseInt(id))?.id;
     
     if (!proyectoId) {
-      const { data: nuevo } = await sb.from('planner_proyectos').insert({
-        nombre: presupuesto?.nombre_obra || `Obra ${id}`,
-        color: COLORES[0],
-        presupuesto_id: parseInt(id),
-      }).select().single();
-      proyectoId = nuevo?.id;
+      proyectoId = null; // Planner integration not available
     }
-
-    const plannerTareas = tareas.map(t => ({
-      proyecto_id: proyectoId,
-      titulo: t.nombre,
-      descripcion: t.rubro || '',
-      estado: t.completado >= 100 ? 'listo' : t.completado > 0 ? 'en_progreso' : 'pendiente',
-      fecha_inicio: t.fecha_inicio,
-      fecha_fin: t.fecha_fin,
-      prioridad: 'normal',
-    }));
-
-    await sb.from('planner_tareas').insert(plannerTareas);
-    showToast(`✓ ${plannerTareas.length} tareas enviadas al Planner`);
+    showToast('⚠ Integración con Planner no disponible');
   };
 
   // ── CÁLCULOS DEL GANTT ──
