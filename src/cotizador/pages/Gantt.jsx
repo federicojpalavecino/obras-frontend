@@ -70,60 +70,14 @@ export default function Gantt() {
 
   const generarDesdePresupuesto = async () => {
     setGenerando(true);
-    const horasDia = parseFloat(config.horas_dia) || 8;
-    const diasSemana = parseFloat(config.dias_semana) || 5;
-    const fechaInicio = config.fecha_inicio_obra;
-    
-    // Obtener horas reales de MO desde el backend (análisis de costos real)
-    // horas-mo not needed - using backend generar
-
-    // Eliminar tareas existentes
-    // tareas se borran via generar endpoint
-
-    let fechaAcum = fechaInicio;
-    const nuevasTareas = [];
-    let orden = 0;
-
-    lineas.forEach((linea, i) => {
-      // Usar horas reales del análisis de costos si están disponibles
-      const horasReales = horasPorLinea[linea.id];
-      let duracion;
-      if (horasReales && horasReales > 0) {
-        // Horas reales del análisis → días laborales
-        duracion = Math.max(1, Math.ceil(horasReales / horasDia));
-      } else {
-        // Sin análisis de MO → 1 día por defecto
-        duracion = 1;
-      }
-
-      const fechaFin = addDias(fechaAcum, duracion - 1);
-      
-      nuevasTareas.push({
-        presupuesto_id: parseInt(id),
-        linea_presupuesto_id: linea.id,
-        nombre: linea.nombre_item || linea.nombre_libre || `Ítem ${i + 1}`,
-        rubro: linea.categoria_nombre || '',
-        duracion_dias: duracion,
-        fecha_inicio: fechaAcum,
-        fecha_fin: fechaFin,
-        orden: orden++,
-        color: COLORES[i % COLORES.length],
-        completado: 0,
-      });
-      fechaAcum = addDias(fechaFin, 1);
-    });
-
-    if (nuevasTareas.length > 0) {
+    try {
       await api.post(`/presupuestos/${id}/gantt/generar`);
       await cargar();
-      showToast('Tareas generadas');
-      setGenerando(false);
-      return;
+      showToast('✓ Tareas generadas');
+    } catch(e) {
+      alert('Error al generar: ' + (e.response?.data?.detail || e.message));
     }
-    
-    await cargar();
     setGenerando(false);
-    showToast(`✓ ${nuevasTareas.length} tareas generadas desde análisis de costos`);
   };
 
   const guardarTarea = async (tarea) => {
