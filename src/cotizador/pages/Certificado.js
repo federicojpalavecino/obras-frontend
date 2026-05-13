@@ -267,6 +267,7 @@ export default function Certificado() {
   };
 
   const imprimirCertItems = (d) => {
+    const _tn = (()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');if(s?.tenant?.nombre)return s.tenant.nombre;const t=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(t?.nombre)return t.nombre;}catch(e){}return 'FAIM OBRAS';})();
     const hoyStr = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
     // Obtener cert de egresos vinculado a este número si existe
     const certEg = certEgresosGuardados.find(ce => ce.certificado_num === d.certificado?.numero);
@@ -313,7 +314,7 @@ footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;ju
 </style></head><body>
 <div class="top">
   <div>
-    <div class="empresa">{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');if(s?.tenant?.nombre)return s.tenant.nombre;const t=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(t?.nombre)return t.nombre;}catch(e){}return 'FAIM OBRAS';})()}</div>
+    <div class="empresa">${_tn}</div>
     <div class="titulo">Certificado de avance Nº ${d.certificado?.numero}</div>
     <div class="datos"><strong>Obra:</strong> ${presupuesto?.nombre_obra}${presupuesto?.ubicacion?' &nbsp;·&nbsp; <strong>Ubicación:</strong> '+presupuesto.ubicacion:''}</div>
     ${d.certificado?.periodo_desde?`<div class="datos"><strong>Período:</strong> ${new Date(d.certificado.periodo_desde+'T12:00:00').toLocaleDateString('es-AR')} al ${d.certificado?.periodo_hasta?new Date(d.certificado.periodo_hasta+'T12:00:00').toLocaleDateString('es-AR'):'—'}</div>`:''}
@@ -381,7 +382,7 @@ ${certEg ? `
   <div class="firma"><div>Firma dirección de obra</div></div>
   <div class="firma"><div>Firma comitente</div></div>
 </div>
-<footer><span>Fima Arquitectura — Certificado Nº ${d.certificado?.numero} — ${hoyStr}</span><span>${presupuesto?.nombre_obra}</span></footer>
+<footer><span>${_tn} — Certificado Nº ${d.certificado?.numero} — ${hoyStr}</span><span>${presupuesto?.nombre_obra}</span></footer>
 </body></html>`;
     const blob = new Blob([html], {type:'text/html'});
     const url = URL.createObjectURL(blob);
