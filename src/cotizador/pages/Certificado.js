@@ -1071,7 +1071,7 @@ ${certEg ? `
               <div className="modal-actions">
                 <button className="btn btn-secondary" onClick={() => setShowEgresos(false)}>Cancelar</button>
                 <button className="btn btn-secondary"
-                  disabled={Object.values(egresosSeleccion).filter(Boolean).length === 0}
+                  disabled={Object.values(egresosSeleccion).filter(Boolean).length === 0 && gastosExtra.length === 0}
                   onClick={async () => {
                     const sel = [...egresos.filter(e => egresosSeleccion[e._key]), ...gastosExtra];
                     const total = sel.reduce((a,b)=>a+(parseFloat(b.monto)||0),0);
@@ -1083,7 +1083,7 @@ ${certEg ? `
                   💾 Guardar
                 </button>
                 <button className="btn btn-primary"
-                  disabled={Object.values(egresosSeleccion).filter(Boolean).length === 0}
+                  disabled={Object.values(egresosSeleccion).filter(Boolean).length === 0 && gastosExtra.length === 0}
                   onClick={async () => {
                     const sel = [...egresos.filter(e => egresosSeleccion[e._key]), ...gastosExtra];
                     const total = sel.reduce((a,b)=>a+(parseFloat(b.monto)||0),0);
