@@ -1,12 +1,9 @@
 import '../index.css';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = "https://bomxksdisszrhhsctowd.supabase.co";
-const SUPABASE_KEY = "sb_publishable_mMVi2QnQ2kHRY6nwCeg4lQ_aOG9Kvg2";
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-const API = 'https://fima-backend-production.up.railway.app';
+import api from '../api';
+
 
 const fmt = n => '$ ' + Math.round(n || 0).toLocaleString('es-AR');
 const fmtK = n => {
@@ -66,11 +63,22 @@ export default function CurvaInversion() {
     setLoading(true);
     try {
       const [pRes, tRes] = await Promise.all([
-        fetch(`${API}/presupuestos/${id}`).then(r => r.json()),
-        sb.from('gantt_tareas').select('*').eq('presupuesto_id', id).order('fecha_inicio'),
+        api.get(`/presupuestos/${id}`).then(r => r.data),
+        api.get(`/presupuestos/${id}/gantt/tareas`).then(r => r.data),
       ]);
       setPresupuesto(pRes);
-      setTareas(tRes.data || []);
+      // Convert duracion_dias to fecha_fin for compatibility
+      const tareasConFin = (tRes || []).map(t => ({
+        ...t,
+        fecha_fin: t.fecha_fin || (() => {
+          if (!t.fecha_inicio) return t.fecha_inicio;
+          const d = new Date(t.fecha_inicio + 'T12:00:00');
+          d.setDate(d.getDate() + (t.duracion_dias || 1) - 1);
+          return d.toISOString().split('T')[0];
+        })(),
+        linea_presupuesto_id: t.linea_id,
+      }));
+      setTareas(tareasConFin);
     } catch(e) { console.error(e); }
     setLoading(false);
   };
@@ -189,7 +197,7 @@ export default function CurvaInversion() {
     <div>
       <div className="header" style={{ flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontWeight: 900, fontSize: 18, color: 'var(--accent)', cursor: 'pointer' }} onClick={() => navigate('/')}>FIMA</span>
+          <span style={{ fontWeight: 900, fontSize: 18, color: 'var(--accent)', cursor: 'pointer' }} onClick={() => navigate('/')}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');if(s?.tenant?.nombre)return s.tenant.nombre;const t=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(t?.nombre)return t.nombre;}catch(e){}return 'FAIM OBRAS'})()}</span>
           <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/cotizador/presupuesto/${id}`)}>← Volver</button>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15 }}>{presupuesto?.nombre_obra}</div>
