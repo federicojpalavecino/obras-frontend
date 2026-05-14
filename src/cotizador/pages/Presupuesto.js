@@ -169,10 +169,7 @@ export default function Presupuesto() {
       });
       setItemLibreAdic({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1 });
       setShowLibreAdic(false);
-      await cargarAdicionales();
-      const adics = await api.get(`/presupuestos/${id}/adicionales`);
-      const updated = (adics.data || []).find(a => a.id === modalAdicional.id);
-      if (updated) setModalAdicional(updated);
+      await refreshModalAdicional();
     } catch(e) { console.error(e); }
   };
 
@@ -180,10 +177,7 @@ export default function Presupuesto() {
     if (!modalAdicional) return;
     try {
       await api.delete(`/presupuestos/${modalAdicional.id}/lineas/${lineaId}`);
-      await cargarAdicionales();
-      const adics = await api.get(`/presupuestos/${id}/adicionales`);
-      const updated = (adics.data || []).find(a => a.id === modalAdicional.id);
-      if (updated) setModalAdicional(updated);
+      await refreshModalAdicional();
     } catch(e) { console.error(e); }
   };
 
@@ -200,10 +194,7 @@ export default function Presupuesto() {
     if (!modalAdicional) return;
     try {
       await api.post(`/presupuestos/${modalAdicional.id}/cerrar`);
-      await cargarAdicionales();
-      const adics = await api.get(`/presupuestos/${id}/adicionales`);
-      const updated = (adics.data || []).find(a => a.id === modalAdicional.id);
-      if (updated) setModalAdicional(updated);
+      await refreshModalAdicional();
     } catch(e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
   };
 
@@ -211,10 +202,7 @@ export default function Presupuesto() {
     if (!modalAdicional) return;
     try {
       await api.post(`/presupuestos/${modalAdicional.id}/reabrir`);
-      await cargarAdicionales();
-      const adics = await api.get(`/presupuestos/${id}/adicionales`);
-      const updated = (adics.data || []).find(a => a.id === modalAdicional.id);
-      if (updated) setModalAdicional(updated);
+      await refreshModalAdicional();
     } catch(e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
   };
 
