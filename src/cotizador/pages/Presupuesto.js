@@ -123,14 +123,12 @@ export default function Presupuesto() {
         es_adicional: true,
         presupuesto_base_id: parseInt(id),
       });
-      await cargarAdicionales();
-      // Open the new adicional modal
       const nuevoId = res.data?.id;
       if (nuevoId) {
-        const adics = await api.get(`/presupuestos/${id}/adicionales`);
-        const nuevo = (adics.data || []).find(a => a.id === nuevoId);
-        if (nuevo) setModalAdicional(nuevo);
+        const fullRes = await api.get(`/presupuestos/${nuevoId}`);
+        setModalAdicional(fullRes.data);
       }
+      await cargarAdicionales();
     } catch(e) {
       alert('Error: ' + (e.response?.data?.detail || e.message));
     }
