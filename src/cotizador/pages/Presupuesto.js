@@ -158,6 +158,15 @@ export default function Presupuesto() {
     } catch(e) { console.error(e); }
   };
 
+  const refreshModalAdicional = async (adicId) => {
+    const targetId = adicId || modalAdicional?.id;
+    if (!targetId) return;
+    try {
+      const res = await api.get(`/presupuestos/${targetId}`);
+      setModalAdicional(res.data);
+    } catch(e) { console.error(e); }
+  };
+
   const agregarLibreAlAdicional = async () => {
     if (!modalAdicional || !itemLibreAdic.nombre_libre || !itemLibreAdic.costo_directo_libre) return;
     try {
