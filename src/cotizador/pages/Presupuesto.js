@@ -544,6 +544,33 @@ footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;ju
 </div>
 ${coefs}
 ${observaciones ? '<div style="margin-top:20px;padding:12px 16px;border:1px solid #e0e0e8;border-radius:6px;page-break-inside:avoid"><div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-bottom:6px">Observaciones</div><div style="font-size:10pt;color:#1a1a2e;white-space:pre-wrap">' + observaciones + '</div></div>' : ''}
+${adicionales.length > 0 ? adicionales.map(adic => {
+      const adicRubros = (adic.rubros || []);
+      const adicTotal = adic.totales?.total_precio_con_iva || 0;
+      const adicFilas = adicRubros.map(rubro => {
+        const filas = (rubro.lineas || []).map(linea => {
+          const precioUnit = linea.cantidad > 0 ? linea.precio_venta_con_iva / linea.cantidad : linea.precio_venta_con_iva;
+          return `<tr>
+            ${!esComercial ? `<td class="cod">${linea.tipo === 'libre' ? '—' : ''}</td>` : ''}
+            <td>${linea.nombre_override || linea.nombre_item || linea.nombre_libre || ''}</td>
+            <td class="c">${linea.unidad_item || linea.unidad_libre || ''}</td>
+            <td class="r">${linea.cantidad}</td>
+            ${!esComercial ? `<td class="r">${linea.costo_mat ? fmt(linea.costo_mat) : '—'}</td><td class="r">${linea.costo_mo ? fmt(linea.costo_mo) : '—'}</td><td class="r">—</td><td class="r ejec">${fmt(linea.total_ejecucion)}</td>` : ''}
+            <td class="r precio">${fmt(precioUnit)}</td>
+            <td class="r precio bold">${fmt(linea.precio_venta_con_iva)}</td>
+            ${!esComercial ? '<td></td>' : ''}
+          </tr>`;
+        }).join('');
+        return `<tr class="rubro"><td colspan="${esComercial ? 6 : 11}">${rubro.numero} — ${rubro.nombre}</td></tr>${filas}`;
+      }).join('');
+      return `<div style="margin-top:24px;page-break-before:auto">
+        <div style="font-size:11pt;font-weight:900;border-bottom:2px solid #333;padding-bottom:6px;margin-bottom:10px">${adic.nombre_obra}</div>
+        <table><thead><tr>${!esComercial ? '<th>Cód.</th>' : ''}<th>Ítem</th><th class="c">Unid.</th><th class="r">Cant.</th>${!esComercial ? '<th>Mat×Cant</th><th>MO×Cant</th><th>Maq×Cant</th><th class="r">Total Ejec</th>' : ''}<th class="r">P. Unitario</th><th class="r">Total</th>${!esComercial ? '<th class="r">%</th>' : ''}</tr></thead>
+        <tbody>${adicFilas}</tbody></table>
+        <div class="totales"><div class="totales-h">Total Adicional</div>
+        <div class="totales-b"><div class="blk"><div class="lbl">TOTAL ADICIONAL</div><div class="val precio" style="font-size:14pt">${fmt(adicTotal)}</div></div></div></div>
+      </div>`;
+    }).join('') : ''}
 ${firma}
 <footer><span>${_pN} — ${hoy}</span><span>${data.nombre_obra}${data.ubicacion ? ' · ' + data.ubicacion : ''}</span></footer>
 </body></html>`;
