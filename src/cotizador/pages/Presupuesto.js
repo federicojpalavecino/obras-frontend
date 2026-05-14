@@ -1375,7 +1375,7 @@ ${firma}
         {modalAdicional && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', zIndex: 200 }}
             onClick={() => { setModalAdicional(null); setLineaSeleccionadaAdic(null); setComputoAdicLinea(null); }}>
-            <div style={{ width: 'min(900px, 100vw)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 32px rgba(0,0,0,0.4)' }}
+            <div style={{ width: 'min(900px, 100vw)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 32px rgba(0,0,0,0.4)', position: 'relative' }}
               onClick={e => e.stopPropagation()}>
 
               {/* Header */}
@@ -1413,7 +1413,7 @@ ${firma}
               {modalAdicional.coeficientes && (
                 <div style={{ padding: '8px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', background: 'var(--surface2)', flexShrink: 0, fontSize: 11 }}>
                   <span style={{ fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Coeficientes:</span>
-                  {[['GG%', 'gg_porcentaje'], ['Ben%', 'ben_porcentaje'], ['IVA%', 'iva_porcentaje'], ['K Mat', 'k_materiales'], ['K MO', 'k_mano_obra']].map(([label, key]) => (
+                  {[['GG%', 'gg_porcentaje'], ['Ben%', 'ben_porcentaje'], ['IVA%', 'iva_porcentaje'], ['K Mat', 'k_materiales'], ['K MO', 'k_mano_obra'], ['K Maq', 'k_maquinaria'], ['CS%', 'cargas_sociales_factor']].map(([label, key]) => (
                     <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span style={{ color: 'var(--muted)', fontSize: 10 }}>{label}:</span>
                       <input type="number" step="0.1" value={modalAdicional.coeficientes?.[key] ?? ''} style={{ width: 54, background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 4, padding: '2px 5px', fontSize: 11, fontFamily: 'var(--mono)', textAlign: 'right', color: 'var(--text)' }}
@@ -1544,9 +1544,9 @@ ${firma}
                   </div>
                 </div>
 
-                {/* Panel análisis */}
+                {/* Panel análisis - overlay */}
                 {lineaSeleccionadaAdic && !computoAdicLinea && (
-                  <div style={{ width: 'min(360px, 45vw)', borderLeft: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 'min(420px, 60vw)', background: 'var(--surface)', borderLeft: '1px solid var(--border)', zIndex: 10, overflow: 'hidden', boxShadow: '-4px 0 16px rgba(0,0,0,0.2)' }}>
                     <PanelAnalisis
                       presupuestoId={modalAdicional.id}
                       linea={lineaSeleccionadaAdic}
@@ -1556,9 +1556,9 @@ ${firma}
                   </div>
                 )}
 
-                {/* Panel cómputo */}
+                {/* Panel cómputo - overlay */}
                 {computoAdicLinea && (
-                  <div style={{ width: 'min(380px, 45vw)', borderLeft: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 'min(420px, 60vw)', background: 'var(--surface)', borderLeft: '1px solid var(--border)', zIndex: 10, overflow: 'hidden', boxShadow: '-4px 0 16px rgba(0,0,0,0.2)' }}>
                     <PanelComputo
                       presupuestoId={modalAdicional.id}
                       linea={computoAdicLinea}
