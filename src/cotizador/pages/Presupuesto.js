@@ -98,7 +98,20 @@ export default function Presupuesto() {
     setLoading(false);
   };
 
-  const cargarAdicionales = async () => { setAdicionales([]); };
+  const cargarAdicionales = async () => {
+    try {
+      const adics = await api.get(`/presupuestos/${id}/adicionales`);
+      const adicData = adics.data || [];
+      // Load full data for each adicional
+      const full = await Promise.all(adicData.map(a => api.get(`/presupuestos/${a.id}`).then(r => r.data).catch(() => a)));
+      setAdicionales(full);
+      // Refresh modal if open
+      if (modalAdicional && modalAdicional.id) {
+        const updated = full.find(a => a.id === modalAdicional.id);
+        if (updated) setModalAdicional(updated);
+      }
+    } catch(e) { console.error(e); }
+  };
 
   const crearAdicional = async () => {
     setCreandoAdic(true);
