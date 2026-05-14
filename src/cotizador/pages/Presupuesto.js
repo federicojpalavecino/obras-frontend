@@ -135,10 +135,15 @@ export default function Presupuesto() {
     setCreandoAdic(false);
   };
 
-  const abrirAdicional = (adic) => {
+  const abrirAdicional = async (adic) => {
     setBusquedaAdic('');
     setCatAdic(null);
     setShowLibreAdic(false);
+    // Load full presupuesto data
+    try {
+      const fullRes = await api.get(`/presupuestos/${adic.id}`);
+      adic = fullRes.data;
+    } catch(e) { console.error(e); }
     setItemLibreAdic({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1 });
     setModalAdicional(adic);
   };
