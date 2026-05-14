@@ -150,13 +150,11 @@ export default function Presupuesto() {
 
   const agregarItemAlAdicional = async (item) => {
     if (!modalAdicional) return;
+    const adicId = modalAdicional.id;
     try {
-      await api.post(`/presupuestos/${modalAdicional.id}/lineas`, { tipo: 'catalogo', item_obra_id: item.id, cantidad: 1 });
-      await cargarAdicionales();
-      // refresh modal data
-      const adics = await api.get(`/presupuestos/${id}/adicionales`);
-      const updated = (adics.data || []).find(a => a.id === modalAdicional.id);
-      if (updated) setModalAdicional(updated);
+      await api.post(`/presupuestos/${adicId}/lineas`, { tipo: 'catalogo', item_obra_id: item.id, cantidad: 1 });
+      const fullRes = await api.get(`/presupuestos/${adicId}`);
+      setModalAdicional(fullRes.data);
     } catch(e) { console.error(e); }
   };
 
@@ -186,11 +184,10 @@ export default function Presupuesto() {
 
   const handleCantidadAdicional = async (lineaId, cant) => {
     if (!modalAdicional || !cant || cant <= 0) return;
-    await api.patch(`/presupuestos/${modalAdicional.id}/lineas/${lineaId}`, { cantidad: parseFloat(cant) });
-    await cargarAdicionales();
-    const adics = await api.get(`/presupuestos/${id}/adicionales`);
-    const updated = (adics.data || []).find(a => a.id === modalAdicional.id);
-    if (updated) setModalAdicional(updated);
+    const adicId = modalAdicional.id;
+    await api.patch(`/presupuestos/${adicId}/lineas/${lineaId}`, { cantidad: parseFloat(cant) });
+    const fullRes = await api.get(`/presupuestos/${adicId}`);
+    setModalAdicional(fullRes.data);
   };
 
   const cerrarAdicional = async () => {
