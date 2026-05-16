@@ -1,865 +1,350 @@
 import React, { useState, useEffect } from "react";
 
-// Direct Supabase REST API (bypasses SDK auth issues)
-const SB_URL = "https://bomxksdisszrhhsctowd.supabase.co";
-const SB_KEY = "sb_publishable_mMVi2QnQ2kHRY6nwCeg4lQ_aOG9Kvg2";
-const sbHeaders = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY, "Content-Type": "application/json", "Prefer": "return=representation" };
+const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
+const getToken = () => localStorage.getItem("obras_token") || "";
+const authH = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` });
 
-const sbSelect = async (table, order) => {
-  const url = SB_URL + "/rest/v1/" + table + "?select=*" + (order ? "&order=" + order : "");
-  try {
-    const res = await fetch(url, { headers: sbHeaders });
-    if (!res.ok) {
-      const err = await res.text();
-      console.error("sbSelect error", table, res.status, err);
-      return [];
-    }
-    return await res.json();
-  } catch(e) {
-    console.error("sbSelect fetch error", table, e);
-    return [];
-  }
-};
-const sbInsert = async (table, data) => {
-  try {
-    const res = await fetch(SB_URL + "/rest/v1/" + table, { method: "POST", headers: sbHeaders, body: JSON.stringify(data) });
-    if (!res.ok) {
-      const err = await res.text();
-      console.error("sbInsert error", table, res.status, err);
-      return null;
-    }
-    const result = await res.json();
-    return Array.isArray(result) ? result[0] : result;
-  } catch(e) {
-    console.error("sbInsert fetch error", table, e);
-    return null;
-  }
-};
-const sbUpdate = async (table, id, data) => {
-  const res = await fetch(SB_URL + "/rest/v1/" + table + "?id=eq." + id, { method: "PATCH", headers: sbHeaders, body: JSON.stringify(data) });
-  return res.ok;
-};
-const sbDelete = async (table, id) => {
-  const res = await fetch(SB_URL + "/rest/v1/" + table + "?id=eq." + id, { method: "DELETE", headers: { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY } });
-  return res.ok;
-};
-const sbSelectFilter = async (table, field, value) => {
-  const url = SB_URL + "/rest/v1/" + table + "?select=*&" + field + "=eq." + value;
-  const res = await fetch(url, { headers: sbHeaders });
-  return res.ok ? await res.json() : [];
-};
-
-// ── GOOGLE CALENDAR ──
+// ── Google Calendar ───────────────────────────────────────────────────────────
 const GCAL_CLIENT_ID = "289602384269-rc91am6518mhnec4kr6ju0i19qq18ih4.apps.googleusercontent.com";
 const GCAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
-const GCAL_CALENDAR_ID = "primary";
-
-const gcalToken = () => localStorage.getItem('gcal_token');
-const gcalTokenExp = () => localStorage.getItem('gcal_token_exp');
-const gcalIsValid = () => {
-  const t = gcalToken(); const e = gcalTokenExp();
-  return t && e && Date.now() < parseInt(e);
-};
+const gcalToken = () => localStorage.getItem("gcal_token");
+const gcalTokenExp = () => localStorage.getItem("gcal_token_exp");
+const gcalIsValid = () => { const t = gcalToken(); const e = gcalTokenExp(); return t && e && Date.now() < parseInt(e); };
 
 const gcalLogin = () => {
-  // Save current path so we can return after auth
-  localStorage.setItem('gcal_return_path', window.location.pathname);
-  const params = new URLSearchParams({
-    client_id: GCAL_CLIENT_ID,
-    redirect_uri: window.location.origin,
-    response_type: 'token',
-    scope: GCAL_SCOPE,
-    prompt: 'consent',
-  });
-  // Full page redirect - most reliable approach
-  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+  localStorage.setItem("gcal_return_path", window.location.pathname);
+  const params = new URLSearchParams({ client_id: GCAL_CLIENT_ID, redirect_uri: window.location.origin, response_type: "token", scope: GCAL_SCOPE, prompt: "consent" });
+  window.location.href = "https://accounts.google.com/o/oauth2/v2/auth?" + params.toString();
 };
 
-// Called on mount - checks if we just came back from Google OAuth
 const parseGcalToken = () => {
   const hash = window.location.hash;
-  if (!hash || !hash.includes('access_token')) return false;
-  const params = new URLSearchParams(hash.substring(1));
-  const token = params.get('access_token');
-  const expiresIn = params.get('expires_in');
-  if (token) {
-    localStorage.setItem('gcal_token', token);
-    localStorage.setItem('gcal_token_exp', String(Date.now() + parseInt(expiresIn) * 1000));
-    window.history.replaceState(null, '', window.location.pathname);
-    return true;
-  }
+  if (!hash.includes("access_token")) return false;
+  const params = new URLSearchParams(hash.replace("#", ""));
+  const token = params.get("access_token");
+  const expiresIn = parseInt(params.get("expires_in") || "3600");
+  if (token) { localStorage.setItem("gcal_token", token); localStorage.setItem("gcal_token_exp", String(Date.now() + expiresIn * 1000)); window.history.replaceState(null, "", window.location.pathname); return true; }
   return false;
 };
 
-const gcalLogout = () => {
-  localStorage.removeItem('gcal_token');
-  localStorage.removeItem('gcal_token_exp');
-};
-
-// Leer token del hash tras el redirect de OAuth
-const parseGcalHash = () => {
-  const hash = window.location.hash.substring(1);
-  if (!hash) return;
-  const params = new URLSearchParams(hash);
-  const token = params.get('access_token');
-  const expiresIn = params.get('expires_in');
-  if (token) {
-    localStorage.setItem('gcal_token', token);
-    localStorage.setItem('gcal_token_exp', String(Date.now() + parseInt(expiresIn) * 1000));
-    window.history.replaceState(null, '', window.location.pathname);
-  }
-};
-
 const gcalUpsertEvent = async (tarea, proyectoNombre) => {
-  const token = gcalToken();
-  if (!token || !gcalIsValid()) return null;
-  const start = tarea.fecha_inicio || new Date().toISOString().split('T')[0];
-  const end = tarea.fecha_fin || start;
-  const body = {
-    summary: (proyectoNombre ? '[' + proyectoNombre + '] ' : '') + tarea.titulo,
-    description: tarea.descripcion || '',
-    start: (tarea.hora_inicio && tarea.hora_inicio !== '')
-      ? { dateTime: start + 'T' + tarea.hora_inicio.slice(0,5) + ':00', timeZone: 'America/Argentina/Buenos_Aires' }
-      : { date: start },
-    end: (tarea.hora_inicio && tarea.hora_inicio !== '')
-      ? { dateTime: end + 'T' + (tarea.hora_fin && tarea.hora_fin !== '' ? tarea.hora_fin.slice(0,5) : addOneHour(tarea.hora_inicio.slice(0,5))) + ':00', timeZone: 'America/Argentina/Buenos_Aires' }
-      : { date: addDays(end, 1) },
-    colorId: (() => {
-      // Map project color to nearest Google Calendar color
-      if (proyectoNombre) {
-        // Use a hash of the project name to pick a consistent colorId
-        let hash = 0;
-        for (let i = 0; i < proyectoNombre.length; i++) hash = proyectoNombre.charCodeAt(i) + ((hash << 5) - hash);
-        return String((Math.abs(hash) % 11) + 1);
-      }
-      return tarea.prioridad === 'alta' ? '11' : tarea.prioridad === 'baja' ? '2' : '7';
-    })(),
-  };
-  const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-  if (tarea.google_event_id) {
-    // Update existing event
-    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${GCAL_CALENDAR_ID}/events/${tarea.google_event_id}`, {
-      method: 'PUT', headers, body: JSON.stringify(body)
-    });
+  const token = gcalToken(); if (!token) return null;
+  const startDate = tarea.fecha_inicio || new Date().toISOString().split("T")[0];
+  const endDate = tarea.fecha_fin || startDate;
+  const start = tarea.hora_inicio ? { dateTime: `${startDate}T${tarea.hora_inicio}`, timeZone: "America/Argentina/Buenos_Aires" } : { date: startDate };
+  const end = tarea.hora_fin ? { dateTime: `${endDate}T${tarea.hora_fin}`, timeZone: "America/Argentina/Buenos_Aires" } : { date: endDate };
+  const event = { summary: (proyectoNombre ? `[${proyectoNombre}] ` : "") + tarea.titulo, description: tarea.descripcion || "", start, end };
+  try {
+    const url = tarea.google_event_id ? `https://www.googleapis.com/calendar/v3/calendars/primary/events/${tarea.google_event_id}` : "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+    const method = tarea.google_event_id ? "PUT" : "POST";
+    const res = await fetch(url, { method, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(event) });
+    if (!res.ok) return null;
     const data = await res.json();
-    return data.id || tarea.google_event_id;
-  } else {
-    // Create new event
-    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${GCAL_CALENDAR_ID}/events`, {
-      method: 'POST', headers, body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    return data.id || null;
-  }
+    return data.id;
+  } catch { return null; }
 };
 
 const gcalDeleteEvent = async (eventId) => {
-  const token = gcalToken();
-  if (!token || !gcalIsValid() || !eventId) return;
-  await fetch(`https://www.googleapis.com/calendar/v3/calendars/${GCAL_CALENDAR_ID}/events/${eventId}`, {
-    method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
-  });
+  const token = gcalToken(); if (!token) return;
+  try { await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }); } catch {}
 };
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const C = {
-  bg:'#f8f9fa', surface:'#ffffff', surface2:'#f1f3f5', surface3:'#e9ecef',
-  border:'#e0e0e8', border2:'#d0d0dc',
-  text:'#1a1a2e', muted:'#6b7280', muted2:'#9ca3af',
-  accent:'#059669', accent2:'#7c3aed', warn:'#d97706',
-  green:'#10b981', red:'#ef4444', blue:'#3b82f6',
+  bg: "#f8f9fa", surface: "#ffffff", surface2: "#f1f3f5", surface3: "#e9ecef",
+  border: "#e0e0e8", border2: "#d0d0dc",
+  text: "#1a1a2e", muted: "#6b7280", muted2: "#9ca3af",
+  accent: "#059669", accent2: "#7c3aed", warn: "#d97706",
+  green: "#10b981", red: "#ef4444", blue: "#3b82f6",
 };
+const inp = { background: C.surface2, border: `1px solid ${C.border2}`, borderRadius: 8, color: C.text, padding: "8px 12px", fontSize: 13, fontFamily: "inherit", width: "100%", outline: "none", boxSizing: "border-box" };
+const hoy = () => new Date().toISOString().split("T")[0];
+const addDays = (d, n) => { const dt = new Date(d + "T12:00:00"); dt.setDate(dt.getDate() + n); return dt.toISOString().split("T")[0]; };
+const fmtDate = (d) => d ? new Date(d + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }) : "—";
 
-const COLORES_PROYECTO = ['#6ee7b7','#a78bfa','#fbbf24','#f87171','#38bdf8','#fb923c','#e879f9','#a3e635'];
-const ESTADOS = ['pendiente','en_progreso','listo'];
-const ESTADO_LABEL = { pendiente:'Por hacer', en_progreso:'En progreso', listo:'Listo' };
-const ESTADO_COLOR = { pendiente: C.muted, en_progreso: C.warn, listo: C.green };
-const PRIORIDADES = ['baja','normal','alta'];
-const PRIORIDAD_COLOR = { baja: C.muted, normal: C.accent, alta: C.red };
-const VISTAS = ['kanban','lista','dia','semana','quincena','mes','anual'];
-const VISTA_LABEL = { kanban:'Kanban', lista:'Lista', dia:'Día', semana:'Semana', quincena:'2 semanas', mes:'Mes', anual:'Año' };
+const ESTADOS = ["pendiente", "en_progreso", "completado", "cancelado"];
+const ESTADO_LABEL = { pendiente: "Pendiente", en_progreso: "En progreso", completado: "Completado", cancelado: "Cancelado" };
+const ESTADO_COLOR = { pendiente: C.muted, en_progreso: C.blue, completado: C.green, cancelado: C.red };
+const PRIORIDADES = ["baja", "normal", "alta", "urgente"];
+const PRIORIDAD_COLOR = { baja: C.muted, normal: C.blue, alta: C.warn, urgente: C.red };
+const VISTAS = ["kanban", "lista", "semana", "mes"];
 
-const hoy = () => new Date().toISOString().split('T')[0];
-const fmtFecha = d => d ? new Date(d+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'}) : '—';
-const fmtFechaLarga = d => d ? new Date(d+'T12:00:00').toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'long'}) : '—';
-const addDays = (d, n) => { const r=new Date(d+'T12:00:00'); r.setDate(r.getDate()+n); return r.toISOString().split('T')[0]; };
-const addOneHour = (t) => { if(!t) return '09:00'; const [h,m]=t.split(':').map(Number); const nh=(h+1)%24; return String(nh).padStart(2,'0')+':'+String(m).padStart(2,'0'); };
-const startOfWeek = d => { const r=new Date(d+'T12:00:00'); r.setDate(r.getDate()-r.getDay()+1); return r.toISOString().split('T')[0]; };
-const startOfMonth = d => d.slice(0,7)+'-01';
-const isSameDay = (a,b) => a && b && a===b;
-const isInRange = (d,a,b) => d && a && (b ? (d>=a && d<=b) : d===a);
-
-const inp = {
-  background:C.surface2, border:`1px solid ${C.border2}`, borderRadius:8,
-  color:C.text, padding:'8px 12px', fontSize:13, fontFamily:'inherit',
-  width:'100%', outline:'none', boxSizing:'border-box'
-};
-
-function Btn({primary,danger,small,onClick,disabled,children,style={}}) {
-  return <button onClick={onClick} disabled={disabled} style={{
-    padding:small?'5px 10px':'8px 16px', borderRadius:8, fontSize:small?12:13,
-    fontWeight:primary?600:500, cursor:disabled?'not-allowed':'pointer',
-    border:`1px solid ${danger?'rgba(248,113,113,.3)':primary?C.accent:C.border2}`,
-    background:primary?C.accent:danger?'rgba(248,113,113,.08)':'transparent',
-    color:primary?'#ffffff':danger?C.red:C.text,
-    fontFamily:'inherit', opacity:disabled?.5:1, ...style
-  }}>{children}</button>;
+function Btn({ primary, danger, small, onClick, disabled, children, style = {} }) {
+  return <button onClick={onClick} disabled={disabled} style={{ padding: small ? "5px 10px" : "8px 16px", borderRadius: 8, fontSize: small ? 12 : 13, fontWeight: primary ? 600 : 500, cursor: disabled ? "not-allowed" : "pointer", border: `1px solid ${danger ? "rgba(248,113,113,.3)" : primary ? C.accent : C.border2}`, background: primary ? C.accent : danger ? "rgba(248,113,113,.08)" : "transparent", color: primary ? "#fff" : danger ? C.red : C.text, fontFamily: "inherit", opacity: disabled ? 0.5 : 1, ...style }}>{children}</button>;
 }
 
-function Badge({color,children}) {
-  return <span style={{fontSize:10,padding:'2px 8px',borderRadius:20,background:color+'22',color,border:`1px solid ${color}44`,fontWeight:600,letterSpacing:.5}}>{children}</span>;
-}
-
-function TareaCard({tarea, proyecto, onEdit, onDelete, onEstado}) {
+function TareaCard({ t, proyectos, onEdit, onDelete, onEstado }) {
+  const proy = proyectos.find((p) => p.id === t.proyecto_id);
   return (
-    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:14,marginBottom:8,cursor:'pointer'}} onClick={()=>onEdit(tarea)}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
-        <div style={{fontSize:14,fontWeight:600,color:C.text,flex:1,marginRight:8}}>{tarea.titulo}</div>
-        <button onClick={e=>{e.stopPropagation();onDelete(tarea.id);}} style={{background:'none',border:'none',cursor:'pointer',color:C.muted,fontSize:16,lineHeight:1}}>×</button>
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, marginBottom: 8, cursor: "pointer" }} onClick={() => onEdit(t)}>
+      {proy && <div style={{ fontSize: 10, fontWeight: 700, color: proy.color || C.accent2, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>{proy.nombre}</div>}
+      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t.titulo}</div>
+      {t.descripcion && <div style={{ fontSize: 12, color: C.muted, marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.descripcion}</div>}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {t.fecha_inicio && <span style={{ fontSize: 11, color: C.muted }}>{fmtDate(t.fecha_inicio)}{t.fecha_fin && t.fecha_fin !== t.fecha_inicio ? " → " + fmtDate(t.fecha_fin) : ""}</span>}
+        {t.hora_inicio && <span style={{ fontSize: 11, color: C.muted }}>{t.hora_inicio.slice(0, 5)}{t.hora_fin ? " - " + t.hora_fin.slice(0, 5) : ""}</span>}
+        <span style={{ fontSize: 10, fontWeight: 700, color: PRIORIDAD_COLOR[t.prioridad] }}>● {t.prioridad}</span>
+        {t.asignado_a && <span style={{ fontSize: 11, color: C.muted }}>@{t.asignado_a}</span>}
+        {t.google_event_id && <span style={{ fontSize: 10, color: "#4285f4" }}>📅</span>}
       </div>
-      {tarea.descripcion && <div style={{fontSize:12,color:C.muted,marginBottom:8,lineHeight:1.5}}>{tarea.descripcion}</div>}
-      <div style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
-        {proyecto && <span style={{fontSize:11,color:proyecto.color,fontWeight:600}}>● {proyecto.nombre}</span>}
-        <Badge color={PRIORIDAD_COLOR[tarea.prioridad]}>{tarea.prioridad}</Badge>
-        {tarea.fecha_fin && <span style={{fontSize:11,color:tarea.fecha_fin<hoy()?C.red:C.muted}}>📅 {fmtFecha(tarea.fecha_fin)}</span>}
-        {tarea.asignado_a && <span style={{fontSize:11,color:C.muted}}>👤 {tarea.asignado_a}</span>}
-        {tarea.hora_inicio && <span style={{fontSize:11,color:C.blue}}>🕐 {tarea.hora_inicio}{tarea.hora_fin?` – ${tarea.hora_fin}`:''}</span>}
-      </div>
-      <div style={{display:'flex',gap:4,marginTop:10}}>
-        {ESTADOS.map(e=>(
-          <button key={e} onClick={ev=>{ev.stopPropagation();onEstado(tarea.id,e);}}
-            style={{flex:1,padding:'4px 0',fontSize:10,borderRadius:6,border:`1px solid ${tarea.estado===e?ESTADO_COLOR[e]:C.border}`,background:tarea.estado===e?ESTADO_COLOR[e]+'22':'transparent',color:tarea.estado===e?ESTADO_COLOR[e]:C.muted,cursor:'pointer',fontFamily:'inherit',fontWeight:tarea.estado===e?700:400}}>
-            {ESTADO_LABEL[e]}
-          </button>
+      <div style={{ display: "flex", gap: 6, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+        {ESTADOS.filter((s) => s !== t.estado).slice(0, 2).map((s) => (
+          <button key={s} onClick={() => onEstado(t.id, s)} style={{ fontSize: 10, padding: "2px 8px", border: `1px solid ${C.border}`, borderRadius: 4, background: "transparent", color: ESTADO_COLOR[s], cursor: "pointer", fontFamily: "inherit" }}>{ESTADO_LABEL[s]}</button>
         ))}
+        <button onClick={() => onDelete(t.id)} style={{ fontSize: 10, padding: "2px 8px", border: "1px solid rgba(239,68,68,.3)", borderRadius: 4, background: "transparent", color: C.red, cursor: "pointer", marginLeft: "auto" }}>×</button>
       </div>
     </div>
   );
 }
 
-function ModalTarea({tarea, proyectos, usuarios, onSave, onClose}) {
-  const [form, setForm] = useState(tarea || { titulo:'', descripcion:'', estado:'pendiente', prioridad:'normal', fecha_inicio:hoy(), fecha_fin:'', hora_inicio:'', hora_fin:'', asignado_a:'', proyecto_id:'' });
-  const horaInicioRef = React.useRef(null);
-  const horaFinRef = React.useRef(null);
-  const upd = (k,v) => setForm(f=>({...f,[k]:v}));
-  const handleSave = () => {
-    const finalForm = {
-      ...form,
-      hora_inicio: horaInicioRef.current?.value || '',
-      hora_fin: horaFinRef.current?.value || '',
-    };
-    onSave(finalForm);
-  };
+function ViewKanban({ tareas, proyectos, onEdit, onDelete, onEstado }) {
   return (
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div style={{background:C.surface,borderRadius:16,padding:24,maxWidth:500,width:'100%',maxHeight:'90vh',overflow:'auto'}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
-          <div style={{fontSize:18,fontWeight:700}}>{tarea?.id?'Editar tarea':'Nueva tarea'}</div>
-          <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:C.muted,fontSize:22}}>×</button>
-        </div>
-        <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          <div><label style={{fontSize:11,color:C.muted,display:'block',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Título *</label>
-            <input style={inp} value={form.titulo} onChange={e=>upd('titulo',e.target.value)} placeholder="Nombre de la tarea" /></div>
-          <div><label style={{fontSize:11,color:C.muted,display:'block',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Descripción</label>
-            <textarea style={{...inp,minHeight:80,resize:'vertical'}} value={form.descripcion} onChange={e=>upd('descripcion',e.target.value)} placeholder="Detalles..." /></div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <div><label style={{fontSize:11,color:C.muted,display:'block',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Proyecto</label>
-              <select style={inp} value={form.proyecto_id} onChange={e=>upd('proyecto_id',e.target.value)}>
-                <option value="">Sin proyecto</option>
-                {proyectos.map(p=><option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </select></div>
-            <div><label style={{fontSize:11,color:C.muted,display:'block',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Asignado a</label>
-              <input style={inp} value={form.asignado_a} onChange={e=>upd('asignado_a',e.target.value)} placeholder="Nombre..." /></div>
-            <div><label style={{fontSize:11,color:C.muted,display:'block',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Estado</label>
-              <select style={inp} value={form.estado} onChange={e=>upd('estado',e.target.value)}>
-                {ESTADOS.map(e=><option key={e} value={e}>{ESTADO_LABEL[e]}</option>)}
-              </select></div>
-            <div><label style={{fontSize:11,color:C.muted,display:'block',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Prioridad</label>
-              <select style={inp} value={form.prioridad} onChange={e=>upd('prioridad',e.target.value)}>
-                {PRIORIDADES.map(p=><option key={p} value={p}>{p}</option>)}
-              </select></div>
-            <div><label style={{fontSize:11,color:C.muted,display:'block',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Fecha inicio</label>
-              <input style={inp} type="date" value={form.fecha_inicio} onChange={e=>upd('fecha_inicio',e.target.value)} /></div>
-            <div><label style={{fontSize:11,color:C.muted,display:'block',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Fecha fin</label>
-              <input style={inp} type="date" value={form.fecha_fin} onChange={e=>upd('fecha_fin',e.target.value)} /></div>
-            <div><label style={{fontSize:11,color:C.muted,display:'block',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Hora inicio</label>
-              <input ref={horaInicioRef} style={inp} type="time" defaultValue={form.hora_inicio||''} /></div>
-            <div><label style={{fontSize:11,color:C.muted,display:'block',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Hora fin</label>
-              <input ref={horaFinRef} style={inp} type="time" defaultValue={form.hora_fin||''} /></div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+      {ESTADOS.map((estado) => (
+        <div key={estado} style={{ background: C.surface2, borderRadius: 10, padding: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: ESTADO_COLOR[estado], textTransform: "uppercase", letterSpacing: "0.5px" }}>{ESTADO_LABEL[estado]}</div>
+            <span style={{ fontSize: 11, color: C.muted, background: C.surface, borderRadius: 20, padding: "1px 7px" }}>{tareas.filter((t) => t.estado === estado).length}</span>
           </div>
-        </div>
-        <div style={{display:'flex',gap:8,marginTop:20}}>
-          <Btn onClick={onClose} style={{flex:1}}>Cancelar</Btn>
-          <Btn primary onClick={handleSave} disabled={!form.titulo} style={{flex:2}}>Guardar</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ModalProyecto({onSave, onClose}) {
-  const [form, setForm] = useState({nombre:'', color:COLORES_PROYECTO[0]});
-  return (
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div style={{background:C.surface,borderRadius:16,padding:24,maxWidth:380,width:'100%'}}>
-        <div style={{fontSize:18,fontWeight:700,marginBottom:20}}>Nuevo proyecto</div>
-        <div style={{marginBottom:14}}>
-          <label style={{fontSize:11,color:C.muted,display:'block',marginBottom:4,textTransform:'uppercase',letterSpacing:1}}>Nombre *</label>
-          <input style={inp} value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} placeholder="Nombre del proyecto" />
-        </div>
-        <div style={{marginBottom:20}}>
-          <label style={{fontSize:11,color:C.muted,display:'block',marginBottom:8,textTransform:'uppercase',letterSpacing:1}}>Color</label>
-          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-            {COLORES_PROYECTO.map(c=>(
-              <button key={c} onClick={()=>setForm(f=>({...f,color:c}))} style={{width:28,height:28,borderRadius:'50%',background:c,border:form.color===c?`3px solid ${C.text}`:`2px solid transparent`,cursor:'pointer'}} />
-            ))}
-          </div>
-        </div>
-        <div style={{display:'flex',gap:8}}>
-          <Btn onClick={onClose} style={{flex:1}}>Cancelar</Btn>
-          <Btn primary onClick={()=>onSave(form)} disabled={!form.nombre} style={{flex:2}}>Crear</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── VISTA KANBAN ──
-function ViewKanban({tareas, proyectos, onEdit, onDelete, onEstado}) {
-  const getProyecto = id => proyectos.find(p=>p.id===parseInt(id));
-  return (
-    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,alignItems:'start'}}>
-      {ESTADOS.map(estado=>(
-        <div key={estado} style={{background:C.surface,borderRadius:12,padding:16}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-            <div style={{fontSize:12,fontWeight:700,color:ESTADO_COLOR[estado],textTransform:'uppercase',letterSpacing:1}}>{ESTADO_LABEL[estado]}</div>
-            <span style={{fontSize:11,color:C.muted,background:C.surface2,borderRadius:20,padding:'2px 8px'}}>{tareas.filter(t=>t.estado===estado).length}</span>
-          </div>
-          {tareas.filter(t=>t.estado===estado).map(t=>(
-            <TareaCard key={t.id} tarea={t} proyecto={getProyecto(t.proyecto_id)} onEdit={onEdit} onDelete={onDelete} onEstado={onEstado} />
-          ))}
-          {tareas.filter(t=>t.estado===estado).length===0 && (
-            <div style={{textAlign:'center',color:C.muted2,fontSize:12,padding:'20px 0'}}>Sin tareas</div>
-          )}
+          {tareas.filter((t) => t.estado === estado).map((t) => <TareaCard key={t.id} t={t} proyectos={proyectos} onEdit={onEdit} onDelete={onDelete} onEstado={onEstado} />)}
+          {tareas.filter((t) => t.estado === estado).length === 0 && <div style={{ textAlign: "center", color: C.muted2, fontSize: 12, padding: "20px 0" }}>Sin tareas</div>}
         </div>
       ))}
     </div>
   );
 }
 
-// ── VISTA LISTA ──
-function ViewLista({tareas, proyectos, onEdit, onDelete, onEstado}) {
-  const getProyecto = id => proyectos.find(p=>p.id===parseInt(id));
+function ViewLista({ tareas, proyectos, onEdit, onDelete, onEstado }) {
   return (
     <div>
-      {tareas.length===0 && <div style={{textAlign:'center',color:C.muted,padding:40}}>Sin tareas</div>}
-      {tareas.map(t=>(
-        <TareaCard key={t.id} tarea={t} proyecto={getProyecto(t.proyecto_id)} onEdit={onEdit} onDelete={onDelete} onEstado={onEstado} />
-      ))}
+      {tareas.length === 0 && <div style={{ textAlign: "center", color: C.muted, padding: 40 }}>Sin tareas</div>}
+      {tareas.map((t) => <TareaCard key={t.id} t={t} proyectos={proyectos} onEdit={onEdit} onDelete={onDelete} onEstado={onEstado} />)}
     </div>
   );
 }
 
-// ── VISTA CALENDARIO ──
-function ViewCalendario({tareas, proyectos, vista, fechaBase, onEdit}) {
-  const getProyecto = id => proyectos.find(p=>p.id===parseInt(id));
-
-  const getDias = () => {
-    if(vista==='dia') return [fechaBase];
-    if(vista==='semana') return Array.from({length:7},(_,i)=>addDays(startOfWeek(fechaBase),i));
-    if(vista==='quincena') return Array.from({length:14},(_,i)=>addDays(startOfWeek(fechaBase),i));
-    if(vista==='mes') {
-      const start = startOfMonth(fechaBase);
-      const d = new Date(start+'T12:00:00');
-      const days = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
-      return Array.from({length:days},(_,i)=>addDays(start,i));
-    }
-    if(vista==='anual') {
-      return Array.from({length:12},(_,i)=>{
-        const d = new Date(fechaBase.slice(0,4)+'-01-01T12:00:00');
-        d.setMonth(i);
-        return d.toISOString().split('T')[0];
-      });
-    }
-    return [];
-  };
-
-  const dias = getDias();
-  const cols = vista==='dia'?1:vista==='semana'?7:vista==='quincena'?7:vista==='mes'?7:4;
-
-  if(vista==='anual') {
-    return (
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
-        {dias.map((mes,mi)=>{
-          const d = new Date(mes+'T12:00:00');
-          const mesNum = d.getMonth();
-          const anio = d.getFullYear();
-          const diasMes = new Date(anio,mesNum+1,0).getDate();
-          const tareasDelMes = tareas.filter(t=>t.fecha_inicio&&t.fecha_inicio.slice(0,7)===mes.slice(0,7));
-          return (
-            <div key={mes} style={{background:C.surface,borderRadius:10,padding:14}}>
-              <div style={{fontSize:13,fontWeight:700,marginBottom:10,color:C.accent}}>
-                {d.toLocaleDateString('es-AR',{month:'long',year:'numeric'})}
-              </div>
-              {tareasDelMes.length===0 ? <div style={{fontSize:11,color:C.muted2}}>Sin tareas</div> :
-                tareasDelMes.slice(0,5).map(t=>(
-                  <div key={t.id} onClick={()=>onEdit(t)} style={{fontSize:11,padding:'3px 6px',borderRadius:4,background:getProyecto(t.proyecto_id)?.color+'22'||C.surface2,color:getProyecto(t.proyecto_id)?.color||C.text,marginBottom:3,cursor:'pointer',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
-                    {t.titulo}
-                  </div>
-                ))
-              }
-              {tareasDelMes.length>5 && <div style={{fontSize:10,color:C.muted}}>+{tareasDelMes.length-5} más</div>}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // Vista día, semana, quincena, mes
-  const semanas = [];
-  if(vista==='mes') {
-    // Agrupar en semanas para el mes
-    const primerDia = new Date(dias[0]+'T12:00:00').getDay();
-    const offset = primerDia===0?6:primerDia-1;
-    const totalCeldas = Math.ceil((dias.length+offset)/7)*7;
-    const celdas = Array.from({length:totalCeldas},(_, i)=>{
-      const idx = i-offset;
-      return idx>=0&&idx<dias.length ? dias[idx] : null;
-    });
-    for(let i=0;i<celdas.length;i+=7) semanas.push(celdas.slice(i,i+7));
-  }
-
-  const diasHeader = vista==='semana'||vista==='quincena'||vista==='mes'?
-    ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] : null;
-
-  const HORAS = Array.from({length:24},(_,i)=>i);
-
-  const renderDiaHorario = (dia) => {
-    if(!dia) return <div key="empty" style={{background:C.surface,borderRadius:8,flex:1,opacity:.3}} />;
-    const tareasDelDia = tareas.filter(t=>isInRange(dia,t.fecha_inicio,t.fecha_fin)||isSameDay(dia,t.fecha_inicio)||isSameDay(dia,t.fecha_fin));
-    const esHoy = dia===hoy();
-    return (
-      <div key={dia} style={{flex:1,borderRight:`1px solid ${C.border}`,minWidth:0}}>
-        <div style={{padding:'6px 8px',fontSize:11,fontWeight:esHoy?700:400,color:esHoy?C.accent:C.muted,borderBottom:`1px solid ${C.border}`,textAlign:'center',background:esHoy?'rgba(110,231,183,.06)':C.surface}}>
-          {new Date(dia+'T12:00:00').toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'})}
-        </div>
-        {/* Tareas sin hora — franja superior */}
-        {tareasDelDia.filter(t=>!t.hora_inicio).length > 0 && (
-          <div style={{borderBottom:`1px solid ${C.border}`,minHeight:24,padding:'2px 2px'}}>
-            {tareasDelDia.filter(t=>!t.hora_inicio).map(t=>{
-              const p = getProyecto(t.proyecto_id);
-              return (
-                <div key={t.id} onClick={()=>onEdit(t)}
-                  style={{fontSize:10,padding:'1px 4px',borderRadius:3,background:p?.color+'22'||C.surface2,color:p?.color||C.text,marginBottom:2,cursor:'pointer',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',borderLeft:`3px solid ${p?.color||ESTADO_COLOR[t.estado]}`}}>
-                  {t.titulo}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <div style={{position:'relative'}}>
-          {HORAS.map(h=>(
-            <div key={h} style={{height:48,borderBottom:`1px solid ${C.border}22`,position:'relative'}}>
-              {tareasDelDia.filter(t=>t.hora_inicio&&parseInt(t.hora_inicio.split(':')[0])===h).map(t=>{
-                const p = getProyecto(t.proyecto_id);
-                const hStart = parseInt((t.hora_inicio||'0:0').split(':')[0]);
-                const mStart = parseInt((t.hora_inicio||'0:0').split(':')[1]);
-                const hEnd = t.hora_fin?parseInt(t.hora_fin.split(':')[0]):hStart+1;
-                const mEnd = t.hora_fin?parseInt(t.hora_fin.split(':')[1]):0;
-                const durMin = (hEnd*60+mEnd)-(hStart*60+mStart);
-                const altura = Math.max(24, durMin*48/60);
-                return (
-                  <div key={t.id} onClick={()=>onEdit(t)} style={{position:'absolute',top:mStart*48/60,left:2,right:2,height:altura,background:p?.color+'33'||C.surface2,borderLeft:`3px solid ${p?.color||ESTADO_COLOR[t.estado]}`,borderRadius:4,padding:'2px 4px',fontSize:10,color:p?.color||C.text,cursor:'pointer',overflow:'hidden',zIndex:1}}>
-                    <div style={{fontWeight:600}}>{t.titulo}</div>
-                    {t.hora_inicio&&<div style={{opacity:.8}}>{t.hora_inicio}{t.hora_fin?`–${t.hora_fin}`:''}</div>}
-                  </div>
-                );
-              })}
-
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderDia = (dia) => {
-    if(!dia) return <div key="empty" style={{background:C.surface,borderRadius:8,padding:8,minHeight:80,opacity:.3}} />;
-    const tareasDelDia = tareas.filter(t=>isInRange(dia,t.fecha_inicio,t.fecha_fin)||isSameDay(dia,t.fecha_inicio)||isSameDay(dia,t.fecha_fin));
-    const esHoy = dia===hoy();
-    return (
-      <div key={dia} style={{background:esHoy?'rgba(110,231,183,.06)':C.surface,borderRadius:8,padding:8,minHeight:80,border:esHoy?`1px solid ${C.accent}44`:`1px solid ${C.border}`}}>
-        <div style={{fontSize:11,fontWeight:esHoy?700:400,color:esHoy?C.accent:C.muted,marginBottom:6}}>
-          {new Date(dia+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:vista==='mes'?'numeric':'short'})}
-        </div>
-        {tareasDelDia.map(t=>{
-          const p = getProyecto(t.proyecto_id);
-          return (
-            <div key={t.id} onClick={()=>onEdit(t)} style={{fontSize:11,padding:'3px 6px',borderRadius:4,background:p?.color+'22'||C.surface2,color:p?.color||C.text,marginBottom:3,cursor:'pointer',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',borderLeft:`3px solid ${p?.color||ESTADO_COLOR[t.estado]}`}}>
-              {t.hora_inicio&&<span style={{opacity:.7}}>{t.hora_inicio} </span>}{t.titulo}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  if(vista==='mes') {
-    return (
-      <div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:4}}>
-          {diasHeader.map(d=><div key={d} style={{fontSize:11,color:C.muted,textAlign:'center',padding:'4px 0'}}>{d}</div>)}
-        </div>
-        {semanas.map((semana,i)=>(
-          <div key={i} style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:4}}>
-            {semana.map((dia,j)=>renderDia(dia))}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  // Vista con horario (dia, semana, quincena)
-  if(vista==='dia'||vista==='semana'||vista==='quincena') {
-    const diasSem = vista==='dia'?[fechaBase]:vista==='semana'?Array.from({length:7},(_,i)=>addDays(startOfWeek(fechaBase),i)):Array.from({length:14},(_,i)=>addDays(startOfWeek(fechaBase),i));
-    const diasVis = vista==='quincena'?diasSem.slice(0,7):diasSem;
-    const diasVis2 = vista==='quincena'?diasSem.slice(7):null;
-    return (
-      <div style={{overflowX:'auto'}}>
-        {diasVis2 && <div style={{marginBottom:8,fontSize:11,color:C.muted}}>Semana 1</div>}
-        <div style={{display:'flex',minWidth:vista==='dia'?300:600}}>
-          {/* Columna de horas */}
-          <div style={{width:44,flexShrink:0,paddingTop:36}}>
-            {HORAS.map(h=>(
-              <div key={h} style={{height:48,fontSize:10,color:C.muted2,textAlign:'right',paddingRight:6,paddingTop:2,borderBottom:`1px solid ${C.border}22`}}>{h}:00</div>
-            ))}
-          </div>
-          {diasVis.map(d=>renderDiaHorario(d))}
-        </div>
-        {diasVis2 && (
-          <>
-            <div style={{marginTop:12,marginBottom:8,fontSize:11,color:C.muted}}>Semana 2</div>
-            <div style={{display:'flex',minWidth:600}}>
-              <div style={{width:44,flexShrink:0,paddingTop:36}}>
-                {HORAS.map(h=>(
-                  <div key={h} style={{height:48,fontSize:10,color:C.muted2,textAlign:'right',paddingRight:6,paddingTop:2,borderBottom:`1px solid ${C.border}22`}}>{h}:00</div>
-                ))}
-              </div>
-              {diasVis2.map(d=>renderDiaHorario(d))}
-            </div>
-          </>
-        )}
-      </div>
-    );
-  }
-
+function ModalTarea({ tarea, proyectos, onSave, onClose, gcalConnected }) {
+  const [form, setForm] = useState(tarea || { titulo: "", descripcion: "", estado: "pendiente", prioridad: "normal", proyecto_id: "", fecha_inicio: hoy(), fecha_fin: "", hora_inicio: "", hora_fin: "", asignado_a: "" });
   return (
-    <div>
-      <div style={{display:'grid',gridTemplateColumns:`repeat(${cols},1fr)`,gap:4}}>
-        {dias.map(d=>renderDia(d))}
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: C.surface, borderRadius: 16, padding: 24, maxWidth: 520, width: "100%", maxHeight: "90vh", overflow: "auto", border: `1px solid ${C.border2}` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+          <div style={{ fontSize: 17, fontWeight: 700 }}>{form.id ? "Editar tarea" : "Nueva tarea"}</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: C.muted }}>×</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Título *</label><input style={inp} value={form.titulo || ""} onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))} placeholder="Nombre de la tarea" /></div>
+          <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Descripción</label><textarea style={{ ...inp, minHeight: 70, resize: "vertical" }} value={form.descripcion || ""} onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))} /></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Estado</label>
+              <select style={inp} value={form.estado || "pendiente"} onChange={(e) => setForm((f) => ({ ...f, estado: e.target.value }))}>
+                {ESTADOS.map((s) => <option key={s} value={s}>{ESTADO_LABEL[s]}</option>)}
+              </select></div>
+            <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Prioridad</label>
+              <select style={inp} value={form.prioridad || "normal"} onChange={(e) => setForm((f) => ({ ...f, prioridad: e.target.value }))}>
+                {PRIORIDADES.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+              </select></div>
+          </div>
+          <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Proyecto</label>
+            <select style={inp} value={form.proyecto_id || ""} onChange={(e) => setForm((f) => ({ ...f, proyecto_id: e.target.value ? parseInt(e.target.value) : null }))}>
+              <option value="">Sin proyecto</option>
+              {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            </select></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Fecha inicio</label><input type="date" style={inp} value={form.fecha_inicio || ""} onChange={(e) => setForm((f) => ({ ...f, fecha_inicio: e.target.value }))} /></div>
+            <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Fecha fin</label><input type="date" style={inp} value={form.fecha_fin || ""} onChange={(e) => setForm((f) => ({ ...f, fecha_fin: e.target.value }))} /></div>
+            <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Hora inicio</label><input type="time" style={inp} value={form.hora_inicio || ""} onChange={(e) => setForm((f) => ({ ...f, hora_inicio: e.target.value }))} /></div>
+            <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Hora fin</label><input type="time" style={inp} value={form.hora_fin || ""} onChange={(e) => setForm((f) => ({ ...f, hora_fin: e.target.value }))} /></div>
+          </div>
+          <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Asignado a</label><input style={inp} value={form.asignado_a || ""} onChange={(e) => setForm((f) => ({ ...f, asignado_a: e.target.value }))} placeholder="Nombre o email" /></div>
+          {gcalConnected && <div style={{ fontSize: 12, color: "#4285f4", background: "#f0f4ff", padding: "8px 12px", borderRadius: 8 }}>📅 Se sincronizará con Google Calendar al guardar</div>}
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+          <Btn onClick={onClose} style={{ flex: 1 }}>Cancelar</Btn>
+          <Btn primary onClick={() => onSave(form)} disabled={!form.titulo} style={{ flex: 2 }}>Guardar</Btn>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── COMPONENTE PRINCIPAL ──
-export default function Planner({user}) {
+export default function Planner({ user }) {
   const [tareas, setTareas] = useState([]);
   const [proyectos, setProyectos] = useState([]);
-  const [vista, setVista] = useState('kanban');
-  const [fechaBase, setFechaBase] = useState(hoy());
-  const [modalTarea, setModalTarea] = useState(null); // null | {} | tarea
+  const [vista, setVista] = useState("kanban");
+  const [modalTarea, setModalTarea] = useState(null);
   const [modalProyecto, setModalProyecto] = useState(false);
-  const [filtroProyecto, setFiltroProyecto] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('');
-  const [busqueda, setBusqueda] = useState('');
-  const [toast, setToast] = useState('');
+  const [formProy, setFormProy] = useState({ nombre: "", color: "#6ee7b7" });
+  const [filtroProyecto, setFiltroProyecto] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [gcalConnected, setGcalConnected] = useState(false);
+  const [toast, setToast] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(''),2500); };
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
-  const handleGcalConnect = () => {
-    if (gcalConnected) {
-      gcalLogout();
-      setGcalConnected(false);
-      showToast('Desconectado de Google Calendar');
-    } else {
-      gcalLogin();
-    }
-  };
-
-  const [gcalConnected, setGcalConnected] = useState(gcalIsValid());
-
-  useEffect(()=>{
+  useEffect(() => {
     const justConnected = parseGcalToken();
     setGcalConnected(gcalIsValid());
-    if (justConnected) showToast('✓ Conectado a Google Calendar');
+    if (justConnected) showToast("✓ Conectado a Google Calendar");
     cargar();
-  },[]);
+  }, []);
 
   const cargar = async () => {
+    setLoading(true);
     const [tr, pr] = await Promise.all([
-      sbSelect('planner_tareas', 'fecha_inicio.asc'),
-      sbSelect('planner_proyectos', 'created_at.asc'),
+      fetch(`${API}/planner/tareas`, { headers: authH() }).then((r) => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${API}/planner/proyectos`, { headers: authH() }).then((r) => r.ok ? r.json() : []).catch(() => []),
     ]);
-    const normH = h => h ? h.slice(0,5) : null;
-    setTareas((tr||[]).map(t=>({...t, hora_inicio:normH(t.hora_inicio), hora_fin:normH(t.hora_fin)})));
-    setProyectos(pr || []);
+    setTareas(Array.isArray(tr) ? tr : []);
+    setProyectos(Array.isArray(pr) ? pr : []);
+    setLoading(false);
   };
 
-  const guardarTarea = async form => {
-    // Build clean data object
-    const toNull = (v) => (!v || v === '') ? null : v;
-    const toTime = (v) => (!v || v === '') ? null : (v.length === 5 ? v + ':00' : v); // Ensure HH:MM:SS for Postgres TIME
-    const data = {
-      titulo: form.titulo,
-      descripcion: toNull(form.descripcion),
-      estado: form.estado || 'pendiente',
-      prioridad: form.prioridad || 'normal',
-      proyecto_id: form.proyecto_id ? parseInt(form.proyecto_id) : null,
-      fecha_inicio: (form.fecha_inicio && form.fecha_inicio !== '') ? form.fecha_inicio : new Date().toISOString().split('T')[0],
-      fecha_fin: toNull(form.fecha_fin),
-      hora_inicio: toTime(form.hora_inicio),
-      hora_fin: toTime(form.hora_fin),
-      asignado_a: toNull(form.asignado_a),
-      google_event_id: toNull(form.google_event_id),
-      updated_at: new Date().toISOString(),
-    };
-    // Save to Supabase FIRST
+  const guardarTarea = async (form) => {
+    const toNull = (v) => (!v || v === "") ? null : v;
+    const data = { titulo: form.titulo, descripcion: toNull(form.descripcion), estado: form.estado || "pendiente", prioridad: form.prioridad || "normal", proyecto_id: form.proyecto_id ? parseInt(form.proyecto_id) : null, fecha_inicio: form.fecha_inicio || hoy(), fecha_fin: toNull(form.fecha_fin), hora_inicio: toNull(form.hora_inicio), hora_fin: toNull(form.hora_fin), asignado_a: toNull(form.asignado_a), google_event_id: toNull(form.google_event_id) };
     let savedId = form.id;
-    if(form.id) {
-      await sbUpdate('planner_tareas', form.id, data);
+    if (form.id) {
+      await fetch(`${API}/planner/tareas/${form.id}`, { method: "PUT", headers: authH(), body: JSON.stringify(data) });
     } else {
-      const inserted = await sbInsert('planner_tareas', {...data, created_by:user?.email||''});
-      if (inserted && inserted[0]) savedId = inserted[0].id;
+      const res = await fetch(`${API}/planner/tareas`, { method: "POST", headers: authH(), body: JSON.stringify(data) });
+      if (res.ok) { const d = await res.json(); savedId = d.id; }
     }
     setModalTarea(null);
     cargar();
-    // Sync with Google Calendar AFTER saving
     if (gcalConnected) {
       try {
-        const proyecto = proyectos.find(p => p.id === parseInt(form.proyecto_id));
+        const proyecto = proyectos.find((p) => p.id === parseInt(form.proyecto_id));
         const eventId = await gcalUpsertEvent(data, proyecto?.nombre);
-        if (eventId && savedId) {
-          await sbUpdate('planner_tareas', savedId, { google_event_id: eventId });
-        }
-      } catch(e) { console.error('GCal sync error:', e); }
+        if (eventId && savedId) { await fetch(`${API}/planner/tareas/${savedId}/estado`, { method: "PATCH", headers: authH(), body: JSON.stringify({ google_event_id: eventId }) }); }
+      } catch {}
     }
-    showToast(gcalConnected ? '✓ Guardado y sincronizado con Google Calendar' : '✓ Guardado');
+    showToast(gcalConnected ? "✓ Guardado y sincronizado" : "✓ Guardado");
   };
 
-  const eliminarTarea = async id => {
-    if(!window.confirm('¿Eliminar tarea?')) return;
-    // Delete from Google Calendar if connected
-    if (gcalConnected) {
-      const tarea = tareas.find(t => t.id === id);
-      if (tarea?.google_event_id) {
-        try { await gcalDeleteEvent(tarea.google_event_id); } catch(e) {}
-      }
-    }
-    await sbDelete('planner_tareas', id);
-    showToast('✓ Eliminado');
-    cargar();
+  const eliminarTarea = async (id) => {
+    if (!window.confirm("¿Eliminar tarea?")) return;
+    if (gcalConnected) { const t = tareas.find((x) => x.id === id); if (t?.google_event_id) { try { await gcalDeleteEvent(t.google_event_id); } catch {} } }
+    await fetch(`${API}/planner/tareas/${id}`, { method: "DELETE", headers: authH() });
+    showToast("✓ Eliminado"); cargar();
   };
 
   const cambiarEstado = async (id, estado) => {
-    await sbUpdate('planner_tareas', id, {estado, updated_at:new Date().toISOString()});
-    setTareas(t=>t.map(x=>x.id===id?{...x,estado}:x));
+    await fetch(`${API}/planner/tareas/${id}/estado`, { method: "PATCH", headers: authH(), body: JSON.stringify({ estado }) });
+    setTareas((t) => t.map((x) => x.id === id ? { ...x, estado } : x));
   };
 
-  const guardarProyecto = async form => {
-    await sbInsert('planner_proyectos', {...form, created_by:user?.email||''});
-    setModalProyecto(false);
-    showToast('✓ Proyecto creado');
-    cargar();
+  const guardarProyecto = async () => {
+    if (!formProy.nombre) return;
+    await fetch(`${API}/planner/proyectos`, { method: "POST", headers: authH(), body: JSON.stringify(formProy) });
+    setModalProyecto(false); setFormProy({ nombre: "", color: "#6ee7b7" }); showToast("✓ Proyecto creado"); cargar();
   };
 
   const eliminarProyecto = async (id) => {
-    if (!window.confirm('¿Eliminar este proyecto? Las tareas asociadas quedarán sin proyecto.')) return;
-    await sbDelete('planner_proyectos', id);
-    if (filtroProyecto === id.toString()) setFiltroProyecto('');
-    showToast('✓ Proyecto eliminado');
-    cargar();
+    if (!window.confirm("¿Eliminar proyecto?")) return;
+    await fetch(`${API}/planner/proyectos/${id}`, { method: "DELETE", headers: authH() });
+    if (filtroProyecto === String(id)) setFiltroProyecto(""); showToast("✓ Eliminado"); cargar();
   };
 
-  const navegar = dir => {
-    const steps = { dia:1, semana:7, quincena:14, mes:30, anual:365 };
-    const step = steps[vista] || 7;
-    setFechaBase(addDays(fechaBase, dir*step));
-  };
-
-  // Reset to today when switching to calendar view
-  const cambiarVista = (v) => {
-    setVista(v);
-    if (['dia','semana','quincena','mes','anual'].includes(v)) {
-      setFechaBase(hoy());
-    }
-  };
-
-  const tareasFiltradas = tareas.filter(t => {
-    if(filtroProyecto && t.proyecto_id !== parseInt(filtroProyecto)) return false;
-    if(filtroEstado && t.estado !== filtroEstado) return false;
-    if(busqueda && !t.titulo.toLowerCase().includes(busqueda.toLowerCase())) return false;
+  const tareasFiltradas = tareas.filter((t) => {
+    if (filtroProyecto && t.proyecto_id !== parseInt(filtroProyecto)) return false;
+    if (filtroEstado && t.estado !== filtroEstado) return false;
+    if (busqueda && !(t.titulo || "").toLowerCase().includes(busqueda.toLowerCase()) && !(t.descripcion || "").toLowerCase().includes(busqueda.toLowerCase())) return false;
     return true;
   });
 
-  const imprimirPlanificacion = () => {
-    const hoyStr = new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-    const getDiasPrint = () => {
-      if(vista==='dia') return [fechaBase];
-      if(vista==='semana') return Array.from({length:7},(_,i)=>addDays(startOfWeek(fechaBase),i));
-      if(vista==='quincena') return Array.from({length:14},(_,i)=>addDays(startOfWeek(fechaBase),i));
-      if(vista==='mes') {
-        const start = startOfMonth(fechaBase);
-        const d = new Date(start+'T12:00:00');
-        const days = new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
-        return Array.from({length:days},(_,i)=>addDays(start,i));
-      }
-      return Array.from({length:7},(_,i)=>addDays(startOfWeek(fechaBase),i));
-    };
-    const dias = getDiasPrint();
-    const getProyecto = id => proyectos.find(p=>p.id===parseInt(id));
-    const diasHTML = dias.map(dia => {
-      const d = new Date(dia+'T12:00:00');
-      const finSemana = d.getDay()===0||d.getDay()===6;
-      const tareasDelDia = tareasFiltradas.filter(t=>
-        isInRange(dia,t.fecha_inicio,t.fecha_fin)||isSameDay(dia,t.fecha_inicio)||isSameDay(dia,t.fecha_fin)
-      ).sort((a,b)=>(a.hora_inicio||'')>(b.hora_inicio||'')?1:-1);
-      const diaLabel = d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'});
-      const tareasHTML = tareasDelDia.length===0
-        ? '<div style="color:#aaa;font-size:9pt;padding:4px 0;font-style:italic">Sin actividades</div>'
-        : tareasDelDia.map(t=>{
-            const p = getProyecto(t.proyecto_id);
-            const color = p?.color||'#7c3aed';
-            const hora = t.hora_inicio ? t.hora_inicio.slice(0,5)+(t.hora_fin?' – '+t.hora_fin.slice(0,5):'') : '';
-            return `<div style="margin-bottom:5px;padding:5px 8px;border-left:3px solid ${color};background:${color}15;border-radius:0 5px 5px 0">
-              <div style="font-size:9pt;font-weight:700;color:#1a1a2e">${t.titulo}</div>
-              ${hora?`<div style="font-size:8pt;color:#666;margin-top:1px">⏰ ${hora}</div>`:''}
-              ${p?`<div style="font-size:8pt;color:${color};margin-top:1px">● ${p.nombre}</div>`:''}
-              ${t.descripcion?`<div style="font-size:8pt;color:#888;margin-top:2px">${t.descripcion}</div>`:''}
-            </div>`;
-          }).join('');
-      return `<div style="border:1px solid #e0e0e8;border-radius:8px;overflow:hidden;${finSemana?'opacity:.65':''}">
-        <div style="padding:7px 10px;background:${finSemana?'#f5f5f5':'#1a1a2e'};color:${finSemana?'#888':'#fff'}">
-          <div style="font-size:9pt;font-weight:700;text-transform:capitalize">${diaLabel}</div>
-          ${tareasDelDia.length>0?`<div style="font-size:8pt;opacity:.7">${tareasDelDia.length} tarea${tareasDelDia.length>1?'s':''}</div>`:''}
-        </div>
-        <div style="padding:8px">${tareasHTML}</div>
-      </div>`;
-    }).join('');
-    const cols = vista==='dia'?1:7;
-    const vistaLabel = {dia:'Día',semana:'Semana',quincena:'Dos semanas',mes:'Mes'}[vista]||vista;
-    const win = window.open('','_blank');
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Planificación — ${vistaLabel}</title>
-    <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;padding:20px;color:#1a1a2e;background:white}
-    h1{font-size:15pt;margin:0;color:#059669}h2{font-size:9pt;color:#666;margin:3px 0 14px;font-weight:400}
-    .grid{display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px}
-    .footer{margin-top:14px;font-size:8pt;color:#aaa;border-top:1px solid #eee;padding-top:6px;display:flex;justify-content:space-between}
-    @media print{@page{margin:.8cm;size:landscape}body{padding:0}}</style></head><body>
-    <h1>Fima Arquitectura — Planificación</h1>
-    <h2>${vistaLabel} · ${labelFecha()} · ${hoyStr}</h2>
-    <div class="grid">${diasHTML}</div>
-    <div class="footer"><span>Fima Arquitectura</span><span>${labelFecha()}</span></div>
-    </body></html>`);
-    win.document.close();
-    setTimeout(()=>win.print(),600);
-  };
-
-    const esCalendario = ['dia','semana','quincena','mes','anual'].includes(vista);
-
-  // Navegación de fecha legible
-  const labelFecha = () => {
-    const d = new Date(fechaBase+'T12:00:00');
-    if(vista==='dia') return fmtFechaLarga(fechaBase);
-    if(vista==='semana') { const fin=addDays(startOfWeek(fechaBase),6); return fmtFecha(startOfWeek(fechaBase))+' – '+fmtFecha(fin); }
-    if(vista==='quincena') { const fin=addDays(startOfWeek(fechaBase),13); return fmtFecha(startOfWeek(fechaBase))+' – '+fmtFecha(fin); }
-    if(vista==='mes') return d.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
-    if(vista==='anual') return d.getFullYear().toString();
-    return '';
-  };
+  const COLORES = ["#6ee7b7", "#a78bfa", "#38bdf8", "#fbbf24", "#f87171", "#34d399", "#60a5fa", "#fb923c"];
 
   return (
-    <div style={{minHeight:'100vh',background:C.bg,color:C.text,fontFamily:"'Syne',sans-serif",paddingBottom:40}}>
-      {/* TOOLBAR */}
-      <div style={{padding:'12px 20px',borderBottom:`1px solid ${C.border}`,background:C.surface,position:'sticky',top:64,zIndex:40}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:10}}>
-          {/* Vistas */}
-          <div style={{display:'flex',background:C.surface2,borderRadius:8,padding:3,gap:2}}>
-            {VISTAS.map(v=>(
-              <button key={v} onClick={()=>setVista(v)} style={{padding:'5px 10px',borderRadius:6,border:'none',background:vista===v?C.accent2:'transparent',color:vista===v?'#fff':C.muted,fontSize:12,cursor:'pointer',fontFamily:'inherit',fontWeight:vista===v?600:400}}>
-                {VISTA_LABEL[v]}
-              </button>
-            ))}
-          </div>
-
-          {/* Navegación calendario */}
-          {esCalendario && (
-            <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:8}}>
-              <button onClick={()=>navegar(-1)} style={{background:C.surface2,border:`1px solid ${C.border2}`,borderRadius:6,padding:'4px 10px',color:C.text,cursor:'pointer'}}>‹</button>
-              <span style={{fontSize:13,color:C.text,minWidth:160,textAlign:'center'}}>{labelFecha()}</span>
-              <button onClick={()=>navegar(1)} style={{background:C.surface2,border:`1px solid ${C.border2}`,borderRadius:6,padding:'4px 10px',color:C.text,cursor:'pointer'}}>›</button>
-              <button onClick={()=>setFechaBase(hoy())} style={{background:'transparent',border:`1px solid ${C.border2}`,borderRadius:6,padding:'4px 10px',color:C.muted,cursor:'pointer',fontSize:12}}>Hoy</button>
-            </div>
-          )}
-
-          <div style={{flex:1}}/>
-
-          {/* Acciones */}
-          <button onClick={handleGcalConnect} style={{
-            padding:'5px 10px', borderRadius:8, fontSize:11, fontWeight:600,
-            border: gcalConnected ? '1px solid rgba(52,211,153,.4)' : '1px solid rgba(255,255,255,.15)',
-            background: gcalConnected ? 'rgba(52,211,153,.1)' : 'rgba(255,255,255,.05)',
-            color: gcalConnected ? '#34d399' : '#7a7a90',
-            cursor:'pointer', fontFamily:'inherit',
-          }}>
-            📅 {gcalConnected ? 'Google Calendar ✓' : 'Conectar Calendar'}
-          </button>
-          <Btn small onClick={()=>setModalProyecto(true)}>+ Proyecto</Btn>
-          <Btn small primary onClick={()=>setModalTarea({})}>+ Tarea</Btn>
-          {esCalendario && (
-            <button onClick={imprimirPlanificacion} style={{padding:'5px 10px',borderRadius:8,fontSize:11,fontWeight:600,border:'1px solid rgba(5,150,105,.4)',background:'rgba(5,150,105,.08)',color:'#059669',cursor:'pointer',fontFamily:'inherit'}}>
-              🖨 Imprimir
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Syne', sans-serif", color: C.text }}>
+      {/* Header */}
+      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", position: "sticky", top: 0, zIndex: 50 }}>
+        {/* Vista */}
+        <div style={{ display: "flex", gap: 2, background: C.surface2, borderRadius: 8, padding: 3 }}>
+          {VISTAS.map((v) => (
+            <button key={v} onClick={() => setVista(v)} style={{ padding: "5px 10px", borderRadius: 6, border: "none", background: vista === v ? C.surface : "transparent", color: vista === v ? C.text : C.muted, fontSize: 12, fontWeight: vista === v ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+              {v === "kanban" ? "Kanban" : v === "lista" ? "Lista" : v === "semana" ? "Semana" : "Mes"}
             </button>
-          )}
+          ))}
         </div>
 
         {/* Filtros */}
-        <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-          <input style={{...inp,width:200,padding:'6px 10px'}} placeholder="Buscar tarea..." value={busqueda} onChange={e=>setBusqueda(e.target.value)} />
-          <select style={{...inp,width:'auto',padding:'6px 10px'}} value={filtroProyecto} onChange={e=>setFiltroProyecto(e.target.value)}>
-            <option value="">Todos los proyectos</option>
-            {proyectos.map(p=><option key={p.id} value={p.id}>{p.nombre}</option>)}
-          </select>
-          <select style={{...inp,width:'auto',padding:'6px 10px'}} value={filtroEstado} onChange={e=>setFiltroEstado(e.target.value)}>
-            <option value="">Todos los estados</option>
-            {ESTADOS.map(e=><option key={e} value={e}>{ESTADO_LABEL[e]}</option>)}
-          </select>
-          {/* Proyectos pills */}
-          <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-            {proyectos.map(p=>(
-              <span key={p.id} style={{fontSize:11,padding:'3px 10px',borderRadius:20,background:p.color+'22',color:p.color,border:`1px solid ${p.color+(filtroProyecto==p.id.toString()?'cc':'44')}`,cursor:'pointer',fontWeight:600,display:'inline-flex',alignItems:'center',gap:5}}
-                onClick={()=>setFiltroProyecto(filtroProyecto==p.id.toString()?'':p.id.toString())}>
-                ● {p.nombre} ({tareas.filter(t=>t.proyecto_id===p.id).length})
-                <button onClick={e=>{e.stopPropagation();eliminarProyecto(p.id);}}
-                  style={{background:'none',border:'none',cursor:'pointer',color:p.color,fontSize:13,lineHeight:1,padding:'0 1px',opacity:.7,fontFamily:'inherit'}}>×</button>
-              </span>
-            ))}
-          </div>
+        <input style={{ ...inp, width: 160 }} placeholder="Buscar..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+        <select style={{ ...inp, width: "auto" }} value={filtroProyecto} onChange={(e) => setFiltroProyecto(e.target.value)}>
+          <option value="">Todos los proyectos</option>
+          {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+        </select>
+        <select style={{ ...inp, width: "auto" }} value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
+          <option value="">Todos los estados</option>
+          {ESTADOS.map((s) => <option key={s} value={s}>{ESTADO_LABEL[s]}</option>)}
+        </select>
+
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          {!gcalConnected ? (
+            <button onClick={gcalLogin} style={{ padding: "6px 12px", background: "none", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, cursor: "pointer", color: C.muted, fontFamily: "inherit" }}>📅 Google Cal</button>
+          ) : (
+            <span style={{ fontSize: 11, color: "#4285f4", padding: "6px 10px" }}>📅 Conectado</span>
+          )}
+          <Btn small onClick={() => setModalProyecto(true)}>+ Proyecto</Btn>
+          <Btn primary small onClick={() => setModalTarea({})}>+ Tarea</Btn>
         </div>
       </div>
 
-      {/* CONTENIDO */}
-      <div style={{padding:20}}>
-        {vista==='kanban' && <ViewKanban tareas={tareasFiltradas} proyectos={proyectos} onEdit={setModalTarea} onDelete={eliminarTarea} onEstado={cambiarEstado} />}
-        {vista==='lista' && <ViewLista tareas={tareasFiltradas} proyectos={proyectos} onEdit={setModalTarea} onDelete={eliminarTarea} onEstado={cambiarEstado} />}
-        {esCalendario && <ViewCalendario tareas={tareasFiltradas} proyectos={proyectos} vista={vista} fechaBase={fechaBase} onEdit={setModalTarea} />}
+      {/* Proyectos pills */}
+      {proyectos.length > 0 && (
+        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "8px 16px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          {proyectos.map((p) => (
+            <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <button onClick={() => setFiltroProyecto(filtroProyecto === String(p.id) ? "" : String(p.id))} style={{ padding: "4px 12px", borderRadius: 20, border: `1px solid ${filtroProyecto === String(p.id) ? p.color || C.accent : C.border}`, background: filtroProyecto === String(p.id) ? (p.color || C.accent) + "22" : "transparent", color: p.color || C.accent, fontSize: 12, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
+                {p.nombre}
+              </button>
+              <button onClick={() => eliminarProyecto(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 14, padding: "0 2px" }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 16px 60px" }}>
+        {loading ? (
+          <div style={{ textAlign: "center", color: C.muted, padding: 60 }}>Cargando...</div>
+        ) : vista === "kanban" ? (
+          <ViewKanban tareas={tareasFiltradas} proyectos={proyectos} onEdit={setModalTarea} onDelete={eliminarTarea} onEstado={cambiarEstado} />
+        ) : (
+          <ViewLista tareas={tareasFiltradas} proyectos={proyectos} onEdit={setModalTarea} onDelete={eliminarTarea} onEstado={cambiarEstado} />
+        )}
       </div>
 
-      {/* MODALES */}
-      {modalTarea !== null && <ModalTarea tarea={modalTarea?.id?modalTarea:null} proyectos={proyectos} onSave={guardarTarea} onClose={()=>setModalTarea(null)} />}
-      {modalProyecto && <ModalProyecto onSave={guardarProyecto} onClose={()=>setModalProyecto(false)} />}
+      {/* Modal Tarea */}
+      {modalTarea !== null && <ModalTarea tarea={modalTarea?.id ? modalTarea : null} proyectos={proyectos} onSave={guardarTarea} onClose={() => setModalTarea(null)} gcalConnected={gcalConnected} />}
 
-      {/* TOAST */}
-      {toast && <div style={{position:'fixed',bottom:20,left:'50%',transform:'translateX(-50%)',background:C.surface2,border:`1px solid ${C.border2}`,borderRadius:20,padding:'10px 20px',fontSize:13,color:C.text,zIndex:400}}>{toast}</div>}
+      {/* Modal Proyecto */}
+      {modalProyecto && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: C.surface, borderRadius: 16, padding: 24, maxWidth: 360, width: "100%", border: `1px solid ${C.border2}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <div style={{ fontSize: 17, fontWeight: 700 }}>Nuevo proyecto</div>
+              <button onClick={() => setModalProyecto(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: C.muted }}>×</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Nombre *</label><input style={inp} value={formProy.nombre} onChange={(e) => setFormProy((f) => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del proyecto" /></div>
+              <div>
+                <label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 8 }}>Color</label>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {COLORES.map((c) => <button key={c} onClick={() => setFormProy((f) => ({ ...f, color: c }))} style={{ width: 28, height: 28, borderRadius: 4, background: c, border: formProy.color === c ? `3px solid ${C.text}` : "2px solid transparent", cursor: "pointer" }} />)}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+              <Btn onClick={() => setModalProyecto(false)} style={{ flex: 1 }}>Cancelar</Btn>
+              <Btn primary onClick={guardarProyecto} disabled={!formProy.nombre} style={{ flex: 2 }}>Crear proyecto</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && <div style={{ position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", background: C.text, color: "#fff", borderRadius: 20, padding: "10px 20px", fontSize: 13, zIndex: 999 }}>{toast}</div>}
     </div>
   );
 }
