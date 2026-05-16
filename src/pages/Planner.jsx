@@ -77,7 +77,10 @@ function TareaCard({ t, proyectos, onEdit, onDelete, onEstado }) {
   const proy = proyectos.find((p) => p.id === t.proyecto_id);
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, marginBottom: 8, cursor: "pointer" }} onClick={() => onEdit(t)}>
-      {proy && <div style={{ fontSize: 10, fontWeight: 700, color: proy.color || C.accent2, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>{proy.nombre}</div>}
+      <div style={{ display: "flex", gap: 6, marginBottom: proy ? 4 : 0, flexWrap: "wrap" }}>
+        {proy && <div style={{ fontSize: 10, fontWeight: 700, color: proy.color || C.accent2, textTransform: "uppercase", letterSpacing: "0.5px" }}>{proy.nombre}</div>}
+        {t.presupuesto_id && !proy && <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, textTransform: "uppercase", letterSpacing: "0.5px" }}>📋 Presupuesto vinculado</div>}
+      </div>
       <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t.titulo}</div>
       {t.descripcion && <div style={{ fontSize: 12, color: C.muted, marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.descripcion}</div>}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -123,8 +126,8 @@ function ViewLista({ tareas, proyectos, onEdit, onDelete, onEstado }) {
   );
 }
 
-function ModalTarea({ tarea, proyectos, onSave, onClose, gcalConnected }) {
-  const [form, setForm] = useState(tarea || { titulo: "", descripcion: "", estado: "pendiente", prioridad: "normal", proyecto_id: "", fecha_inicio: hoy(), fecha_fin: "", hora_inicio: "", hora_fin: "", asignado_a: "" });
+function ModalTarea({ tarea, proyectos, presupuestos, onSave, onClose, gcalConnected }) {
+  const [form, setForm] = useState(tarea || { titulo: "", descripcion: "", estado: "pendiente", prioridad: "normal", proyecto_id: "", presupuesto_id: "", fecha_inicio: hoy(), fecha_fin: "", hora_inicio: "", hora_fin: "", asignado_a: "" });
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ background: C.surface, borderRadius: 16, padding: 24, maxWidth: 520, width: "100%", maxHeight: "90vh", overflow: "auto", border: `1px solid ${C.border2}` }}>
@@ -145,11 +148,18 @@ function ModalTarea({ tarea, proyectos, onSave, onClose, gcalConnected }) {
                 {PRIORIDADES.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
               </select></div>
           </div>
-          <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Proyecto</label>
-            <select style={inp} value={form.proyecto_id || ""} onChange={(e) => setForm((f) => ({ ...f, proyecto_id: e.target.value ? parseInt(e.target.value) : null }))}>
-              <option value="">Sin proyecto</option>
-              {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-            </select></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Proyecto</label>
+              <select style={inp} value={form.proyecto_id || ""} onChange={(e) => setForm((f) => ({ ...f, proyecto_id: e.target.value ? parseInt(e.target.value) : null }))}>
+                <option value="">Sin proyecto</option>
+                {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              </select></div>
+            <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Presupuesto</label>
+              <select style={inp} value={form.presupuesto_id || ""} onChange={(e) => setForm((f) => ({ ...f, presupuesto_id: e.target.value ? parseInt(e.target.value) : null }))}>
+                <option value="">Sin presupuesto</option>
+                {(presupuestos || []).map((p) => <option key={p.id} value={p.id}>{p.nombre_obra}{p.cliente_nombre ? ` — ${p.cliente_nombre}` : ""}</option>)}
+              </select></div>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Fecha inicio</label><input type="date" style={inp} value={form.fecha_inicio || ""} onChange={(e) => setForm((f) => ({ ...f, fecha_inicio: e.target.value }))} /></div>
             <div><label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Fecha fin</label><input type="date" style={inp} value={form.fecha_fin || ""} onChange={(e) => setForm((f) => ({ ...f, fecha_fin: e.target.value }))} /></div>
@@ -171,6 +181,7 @@ function ModalTarea({ tarea, proyectos, onSave, onClose, gcalConnected }) {
 export default function Planner({ user }) {
   const [tareas, setTareas] = useState([]);
   const [proyectos, setProyectos] = useState([]);
+  const [presupuestos, setPresupuestos] = useState([]);
   const [vista, setVista] = useState("kanban");
   const [modalTarea, setModalTarea] = useState(null);
   const [modalProyecto, setModalProyecto] = useState(false);
@@ -193,18 +204,20 @@ export default function Planner({ user }) {
 
   const cargar = async () => {
     setLoading(true);
-    const [tr, pr] = await Promise.all([
+    const [tr, pr, pres] = await Promise.all([
       fetch(`${API}/planner/tareas`, { headers: authH() }).then((r) => r.ok ? r.json() : []).catch(() => []),
       fetch(`${API}/planner/proyectos`, { headers: authH() }).then((r) => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${API}/planner/presupuestos`, { headers: authH() }).then((r) => r.ok ? r.json() : []).catch(() => []),
     ]);
     setTareas(Array.isArray(tr) ? tr : []);
     setProyectos(Array.isArray(pr) ? pr : []);
+    setPresupuestos(Array.isArray(pres) ? pres : []);
     setLoading(false);
   };
 
   const guardarTarea = async (form) => {
     const toNull = (v) => (!v || v === "") ? null : v;
-    const data = { titulo: form.titulo, descripcion: toNull(form.descripcion), estado: form.estado || "pendiente", prioridad: form.prioridad || "normal", proyecto_id: form.proyecto_id ? parseInt(form.proyecto_id) : null, fecha_inicio: form.fecha_inicio || hoy(), fecha_fin: toNull(form.fecha_fin), hora_inicio: toNull(form.hora_inicio), hora_fin: toNull(form.hora_fin), asignado_a: toNull(form.asignado_a), google_event_id: toNull(form.google_event_id) };
+    const data = { titulo: form.titulo, descripcion: toNull(form.descripcion), estado: form.estado || "pendiente", prioridad: form.prioridad || "normal", proyecto_id: form.proyecto_id ? parseInt(form.proyecto_id) : null, presupuesto_id: form.presupuesto_id ? parseInt(form.presupuesto_id) : null, fecha_inicio: form.fecha_inicio || hoy(), fecha_fin: toNull(form.fecha_fin), hora_inicio: toNull(form.hora_inicio), hora_fin: toNull(form.hora_fin), asignado_a: toNull(form.asignado_a), google_event_id: toNull(form.google_event_id) };
     let savedId = form.id;
     if (form.id) {
       await fetch(`${API}/planner/tareas/${form.id}`, { method: "PUT", headers: authH(), body: JSON.stringify(data) });
@@ -239,7 +252,7 @@ export default function Planner({ user }) {
   const guardarProyecto = async () => {
     if (!formProy.nombre) return;
     await fetch(`${API}/planner/proyectos`, { method: "POST", headers: authH(), body: JSON.stringify(formProy) });
-    setModalProyecto(false); setFormProy({ nombre: "", color: "#6ee7b7" }); showToast("✓ Proyecto creado"); cargar();
+    setModalProyecto(false); setFormProy({ nombre: "", color: "#6ee7b7", presupuesto_id: null }); showToast("✓ Proyecto creado"); cargar();
   };
 
   const eliminarProyecto = async (id) => {
@@ -317,7 +330,7 @@ export default function Planner({ user }) {
       </div>
 
       {/* Modal Tarea */}
-      {modalTarea !== null && <ModalTarea tarea={modalTarea?.id ? modalTarea : null} proyectos={proyectos} onSave={guardarTarea} onClose={() => setModalTarea(null)} gcalConnected={gcalConnected} />}
+      {modalTarea !== null && <ModalTarea tarea={modalTarea?.id ? modalTarea : null} proyectos={proyectos} presupuestos={presupuestos} onSave={guardarTarea} onClose={() => setModalTarea(null)} gcalConnected={gcalConnected} />}
 
       {/* Modal Proyecto */}
       {modalProyecto && (

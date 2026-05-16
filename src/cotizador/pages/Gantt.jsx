@@ -68,6 +68,20 @@ export default function Gantt() {
     showToast('✓ Configuración guardada');
   };
 
+  const exportarAlPlanner = async () => {
+    try {
+      const res = await api.post(`/planner/desde-gantt/${id}`);
+      const creadas = res.data?.creadas ?? 0;
+      if (creadas === 0) {
+        alert('Las tareas del Gantt ya estaban en el Planner.');
+      } else {
+        alert(`✓ ${creadas} tarea${creadas !== 1 ? 's' : ''} exportada${creadas !== 1 ? 's' : ''} al Planner.`);
+      }
+    } catch (e) {
+      alert('Error al exportar: ' + (e.response?.data?.detail || e.message));
+    }
+  };
+
   const generarDesdePresupuesto = async () => {
     setGenerando(true);
     try {
@@ -152,6 +166,11 @@ export default function Gantt() {
             {tareas.length > 0 && (
               <button className="btn btn-warn btn-sm" onClick={generarDesdePresupuesto} disabled={generando}>
                 {generando ? '...' : '↺ Regenerar'}
+              </button>
+            )}
+            {tareas.length > 0 && (
+              <button className="btn btn-secondary btn-sm" onClick={exportarAlPlanner} title="Copiar tareas del Gantt al Planner">
+                📅 Exportar al Planner
               </button>
             )}
           </div>
