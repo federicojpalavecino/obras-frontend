@@ -70,7 +70,7 @@ export default function Certificado() {
     try {
       // Cargar egresos del control financiero de OBRAS
       const [semanasRes, certEgRes] = await Promise.all([
-        api.get('/finanzas/semanas').then(r => ({data: r.data || []})).catch(() => ({data: []})),
+        api.get('/cf/semanas').then(r => ({data: r.data || []})).catch(() => ({data: []})),
         api.get(`/presupuestos/${id}/cert-egresos`).then(r => ({data: r.data || []})).catch(() => ({data: []})),
       ]);
       const data = Array.isArray(semanasRes.data) ? semanasRes.data : [];
