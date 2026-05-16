@@ -89,6 +89,70 @@ function TrialBanner({ diasRestantes }) {
   );
 }
 
+// ── Soporte técnico ──────────────────────────────────────────────────────────
+function PaginaSoporte() {
+  const MAIL = "faimobras@gmail.com";
+  const WHATSAPP = "5493625305155";
+  const WHATSAPP_MSG = encodeURIComponent("Hola, tengo una consulta sobre FAIM OBRAS.");
+
+  return (
+    <div style={{maxWidth:600, margin:"0 auto", padding:"clamp(24px, 5vw, 48px) clamp(16px, 4vw, 24px)", fontFamily:"'Syne', sans-serif"}}>
+      <div style={{marginBottom:28}}>
+        <div style={{fontSize:"clamp(20px, 5vw, 26px)", fontWeight:800, letterSpacing:"-0.5px", marginBottom:6}}>Soporte técnico</div>
+        <div style={{fontSize:14, color:"#6b7280"}}>Contactanos por cualquier problema, pregunta o sugerencia.</div>
+      </div>
+
+      {/* Tarjetas de contacto */}
+      <div style={{display:"flex", flexDirection:"column", gap:12, marginBottom:32}}>
+
+        {/* WhatsApp */}
+        <a href={"https://wa.me/" + WHATSAPP + "?text=" + WHATSAPP_MSG} target="_blank" rel="noreferrer"
+          style={{background:"#ffffff", border:"1px solid #e0e0e8", borderRadius:12, padding:"clamp(16px, 4vw, 20px)", display:"flex", alignItems:"center", gap:16, textDecoration:"none", color:"#1a1a2e", boxShadow:"0 1px 3px rgba(0,0,0,0.06)", cursor:"pointer"}}>
+          <div style={{width:48, height:48, borderRadius:10, background:"#f0fdf4", border:"1px solid #bbf7d0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0}}>💬</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:16, fontWeight:700, marginBottom:3}}>WhatsApp</div>
+            <div style={{fontSize:13, color:"#6b7280"}}>Respuesta rápida en horario de oficina</div>
+          </div>
+          <div style={{color:"#25D366", fontSize:14, fontWeight:700}}>Escribir →</div>
+        </a>
+
+        {/* Email */}
+        <a href={"mailto:" + MAIL + "?subject=Soporte FAIM OBRAS"}
+          style={{background:"#ffffff", border:"1px solid #e0e0e8", borderRadius:12, padding:"clamp(16px, 4vw, 20px)", display:"flex", alignItems:"center", gap:16, textDecoration:"none", color:"#1a1a2e", boxShadow:"0 1px 3px rgba(0,0,0,0.06)", cursor:"pointer"}}>
+          <div style={{width:48, height:48, borderRadius:10, background:"#eff6ff", border:"1px solid #bfdbfe", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0}}>✉️</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:16, fontWeight:700, marginBottom:3}}>Email</div>
+            <div style={{fontSize:13, color:"#6b7280"}}>{MAIL}</div>
+          </div>
+          <div style={{color:"#3b82f6", fontSize:14, fontWeight:700}}>Enviar →</div>
+        </a>
+      </div>
+
+      {/* Info */}
+      <div style={{background:"#f8f9fa", border:"1px solid #e0e0e8", borderRadius:12, padding:"clamp(14px, 3vw, 20px)"}}>
+        <div style={{fontSize:13, fontWeight:700, marginBottom:12, color:"#1a1a2e"}}>Preguntas frecuentes</div>
+        {[
+          ["¿Cómo agrego un presupuesto?", "Desde el Cotizador → botón '+ Nuevo presupuesto'."],
+          ["¿Cómo actualizo precios del catálogo?", "Desde Cotizador → Materiales, Mano de obra o Maquinaria."],
+          ["¿Cómo agrego usuarios al estudio?", "Desde Configuración → Usuarios del estudio."],
+          ["¿Cómo accede mi cliente al portal?", "Desde Accesos de clientes → Nuevo acceso."],
+        ].map(([q, a]) => (
+          <div key={q} style={{marginBottom:12, paddingBottom:12, borderBottom:"1px solid #e0e0e8"}}>
+            <div style={{fontSize:13, fontWeight:600, marginBottom:3}}>{q}</div>
+            <div style={{fontSize:12, color:"#6b7280"}}>{a}</div>
+          </div>
+        ))}
+        <div style={{fontSize:11, color:"#9ca3af", marginTop:4}}>¿No encontrás lo que buscás? Escribinos.</div>
+      </div>
+
+      {/* Footer */}
+      <div style={{marginTop:32, textAlign:"center", fontSize:11, color:"#9ca3af", fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.5px"}}>
+        © 2026 FAIM OBRAS · by FIMA Arquitectura · Todos los derechos reservados
+      </div>
+    </div>
+  );
+}
+
 // ── Main app (identical to FIMA) ──────────────────────────────────────────────
 function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   const navigate = useNavigate();
@@ -105,6 +169,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
     { id:"clientes", path:"/clientes", icon:"👥", label:"Clientes y Proyectos", desc:"Gestion de clientes, obras y contactos", color:C.green },
     { id:"accesos", path:"/accesos-clientes", icon:"🔑", label:"Accesos de clientes", desc:"Gestionar portal de clientes", color:C.accent2 },
     { id:"config", path:"/config", icon:"⚙️", label:"Configuración", desc:"Logo, nombre y datos del estudio", color:C.muted },
+    { id:"soporte", path:"/soporte", icon:"💬", label:"Soporte técnico", desc:"Contacto, ayuda y sugerencias", color:C.blue },
   ];
 
   const currentModule = modules.find(m => location.pathname.startsWith(m.path));
@@ -152,8 +217,16 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
                 </button>
               ))}
             </div>
+
+            {/* Footer */}
+            <div style={{marginTop:"clamp(32px, 6vw, 48px)", paddingTop:20, borderTop:"1px solid " + C.border, textAlign:"center"}}>
+              <div style={{fontSize:11, color:C.muted, fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.5px"}}>
+                © 2026 FAIM OBRAS · by FIMA Arquitectura · Todos los derechos reservados
+              </div>
+            </div>
           </div>
         }/>
+        <Route path="/soporte" element={<PaginaSoporte />}/>
         <Route path="/finanzas/*" element={<ControlFinanciero user={user} />}/>
         <Route path="/cotizador" element={<Menu />}/>
         <Route path="/cotizador/presupuesto/:id" element={<Presupuesto />}/>
