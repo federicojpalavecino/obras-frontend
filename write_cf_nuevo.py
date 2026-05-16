@@ -1,4 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+"""
+write_cf_nuevo.py
+Reescribe ControlFinanciero.jsx con:
+- Periodos: semana / quincena / mes (una sola entrada por periodo)
+- Sin alimentacion
+- Colchon -> Reserva
+- Egresos vinculados automaticamente a cert-egresos
+- Imprimir periodo con datos del tenant
+- Resumen filtrable por obra/proyecto
+- Proporciones mejoradas
+"""
+
+content = r'''import { useState, useEffect, useRef } from "react";
 
 const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
 const getToken = () => localStorage.getItem("obras_token") || "";
@@ -806,3 +818,8 @@ export default function ControlFinanciero({ user }) {
     </div>
   );
 }
+'''
+
+with open(r'C:\obras-frontend\src\pages\ControlFinanciero.jsx', 'w', encoding='utf-8') as f:
+    f.write(content)
+print(f"Written {len(content)} chars to ControlFinanciero.jsx")
