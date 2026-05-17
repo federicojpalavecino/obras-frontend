@@ -1,4 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+"""
+write_planner_v2.py
+Reescribe Planner.jsx con:
+- Kanban estilo Trello (drag & drop real con HTML5 API)
+- Vista semana mejorada (tipo agenda semanal visual)
+- Google Calendar persistente por usuario (token guardado en backend)
+- Presupuestos vinculados
+"""
+
+content = r'''import React, { useState, useEffect, useRef, useCallback } from "react";
 
 const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
 const getToken = () => localStorage.getItem("obras_token") || "";
@@ -599,3 +608,8 @@ export default function Planner({ user }) {
     </div>
   );
 }
+'''
+
+with open(r'C:\obras-frontend\src\pages\Planner.jsx', 'w', encoding='utf-8') as f:
+    f.write(content)
+print(f"Written {len(content)} chars to Planner.jsx")

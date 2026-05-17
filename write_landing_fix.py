@@ -1,4 +1,10 @@
-import React, { useState } from 'react';
+"""
+write_landing_fix.py
+Reescribe Landing.jsx con colores claros del sistema (bg #f8f9fa, accent verde)
+y 15 días de prueba (no 30).
+"""
+
+content = r'''import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const C = {
@@ -143,3 +149,8 @@ export default function Landing() {
     </div>
   );
 }
+'''
+
+with open(r'C:\obras-frontend\src\pages\Landing.jsx', 'w', encoding='utf-8') as f:
+    f.write(content)
+print(f"Written {len(content)} chars to Landing.jsx")
