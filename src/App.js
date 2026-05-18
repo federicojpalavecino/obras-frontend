@@ -338,7 +338,7 @@ export default function App() {
     const emailLower = email.toLowerCase().trim();
 
     try {
-      const res = await fetch(`${API}/cliente/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
+      const res = await fetch(`${API}/auth/login-cliente`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
       if (res.ok) {
         const data = await res.json();
         const ci = { cliente_id: data.cliente_id, nombre: data.nombre, email: data.email };

@@ -85,6 +85,24 @@ export default function AdminPanel() {
     cargar(token);
   };
 
+  const eliminarTenant = async (tid, nombre) => {
+    if (!window.confirm(`¿Eliminar "${nombre}"?
+
+Esto borrará TODOS los datos del estudio permanentemente.`)) return;
+    if (!window.confirm(`⚠️ ÚLTIMA CONFIRMACIÓN
+
+¿Estás seguro de eliminar "${nombre}" y todos sus datos?
+Esta acción NO se puede deshacer.`)) return;
+    try {
+      const res = await fetch(`${API}/admin/tenants/${tid}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) { cargar(token); }
+      else { const d = await res.json(); alert("Error: " + (d.detail || "No se pudo eliminar")); }
+    } catch { alert("Error de conexión"); }
+  };
+
   const logout = () => {
     localStorage.removeItem("obras_admin_token");
     setToken(null); setTenants([]); setStats(null);
@@ -216,6 +234,10 @@ export default function AdminPanel() {
                         Vencer
                       </button>
                     )}
+                    <button onClick={()=>eliminarTenant(t.id, t.nombre)}
+                      style={{ padding:"4px 10px", fontSize:11, fontWeight:700, background:"#fef2f2", border:"1px solid #fecaca", color:C.red, borderRadius:6, cursor:"pointer" }}>
+                      🗑 Eliminar
+                    </button>
                   </div>
                 </div>
               ))}
