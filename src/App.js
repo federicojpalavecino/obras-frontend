@@ -483,7 +483,7 @@ export default function App() {
           <>
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Nombre del estudio o empresa</label>
-              <input value={regEstudio} onChange={e=>setRegEstudio(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: FIMA Arquitectura"/>
+              <input value={regEstudio} onChange={e=>setRegEstudio(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: MRA+Asociados"/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Tu nombre</label>
@@ -499,9 +499,9 @@ export default function App() {
             </div>
             {error&&<div style={{fontSize:13,color:"#f87171",marginBottom:12,textAlign:"center"}}>{error}</div>}
             <button onClick={registrar} disabled={regLoading} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center",opacity:regLoading?0.7:1}}>
-              {regLoading ? "Creando cuenta..." : "Comenzar prueba gratuita 30 días"}
+              {regLoading ? "Creando cuenta..." : "Comenzar prueba gratuita 15 días"}
             </button>
-            <div style={{fontSize:12,color:"#6b7280",textAlign:"center",marginTop:12}}>Sin tarjeta requerida</div>
+            
           </>
         )}
       </div>
