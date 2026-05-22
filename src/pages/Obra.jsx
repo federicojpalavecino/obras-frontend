@@ -41,7 +41,7 @@ export default function Obra() {
 
   // Formularios
   const [showCobro, setShowCobro] = useState(false);
-  const [cobForm, setCobForm] = useState({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "" });
+  const [cobForm, setCobForm] = useState({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null });
   const [showSub, setShowSub] = useState(false);
   const [subForm, setSubForm] = useState({ nombre_contratista: "", cuit_contratista: "", tipo: "empresa", descripcion_trabajo: "", monto_total: "", fecha_inicio: today(), tipo_pago: "por_avance", estado: "activo", notas: "" });
   const [showCompra, setShowCompra] = useState(false);
@@ -49,6 +49,8 @@ export default function Obra() {
   const [showPagoSub, setShowPagoSub] = useState(null); // subcontrato id
   const [pagoSubForm, setPagoSubForm] = useState({ monto: "", fecha: today(), concepto: "Pago parcial", forma_pago: "transferencia", pct_avance_al_pagar: "" });
   const [showContrato, setShowContrato] = useState(false);
+  const [certificados, setCertificados] = useState([]);
+  const [showVincularCobro, setShowVincularCobro] = useState(null); // cert id
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
@@ -61,12 +63,15 @@ export default function Obra() {
         fetch(`${API}/presupuestos/${id}/cobros`, { headers: authH() }).then(r => r.json()),
         fetch(`${API}/presupuestos/${id}/subcontratos`, { headers: authH() }).then(r => r.json()),
         fetch(`${API}/presupuestos/${id}/compras`, { headers: authH() }).then(r => r.json()),
+        fetch(`${API}/presupuestos/${id}/certificados`, { headers: authH() }).then(r => r.ok ? r.json() : {certificados:[]}).catch(() => ({certificados:[]})),
       ]);
       setPresupuesto(r1);
       setContrato(r2);
       setCobros(Array.isArray(r3) ? r3 : []);
       setSubcontratos(Array.isArray(r4) ? r4 : []);
       setCompras(Array.isArray(r5) ? r5 : []);
+      const certsData = r6?.certificados || (Array.isArray(r6) ? r6 : []);
+      setCertificados(certsData);
 
       // Cuenta corriente
       const cc = await fetch(`${API}/presupuestos/${id}/cuenta-corriente`, { headers: authH() }).then(r => r.json());
@@ -80,7 +85,7 @@ export default function Obra() {
   const crearCobro = async () => {
     if (!cobForm.monto) return;
     await fetch(`${API}/presupuestos/${id}/cobros`, { method: "POST", headers: authH(), body: JSON.stringify({ ...cobForm, monto: parseFloat(cobForm.monto) }) });
-    setShowCobro(false); setCobForm({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "" });
+    setShowCobro(false); setCobForm({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null });
     showToast("✓ Cobro registrado"); cargar();
   };
 
@@ -248,7 +253,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <div style={{ fontSize: 16, fontWeight: 800 }}>{presupuesto?.nombre_obra}</div>
             <div style={{ fontSize: 12, color: C.muted }}>Gestión de obra</div>
           </div>
-          <button onClick={() => navigate(`/cotizador/presupuesto/${id}/certificado`)}
+          <button onClick={() => setTab("certificados")}
             style={{ marginLeft: "auto", ...btn(C.accent2), fontSize: 12 }}>
             📜 Certificados
           </button>
@@ -263,6 +268,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
           <TabBtn id="cobros" label="💰 Cobros" />
           <TabBtn id="subcontratos" label="👷 Subcontratos" />
           <TabBtn id="compras" label="🧱 Compras" />
+          <TabBtn id="certificados" label="📜 Certificados" />
         </div>
       </div>
 
@@ -501,6 +507,111 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── TAB CERTIFICADOS ── */}
+        {tab === "certificados" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>Certificados de avance</div>
+                <div style={{ fontSize: 12, color: C.muted }}>
+                  {certificados.length} certificado{certificados.length !== 1 ? "s" : ""} emitido{certificados.length !== 1 ? "s" : ""}
+                  {certificados.length > 0 && ` · Acumulado: ${fmt(certificados[certificados.length-1]?.monto_acumulado || 0)}`}
+                </div>
+              </div>
+              <button onClick={() => navigate(`/cotizador/presupuesto/${id}/certificado`)} style={btn(C.accent2)}>
+                + Emitir certificado
+              </button>
+            </div>
+
+            {certificados.length === 0 ? (
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center" }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>📜</div>
+                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Sin certificados emitidos</div>
+                <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>Emití el primer certificado de avance</div>
+                <button onClick={() => navigate(`/cotizador/presupuesto/${id}/certificado`)} style={btn(C.accent2)}>
+                  Emitir certificado →
+                </button>
+              </div>
+            ) : (
+              <div>
+                {certificados.map((cert, i) => {
+                  const cobrosVinculados = cobros.filter(cb => cb.certificado_id === cert.id);
+                  const montoCobrado = cobrosVinculados.reduce((s, cb) => s + parseFloat(cb.monto || 0), 0);
+                  const pendiente = parseFloat(cert.monto_periodo || 0) - montoCobrado;
+                  return (
+                    <div key={cert.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 700 }}>Certificado Nº {cert.numero}</div>
+                          <div style={{ fontSize: 12, color: C.muted }}>
+                            {cert.fecha}
+                            {cert.periodo_desde && ` · ${cert.periodo_desde} → ${cert.periodo_hasta}`}
+                          </div>
+                          <div style={{ fontSize: 12, color: C.accent2, marginTop: 2 }}>
+                            Avance acumulado: {parseFloat(cert.avance_total_pct || 0).toFixed(1)}%
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: C.accent2, fontFamily: "'IBM Plex Mono',monospace" }}>
+                            {fmt(cert.monto_periodo)}
+                          </div>
+                          <div style={{ fontSize: 11, color: C.muted }}>período · acum: {fmt(cert.monto_acumulado)}</div>
+                        </div>
+                      </div>
+
+                      {/* Cobros vinculados a este certificado */}
+                      <div style={{ background: C.surface2, borderRadius: 8, padding: "10px 12px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: cobrosVinculados.length > 0 ? 8 : 0 }}>
+                          <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                            Cobros vinculados
+                          </div>
+                          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                            {pendiente > 0 && (
+                              <span style={{ fontSize: 12, color: C.red, fontWeight: 700 }}>Pendiente: {fmt(pendiente)}</span>
+                            )}
+                            {pendiente <= 0 && montoCobrado > 0 && (
+                              <span style={{ fontSize: 12, color: C.green, fontWeight: 700 }}>✓ Cobrado completo</span>
+                            )}
+                            <button
+                              onClick={() => {
+                                setShowCobro(true);
+                                setCobForm({ monto: String(Math.round(pendiente > 0 ? pendiente : cert.monto_periodo)), fecha: today(), forma_pago: "transferencia", referencia: "", nota: `Cert. Nº ${cert.numero}`, certificado_id: cert.id });
+                              }}
+                              style={{ ...btn(C.green), padding: "4px 10px", fontSize: 11 }}>
+                              + Cobro
+                            </button>
+                          </div>
+                        </div>
+                        {cobrosVinculados.length === 0 ? (
+                          <div style={{ fontSize: 12, color: C.muted }}>Sin cobros registrados para este certificado</div>
+                        ) : cobrosVinculados.map(cb => (
+                          <div key={cb.id} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderTop: `1px solid ${C.border}` }}>
+                            <div style={{ fontSize: 12 }}>{cb.fecha} · {cb.forma_pago} {cb.referencia ? `· ${cb.referencia}` : ""}</div>
+                            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: C.green, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(cb.monto)}</span>
+                              <button onClick={() => eliminarCobro(cb.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14 }}>×</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Resumen total */}
+                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", display: "flex", justifyContent: "space-between" }}>
+                  <div style={{ fontSize: 13, color: C.muted }}>Total certificado / Total cobrado</div>
+                  <div style={{ display: "flex", gap: 20 }}>
+                    <span style={{ fontWeight: 700, color: C.accent2, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(certificados[certificados.length-1]?.monto_acumulado || 0)}</span>
+                    <span style={{ color: C.muted }}>/</span>
+                    <span style={{ fontWeight: 700, color: C.green, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(cobros.reduce((s,cb) => s + parseFloat(cb.monto||0), 0))}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
