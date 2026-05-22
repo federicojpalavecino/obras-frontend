@@ -20,6 +20,7 @@ import ClientePortal from "./pages/ClientePortal";
 import PersonalPortal from "./pages/PersonalPortal";
 import AccesosClientes from "./pages/AccesosClientes";
 import Landing from "./pages/Landing";
+import Obra from "./pages/Obra";
 
 const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
 
@@ -234,6 +235,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
         <Route path="/cotizador/mano-obra" element={<ManoObra />}/>
         <Route path="/cotizador/analisis-costos" element={<AnalisisCostos />}/>
         <Route path="/cotizador/presupuesto/:id/certificado" element={<Certificado />}/>
+        <Route path="/cotizador/presupuesto/:id/obra" element={<Obra />}/>
         <Route path="/cotizador/gantt/:id" element={<Gantt />}/>
         <Route path="/cotizador/presupuesto/:id/curva" element={<CurvaInversion />}/>
         <Route path="/cotizador/presupuesto/:id/materiales" element={<ListadoMateriales />}/>
@@ -357,10 +359,20 @@ export default function App() {
         if (data.token) {
           localStorage.setItem("obras_token", data.token);
           await checkSuscripcion(data.token);
-          try {
-            const tr = await fetch(`${API}/tenant`, { headers: { Authorization: `Bearer ${data.token}` } });
-            if (tr.ok) { const td = await tr.json(); setTenant(td); }
-          } catch(e) {}
+          // Fetch tenant data (also returned by estudio/login now)
+          let tenantData = data.tenant || null;
+          if (!tenantData) {
+            try {
+              const tr = await fetch(`${API}/tenant`, { headers: { Authorization: `Bearer ${data.token}` } });
+              if (tr.ok) tenantData = await tr.json();
+            } catch(e) {}
+          }
+          if (tenantData) {
+            setTenant(tenantData);
+            localStorage.setItem("obras_tenant", JSON.stringify(tenantData));
+            // Also save in obras_session for compatibility
+            localStorage.setItem("obras_session", JSON.stringify({ user: { email: data.email, nombre: data.nombre, rol: data.rol }, tenant: tenantData, token: data.token }));
+          }
         }
         setEstudioInfo(ei); setUser({ email: data.email, nombre: data.nombre, rol: data.rol }); return;
       }
