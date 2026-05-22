@@ -684,6 +684,9 @@ ${firma}
                   <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={() => navigate(`/cotizador/presupuesto/${id}/materiales`)}>
                     📦 Mat.
                   </button>
+                  <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderLeft: '1px solid var(--border2)' }} onClick={() => navigate(`/cotizador/presupuesto/${id}/obra`)}>
+                    🏗️ Obra
+                  </button>
                 </div>
                 {/* Adicional + Reabrir */}
                 <button className="btn btn-secondary btn-sm" onClick={crearAdicional} disabled={creandoAdic}
@@ -707,6 +710,7 @@ ${firma}
                 { label: 'Gantt', icon: '📊', onClick: () => navigate(`/cotizador/gantt/${id}`) },
                 { label: 'Curva de inversión', icon: '📈', onClick: () => navigate(`/cotizador/presupuesto/${id}/curva`) },
                 { label: 'Listado de materiales', icon: '📦', onClick: () => navigate(`/cotizador/presupuesto/${id}/materiales`) },
+                { label: 'Gestión de obra', icon: '🏗️', onClick: () => navigate(`/cotizador/presupuesto/${id}/obra`) },
                 { label: creandoAdic ? 'Creando adicional...' : 'Crear adicional', icon: '➕', onClick: crearAdicional, disabled: creandoAdic, color: 'var(--accent2)' },
                 { label: 'Reabrir presupuesto', icon: '🔓', onClick: handleReabrir, color: 'var(--warn)' },
               ] : [
