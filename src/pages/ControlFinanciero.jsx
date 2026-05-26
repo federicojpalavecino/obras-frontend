@@ -214,6 +214,10 @@ export default function ControlFinanciero({ user }) {
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
   const [obras, setObras] = useState([]);
+  const [showImportarObra, setShowImportarObra] = useState(false);
+  const [obraPendientes, setObraPendientes] = useState({ cobros: [], pagos_subcontrato: [], compras: [] });
+  const [obraSeleccionados, setObraSeleccionados] = useState([]);
+  const [loadingObra, setLoadingObra] = useState(false);
   const [showImportCert, setShowImportCert] = useState(false);
   const [importCertTab, setImportCertTab] = useState("items");
   const [certDisponibles, setCertDisponibles] = useState([]);
@@ -295,6 +299,40 @@ export default function ControlFinanciero({ user }) {
     setCertDisponibles(Array.isArray(r1) ? r1 : []);
     setCertEgresosDisponibles(Array.isArray(r2) ? r2 : []);
     setLoadingCerts(false);
+  };
+
+  const cargarObraPendientes = async () => {
+    setLoadingObra(true);
+    try {
+      const res = await fetch(`${API}/cf/obra-pendientes`, { headers: authH() });
+      if (res.ok) setObraPendientes(await res.json());
+    } catch(e) {}
+    setLoadingObra(false);
+  };
+
+  const importarDesdeObra = async () => {
+    if (obraSeleccionados.length === 0) return;
+    try {
+      const res = await fetch(`${API}/cf/importar-obra`, {
+        method: "POST", headers: authH(),
+        body: JSON.stringify({ items: obraSeleccionados })
+      });
+      if (res.ok) {
+        showToast("✓ Importado al CF correctamente");
+        setShowImportarObra(false);
+        setObraSeleccionados([]);
+        await cargar();
+      }
+    } catch(e) { showToast("Error al importar"); }
+  };
+
+  const toggleSeleccionObra = (tipo, id) => {
+    const key = `${tipo}-${id}`;
+    setObraSeleccionados(prev => {
+      const exists = prev.find(i => i.tipo === tipo && i.id === id);
+      if (exists) return prev.filter(i => !(i.tipo === tipo && i.id === id));
+      return [...prev, { tipo, id }];
+    });
   };
 
   const importarCert = (cert) => {
@@ -793,6 +831,102 @@ export default function ControlFinanciero({ user }) {
                   <div style={{ fontSize: 15, fontWeight: 700, color: C.red, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(c.total)}</div>
                 </div>
               ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL IMPORTAR DESDE OBRA ── */}
+      {showImportarObra && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 560, border: "1px solid #e0e0e8", maxHeight: "85vh", overflow: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e" }}>Importar movimientos desde obra</div>
+              <button onClick={() => setShowImportarObra(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: "#6b7280" }}>×</button>
+            </div>
+
+            {loadingObra ? (
+              <div style={{ textAlign: "center", padding: 32, color: "#6b7280" }}>Cargando...</div>
+            ) : (
+              <>
+                {/* Cobros */}
+                {obraPendientes.cobros?.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#059669", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>💰 Cobros de clientes</div>
+                    {obraPendientes.cobros.map(cb => {
+                      const sel = obraSeleccionados.some(i => i.tipo === "cobro" && i.id === cb.id);
+                      return (
+                        <div key={cb.id} onClick={() => toggleSeleccionObra("cobro", cb.id)}
+                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, border: `1px solid ${sel ? "#059669" : "#e0e0e8"}`, background: sel ? "#f0fdf4" : "#fff", cursor: "pointer", marginBottom: 6 }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600 }}>{cb.nombre_obra || "Sin obra"}</div>
+                            <div style={{ fontSize: 11, color: "#6b7280" }}>{cb.fecha} · {cb.forma_pago} {cb.referencia ? `· ${cb.referencia}` : ""}</div>
+                          </div>
+                          <div style={{ fontWeight: 700, color: "#059669", fontFamily: "'IBM Plex Mono',monospace" }}>
+                            ${Math.round(cb.monto || 0).toLocaleString("es-AR")}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Pagos subcontrato */}
+                {obraPendientes.pagos_subcontrato?.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>👷 Pagos a subcontratistas</div>
+                    {obraPendientes.pagos_subcontrato.map(ps => {
+                      const sel = obraSeleccionados.some(i => i.tipo === "pago_sub" && i.id === ps.id);
+                      return (
+                        <div key={ps.id} onClick={() => toggleSeleccionObra("pago_sub", ps.id)}
+                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, border: `1px solid ${sel ? "#d97706" : "#e0e0e8"}`, background: sel ? "#fffbeb" : "#fff", cursor: "pointer", marginBottom: 6 }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600 }}>{ps.nombre_contratista}</div>
+                            <div style={{ fontSize: 11, color: "#6b7280" }}>{ps.fecha} · {ps.concepto} · {ps.nombre_obra || ""}</div>
+                          </div>
+                          <div style={{ fontWeight: 700, color: "#d97706", fontFamily: "'IBM Plex Mono',monospace" }}>
+                            ${Math.round(ps.monto || 0).toLocaleString("es-AR")}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Compras */}
+                {obraPendientes.compras?.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>🧱 Compras de materiales</div>
+                    {obraPendientes.compras.map(cm => {
+                      const sel = obraSeleccionados.some(i => i.tipo === "compra" && i.id === cm.id);
+                      return (
+                        <div key={cm.id} onClick={() => toggleSeleccionObra("compra", cm.id)}
+                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, border: `1px solid ${sel ? "#7c3aed" : "#e0e0e8"}`, background: sel ? "#f5f3ff" : "#fff", cursor: "pointer", marginBottom: 6 }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600 }}>{cm.proveedor_nombre}</div>
+                            <div style={{ fontSize: 11, color: "#6b7280" }}>{cm.fecha_pedido} · {cm.nombre_obra || ""}</div>
+                          </div>
+                          <div style={{ fontWeight: 700, color: "#7c3aed", fontFamily: "'IBM Plex Mono',monospace" }}>
+                            ${Math.round(cm.monto_pagado || 0).toLocaleString("es-AR")}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {obraPendientes.cobros?.length === 0 && obraPendientes.pagos_subcontrato?.length === 0 && obraPendientes.compras?.length === 0 && (
+                  <div style={{ textAlign: "center", padding: 32, color: "#6b7280" }}>
+                    No hay movimientos pendientes de importar
+                  </div>
+                )}
+
+                {obraSeleccionados.length > 0 && (
+                  <button onClick={importarDesdeObra} style={{ width: "100%", padding: 12, background: "#059669", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 8 }}>
+                    Importar {obraSeleccionados.length} movimiento{obraSeleccionados.length !== 1 ? "s" : ""} al CF
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

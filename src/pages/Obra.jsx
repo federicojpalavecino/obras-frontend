@@ -269,7 +269,6 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
           <TabBtn id="subcontratos" label="👷 Subcontratos" />
           <TabBtn id="compras" label="🧱 Compras" />
           <TabBtn id="certificados" label="📜 Certificados" />
-          <TabBtn id="certificados" label="📜 Certificados" />
         </div>
       </div>
 
@@ -541,7 +540,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 {certificados.map((cert, i) => {
                   const cobrosVinculados = cobros.filter(cb => cb.certificado_id === cert.id);
                   const montoCobrado = cobrosVinculados.reduce((s, cb) => s + parseFloat(cb.monto || 0), 0);
-                  const pendiente = parseFloat(cert.monto_periodo || 0) - montoCobrado;
+                  const pendiente = parseFloat(cert.total_periodo || cert.monto_periodo || 0) - montoCobrado;
                   return (
                     <div key={cert.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 10 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
@@ -557,7 +556,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <div style={{ fontSize: 18, fontWeight: 800, color: C.accent2, fontFamily: "'IBM Plex Mono',monospace" }}>
-                            {fmt(cert.monto_periodo)}
+                            {fmt(cert.total_periodo || cert.monto_periodo)}
                           </div>
                           <div style={{ fontSize: 11, color: C.muted }}>período · acum: {fmt(cert.monto_acumulado)}</div>
                         </div>
@@ -579,7 +578,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                             <button
                               onClick={() => {
                                 setShowCobro(true);
-                                setCobForm({ monto: String(Math.round(pendiente > 0 ? pendiente : cert.monto_periodo)), fecha: today(), forma_pago: "transferencia", referencia: "", nota: `Cert. Nº ${cert.numero}`, certificado_id: cert.id });
+                                setCobForm({ monto: String(Math.round(pendiente > 0 ? pendiente : cert.total_periodo || cert.monto_periodo)), fecha: today(), forma_pago: "transferencia", referencia: "", nota: `Cert. Nº ${cert.numero}`, certificado_id: cert.id });
                               }}
                               style={{ ...btn(C.green), padding: "4px 10px", fontSize: 11 }}>
                               + Cobro
@@ -617,110 +616,6 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
         )}
 
         {/* ── TAB CERTIFICADOS ── */}
-        {tab === "certificados" && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700 }}>Certificados de avance</div>
-                <div style={{ fontSize: 12, color: C.muted }}>
-                  {certificados.length} certificado{certificados.length !== 1 ? "s" : ""} emitido{certificados.length !== 1 ? "s" : ""}
-                  {certificados.length > 0 && ` · Acumulado: ${fmt(certificados[certificados.length-1]?.monto_acumulado || 0)}`}
-                </div>
-              </div>
-              <button onClick={() => navigate(`/cotizador/presupuesto/${id}/certificado`)} style={btn(C.accent2)}>
-                + Emitir certificado
-              </button>
-            </div>
-
-            {certificados.length === 0 ? (
-              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center" }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>📜</div>
-                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Sin certificados emitidos</div>
-                <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>Emití el primer certificado de avance</div>
-                <button onClick={() => navigate(`/cotizador/presupuesto/${id}/certificado`)} style={btn(C.accent2)}>
-                  Emitir certificado →
-                </button>
-              </div>
-            ) : (
-              <div>
-                {certificados.map((cert, i) => {
-                  const cobrosVinculados = cobros.filter(cb => cb.certificado_id === cert.id);
-                  const montoCobrado = cobrosVinculados.reduce((s, cb) => s + parseFloat(cb.monto || 0), 0);
-                  const pendiente = parseFloat(cert.monto_periodo || 0) - montoCobrado;
-                  return (
-                    <div key={cert.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 10 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                        <div>
-                          <div style={{ fontSize: 15, fontWeight: 700 }}>Certificado Nº {cert.numero}</div>
-                          <div style={{ fontSize: 12, color: C.muted }}>
-                            {cert.fecha}
-                            {cert.periodo_desde && ` · ${cert.periodo_desde} → ${cert.periodo_hasta}`}
-                          </div>
-                          <div style={{ fontSize: 12, color: C.accent2, marginTop: 2 }}>
-                            Avance acumulado: {parseFloat(cert.avance_total_pct || 0).toFixed(1)}%
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 18, fontWeight: 800, color: C.accent2, fontFamily: "'IBM Plex Mono',monospace" }}>
-                            {fmt(cert.monto_periodo)}
-                          </div>
-                          <div style={{ fontSize: 11, color: C.muted }}>período · acum: {fmt(cert.monto_acumulado)}</div>
-                        </div>
-                      </div>
-
-                      {/* Cobros vinculados a este certificado */}
-                      <div style={{ background: C.surface2, borderRadius: 8, padding: "10px 12px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: cobrosVinculados.length > 0 ? 8 : 0 }}>
-                          <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                            Cobros vinculados
-                          </div>
-                          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                            {pendiente > 0 && (
-                              <span style={{ fontSize: 12, color: C.red, fontWeight: 700 }}>Pendiente: {fmt(pendiente)}</span>
-                            )}
-                            {pendiente <= 0 && montoCobrado > 0 && (
-                              <span style={{ fontSize: 12, color: C.green, fontWeight: 700 }}>✓ Cobrado completo</span>
-                            )}
-                            <button
-                              onClick={() => {
-                                setShowCobro(true);
-                                setCobForm({ monto: String(Math.round(pendiente > 0 ? pendiente : cert.monto_periodo)), fecha: today(), forma_pago: "transferencia", referencia: "", nota: `Cert. Nº ${cert.numero}`, certificado_id: cert.id });
-                              }}
-                              style={{ ...btn(C.green), padding: "4px 10px", fontSize: 11 }}>
-                              + Cobro
-                            </button>
-                          </div>
-                        </div>
-                        {cobrosVinculados.length === 0 ? (
-                          <div style={{ fontSize: 12, color: C.muted }}>Sin cobros registrados para este certificado</div>
-                        ) : cobrosVinculados.map(cb => (
-                          <div key={cb.id} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderTop: `1px solid ${C.border}` }}>
-                            <div style={{ fontSize: 12 }}>{cb.fecha} · {cb.forma_pago} {cb.referencia ? `· ${cb.referencia}` : ""}</div>
-                            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: C.green, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(cb.monto)}</span>
-                              <button onClick={() => eliminarCobro(cb.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14 }}>×</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Resumen total */}
-                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", display: "flex", justifyContent: "space-between" }}>
-                  <div style={{ fontSize: 13, color: C.muted }}>Total certificado / Total cobrado</div>
-                  <div style={{ display: "flex", gap: 20 }}>
-                    <span style={{ fontWeight: 700, color: C.accent2, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(certificados[certificados.length-1]?.monto_acumulado || 0)}</span>
-                    <span style={{ color: C.muted }}>/</span>
-                    <span style={{ fontWeight: 700, color: C.green, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(cobros.reduce((s,cb) => s + parseFloat(cb.monto||0), 0))}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
       </div>
 
       {/* ── MODAL COBRO ── */}

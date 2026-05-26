@@ -684,8 +684,8 @@ ${firma}
                   <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={() => navigate(`/cotizador/presupuesto/${id}/materiales`)}>
                     📦 Mat.
                   </button>
-                  <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderLeft: '1px solid var(--border2)' }} onClick={() => navigate(`/cotizador/presupuesto/${id}/obra`)}>
-                    🏗️ Obra
+                  <button style={{ borderRadius: 0, borderLeft: '2px solid var(--accent)', padding: '4px 12px', background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.3)', color: 'var(--accent)', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => navigate(`/cotizador/presupuesto/${id}/obra`)}>
+                    🏗️ Gestión de obra
                   </button>
                 </div>
                 {/* Adicional + Reabrir */}
