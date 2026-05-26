@@ -103,15 +103,13 @@ export default function ConfigCuenta({ user, onUpdate }) {
     const res = await fetch(`${API}/tenant`, { method:"PUT", headers:{...headers,"Content-Type":"application/json"}, body: JSON.stringify(form) });
     if (res.ok) {
       setMsg("Guardado correctamente");
-      // Update localStorage so header reflects changes
-      const session = localStorage.getItem("obras_session");
-      if (session) {
-        try {
-          const s = JSON.parse(session);
-          s.tenant = { ...s.tenant, ...form };
-          localStorage.setItem("obras_session", JSON.stringify(s));
-        } catch {}
-      }
+      try {
+        const s = JSON.parse(localStorage.getItem("obras_session") || "{}");
+        s.tenant = { ...s.tenant, ...form };
+        localStorage.setItem("obras_session", JSON.stringify(s));
+        const t = JSON.parse(localStorage.getItem("obras_tenant") || "{}");
+        localStorage.setItem("obras_tenant", JSON.stringify({ ...t, ...form }));
+      } catch {}
       if (onUpdate) onUpdate(form);
     }
     else setMsg("Error al guardar");
@@ -134,6 +132,15 @@ export default function ConfigCuenta({ user, onUpdate }) {
       });
       if (res.ok) {
         setTenant(prev => ({ ...prev, logo_url: base64 }));
+        // Actualizar obras_tenant y obras_session para que el header lo lea
+        try {
+          const t = JSON.parse(localStorage.getItem("obras_tenant") || "{}");
+          t.logo_url = base64;
+          localStorage.setItem("obras_tenant", JSON.stringify(t));
+          const s = JSON.parse(localStorage.getItem("obras_session") || "{}");
+          if (s.tenant) { s.tenant.logo_url = base64; localStorage.setItem("obras_session", JSON.stringify(s)); }
+        } catch {}
+        if (onUpdate) onUpdate({ logo_url: base64 });
         setMsg("Logo actualizado");
       } else setMsg("Error al subir logo");
       setSaving(false);
