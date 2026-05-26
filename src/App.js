@@ -350,11 +350,10 @@ export default function App() {
         const data = await res.json();
         const ci = { cliente_id: data.cliente_id, nombre: data.nombre, email: data.email };
         localStorage.setItem("obras_cliente", JSON.stringify(ci));
-        // CRITICAL: guardar el token para que el portal pueda llamar a la API
         if (data.token) {
           localStorage.setItem("obras_token", data.token);
+          setClienteToken(data.token);
         }
-        // Guardar tenant del cliente para branding
         if (data.tenant) {
           setTenant(data.tenant);
           localStorage.setItem("obras_tenant", JSON.stringify(data.tenant));
