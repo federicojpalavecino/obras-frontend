@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 
 const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
 const getToken = () => localStorage.getItem("obras_token") || "";
+const authHWithToken = (tk) => ({ Authorization: `Bearer ${tk || getToken()}` });
 const authH = () => ({ Authorization: `Bearer ${getToken()}` });
 const fmt = (n) => n != null ? "$ " + Math.round(n || 0).toLocaleString("es-AR") : "—";
 const fmtDate = (d) => d ? new Date(d + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
@@ -59,8 +60,7 @@ function GanttReadonly({ presupuestoId }) {
 }
 
 export default function ClientePortal({ user, clienteId, clienteNombre, onLogout, token: tokenProp }) {
-  // Asegurar que el token prop esté en localStorage antes de cualquier fetch
-  if (tokenProp) { localStorage.setItem("obras_token", tokenProp); }
+  const getH = () => ({ Authorization: `Bearer ${tokenProp || localStorage.getItem("obras_token") || ""}` });
   const [presupuestos, setPresupuestos] = useState([]);
   const [presSelec, setPresSelec] = useState(null);
   const [tab, setTab] = useState("avance");
@@ -81,7 +81,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   const tenantLogo = (() => { try { const t = JSON.parse(localStorage.getItem("obras_tenant") || "null"); return t?.logo_url || null; } catch { return null; } })();
 
   useEffect(() => {
-    fetch(`${API}/portal/presupuestos`, { headers: authH() })
+    fetch(`${API}/portal/presupuestos`, { headers: getH() })
       .then(r => r.ok ? r.json() : [])
       .then(d => {
         const pres = Array.isArray(d) ? d : [];
@@ -95,22 +95,22 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
     if (!presSelec) return;
     const id = presSelec.id;
     // Certificados
-    fetch(`${API}/presupuestos/${id}/certificados`, { headers: authH() })
+    fetch(`${API}/presupuestos/${id}/certificados`, { headers: getH() })
       .then(r => r.ok ? r.json() : { certificados: [] })
       .then(d => setCerts(d.certificados || (Array.isArray(d) ? d : [])))
       .catch(() => {});
     // Cobros
-    fetch(`${API}/presupuestos/${id}/cobros`, { headers: authH() })
+    fetch(`${API}/presupuestos/${id}/cobros`, { headers: getH() })
       .then(r => r.ok ? r.json() : [])
       .then(d => setCobros(Array.isArray(d) ? d : []))
       .catch(() => {});
     // Contrato
-    fetch(`${API}/presupuestos/${id}/contrato`, { headers: authH() })
+    fetch(`${API}/presupuestos/${id}/contrato`, { headers: getH() })
       .then(r => r.ok ? r.json() : null)
       .then(d => setContrato(d))
       .catch(() => {});
     // Comentarios
-    fetch(`${API}/portal/comentarios/${id}`, { headers: authH() })
+    fetch(`${API}/portal/comentarios/${id}`, { headers: getH() })
       .then(r => r.ok ? r.json() : [])
       .then(d => setComentarios(Array.isArray(d) ? d : []))
       .catch(() => {});
@@ -121,7 +121,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
     setEnviando(true);
     await fetch(`${API}/portal/comentarios`, { method: "POST", headers: { ...authH(), "Content-Type": "application/json" }, body: JSON.stringify({ presupuesto_id: presSelec.id, texto: nuevoComentario, nombre: clienteNombre || user?.nombre, email: user?.email }) });
     setNuevoComentario("");
-    const d = await fetch(`${API}/portal/comentarios/${presSelec.id}`, { headers: authH() }).then(r => r.ok ? r.json() : []);
+    const d = await fetch(`${API}/portal/comentarios/${presSelec.id}`, { headers: getH() }).then(r => r.ok ? r.json() : []);
     setComentarios(Array.isArray(d) ? d : []);
     setEnviando(false);
     showToast("✓ Mensaje enviado");
