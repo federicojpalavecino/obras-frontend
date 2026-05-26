@@ -81,16 +81,10 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   const tenantLogo = (() => { try { const t = JSON.parse(localStorage.getItem("obras_tenant") || "null"); return t?.logo_url || null; } catch { return null; } })();
 
   useEffect(() => {
-    let attempts = 0;
-    const tryFetch = () => {
-      const tk = tokenProp || localStorage.getItem("obras_token") || "";
-      if (!tk && attempts < 10) {
-        attempts++;
-        setTimeout(tryFetch, 200);
-        return;
-      }
+    // Esperar un tick para que el token se propague al localStorage
+    const doFetch = (tk) => {
       fetch(`${API}/portal/presupuestos`, { headers: { Authorization: `Bearer ${tk}` } })
-        .then(r => r.ok ? r.json() : [])
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(d => {
           const pres = Array.isArray(d) ? d : [];
           setPresupuestos(pres);
@@ -98,7 +92,22 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
           setLoading(false);
         }).catch(() => setLoading(false));
     };
-    tryFetch();
+
+    if (tokenProp) {
+      // Token llegó como prop - usarlo directo
+      localStorage.setItem("obras_token", tokenProp);
+      doFetch(tokenProp);
+    } else {
+      // Token puede estar en localStorage pero con delay de React
+      setTimeout(() => {
+        const tk = localStorage.getItem("obras_token") || "";
+        if (tk) {
+          doFetch(tk);
+        } else {
+          setLoading(false);
+        }
+      }, 500);
+    }
   }, [tokenProp]);
 
   useEffect(() => {
