@@ -81,15 +81,25 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   const tenantLogo = (() => { try { const t = JSON.parse(localStorage.getItem("obras_tenant") || "null"); return t?.logo_url || null; } catch { return null; } })();
 
   useEffect(() => {
-    fetch(`${API}/portal/presupuestos`, { headers: getH() })
-      .then(r => r.ok ? r.json() : [])
-      .then(d => {
-        const pres = Array.isArray(d) ? d : [];
-        setPresupuestos(pres);
-        if (pres.length > 0) setPresSelec(pres[0]);
-        setLoading(false);
-      }).catch(() => setLoading(false));
-  }, []);
+    let attempts = 0;
+    const tryFetch = () => {
+      const tk = tokenProp || localStorage.getItem("obras_token") || "";
+      if (!tk && attempts < 10) {
+        attempts++;
+        setTimeout(tryFetch, 200);
+        return;
+      }
+      fetch(`${API}/portal/presupuestos`, { headers: { Authorization: `Bearer ${tk}` } })
+        .then(r => r.ok ? r.json() : [])
+        .then(d => {
+          const pres = Array.isArray(d) ? d : [];
+          setPresupuestos(pres);
+          if (pres.length > 0) setPresSelec(pres[0]);
+          setLoading(false);
+        }).catch(() => setLoading(false));
+    };
+    tryFetch();
+  }, [tokenProp]);
 
   useEffect(() => {
     if (!presSelec) return;
