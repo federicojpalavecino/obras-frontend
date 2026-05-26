@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
-const getToken = () => localStorage.getItem("obras_token") || "";
+const getToken = () => tokenProp || localStorage.getItem("obras_token") || "";
 const authH = () => ({ Authorization: `Bearer ${getToken()}` });
 const fmt = (n) => n != null ? "$ " + Math.round(n || 0).toLocaleString("es-AR") : "—";
 const fmtDate = (d) => d ? new Date(d + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
@@ -58,7 +58,7 @@ function GanttReadonly({ presupuestoId }) {
   );
 }
 
-export default function ClientePortal({ user, clienteId, clienteNombre, onLogout }) {
+export default function ClientePortal({ user, clienteId, clienteNombre, onLogout, token: tokenProp }) {
   const [presupuestos, setPresupuestos] = useState([]);
   const [presSelec, setPresSelec] = useState(null);
   const [tab, setTab] = useState("avance");

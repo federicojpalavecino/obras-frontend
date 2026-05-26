@@ -256,6 +256,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [suscripcion, setSuscripcion] = useState(null);
   const [clienteInfo, setClienteInfo] = useState(null);
+  const [clienteToken, setClienteToken] = useState(null);
   const [estudioInfo, setEstudioInfo] = useState(null);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
@@ -284,7 +285,11 @@ export default function App() {
       if (savedCliente) {
         try {
           const ci = JSON.parse(savedCliente);
-          if (ci?.email && ci?.cliente_id) { setClienteInfo(ci); setUser({ email: ci.email, nombre: ci.nombre }); setLoading(false); return; }
+          if (ci?.email && ci?.cliente_id) {
+            const savedToken = localStorage.getItem("obras_token");
+            if (savedToken) setClienteToken(savedToken);
+            setClienteInfo(ci); setUser({ email: ci.email, nombre: ci.nombre }); setLoading(false); return;
+          }
         } catch { localStorage.removeItem("obras_cliente"); }
       }
       if (savedEstudio) {
@@ -526,7 +531,7 @@ export default function App() {
   const banner = suscripcion && suscripcion.en_trial ? <TrialBanner diasRestantes={suscripcion.dias_restantes} /> : null;
 
   if (clienteInfo) {
-    return <ClientePortal user={user} clienteId={clienteInfo.cliente_id} clienteNombre={clienteInfo.nombre} onLogout={handleLogout} />;
+    return <ClientePortal user={user} clienteId={clienteInfo.cliente_id} clienteNombre={clienteInfo.nombre} onLogout={handleLogout} token={clienteToken || localStorage.getItem("obras_token")} />;
   }
 
   if (estudioInfo) {
