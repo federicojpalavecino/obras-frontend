@@ -73,6 +73,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   const [enviando, setEnviando] = useState(false);
   const [aceptando, setAceptando] = useState(false);
   const [toast, setToast] = useState("");
+  const [seccionesVisibles, setSeccionesVisibles] = useState(["avance","contrato","cobros","gantt","consultas"]);
 
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(""), 3000); };
 
@@ -93,9 +94,15 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
         }).catch(() => setLoading(false));
     };
 
+    const loadConfig = (tk) => {
+      fetch(`${API}/portal/mi-config`, { headers: { Authorization: `Bearer ${tk}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.secciones_visibles) setSeccionesVisibles(d.secciones_visibles); })
+        .catch(() => {});
+    };
     if (tokenProp) {
-      // Token llegó como prop - usarlo directo
       localStorage.setItem("obras_token", tokenProp);
+      loadConfig(tokenProp);
       doFetch(tokenProp);
     } else {
       // Token puede estar en localStorage pero con delay de React
@@ -169,13 +176,21 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   const card = { background: "#fff", border: "1px solid #e0e0e8", borderRadius: 10, padding: 16, marginBottom: 10 };
   const inp = { width: "100%", boxSizing: "border-box", padding: "8px 12px", background: "#f1f3f5", border: "1px solid #e0e0e8", borderRadius: 8, color: "#1a1a2e", fontSize: 13, fontFamily: "inherit", outline: "none" };
 
-  const TABS = [
+  const ALL_TABS = [
     { id: "avance", label: "Avance" },
     { id: "contrato", label: "Contrato" },
     { id: "cobros", label: "Cuenta corriente" },
     { id: "gantt", label: "Planificación" },
     { id: "consultas", label: "Consultas" },
   ];
+  const TABS = ALL_TABS.filter(t => seccionesVisibles.includes(t.id));
+
+  // Si el tab activo no está visible, cambiar al primero disponible
+  useEffect(() => {
+    if (TABS.length > 0 && !TABS.some(t => t.id === tab)) {
+      setTab(TABS[0].id);
+    }
+  }, [seccionesVisibles]);
 
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8f9fa" }}>

@@ -17,7 +17,14 @@ export default function AccesosClientes({ user }) {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ email: "", nombre: "", cliente_id: "", password: "" });
+  const SECCIONES = [
+    { id: "avance", label: "Avance de obra" },
+    { id: "contrato", label: "Contrato" },
+    { id: "cobros", label: "Cuenta corriente" },
+    { id: "gantt", label: "Planificación" },
+    { id: "consultas", label: "Consultas" },
+  ];
+  const [form, setForm] = useState({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","contrato","cobros","gantt","consultas"] });
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
@@ -41,8 +48,8 @@ export default function AccesosClientes({ user }) {
     if (!form.email || !form.cliente_id || !form.password) { setMsg("Completá todos los campos obligatorios"); return; }
     setSaving(true); setMsg("");
     try {
-      const res = await fetch(`${API}/portal/accesos`, { method: "POST", headers: authH(), body: JSON.stringify({ email: form.email.toLowerCase().trim(), nombre: form.nombre, cliente_id: parseInt(form.cliente_id), password: form.password }) });
-      if (res.ok) { setModal(false); setForm({ email: "", nombre: "", cliente_id: "", password: "" }); showToast("✓ Acceso creado"); cargar(); }
+      const res = await fetch(`${API}/portal/accesos`, { method: "POST", headers: authH(), body: JSON.stringify({ email: form.email.toLowerCase().trim(), nombre: form.nombre, cliente_id: parseInt(form.cliente_id), password: form.password, secciones_visibles: form.secciones_visibles }) });
+      if (res.ok) { setModal(false); setForm({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","contrato","cobros","gantt","consultas"] }); showToast("✓ Acceso creado"); cargar(); }
       else { const d = await res.json(); setMsg(d.detail || "Error al crear acceso"); }
     } catch { setMsg("Error de conexión"); }
     setSaving(false);
@@ -93,6 +100,9 @@ export default function AccesosClientes({ user }) {
                     <div style={{ fontSize: 14, fontWeight: 700 }}>{a.nombre || a.email}</div>
                     <div style={{ fontSize: 12, color: C.muted }}>{a.email}</div>
                     {cliente && <div style={{ fontSize: 12, color: C.accent, marginTop: 2 }}>Cliente: {cliente.nombre}</div>}
+                    {a.secciones_visibles && a.secciones_visibles.length < 5 && (
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Ve: {a.secciones_visibles.join(", ")}</div>
+                    )}
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <span style={{ fontSize: 11, padding: "3px 8px", borderRadius: 20, background: a.activo ? "#f0fdf4" : "#fef2f2", color: a.activo ? C.accent : C.red, border: `1px solid ${a.activo ? "#bbf7d0" : "#fecaca"}` }}>
@@ -136,6 +146,22 @@ export default function AccesosClientes({ user }) {
               <div>
                 <label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Contraseña *</label>
                 <input style={inp} type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} placeholder="Contraseña para el portal" />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>¿Qué puede ver el cliente?</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {SECCIONES.map((s) => {
+                    const checked = form.secciones_visibles.includes(s.id);
+                    return (
+                      <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, border: `1px solid ${checked ? C.accent : C.border}`, background: checked ? "#f0fdf4" : C.surface, cursor: "pointer" }}>
+                        <input type="checkbox" checked={checked} onChange={() => {
+                          setForm((f) => ({ ...f, secciones_visibles: checked ? f.secciones_visibles.filter((x) => x !== s.id) : [...f.secciones_visibles, s.id] }));
+                        }} style={{ accentColor: C.accent, width: 16, height: 16 }} />
+                        <span style={{ fontSize: 13, color: checked ? C.accent : C.text, fontWeight: checked ? 600 : 400 }}>{s.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
             {msg && <div style={{ fontSize: 13, color: C.red, marginTop: 10, textAlign: "center" }}>{msg}</div>}
