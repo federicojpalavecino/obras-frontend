@@ -7,9 +7,10 @@ const GCAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
 const gcalIsValid = (token, exp) => token && exp && Date.now() < parseInt(exp || "0");
 
+const GCAL_REDIRECT_URI = window.location.origin + "/planner";
+
 const gcalLogin = () => {
-  localStorage.setItem("gcal_return_path", window.location.pathname);
-  const params = new URLSearchParams({ client_id: GCAL_CLIENT_ID, redirect_uri: window.location.origin, response_type: "token", scope: GCAL_SCOPE, prompt: "consent" });
+  const params = new URLSearchParams({ client_id: GCAL_CLIENT_ID, redirect_uri: GCAL_REDIRECT_URI, response_type: "token", scope: GCAL_SCOPE, prompt: "consent" });
   window.location.href = "https://accounts.google.com/o/oauth2/v2/auth?" + params.toString();
 };
 
@@ -27,6 +28,9 @@ const parseGcalToken = async () => {
   }
   return false;
 };
+
+// Redirect URI usada en el OAuth — debe estar registrada en Google Cloud Console
+// https://console.cloud.google.com → APIs & Services → Credentials → OAuth 2.0 Client
 
 const gcalUpsertEvent = async (tarea, proyectoNombre, token) => {
   if (!token) return null;
