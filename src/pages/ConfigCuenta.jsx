@@ -45,7 +45,7 @@ function UsuariosSection() {
 
   if (loading) return <div style={{color:C.muted, fontSize:13}}>Cargando...</div>;
 
-  const totalUsuarios = usuarios.length + 1; // +1 por el admin principal (no listado aquí)
+  const totalUsuarios = usuarios.length;
   const extra = Math.max(0, totalUsuarios - MAX_BASE);
   const precioTotal = PRECIO_BASE + extra * PRECIO_EXTRA;
 
