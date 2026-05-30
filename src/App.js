@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
@@ -167,13 +168,13 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   const colorAccent = tenant?.color_primario || C.accent;
 
   const modules = [
-    { id:"cotizador", path:"/cotizador", icon:"📋", label:"Presupuestos y obras", desc:"Presupuestos, obras, certificados y análisis de costos", color:C.accent2 },
-    { id:"finanzas", path:"/finanzas", icon:"💰", label:"Control Financiero", desc:"Ingresos, egresos y distribucion semanal", color:C.accent },
-    { id:"planner", path:"/planner", icon:"📅", label:"Planner", desc:"Tablero de tareas y calendario", color:C.warn },
-    { id:"clientes", path:"/clientes", icon:"👥", label:"Clientes y Proyectos", desc:"Gestion de clientes, obras y contactos", color:C.green },
-    { id:"accesos", path:"/accesos-clientes", icon:"🔑", label:"Accesos de clientes", desc:"Gestionar portal de clientes", color:C.accent2 },
-    { id:"config", path:"/config", icon:"⚙️", label:"Configuración", desc:"Logo, nombre y datos del estudio", color:C.muted },
-    { id:"soporte", path:"/soporte", icon:"💬", label:"Soporte técnico", desc:"Contacto, ayuda y sugerencias", color:C.blue },
+    { id:"cotizador", path:"/cotizador", Icon:FileText,      label:"Presupuestos y obras",  desc:"Presupuestos, obras, certificados y análisis de costos", color:C.accent2 },
+    { id:"finanzas",  path:"/finanzas",  Icon:TrendingUp,    label:"Control Financiero",    desc:"Ingresos, egresos y distribución semanal",               color:C.accent },
+    { id:"planner",   path:"/planner",   Icon:Calendar,      label:"Planner",               desc:"Tablero de tareas y calendario",                         color:C.warn },
+    { id:"clientes",  path:"/clientes",  Icon:Users,         label:"Clientes y Proyectos",  desc:"Gestión de clientes, obras y contactos",                 color:C.green },
+    { id:"accesos",   path:"/accesos-clientes", Icon:Lock,   label:"Accesos de clientes",   desc:"Gestionar portal de clientes",                           color:C.accent2 },
+    { id:"config",    path:"/config",    Icon:Settings,      label:"Configuración",         desc:"Logo, nombre y datos del estudio",                       color:C.muted },
+    { id:"soporte",   path:"/soporte",   Icon:MessageCircle, label:"Soporte técnico",       desc:"Contacto, ayuda y sugerencias",                          color:C.blue },
   ];
 
   const currentModule = modules.find(m => location.pathname.startsWith(m.path));
@@ -181,52 +182,48 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   return (
     <div style={{minHeight:"100vh", background:C.bg, color:C.text, fontFamily:"'Syne', sans-serif"}}>
       {!isCotizador && (
-        <div className="header">
-          <div style={{display:"flex", alignItems:"center", gap:16}}>
-            <div onClick={()=>navigate("/")} className="header-logo" style={{cursor:"pointer", display:"flex", alignItems:"center", gap:10}}>
-              {logoUrl
-                ? <img src={logoUrl} alt="logo" style={{height:28, objectFit:"contain"}} />
-                : <span style={{color:colorAccent, fontWeight:900, fontSize:16, letterSpacing:-0.5}}>{nombreMarca}</span>
-              }
-              <span style={{fontSize:14, fontWeight:400, color:C.muted}}>
-                {currentModule ? "/ " + currentModule.label : ""}
-              </span>
-            </div>
+        <div className="header" style={{borderBottom:"1px solid " + C.border, background:C.surface, padding:"0 clamp(16px,4vw,32px)", height:52, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+          <div onClick={()=>navigate("/")} style={{cursor:"pointer", display:"flex", alignItems:"center", gap:8}}>
+            {logoUrl
+              ? <img src={logoUrl} alt="logo" style={{height:24, objectFit:"contain"}} />
+              : <span style={{color:colorAccent, fontWeight:800, fontSize:15, letterSpacing:-0.3}}>{nombreMarca}</span>
+            }
+            {currentModule && (
+              <span style={{fontSize:13, color:C.muted, fontWeight:400}}>/ {currentModule.label}</span>
+            )}
           </div>
-          <div style={{display:"flex", alignItems:"center", gap:12}}>
-            <div style={{width:32, height:32, borderRadius:"50%", background:C.surface2, border:"1px solid " + C.border2, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:C.accent, fontFamily:"'IBM Plex Mono', monospace"}}>
+          <div style={{display:"flex", alignItems:"center", gap:8}}>
+            <div style={{width:30, height:30, borderRadius:"50%", background:C.surface2, border:"1px solid " + C.border, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:C.muted, fontFamily:"'IBM Plex Mono', monospace"}}>
               {user.email.slice(0,2).toUpperCase()}
             </div>
-            <button onClick={onLogout} style={{fontSize:12, color:C.muted, background:"none", border:"none", cursor:"pointer", fontFamily:"'Syne', sans-serif"}}>Salir</button>
+            <button onClick={onLogout} style={{fontSize:12, color:C.muted, background:"none", border:"none", cursor:"pointer", fontFamily:"'Syne', sans-serif", display:"flex", alignItems:"center", gap:4, padding:"4px 6px"}}>
+              <LogOut size={13} /> Salir
+            </button>
           </div>
         </div>
       )}
       <Routes>
         <Route path="/" element={
-          <div style={{maxWidth:640, margin:"0 auto", padding:"clamp(24px, 5vw, 48px) clamp(16px, 4vw, 24px)"}}>
-            <div style={{marginBottom:"clamp(24px, 5vw, 40px)"}}>
-              <div style={{fontSize:"clamp(20px, 5vw, 28px)", fontWeight:800, letterSpacing:"-0.5px", marginBottom:6}}>Bienvenido, {user.nombre || user.email.split("@")[0]}</div>
-              <div style={{fontSize:14, color:C.muted}}>¿Con qué querés trabajar hoy?</div>
+          <div style={{maxWidth:560, margin:"0 auto", padding:"clamp(40px, 6vw, 64px) clamp(16px, 4vw, 24px)"}}>
+            <div style={{marginBottom:"clamp(32px, 5vw, 48px)"}}>
+              <div style={{fontSize:"clamp(22px, 5vw, 30px)", fontWeight:800, letterSpacing:"-0.5px", marginBottom:4}}>{user.nombre || user.email.split("@")[0]}</div>
+              <div style={{fontSize:13, color:C.muted, letterSpacing:"0.2px"}}>¿Con qué vas a trabajar hoy?</div>
             </div>
-            <div style={{display:"flex", flexDirection:"column", gap:10}}>
-              {modules.map(m=>(
+            <div style={{display:"flex", flexDirection:"column"}}>
+              {modules.map((m, i) => (
                 <button key={m.id} onClick={()=>navigate(m.path)}
-                  style={{background:C.surface, border:"1px solid " + C.border, boxShadow:"0 1px 3px rgba(0,0,0,0.06)", borderRadius:10, padding:"clamp(14px, 3vw, 18px) clamp(14px, 3vw, 20px)", cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:16, width:"100%"}}>
-                  <div style={{width:44, height:44, borderRadius:8, background:C.surface2, border:"1px solid " + C.border2, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0}}>{m.icon}</div>
+                  style={{background:"none", border:"none", borderTop: i === 0 ? "1px solid " + C.border : "none", borderBottom:"1px solid " + C.border, padding:"clamp(14px,3vw,18px) 0", cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:14, width:"100%"}}>
+                  <m.Icon size={18} strokeWidth={1.5} color={m.color} style={{flexShrink:0}} />
                   <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontSize:"clamp(14px, 3.5vw, 16px)", fontWeight:700, color:C.text, marginBottom:3}}>{m.label}</div>
-                    <div style={{fontSize:"clamp(11px, 2.8vw, 13px)", color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{m.desc}</div>
+                    <div style={{fontSize:14, fontWeight:600, color:C.text, marginBottom:2}}>{m.label}</div>
+                    <div style={{fontSize:12, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{m.desc}</div>
                   </div>
-                  <div style={{color:m.color, fontSize:18, fontWeight:700, flexShrink:0}}>→</div>
+                  <ChevronRight size={15} strokeWidth={1.5} color={C.muted} style={{flexShrink:0}} />
                 </button>
               ))}
             </div>
-
-            {/* Footer */}
-            <div style={{marginTop:"clamp(32px, 6vw, 48px)", paddingTop:20, borderTop:"1px solid " + C.border, textAlign:"center"}}>
-              <div style={{fontSize:11, color:C.muted, fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.5px"}}>
-                © 2026 FAIM OBRAS · by FIMA Arquitectura · Todos los derechos reservados
-              </div>
+            <div style={{marginTop:"clamp(40px, 6vw, 56px)", fontSize:11, color:"#c4c4d0", fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.5px", textAlign:"center"}}>
+              © 2026 FAIM OBRAS · by FIMA Arquitectura
             </div>
           </div>
         }/>
