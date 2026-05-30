@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut, Check, AlertTriangle } from "lucide-react";
+import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut, Check, AlertTriangle, Activity } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
@@ -158,6 +158,50 @@ function PaginaSoporte() {
   );
 }
 
+// ── Feed de actividad ─────────────────────────────────────────────────────────
+function ActividadFeed() {
+  const [items, setItems] = useState([]);
+  useEffect(() => {
+    api.get('/actividad?limit=12')
+      .then(r => setItems(Array.isArray(r.data) ? r.data : []))
+      .catch(() => {});
+  }, []);
+
+  if (!items.length) return null;
+
+  const fmtRelativo = (iso) => {
+    if (!iso) return '';
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (diff < 60) return 'ahora';
+    if (diff < 3600) return `hace ${Math.floor(diff/60)} min`;
+    if (diff < 86400) return `hace ${Math.floor(diff/3600)} h`;
+    return `hace ${Math.floor(diff/86400)} d`;
+  };
+
+  return (
+    <div style={{marginTop:40}}>
+      <div style={{display:"flex", alignItems:"center", gap:6, marginBottom:16}}>
+        <Activity size={14} strokeWidth={1.5} color={C.muted} />
+        <span style={{fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1px", color:C.muted}}>Actividad reciente</span>
+      </div>
+      <div style={{display:"flex", flexDirection:"column", gap:0}}>
+        {items.map((a, i) => (
+          <div key={a.id} style={{display:"flex", alignItems:"baseline", gap:8, padding:"9px 0", borderBottom: i < items.length-1 ? `1px solid ${C.border}` : "none"}}>
+            <div style={{width:26, height:26, borderRadius:"50%", background:C.surface2, border:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:C.muted, flexShrink:0, fontFamily:"'IBM Plex Mono',monospace"}}>
+              {(a.user_nombre||"?").slice(0,2).toUpperCase()}
+            </div>
+            <div style={{flex:1, minWidth:0}}>
+              <span style={{fontSize:13, fontWeight:600, color:C.text}}>{a.user_nombre} </span>
+              <span style={{fontSize:13, color:C.muted}}>{a.detalle}</span>
+            </div>
+            <span style={{fontSize:11, color:"#c4c4d0", flexShrink:0, fontFamily:"'IBM Plex Mono',monospace"}}>{fmtRelativo(a.created_at)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main app (identical to FIMA) ──────────────────────────────────────────────
 function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   const navigate = useNavigate();
@@ -222,6 +266,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
                 </button>
               ))}
             </div>
+            <ActividadFeed />
             <div style={{marginTop:"clamp(40px, 6vw, 56px)", fontSize:11, color:"#c4c4d0", fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.5px", textAlign:"center"}}>
               © 2026 FAIM OBRAS · by FIMA Arquitectura
             </div>
