@@ -20,7 +20,8 @@ export default function Menu() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [editandoCliente, setEditandoCliente] = useState(null);
   const [formCliente, setFormCliente] = useState({ nombre: '', email: '', telefono: '' });
-  const [formPresupuesto, setFormPresupuesto] = useState({ nombre_obra: '', ubicacion: '', cliente_id: '' });
+  const [formPresupuesto, setFormPresupuesto] = useState({ nombre_obra: '', ubicacion: '', cliente_id: '', proyecto_id: '' });
+  const [proyectosCliente, setProyectosCliente] = useState([]);
   const [menuMobileOpen, setMenuMobileOpen] = useState(false);
 
   useEffect(() => { cargar(); }, []);
@@ -82,9 +83,13 @@ export default function Menu() {
   const handleCrearPresupuesto = async () => {
     if (!formPresupuesto.nombre_obra) return;
     try {
-      const payload = { ...formPresupuesto }; if (payload.cliente_id) payload.cliente_id = parseInt(payload.cliente_id); else delete payload.cliente_id; const res = await crearPresupuesto(payload);
+      const payload = { ...formPresupuesto };
+      if (payload.cliente_id) payload.cliente_id = parseInt(payload.cliente_id); else delete payload.cliente_id;
+      if (payload.proyecto_id) payload.proyecto_id = parseInt(payload.proyecto_id); else delete payload.proyecto_id;
+      const res = await crearPresupuesto(payload);
       setModalPresupuesto(false);
-      setFormPresupuesto({ nombre_obra: '', ubicacion: '', cliente_id: '' });
+      setFormPresupuesto({ nombre_obra: '', ubicacion: '', cliente_id: '', proyecto_id: '' });
+      setProyectosCliente([]);
       navigate(`/cotizador/presupuesto/${res.data.id}`);
     } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
   };
@@ -255,6 +260,11 @@ export default function Menu() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{p.nombre_obra}</span>
+                            {p.proyecto_nombre && (
+                              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: (p.proyecto_color || '#6ee7b7') + '22', color: p.proyecto_color || '#059669', flexShrink: 0 }}>
+                                {p.proyecto_nombre}
+                              </span>
+                            )}
                             <span className={`badge badge-${p.estado}`} style={{ fontSize: 9, flexShrink: 0 }}>
                               {p.estado === 'cerrado' ? '🔒' : '●'} {p.estado.toUpperCase()}
                             </span>
@@ -324,11 +334,29 @@ export default function Menu() {
             <div className="form-group">
               <label>Cliente *</label>
               <select className="input" value={formPresupuesto.cliente_id}
-                onChange={e => setFormPresupuesto(p => ({ ...p, cliente_id: e.target.value }))}>
+                onChange={e => {
+                  const cid = e.target.value;
+                  setFormPresupuesto(p => ({ ...p, cliente_id: cid, proyecto_id: '' }));
+                  if (cid) {
+                    api.get('/proyectos', { params: { cliente_id: parseInt(cid) } })
+                      .then(r => setProyectosCliente(Array.isArray(r.data) ? r.data : []))
+                      .catch(() => setProyectosCliente([]));
+                  } else { setProyectosCliente([]); }
+                }}>
                 <option value="">Seleccionar cliente...</option>
                 {menu.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
             </div>
+            {proyectosCliente.length > 0 && (
+              <div className="form-group">
+                <label>Proyecto (opcional)</label>
+                <select className="input" value={formPresupuesto.proyecto_id}
+                  onChange={e => setFormPresupuesto(p => ({ ...p, proyecto_id: e.target.value }))}>
+                  <option value="">Sin proyecto</option>
+                  {proyectosCliente.map(pr => <option key={pr.id} value={pr.id}>{pr.nombre}</option>)}
+                </select>
+              </div>
+            )}
             <div style={{ marginBottom: 8 }}>
               <button className="btn btn-secondary btn-sm" style={{ fontSize: 11 }} onClick={() => setModalCliente(true)}>
                 <Plus size={12} /> Nuevo cliente
