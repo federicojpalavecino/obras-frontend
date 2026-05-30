@@ -21,8 +21,7 @@ import PersonalPortal from "./pages/PersonalPortal";
 import AccesosClientes from "./pages/AccesosClientes";
 import Landing from "./pages/Landing";
 import Obra from "./pages/Obra";
-
-const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
+import api from "./cotizador/api";
 
 const C = {
   bg:"#f8f9fa", surface:"#ffffff", surface2:"#f1f3f5",
@@ -38,12 +37,8 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
   const handlePagar = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("obras_token");
-      const res = await fetch(`${API}/suscripcion/crear-preferencia`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
-      });
-      const data = await res.json();
+      const res = await api.post('/suscripcion/crear-preferencia');
+      const data = res.data;
       if (data.init_point) window.location.href = data.init_point;
       else alert("Error al crear el pago. Contactá a soporte.");
     } catch (e) { alert("Error de conexión."); }
@@ -266,12 +261,10 @@ export default function App() {
   const [regEstudio, setRegEstudio] = useState("");
   const [regLoading, setRegLoading] = useState(false);
 
-  const checkSuscripcion = async (token) => {
+  const checkSuscripcion = async () => {
     try {
-      const res = await fetch(`${API}/suscripcion/estado`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) { const data = await res.json(); setSuscripcion(data); }
+      const res = await api.get('/suscripcion/estado');
+      setSuscripcion(res.data);
     } catch (e) {}
   };
 
@@ -300,10 +293,10 @@ export default function App() {
             setUser({ email: ei.email, nombre: ei.nombre, rol: ei.rol });
             const token = localStorage.getItem("obras_token");
             if (token) {
-              await checkSuscripcion(token);
+              await checkSuscripcion();
               try {
-                const tr = await fetch(`${API}/tenant`, { headers: { Authorization: `Bearer ${token}` } });
-                if (tr.ok) { const td = await tr.json(); setTenant(td); localStorage.setItem("obras_tenant", JSON.stringify(td)); }
+                const td = (await api.get('/tenant')).data;
+                setTenant(td); localStorage.setItem("obras_tenant", JSON.stringify(td));
               } catch(e) {}
             }
             setLoading(false); return;
@@ -316,19 +309,14 @@ export default function App() {
           if (s?.user && s?.token) {
             setUser(s.user);
             if (s.tenant) setTenant(s.tenant);
-            await checkSuscripcion(token);
+            await checkSuscripcion();
             // Refresh tenant data from server to get latest nombre/logo
             try {
-              const tr = await fetch((process.env.REACT_APP_API_URL || 'https://obras-backend-production.up.railway.app') + '/tenant', {
-                headers: { Authorization: 'Bearer ' + token }
-              });
-              if (tr.ok) {
-                const td = await tr.json();
-                setTenant(td); localStorage.setItem("obras_tenant", JSON.stringify(td));
-                const ns = JSON.parse(localStorage.getItem('obras_session') || '{}');
-                ns.tenant = td;
-                localStorage.setItem('obras_session', JSON.stringify(ns));
-              }
+              const td = (await api.get('/tenant')).data;
+              setTenant(td); localStorage.setItem("obras_tenant", JSON.stringify(td));
+              const ns = JSON.parse(localStorage.getItem('obras_session') || '{}');
+              ns.tenant = td;
+              localStorage.setItem('obras_session', JSON.stringify(ns));
             } catch(e) {}
             setLoading(false);
             return;
@@ -345,9 +333,9 @@ export default function App() {
     const emailLower = email.toLowerCase().trim();
 
     try {
-      const res = await fetch(`${API}/auth/login-cliente`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
-      if (res.ok) {
-        const data = await res.json();
+      const loginRes = await api.post('/auth/login-cliente', { email: emailLower, password: pass }).catch(() => null);
+      if (loginRes) {
+        const data = loginRes.data;
         const ci = { cliente_id: data.cliente_id, nombre: data.nombre, email: data.email };
         localStorage.setItem("obras_cliente", JSON.stringify(ci));
         if (data.token) {
@@ -363,21 +351,20 @@ export default function App() {
     } catch {}
 
     try {
-      const res = await fetch(`${API}/estudio/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
-      if (res.ok) {
-        const data = await res.json();
+      const estudioRes = await api.post('/estudio/login', { email: emailLower, password: pass }).catch(() => null);
+      if (estudioRes) {
+        const data = estudioRes.data;
         const ei = { nombre: data.nombre, rol: data.rol, presupuestos_asignados: data.presupuestos_asignados, email: data.email };
         localStorage.setItem("obras_estudio", JSON.stringify(ei));
         // Check subscription using the token from estudio login
         if (data.token) {
           localStorage.setItem("obras_token", data.token);
-          await checkSuscripcion(data.token);
+          await checkSuscripcion();
           // Fetch tenant data (also returned by estudio/login now)
           let tenantData = data.tenant || null;
           if (!tenantData) {
             try {
-              const tr = await fetch(`${API}/tenant`, { headers: { Authorization: `Bearer ${data.token}` } });
-              if (tr.ok) tenantData = await tr.json();
+              tenantData = (await api.get('/tenant')).data;
             } catch(e) {}
           }
           if (tenantData) {
@@ -392,24 +379,23 @@ export default function App() {
     } catch {}
 
     try {
-      const res = await fetch(`${API}/auth/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
-      if (res.ok) {
-        const data = await res.json();
+      const authRes = await api.post('/auth/login', { email: emailLower, password: pass }).catch(() => null);
+      if (authRes) {
+        const data = authRes.data;
         const token = data.token;
         localStorage.setItem("obras_token", token);
         localStorage.setItem("obras_session", JSON.stringify({ user: data.usuario, tenant: data.tenant, token }));
         setUser(data.usuario);
         if (data.tenant) setTenant(data.tenant);
-        await checkSuscripcion(token);
+        await checkSuscripcion();
         return;
       }
     } catch {}
 
     try {
-      const res = await fetch(`${API}/admin/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email:emailLower, password:pass}) });
-      if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem("obras_admin_token", data.token);
+      const adminRes = await api.post('/admin/login', { email: emailLower, password: pass }).catch(() => null);
+      if (adminRes) {
+        localStorage.setItem("obras_admin_token", adminRes.data.token);
         window.location.href = "/admin-panel";
         return;
       }
@@ -425,18 +411,15 @@ export default function App() {
     }
     setRegLoading(true);
     try {
-      const res = await fetch(`${API}/auth/register`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre_estudio: regEstudio.trim(), nombre_usuario: regNombre.trim(), email: email.toLowerCase().trim(), password: pass })
-      });
-      const data = await res.json();
-      if (res.ok) {
+      const res = await api.post('/auth/register', { nombre_estudio: regEstudio.trim(), nombre_usuario: regNombre.trim(), email: email.toLowerCase().trim(), password: pass });
+      const data = res.data;
+      if (data) {
         const token = data.token;
         const userData = data.usuario || { email: email.toLowerCase().trim(), nombre: regNombre.trim(), rol: "admin" };
         localStorage.setItem("obras_token", token);
         localStorage.setItem("obras_session", JSON.stringify({ user: userData, tenant: data.tenant, token }));
         if (data.tenant) setTenant(data.tenant);
-        await checkSuscripcion(token);
+        await checkSuscripcion();
         setUser(userData);
       } else {
         setError(data.detail || "Error al registrarse");
