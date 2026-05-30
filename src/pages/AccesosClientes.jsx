@@ -24,7 +24,8 @@ export default function AccesosClientes({ user }) {
     { id: "gantt", label: "Planificación" },
     { id: "consultas", label: "Consultas" },
   ];
-  const [form, setForm] = useState({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","contrato","cobros","gantt","consultas"] });
+  const [form, setForm] = useState({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","contrato","cobros","gantt","consultas"], presupuestos_visibles: [] });
+  const [presupuestosCliente, setPresupuestosCliente] = useState([]);
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
@@ -48,8 +49,8 @@ export default function AccesosClientes({ user }) {
     if (!form.email || !form.cliente_id || !form.password) { setMsg("Completá todos los campos obligatorios"); return; }
     setSaving(true); setMsg("");
     try {
-      const res = await fetch(`${API}/portal/accesos`, { method: "POST", headers: authH(), body: JSON.stringify({ email: form.email.toLowerCase().trim(), nombre: form.nombre, cliente_id: parseInt(form.cliente_id), password: form.password, secciones_visibles: form.secciones_visibles }) });
-      if (res.ok) { setModal(false); setForm({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","contrato","cobros","gantt","consultas"] }); showToast("✓ Acceso creado"); cargar(); }
+      const res = await fetch(`${API}/portal/accesos`, { method: "POST", headers: authH(), body: JSON.stringify({ email: form.email.toLowerCase().trim(), nombre: form.nombre, cliente_id: parseInt(form.cliente_id), password: form.password, secciones_visibles: form.secciones_visibles, presupuestos_visibles: form.presupuestos_visibles.length > 0 ? form.presupuestos_visibles : null }) });
+      if (res.ok) { setModal(false); setForm({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","contrato","cobros","gantt","consultas"], presupuestos_visibles: [] }); setPresupuestosCliente([]); showToast("✓ Acceso creado"); cargar(); }
       else { const d = await res.json(); setMsg(d.detail || "Error al crear acceso"); }
     } catch { setMsg("Error de conexión"); }
     setSaving(false);
@@ -130,7 +131,14 @@ export default function AccesosClientes({ user }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Cliente *</label>
-                <select style={inp} value={form.cliente_id} onChange={(e) => setForm((f) => ({ ...f, cliente_id: e.target.value }))}>
+                <select style={inp} value={form.cliente_id} onChange={(e) => {
+                  const cid = e.target.value;
+                  setForm((f) => ({ ...f, cliente_id: cid, presupuestos_visibles: [] }));
+                  if (cid) {
+                    fetch(`${API}/clientes/${cid}/presupuestos`, { headers: authH() })
+                      .then(r => r.ok ? r.json() : []).then(d => setPresupuestosCliente(Array.isArray(d) ? d : [])).catch(() => setPresupuestosCliente([]));
+                  } else setPresupuestosCliente([]);
+                }}>
                   <option value="">— Seleccionar cliente —</option>
                   {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
@@ -163,6 +171,26 @@ export default function AccesosClientes({ user }) {
                   })}
                 </div>
               </div>
+              {form.cliente_id && presupuestosCliente.length > 0 && (
+                <div>
+                  <label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>¿Qué presupuestos puede ver?</label>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>Si no seleccionás ninguno, verá todos sus presupuestos.</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {presupuestosCliente.map((p) => {
+                      const checked = form.presupuestos_visibles.includes(p.id);
+                      return (
+                        <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, border: `1px solid ${checked ? C.accent : C.border}`, background: checked ? "#f0fdf4" : C.surface, cursor: "pointer" }}>
+                          <input type="checkbox" checked={checked} onChange={() => {
+                            setForm((f) => ({ ...f, presupuestos_visibles: checked ? f.presupuestos_visibles.filter((x) => x !== p.id) : [...f.presupuestos_visibles, p.id] }));
+                          }} style={{ accentColor: C.accent, width: 16, height: 16 }} />
+                          <span style={{ fontSize: 13, color: checked ? C.accent : C.text, fontWeight: checked ? 600 : 400 }}>{p.nombre_obra}</span>
+                          <span style={{ fontSize: 11, color: C.muted, marginLeft: "auto" }}>{p.estado}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
             {msg && <div style={{ fontSize: 13, color: C.red, marginTop: 10, textAlign: "center" }}>{msg}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
