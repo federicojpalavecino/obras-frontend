@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from "react";
-
-const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
-const getToken = () => localStorage.getItem("obras_token") || "";
-const authHWithToken = (tk) => ({ Authorization: `Bearer ${tk || getToken()}` });
-const authH = () => ({ Authorization: `Bearer ${getToken()}` });
+import api from "../cotizador/api";
 const fmt = (n) => n != null ? "$ " + Math.round(n || 0).toLocaleString("es-AR") : "—";
 const fmtDate = (d) => d ? new Date(d + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
 
@@ -30,8 +26,8 @@ function GanttReadonly({ presupuestoId }) {
   const [tareas, setTareas] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    fetch(`${API}/portal/gantt/${presupuestoId}`, { headers: authH() })
-      .then(r => r.ok ? r.json() : []).then(d => { setTareas(Array.isArray(d) ? d : []); setLoading(false); }).catch(() => setLoading(false));
+    api.get(`/portal/gantt/${presupuestoId}`)
+      .then(r => { setTareas(Array.isArray(r.data) ? r.data : []); setLoading(false); }).catch(() => setLoading(false));
   }, [presupuestoId]);
   if (loading) return <div style={{ color: "#6b7280", fontSize: 13, padding: 20 }}>Cargando planificación...</div>;
   if (!tareas.length) return <div style={{ color: "#6b7280", fontSize: 13, padding: 20 }}>Sin planificación cargada</div>;
@@ -60,7 +56,6 @@ function GanttReadonly({ presupuestoId }) {
 }
 
 export default function ClientePortal({ user, clienteId, clienteNombre, onLogout, token: tokenProp }) {
-  const getH = () => ({ Authorization: `Bearer ${tokenProp || localStorage.getItem("obras_token") || ""}` });
   const [presupuestos, setPresupuestos] = useState([]);
   const [presSelec, setPresSelec] = useState(null);
   const [tab, setTab] = useState("avance");
@@ -83,36 +78,29 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
 
   useEffect(() => {
     // Esperar un tick para que el token se propague al localStorage
-    const doFetch = (tk) => {
-      fetch(`${API}/portal/presupuestos`, { headers: { Authorization: `Bearer ${tk}` } })
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(d => {
-          const pres = Array.isArray(d) ? d : [];
+    const doFetch = () => {
+      api.get('/portal/presupuestos')
+        .then(r => {
+          const pres = Array.isArray(r.data) ? r.data : [];
           setPresupuestos(pres);
           if (pres.length > 0) setPresSelec(pres[0]);
           setLoading(false);
         }).catch(() => setLoading(false));
     };
 
-    const loadConfig = (tk) => {
-      fetch(`${API}/portal/mi-config`, { headers: { Authorization: `Bearer ${tk}` } })
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d?.secciones_visibles) setSeccionesVisibles(d.secciones_visibles); })
+    const loadConfig = () => {
+      api.get('/portal/mi-config')
+        .then(r => { if (r.data?.secciones_visibles) setSeccionesVisibles(r.data.secciones_visibles); })
         .catch(() => {});
     };
     if (tokenProp) {
       localStorage.setItem("obras_token", tokenProp);
-      loadConfig(tokenProp);
-      doFetch(tokenProp);
+      loadConfig();
+      doFetch();
     } else {
-      // Token puede estar en localStorage pero con delay de React
       setTimeout(() => {
-        const tk = localStorage.getItem("obras_token") || "";
-        if (tk) {
-          doFetch(tk);
-        } else {
-          setLoading(false);
-        }
+        if (localStorage.getItem("obras_token")) doFetch();
+        else setLoading(false);
       }, 500);
     }
   }, [tokenProp]);
@@ -120,34 +108,18 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   useEffect(() => {
     if (!presSelec) return;
     const id = presSelec.id;
-    // Certificados
-    fetch(`${API}/presupuestos/${id}/certificados`, { headers: getH() })
-      .then(r => r.ok ? r.json() : { certificados: [] })
-      .then(d => setCerts(d.certificados || (Array.isArray(d) ? d : [])))
-      .catch(() => {});
-    // Cobros
-    fetch(`${API}/presupuestos/${id}/cobros`, { headers: getH() })
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setCobros(Array.isArray(d) ? d : []))
-      .catch(() => {});
-    // Contrato
-    fetch(`${API}/presupuestos/${id}/contrato`, { headers: getH() })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => setContrato(d))
-      .catch(() => {});
-    // Comentarios
-    fetch(`${API}/portal/comentarios/${id}`, { headers: getH() })
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setComentarios(Array.isArray(d) ? d : []))
-      .catch(() => {});
+    api.get(`/presupuestos/${id}/certificados`).then(r => setCerts(r.data?.certificados || (Array.isArray(r.data) ? r.data : []))).catch(() => {});
+    api.get(`/presupuestos/${id}/cobros`).then(r => setCobros(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+    api.get(`/presupuestos/${id}/contrato`).then(r => setContrato(r.data)).catch(() => {});
+    api.get(`/portal/comentarios/${id}`).then(r => setComentarios(Array.isArray(r.data) ? r.data : [])).catch(() => {});
   }, [presSelec]);
 
   const enviarComentario = async () => {
     if (!nuevoComentario.trim() || !presSelec) return;
     setEnviando(true);
-    await fetch(`${API}/portal/comentarios`, { method: "POST", headers: { ...authH(), "Content-Type": "application/json" }, body: JSON.stringify({ presupuesto_id: presSelec.id, texto: nuevoComentario, nombre: clienteNombre || user?.nombre, email: user?.email }) });
+    await api.post('/portal/comentarios', { presupuesto_id: presSelec.id, texto: nuevoComentario, nombre: clienteNombre || user?.nombre, email: user?.email });
     setNuevoComentario("");
-    const d = await fetch(`${API}/portal/comentarios/${presSelec.id}`, { headers: getH() }).then(r => r.ok ? r.json() : []);
+    const d = await api.get(`/portal/comentarios/${presSelec.id}`).then(r => r.data).catch(() => []);
     setComentarios(Array.isArray(d) ? d : []);
     setEnviando(false);
     showToast("✓ Mensaje enviado");
@@ -156,14 +128,11 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   const aceptarContrato = async () => {
     if (!contrato || !presSelec) return;
     setAceptando(true);
-    const res = await fetch(`${API}/presupuestos/${presSelec.id}/contrato/aceptar`, {
-      method: "POST", headers: { ...authH(), "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre_cliente: clienteNombre || user?.nombre, email_cliente: user?.email })
-    });
-    if (res.ok) {
+    try {
+      await api.post(`/presupuestos/${presSelec.id}/contrato/aceptar`, { nombre_cliente: clienteNombre || user?.nombre, email_cliente: user?.email });
       setContrato(prev => ({ ...prev, estado: "aceptado", aceptado_en: new Date().toISOString() }));
       showToast("✓ Contrato aceptado correctamente");
-    }
+    } catch {}
     setAceptando(false);
   };
 

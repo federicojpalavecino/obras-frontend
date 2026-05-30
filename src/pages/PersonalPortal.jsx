@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-
-const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
+import api from "../cotizador/api";
 
 const fmt = (n) => n != null ? "$ " + Math.round(n).toLocaleString("es-AR") : "—";
 const C = {
@@ -24,14 +23,11 @@ export default function PersonalPortal({ user, userInfo, onLogout }) {
   const [toast, setToast] = useState("");
   const [herramienta, setHerramienta] = useState({ nombre: "", cantidad: 1, obra: "" });
 
-  const token = localStorage.getItem("obras_token") || "";
-  const authH = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
   useEffect(() => {
-    fetch(`${API}/presupuestos`, { headers: authH })
-      .then((r) => r.ok ? r.json() : [])
+    api.get('/presupuestos')
+      .then((r) => r.data)
       .then((data) => {
         let todos = [];
         if (Array.isArray(data)) todos = data;
@@ -48,9 +44,8 @@ export default function PersonalPortal({ user, userInfo, onLogout }) {
     if (!concepto || !monto) return;
     setEnviando(true);
     try {
-      const res = await fetch(`${API}/portal/personal/egreso`, { method: "POST", headers: authH, body: JSON.stringify({ concepto, monto: parseFloat(monto), obra: obraEg || presSelec?.nombre_obra || "" }) });
-      if (res.ok) { setConcepto(""); setMonto(""); setObraEg(""); showToast("✓ Egreso cargado correctamente"); }
-      else showToast("Error al cargar egreso");
+      await api.post('/portal/personal/egreso', { concepto, monto: parseFloat(monto), obra: obraEg || presSelec?.nombre_obra || "" });
+      setConcepto(""); setMonto(""); setObraEg(""); showToast("✓ Egreso cargado correctamente");
     } catch { showToast("Error de conexión"); }
     setEnviando(false);
   };
@@ -59,9 +54,8 @@ export default function PersonalPortal({ user, userInfo, onLogout }) {
     if (!herramienta.nombre) return;
     setEnviando(true);
     try {
-      const res = await fetch(`${API}/portal/personal/herramienta`, { method: "POST", headers: authH, body: JSON.stringify({ ...herramienta, obra: herramienta.obra || presSelec?.nombre_obra || "" }) });
-      if (res.ok) { setHerramienta({ nombre: "", cantidad: 1, obra: "" }); showToast("✓ Herramienta registrada"); }
-      else showToast("Error al registrar");
+      await api.post('/portal/personal/herramienta', { ...herramienta, obra: herramienta.obra || presSelec?.nombre_obra || "" });
+      setHerramienta({ nombre: "", cantidad: 1, obra: "" }); showToast("✓ Herramienta registrada");
     } catch { showToast("Error de conexión"); }
     setEnviando(false);
   };

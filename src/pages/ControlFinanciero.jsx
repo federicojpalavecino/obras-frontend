@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-
-const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
-const getToken = () => localStorage.getItem("obras_token") || "";
-const authH = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` });
+import api from "../cotizador/api";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n) => "$" + Math.round(n || 0).toLocaleString("es-AR");
@@ -241,9 +238,8 @@ export default function ControlFinanciero({ user }) {
   useEffect(() => {
     const saved = localStorage.getItem("obras-cf-config");
     if (saved) { try { setConfig(JSON.parse(saved)); } catch {} }
-    fetch(`${API}/presupuestos`, { headers: authH() })
-      .then(r => r.ok ? r.json() : [])
-      .then(d => { const ps = Array.isArray(d) ? d : (d.presupuestos || []); setObras(ps.map(p => ({ id: p.id, label: p.nombre_obra || `Presupuesto #${p.id}` })).sort((a, b) => a.label.localeCompare(b.label))); })
+    api.get('/presupuestos')
+      .then(r => { const ps = Array.isArray(r.data) ? r.data : (r.data?.presupuestos || []); setObras(ps.map(p => ({ id: p.id, label: p.nombre_obra || `Presupuesto #${p.id}` })).sort((a, b) => a.label.localeCompare(b.label))); })
       .catch(() => {});
     loadPeriods(true);
   }, []);
@@ -260,9 +256,8 @@ export default function ControlFinanciero({ user }) {
   // ── Load periods ──────────────────────────────────────────────────────────
   const loadPeriods = async (loadCurrent = false) => {
     try {
-      const res = await fetch(`${API}/cf/semanas`, { headers: authH() });
-      if (!res.ok) return;
-      const data = await res.json();
+      const res = await api.get('/cf/semanas');
+      const data = res.data;
       const parsed = data.map(s => ({
         ...s,
         ingresos: typeof s.ingresos === "string" ? JSON.parse(s.ingresos || "[]") : (s.ingresos || []),
@@ -293,8 +288,8 @@ export default function ControlFinanciero({ user }) {
   const abrirImportCert = async () => {
     setCertFiltro(""); setLoadingCerts(true); setShowImportCert(true); setImportCertTab("items");
     const [r1, r2] = await Promise.all([
-      fetch(`${API}/certificados/todos`, { headers: authH() }).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${API}/cf/cert-egresos/todos`, { headers: authH() }).then(r => r.ok ? r.json() : []).catch(() => []),
+      api.get('/certificados/todos').then(r => r.data).catch(() => []),
+      api.get('/cf/cert-egresos/todos').then(r => r.data).catch(() => []),
     ]);
     setCertDisponibles(Array.isArray(r1) ? r1 : []);
     setCertEgresosDisponibles(Array.isArray(r2) ? r2 : []);
@@ -304,8 +299,8 @@ export default function ControlFinanciero({ user }) {
   const cargarObraPendientes = async () => {
     setLoadingObra(true);
     try {
-      const res = await fetch(`${API}/cf/obra-pendientes`, { headers: authH() });
-      if (res.ok) setObraPendientes(await res.json());
+      const res = await api.get('/cf/obra-pendientes');
+      setObraPendientes(res.data);
     } catch(e) {}
     setLoadingObra(false);
   };
@@ -313,16 +308,11 @@ export default function ControlFinanciero({ user }) {
   const importarDesdeObra = async () => {
     if (obraSeleccionados.length === 0) return;
     try {
-      const res = await fetch(`${API}/cf/importar-obra`, {
-        method: "POST", headers: authH(),
-        body: JSON.stringify({ items: obraSeleccionados })
-      });
-      if (res.ok) {
-        showToast("✓ Importado al CF correctamente");
-        setShowImportarObra(false);
-        setObraSeleccionados([]);
-        await cargar();
-      }
+      await api.post('/cf/importar-obra', { items: obraSeleccionados });
+      showToast("✓ Importado al CF correctamente");
+      setShowImportarObra(false);
+      setObraSeleccionados([]);
+      await cargar();
     } catch(e) { showToast("Error al importar"); }
   };
 
@@ -385,15 +375,15 @@ export default function ControlFinanciero({ user }) {
     };
     try {
       if (editingIdRef.current) {
-        await fetch(`${API}/cf/semanas/${editingIdRef.current}`, { method: "PUT", headers: authH(), body: JSON.stringify(payload) });
+        await api.put(`/cf/semanas/${editingIdRef.current}`, payload);
       } else {
         const existing = semanas.find(s => s.fecha === weekData.fecha || s.fecha_inicio === (weekData.fecha_inicio || weekData.fecha));
         if (existing) {
-          await fetch(`${API}/cf/semanas/${existing.id}`, { method: "PUT", headers: authH(), body: JSON.stringify(payload) });
+          await api.put(`/cf/semanas/${existing.id}`, payload);
           setEditingIdSynced(existing.id);
         } else {
-          const res = await fetch(`${API}/cf/semanas`, { method: "POST", headers: authH(), body: JSON.stringify(payload) });
-          if (res.ok) { const d = await res.json(); setEditingIdSynced(d.id); }
+          const res = await api.post('/cf/semanas', payload);
+          setEditingIdSynced(res.data.id);
         }
       }
       loadPeriods();
@@ -410,8 +400,8 @@ export default function ControlFinanciero({ user }) {
       totalIng: c.totalIng, totalEg: c.totalEg, totalPersonal: c.totalPersonal, resultado: c.resultado, ganancia: c.ganancia, cerrado: false,
     };
     try {
-      if (editingId) await fetch(`${API}/cf/semanas/${editingId}`, { method: "PUT", headers: authH(), body: JSON.stringify(payload) });
-      else { const res = await fetch(`${API}/cf/semanas`, { method: "POST", headers: authH(), body: JSON.stringify(payload) }); if (!res.ok) { showToast("Error al guardar"); setLoading(false); return; } }
+      if (editingId) await api.put(`/cf/semanas/${editingId}`, payload);
+      else await api.post('/cf/semanas', payload);
       showToast("✓ Guardado"); setEditingIdSynced(null); setWeek(emptyPeriod(tipoPeriodo)); loadPeriods();
     } catch { showToast("Error de conexión"); }
     setLoading(false);
@@ -421,7 +411,7 @@ export default function ControlFinanciero({ user }) {
 
   const eliminarPeriod = async (id) => {
     if (!window.confirm("¿Eliminar este período?")) return;
-    await fetch(`${API}/cf/semanas/${id}`, { method: "DELETE", headers: authH() });
+    await api.delete(`/cf/semanas/${id}`);
     if (editingId === id) { setEditingIdSynced(null); setWeek(emptyPeriod(tipoPeriodo)); }
     loadPeriods();
   };
