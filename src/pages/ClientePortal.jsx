@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FileText, Check } from "lucide-react";
 import api from "../cotizador/api";
 const fmt = (n) => n != null ? "$ " + Math.round(n || 0).toLocaleString("es-AR") : "—";
 const fmtDate = (d) => d ? new Date(d + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
@@ -251,7 +252,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
               <div>
                 {!contrato ? (
                   <div style={{ ...card, textAlign: "center", color: "#6b7280", padding: 60 }}>
-                    <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
+                    <FileText size={32} strokeWidth={1} color="#9ca3af" style={{ marginBottom: 12 }} />
                     <div style={{ fontWeight: 600 }}>Sin contrato generado aún</div>
                   </div>
                 ) : (
@@ -262,7 +263,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
                         <div style={{ fontSize: 13, color: "#6b7280" }}>{presSelec.nombre_obra}</div>
                       </div>
                       <div style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: contrato.estado === "aceptado" ? "#f0fdf4" : contrato.estado === "firmado" ? "#eff6ff" : "#fffbeb", color: contrato.estado === "aceptado" ? "#059669" : contrato.estado === "firmado" ? "#1d4ed8" : "#d97706" }}>
-                        {contrato.estado === "aceptado" ? "✓ Aceptado" : contrato.estado === "firmado" ? "Firmado" : contrato.estado === "enviado" ? "Pendiente de aceptación" : "Borrador"}
+                        {contrato.estado === "aceptado" ? <span style={{display:"flex",alignItems:"center",gap:3}}><Check size={12} strokeWidth={2.5} /> Aceptado</span> : contrato.estado === "firmado" ? "Firmado" : contrato.estado === "enviado" ? "Pendiente de aceptación" : "Borrador"}
                       </div>
                     </div>
 
@@ -315,7 +316,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
                           Al aceptar este contrato confirmás que leíste y acordás con los términos indicados.
                         </div>
                         <button onClick={aceptarContrato} disabled={aceptando} style={{ padding: "10px 24px", background: tenantColor, color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                          {aceptando ? "Procesando..." : "✓ Aceptar contrato"}
+                          {aceptando ? "Procesando..." : <span style={{display:"flex",alignItems:"center",gap:4}}><Check size={13} strokeWidth={2.5} /> Aceptar contrato</span>}
                         </button>
                       </div>
                     )}
