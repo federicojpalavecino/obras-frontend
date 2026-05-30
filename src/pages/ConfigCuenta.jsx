@@ -8,6 +8,10 @@ const C = {
 };
 
 
+const MAX_BASE = 2;
+const PRECIO_BASE = 30000;
+const PRECIO_EXTRA = 7000;
+
 function UsuariosSection() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,8 +45,29 @@ function UsuariosSection() {
 
   if (loading) return <div style={{color:C.muted, fontSize:13}}>Cargando...</div>;
 
+  const totalUsuarios = usuarios.length + 1; // +1 por el admin principal (no listado aquí)
+  const extra = Math.max(0, totalUsuarios - MAX_BASE);
+  const precioTotal = PRECIO_BASE + extra * PRECIO_EXTRA;
+
   return (
     <div>
+      {/* Resumen del plan */}
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>Plan actual</div>
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+            {totalUsuarios} usuario{totalUsuarios !== 1 ? 's' : ''} en total · base 2 incluidos
+            {extra > 0 && <span style={{ color: '#d97706' }}> · {extra} adicional{extra > 1 ? 'es' : ''} × $ {PRECIO_EXTRA.toLocaleString('es-AR')}</span>}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: C.accent, fontFamily: "'IBM Plex Mono', monospace" }}>
+            $ {precioTotal.toLocaleString('es-AR')}
+          </div>
+          <div style={{ fontSize: 10, color: C.muted }}>/ mes</div>
+        </div>
+      </div>
+
       {usuarios.length === 0 && <div style={{color:C.muted, fontSize:13, marginBottom:16}}>No hay usuarios adicionales configurados.</div>}
       {usuarios.map(u => (
         <div key={u.email} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:`1px solid ${C.border}` }}>
@@ -54,7 +79,12 @@ function UsuariosSection() {
         </div>
       ))}
       <div style={{ marginTop:16, display:'grid', gap:10 }}>
-        <div style={{ fontSize:12, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:'0.5px' }}>Agregar usuario</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize:12, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:'0.5px' }}>Agregar usuario</div>
+          {totalUsuarios >= MAX_BASE && (
+            <div style={{ fontSize: 11, color: '#d97706', fontWeight: 600 }}>+ $ {PRECIO_EXTRA.toLocaleString('es-AR')}/mes</div>
+          )}
+        </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           <input value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} placeholder="Nombre" style={inp} />
           <input value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="Email" type="email" style={inp} />

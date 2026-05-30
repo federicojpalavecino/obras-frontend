@@ -52,9 +52,17 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
         <div style={{ fontSize: 12, color: C.muted, marginBottom: 28, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "2px" }}>PERÍODO DE PRUEBA VENCIDO</div>
         <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: C.accent, fontFamily: "'IBM Plex Mono', monospace" }}>
-            ${(suscripcion?.precio_mensual || 40000).toLocaleString("es-AR")}
+            $ {(suscripcion?.precio_total || suscripcion?.precio_mensual || 30000).toLocaleString("es-AR")}
           </div>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>por mes · 2 usuarios incluidos</div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+            por mes · plan base 2 usuarios
+            {suscripcion?.usuarios_extra > 0 && ` + ${suscripcion.usuarios_extra} adicional${suscripcion.usuarios_extra > 1 ? "es" : ""}`}
+          </div>
+          {suscripcion?.usuarios_extra > 0 && (
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+              $ {(suscripcion.precio_mensual || 30000).toLocaleString("es-AR")} base + $ {((suscripcion.precio_usuario_extra || 7000) * suscripcion.usuarios_extra).toLocaleString("es-AR")} usuarios adicionales
+            </div>
+          )}
         </div>
         <div style={{ textAlign: "left", marginBottom: 24 }}>
           {["Cotizador completo con catálogo actualizado", "Certificados y control de avance", "Panel financiero y Gantt", "Múltiples presupuestos y clientes"].map(f => (
