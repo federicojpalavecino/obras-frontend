@@ -64,6 +64,7 @@ export default function Presupuesto() {
   const [itemLibreAdic, setItemLibreAdic] = useState({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1 });
   const [showLibreAdic, setShowLibreAdic] = useState(false);
   const [creandoAdic, setCreandoAdic] = useState(false);
+  const [proyectos, setProyectos] = useState([]);
 
   useEffect(() => { cargar(); cargarAdicionales(); getCategorias().then(r => setCategorias(r.data)); }, [id]);
   useEffect(() => {
@@ -95,6 +96,11 @@ export default function Presupuesto() {
         dias_vigencia: res.data.dias_vigencia || 30,
       });
       setObservaciones(res.data.observaciones || '');
+      if (res.data.cliente_id) {
+        api.get('/proyectos', { params: { cliente_id: res.data.cliente_id } })
+          .then(r => setProyectos(Array.isArray(r.data) ? r.data : []))
+          .catch(() => {});
+      }
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -653,7 +659,10 @@ ${firma}
             </button>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.nombre_obra}</div>
-              {data.ubicacion && <div style={{ fontSize: 10, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.ubicacion}</div>}
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 1 }}>
+                {data.ubicacion && <span style={{ fontSize: 10, color: 'var(--muted)' }}>{data.ubicacion}</span>}
+                {data.proyecto && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: (data.proyecto.color || '#6ee7b7') + '22', color: data.proyecto.color || '#059669' }}>{data.proyecto.nombre}</span>}
+              </div>
             </div>
             <span className={`badge badge-${data.estado}`} style={{ flexShrink: 0, fontSize: 9 }}>
               {cerrado ? '🔒' : '●'} {data.estado.toUpperCase()}
@@ -769,6 +778,23 @@ ${firma}
               {coefsOpen && (
               <div style={{ padding: '0 14px 14px', borderTop: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7, paddingTop: 10 }}>
+                {proyectos.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Proyecto</div></div>
+                    <select disabled={cerrado}
+                      style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--border2)', background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', maxWidth: 140 }}
+                      value={data?.proyecto_id || ''}
+                      onChange={e => {
+                        const pid = e.target.value ? parseInt(e.target.value) : null;
+                        actualizarPresupuesto(id, { proyecto_id: pid });
+                        const proy = proyectos.find(p => p.id === pid) || null;
+                        setData(prev => ({ ...prev, proyecto_id: pid, proyecto: proy }));
+                      }}>
+                      <option value="">Sin proyecto</option>
+                      {proyectos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Gestión de materiales</div>

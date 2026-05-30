@@ -248,7 +248,14 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
           <button onClick={() => navigate(`/cotizador/presupuesto/${id}`)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 20 }}>←</button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800 }}>{presupuesto?.nombre_obra}</div>
-            <div style={{ fontSize: 12, color: C.muted }}>Gestión de obra</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <span style={{ fontSize: 12, color: C.muted }}>Gestión de obra</span>
+              {presupuesto?.proyecto && (
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 10, background: (presupuesto.proyecto.color || '#6ee7b7') + '22', color: presupuesto.proyecto.color || '#059669' }}>
+                  {presupuesto.proyecto.nombre}
+                </span>
+              )}
+            </div>
           </div>
           <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
             <button onClick={() => navigate(`/cotizador/gantt/${id}`)}
