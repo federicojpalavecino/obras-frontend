@@ -84,6 +84,7 @@ export default function Certificado() {
         });
       });
 
+      const presId = parseInt(id);
       const obraMatch = (presupuesto?.nombre_obra || '').toLowerCase().trim();
       const clienteMatch = (presupuesto?.cliente_nombre || '').toLowerCase().trim();
       const todos = [];
@@ -94,10 +95,13 @@ export default function Certificado() {
           const key = `${sem.id}-${i}`;
           if (keysCertificadas.has(key)) return; // ya certificado, no mostrar
           const obraEgreso = (e.obra || '').toLowerCase().trim();
-          const coincide = obraEgreso === obraMatch ||
-            obraEgreso === clienteMatch ||
-            (obraMatch && obraEgreso.includes(obraMatch)) ||
-            (clienteMatch && obraEgreso.includes(clienteMatch));
+          const coincide = e.presupuesto_id === presId ||
+            (!e.presupuesto_id && (
+              obraEgreso === obraMatch ||
+              obraEgreso === clienteMatch ||
+              (obraMatch && obraEgreso.includes(obraMatch)) ||
+              (clienteMatch && obraEgreso.includes(clienteMatch))
+            ));
           todos.push({
             ...e,
             _key: key,

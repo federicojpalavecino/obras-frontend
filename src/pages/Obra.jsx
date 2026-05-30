@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-
-const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
-const getToken = () => localStorage.getItem("obras_token") || "";
-const authH = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` });
+import api from "../cotizador/api";
 const fmt = (n) => "$" + Math.round(n || 0).toLocaleString("es-AR");
 const today = () => new Date().toISOString().split("T")[0];
 
@@ -58,12 +55,12 @@ export default function Obra() {
     setLoading(true);
     try {
       const [r1, r2, r3, r4, r5, r6] = await Promise.all([
-        fetch(`${API}/presupuestos/${id}`, { headers: authH() }).then(r => r.json()),
-        fetch(`${API}/presupuestos/${id}/contrato`, { headers: authH() }).then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch(`${API}/presupuestos/${id}/cobros`, { headers: authH() }).then(r => r.json()),
-        fetch(`${API}/presupuestos/${id}/subcontratos`, { headers: authH() }).then(r => r.json()),
-        fetch(`${API}/presupuestos/${id}/compras`, { headers: authH() }).then(r => r.json()),
-        fetch(`${API}/presupuestos/${id}/certificados`, { headers: authH() }).then(r => r.ok ? r.json() : {certificados:[]}).catch(() => ({certificados:[]})),
+        api.get(`/presupuestos/${id}`).then(r => r.data),
+        api.get(`/presupuestos/${id}/contrato`).then(r => r.data).catch(() => null),
+        api.get(`/presupuestos/${id}/cobros`).then(r => r.data),
+        api.get(`/presupuestos/${id}/subcontratos`).then(r => r.data),
+        api.get(`/presupuestos/${id}/compras`).then(r => r.data),
+        api.get(`/presupuestos/${id}/certificados`).then(r => r.data).catch(() => ({certificados:[]})),
       ]);
       setPresupuesto(r1);
       setContrato(r2);
@@ -74,7 +71,7 @@ export default function Obra() {
       setCertificados(certsData);
 
       // Cuenta corriente
-      const cc = await fetch(`${API}/presupuestos/${id}/cuenta-corriente`, { headers: authH() }).then(r => r.json());
+      const cc = await api.get(`/presupuestos/${id}/cuenta-corriente`).then(r => r.data);
       setCuentaCorriente(cc);
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -84,47 +81,47 @@ export default function Obra() {
 
   const crearCobro = async () => {
     if (!cobForm.monto) return;
-    await fetch(`${API}/presupuestos/${id}/cobros`, { method: "POST", headers: authH(), body: JSON.stringify({ ...cobForm, monto: parseFloat(cobForm.monto) }) });
+    await api.post(`/presupuestos/${id}/cobros`, { ...cobForm, monto: parseFloat(cobForm.monto) });
     setShowCobro(false); setCobForm({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null });
     showToast("✓ Cobro registrado"); cargar();
   };
 
   const eliminarCobro = async (cid) => {
     if (!window.confirm("¿Eliminar este cobro?")) return;
-    await fetch(`${API}/presupuestos/${id}/cobros/${cid}`, { method: "DELETE", headers: authH() });
+    await api.delete(`/presupuestos/${id}/cobros/${cid}`);
     showToast("Cobro eliminado"); cargar();
   };
 
   const crearSubcontrato = async () => {
     if (!subForm.nombre_contratista) return;
-    await fetch(`${API}/presupuestos/${id}/subcontratos`, { method: "POST", headers: authH(), body: JSON.stringify({ ...subForm, monto_total: parseFloat(subForm.monto_total) || 0 }) });
+    await api.post(`/presupuestos/${id}/subcontratos`, { ...subForm, monto_total: parseFloat(subForm.monto_total) || 0 });
     setShowSub(false); setSubForm({ nombre_contratista: "", cuit_contratista: "", tipo: "empresa", descripcion_trabajo: "", monto_total: "", fecha_inicio: today(), tipo_pago: "por_avance", estado: "activo", notas: "" });
     showToast("✓ Subcontrato creado"); cargar();
   };
 
   const eliminarSubcontrato = async (sid) => {
     if (!window.confirm("¿Eliminar este subcontrato y todos sus pagos?")) return;
-    await fetch(`${API}/presupuestos/${id}/subcontratos/${sid}`, { method: "DELETE", headers: authH() });
+    await api.delete(`/presupuestos/${id}/subcontratos/${sid}`);
     showToast("Subcontrato eliminado"); cargar();
   };
 
   const crearPagoSubcontrato = async (sid) => {
     if (!pagoSubForm.monto) return;
-    await fetch(`${API}/presupuestos/${id}/subcontratos/${sid}/pagos`, { method: "POST", headers: authH(), body: JSON.stringify({ ...pagoSubForm, monto: parseFloat(pagoSubForm.monto), pct_avance_al_pagar: parseFloat(pagoSubForm.pct_avance_al_pagar) || 0 }) });
+    await api.post(`/presupuestos/${id}/subcontratos/${sid}/pagos`, { ...pagoSubForm, monto: parseFloat(pagoSubForm.monto), pct_avance_al_pagar: parseFloat(pagoSubForm.pct_avance_al_pagar) || 0 });
     setShowPagoSub(null); setPagoSubForm({ monto: "", fecha: today(), concepto: "Pago parcial", forma_pago: "transferencia", pct_avance_al_pagar: "" });
     showToast("✓ Pago registrado"); cargar();
   };
 
   const crearCompra = async () => {
     if (!compraForm.proveedor_nombre) return;
-    await fetch(`${API}/presupuestos/${id}/compras`, { method: "POST", headers: authH(), body: JSON.stringify({ ...compraForm, monto_total: parseFloat(compraForm.monto_total) || 0 }) });
+    await api.post(`/presupuestos/${id}/compras`, { ...compraForm, monto_total: parseFloat(compraForm.monto_total) || 0 });
     setShowCompra(false); setCompraForm({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "" });
     showToast("✓ Compra registrada"); cargar();
   };
 
   const eliminarCompra = async (cid) => {
     if (!window.confirm("¿Eliminar esta compra?")) return;
-    await fetch(`${API}/presupuestos/${id}/compras/${cid}`, { method: "DELETE", headers: authH() });
+    await api.delete(`/presupuestos/${id}/compras/${cid}`);
     showToast("Compra eliminada"); cargar();
   };
 
@@ -253,10 +250,20 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <div style={{ fontSize: 16, fontWeight: 800 }}>{presupuesto?.nombre_obra}</div>
             <div style={{ fontSize: 12, color: C.muted }}>Gestión de obra</div>
           </div>
-          <button onClick={() => setTab("certificados")}
-            style={{ marginLeft: "auto", ...btn(C.accent2), fontSize: 12 }}>
-            📜 Certificados
-          </button>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            <button onClick={() => navigate(`/cotizador/gantt/${id}`)}
+              style={{ ...btn(C.blue), fontSize: 12 }}>
+              📅 Gantt
+            </button>
+            <button onClick={() => navigate(`/cotizador/presupuesto/${id}/curva`)}
+              style={{ ...btn(C.warn), fontSize: 12 }}>
+              📈 Curva
+            </button>
+            <button onClick={() => setTab("certificados")}
+              style={{ ...btn(C.accent2), fontSize: 12 }}>
+              📜 Certificados
+            </button>
+          </div>
         </div>
       </div>
 
@@ -785,9 +792,7 @@ function ContratoModal({ presupuestoId, presupuesto, existing, onClose, onSave }
   const delDesembolso = (i) => setForm(f => ({ ...f, desembolsos: f.desembolsos.filter((_, j) => j !== i) }));
 
   const guardar = async () => {
-    await fetch(`${API}/presupuestos/${presupuestoId}/contrato`, {
-      method: "POST", headers: authH(), body: JSON.stringify(form)
-    });
+    await api.post(`/presupuestos/${presupuestoId}/contrato`, form);
     onSave();
   };
 

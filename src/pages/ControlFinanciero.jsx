@@ -241,9 +241,9 @@ export default function ControlFinanciero({ user }) {
   useEffect(() => {
     const saved = localStorage.getItem("obras-cf-config");
     if (saved) { try { setConfig(JSON.parse(saved)); } catch {} }
-    fetch(`${API}/clientes`, { headers: authH() })
+    fetch(`${API}/presupuestos`, { headers: authH() })
       .then(r => r.ok ? r.json() : [])
-      .then(d => { const clientes = Array.isArray(d) ? d : (d.clientes || []); setObras(clientes.map(c => c.nombre).sort()); })
+      .then(d => { const ps = Array.isArray(d) ? d : (d.presupuestos || []); setObras(ps.map(p => ({ id: p.id, label: p.nombre_obra || `Presupuesto #${p.id}` })).sort((a, b) => a.label.localeCompare(b.label))); })
       .catch(() => {});
     loadPeriods(true);
   }, []);
@@ -351,9 +351,20 @@ export default function ControlFinanciero({ user }) {
   const updIngreso = (i, f, v) => setWeek(w => { const a = [...w.ingresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, ingresos: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
   const delIngreso = (i) => { const nw = { ...week, ingresos: week.ingresos.filter((_, j) => j !== i) }; setWeek(nw); setTimeout(() => autoGuardar(nw), 300); };
 
-  const addEgreso = () => setWeek(w => { const nw = { ...w, egresos: [...w.egresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "" }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
+  const addEgreso = () => setWeek(w => { const nw = { ...w, egresos: [...w.egresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", presupuesto_id: null }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
   const updEgreso = (i, f, v) => setWeek(w => { const a = [...w.egresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, egresos: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
   const delEgreso = (i) => { const nw = { ...week, egresos: week.egresos.filter((_, j) => j !== i) }; setWeek(nw); setTimeout(() => autoGuardar(nw), 300); };
+  const updEgresoObra = (i, presupuestoId) => {
+    const obra = obras.find(o => o.id === parseInt(presupuestoId));
+    setWeek(w => {
+      const a = [...w.egresos];
+      a[i] = { ...a[i], obra: obra?.label || '', presupuesto_id: presupuestoId ? parseInt(presupuestoId) : null };
+      const nw = { ...w, egresos: a };
+      clearTimeout(window._cfT);
+      window._cfT = setTimeout(() => autoGuardar(nw), 900);
+      return nw;
+    });
+  };
 
   const addPersonal = () => setWeek(w => { const nw = { ...w, personal: [...w.personal, { nombre: "", rango: "", dias: 5, hs: 8, costo: 0, total: 0, obra: "" }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
   const updPersonal = (i, f, v) => setWeek(w => { const a = [...w.personal]; a[i] = { ...a[i], [f]: v }; a[i].total = (parseFloat(a[i].dias) || 0) * (parseFloat(a[i].hs) || 0) * (parseFloat(a[i].costo) || 0); const nw = { ...w, personal: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
@@ -538,7 +549,7 @@ export default function ControlFinanciero({ user }) {
                   </select>
                   <select style={inp} value={row.obra || ""} onChange={e => updIngreso(i, "obra", e.target.value)}>
                     <option value="">— Obra —</option>
-                    {obras.map(o => <option key={o}>{o}</option>)}
+                    {obras.map(o => <option key={o.id} value={o.label}>{o.label}</option>)}
                   </select>
                   <button onClick={() => delIngreso(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
                 </div>
@@ -556,9 +567,9 @@ export default function ControlFinanciero({ user }) {
                   <select style={inp} value={row.estado || "PENDIENTE"} onChange={e => updEgreso(i, "estado", e.target.value)}>
                     {["PENDIENTE", "PAGADO"].map(s => <option key={s}>{s}</option>)}
                   </select>
-                  <select style={inp} value={row.obra || ""} onChange={e => updEgreso(i, "obra", e.target.value)}>
+                  <select style={inp} value={row.presupuesto_id || ""} onChange={e => updEgresoObra(i, e.target.value)}>
                     <option value="">— Obra —</option>
-                    {obras.map(o => <option key={o}>{o}</option>)}
+                    {obras.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
                   </select>
                   <button onClick={() => delEgreso(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
                 </div>
@@ -601,7 +612,7 @@ export default function ControlFinanciero({ user }) {
                   <input style={{ ...inp, textAlign: "center" }} type="number" placeholder="Cant." value={row.cantidad || 1} onChange={e => updHerramienta(i, "cantidad", e.target.value)} />
                   <select style={inp} value={row.obra || ""} onChange={e => updHerramienta(i, "obra", e.target.value)}>
                     <option value="">— Obra —</option>
-                    {obras.map(o => <option key={o}>{o}</option>)}
+                    {obras.map(o => <option key={o.id} value={o.label}>{o.label}</option>)}
                   </select>
                   <input type="date" style={inp} value={row.fechaIn || ""} onChange={e => updHerramienta(i, "fechaIn", e.target.value)} title="Fecha entrada" />
                   <input type="date" style={inp} value={row.fechaEx || ""} onChange={e => updHerramienta(i, "fechaEx", e.target.value)} title="Fecha salida" />
