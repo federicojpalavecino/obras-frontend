@@ -7,7 +7,7 @@ import {
   getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea
 } from '../api';
 import api from '../api';
-import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X } from 'lucide-react';
+import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings } from 'lucide-react';
 import PrintPresupuesto from './PrintPresupuesto';
 import PanelAnalisis from './PanelAnalisis';
 import PanelComputo from './PanelComputo';
@@ -664,8 +664,8 @@ ${firma}
                 {data.proyecto && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: (data.proyecto.color || '#6ee7b7') + '22', color: data.proyecto.color || '#059669' }}>{data.proyecto.nombre}</span>}
               </div>
             </div>
-            <span className={`badge badge-${data.estado}`} style={{ flexShrink: 0, fontSize: 9 }}>
-              {cerrado ? '🔒' : '●'} {data.estado.toUpperCase()}
+            <span className={`badge badge-${data.estado}`} style={{ flexShrink: 0, fontSize: 9, display:'flex', alignItems:'center', gap:3 }}>
+              {cerrado ? <Lock size={9} strokeWidth={2} /> : '●'} {data.estado.toUpperCase()}
             </span>
           </div>
 
@@ -673,8 +673,8 @@ ${firma}
           <div className="header-actions-desktop" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Imprimir group */}
             <div style={{ display: 'flex', background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 6, overflow: 'hidden' }}>
-              <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => handleImprimir('comercial')}>🖨 Cliente</button>
-              <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => handleImprimir('interno')}>🖨 Interno</button>
+              <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => handleImprimir('comercial')}><Printer size={12} strokeWidth={1.5} /> Cliente</button>
+              <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => handleImprimir('interno')}><Printer size={12} strokeWidth={1.5} /> Interno</button>
               <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={imprimirComputoGeneral} title="Imprimir cómputo de cantidades">∑ Cómputo</button>
             </div>
             {cerrado ? (
@@ -688,13 +688,13 @@ ${firma}
                     <BarChart2 size={13} /> Gantt
                   </button>
                   <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => navigate(`/cotizador/presupuesto/${id}/curva`)}>
-                    📈 Curva
+                    <TrendingUp size={13} strokeWidth={1.5} /> Curva
                   </button>
                   <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={() => navigate(`/cotizador/presupuesto/${id}/materiales`)}>
-                    📦 Mat.
+                    <Package size={13} strokeWidth={1.5} /> Mat.
                   </button>
                   <button style={{ borderRadius: 0, borderLeft: '2px solid var(--accent)', padding: '4px 12px', background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.3)', color: 'var(--accent)', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => navigate(`/cotizador/presupuesto/${id}/obra`)}>
-                    🏗️ Gestión de obra
+                    <Building2 size={13} strokeWidth={1.5} /> Gestión de obra
                   </button>
                 </div>
                 {/* Adicional + Reabrir */}
@@ -712,18 +712,18 @@ ${firma}
           {/* Mobile action buttons */}
           <div className="header-actions-mobile" style={{ gap: 6 }}>
             <MobileMenu actions={[
-              { label: 'Imprimir — Cliente', icon: '🖨', onClick: () => handleImprimir('comercial') },
-              { label: 'Imprimir — Interno', icon: '🖨', onClick: () => handleImprimir('interno') },
+              { label: 'Imprimir — Cliente', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('comercial') },
+              { label: 'Imprimir — Interno', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('interno') },
               ...(cerrado ? [
-                { label: 'Certificados', icon: '📄', onClick: () => navigate(`/cotizador/presupuesto/${id}/certificado`) },
-                { label: 'Gantt', icon: '📊', onClick: () => navigate(`/cotizador/gantt/${id}`) },
-                { label: 'Curva de inversión', icon: '📈', onClick: () => navigate(`/cotizador/presupuesto/${id}/curva`) },
-                { label: 'Listado de materiales', icon: '📦', onClick: () => navigate(`/cotizador/presupuesto/${id}/materiales`) },
-                { label: 'Gestión de obra', icon: '🏗️', onClick: () => navigate(`/cotizador/presupuesto/${id}/obra`) },
-                { label: creandoAdic ? 'Creando adicional...' : 'Crear adicional', icon: '➕', onClick: crearAdicional, disabled: creandoAdic, color: 'var(--accent2)' },
-                { label: 'Reabrir presupuesto', icon: '🔓', onClick: handleReabrir, color: 'var(--warn)' },
+                { label: 'Certificados',        icon: <FileText    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/certificado`) },
+                { label: 'Gantt',               icon: <BarChart2   size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/gantt/${id}`) },
+                { label: 'Curva de inversión',  icon: <TrendingUp  size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/curva`) },
+                { label: 'Listado de materiales',icon: <Package    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/materiales`) },
+                { label: 'Gestión de obra',     icon: <Building2   size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/obra`) },
+                { label: creandoAdic ? 'Creando adicional...' : 'Crear adicional', icon: <Plus size={18} strokeWidth={1.5} />, onClick: crearAdicional, disabled: creandoAdic, color: 'var(--accent2)' },
+                { label: 'Reabrir presupuesto', icon: <Unlock size={18} strokeWidth={1.5} />, onClick: handleReabrir, color: 'var(--warn)' },
               ] : [
-                { label: 'Cerrar presupuesto', icon: '🔒', onClick: handleCerrar, color: 'var(--warn)' },
+                { label: 'Cerrar presupuesto',  icon: <Lock size={18} strokeWidth={1.5} />, onClick: handleCerrar, color: 'var(--warn)' },
               ]),
             ]} />
           </div>
@@ -939,7 +939,7 @@ ${firma}
                     onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(167,139,250,0.2)'}>
                     <div>
                       <div style={{ fontSize: 11, color: 'var(--accent2)', fontWeight: 600 }}>Adicional {adicionales.indexOf(a) + 1}</div>
-                      <div style={{ fontSize: 9, color: 'var(--muted)' }}>{a.estado === 'cerrado' ? '🔒' : '●'} {a.estado}</div>
+                      <div style={{ fontSize: 9, color: 'var(--muted)', display:'flex', alignItems:'center', gap:2 }}>{a.estado === 'cerrado' ? <Lock size={8} strokeWidth={2} /> : '●'} {a.estado}</div>
                     </div>
                     <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--precio)' }}>
                       {a.total_precio_con_iva > 0 ? fmt(a.total_precio_con_iva) : '—'}
@@ -975,18 +975,18 @@ ${firma}
                   <button className="btn btn-secondary btn-sm sidebar-toggle-btn"
                     style={{ display: 'none', fontSize: 11 }}
                     onClick={() => setSidebarOpen(true)}>
-                    ⚙ Coeficientes
+                    <Settings size={11} strokeWidth={1.5} /> Coeficientes
                   </button>
                 )}
                 {lineaSeleccionada && (
-                  <span style={{ fontSize: 11, color: 'var(--accent2)', fontFamily: 'var(--mono)' }}>⚙ {lineaSeleccionada.nombre_item}</span>
+                  <span style={{ fontSize: 11, color: 'var(--accent2)', fontFamily: 'var(--mono)', display:'flex', alignItems:'center', gap:4 }}><Settings size={11} strokeWidth={1.5} /> {lineaSeleccionada.nombre_item}</span>
                 )}
               </div>
 
               <div style={{ flex: 1, overflow: 'auto', paddingBottom: 80 }}>
                 {data?.es_adicional && data?.presupuesto_base_id && (
                   <div style={{ margin: 10, padding: '7px 12px', background: 'rgba(110,231,183,0.06)', border: '1px solid rgba(110,231,183,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span>📋 Adicional de obra</span>
+                    <span style={{ display:'flex', alignItems:'center', gap:4 }}><FileText size={11} strokeWidth={1.5} /> Adicional de obra</span>
                     <button onClick={() => navigate('/cotizador/presupuesto/' + data.presupuesto_base_id)}
                       style={{ background: 'none', border: '1px solid rgba(110,231,183,0.3)', borderRadius: 5, padding: '2px 10px', color: 'var(--accent)', cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}>
                       Ver base

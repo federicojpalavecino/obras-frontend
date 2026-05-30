@@ -95,7 +95,7 @@ export default function MobileMenu({ actions = [], breakpoint = 768 }) {
                     width: '100%',
                   }}
                 >
-                  {a.icon && <span style={{ fontSize: 18, lineHeight: 1 }}>{a.icon}</span>}
+                  {a.icon && <span style={{ display:'flex', alignItems:'center', flexShrink:0 }}>{a.icon}</span>}
                   <span>{a.label}</span>
                 </button>
               ))}

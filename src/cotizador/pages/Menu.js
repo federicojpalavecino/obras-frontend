@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMenu, getClientes, crearCliente, crearPresupuesto, duplicarPresupuesto } from '../api';
 import api from '../api';
-import { Plus, Copy, FolderOpen, Lock, User, Package, BarChart2, Edit2, Trash2, X, Check, Menu as MenuIcon } from 'lucide-react';
+import { Plus, Copy, FolderOpen, Lock, User, Package, BarChart2, Edit2, Trash2, X, Check, Menu as MenuIcon, Wrench } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 
 const fmt = (n) => n ? '$ ' + Math.round(n).toLocaleString('es-AR') : '$ 0';
@@ -123,10 +123,10 @@ export default function Menu() {
   if (loading) return <div className="loading">Cargando...</div>;
 
   const navItems = [
-    { label: 'Materiales', icon: <Package size={14} />, path: '/cotizador/materiales' },
-    { label: 'Mano de obra', icon: <User size={14} />, path: '/cotizador/mano-obra' },
-    { label: 'Maquinaria', icon: <Package size={14} />, path: '/cotizador/maquinaria' },
-    { label: 'Análisis', icon: <BarChart2 size={14} />, path: '/cotizador/analisis-costos' },
+    { label: 'Materiales',       icon: <Package  size={14} strokeWidth={1.5} />, path: '/cotizador/materiales' },
+    { label: 'Mano de obra',     icon: <User     size={14} strokeWidth={1.5} />, path: '/cotizador/mano-obra' },
+    { label: 'Maquinaria',       icon: <Wrench   size={14} strokeWidth={1.5} />, path: '/cotizador/maquinaria' },
+    { label: 'Análisis de costos', icon: <BarChart2 size={14} strokeWidth={1.5} />, path: '/cotizador/analisis-costos' },
   ];
 
   return (
@@ -156,10 +156,10 @@ export default function Menu() {
             <Plus size={14} /> Nuevo
           </button>
           <MobileMenu actions={[
-            { label: 'Materiales', icon: '📦', onClick: () => navigate('/cotizador/materiales') },
-            { label: 'Mano de obra', icon: '👷', onClick: () => navigate('/cotizador/mano-obra') },
-            { label: 'Maquinaria', icon: '🔧', onClick: () => navigate('/cotizador/maquinaria') },
-            { label: 'Análisis de costos', icon: '📊', onClick: () => navigate('/cotizador/analisis-costos') },
+            { label: 'Materiales',        icon: <Package  size={18} strokeWidth={1.5} />, onClick: () => navigate('/cotizador/materiales') },
+            { label: 'Mano de obra',      icon: <User     size={18} strokeWidth={1.5} />, onClick: () => navigate('/cotizador/mano-obra') },
+            { label: 'Maquinaria',        icon: <Wrench   size={18} strokeWidth={1.5} />, onClick: () => navigate('/cotizador/maquinaria') },
+            { label: 'Análisis de costos',icon: <BarChart2 size={18} strokeWidth={1.5} />, onClick: () => navigate('/cotizador/analisis-costos') },
           ]} />
         </div>
       </div>
@@ -265,8 +265,8 @@ export default function Menu() {
                                 {p.proyecto_nombre}
                               </span>
                             )}
-                            <span className={`badge badge-${p.estado}`} style={{ fontSize: 9, flexShrink: 0 }}>
-                              {p.estado === 'cerrado' ? '🔒' : '●'} {p.estado.toUpperCase()}
+                            <span className={`badge badge-${p.estado}`} style={{ fontSize: 9, flexShrink: 0, display:'flex', alignItems:'center', gap:3 }}>
+                              {p.estado === 'cerrado' ? <Lock size={9} strokeWidth={2} /> : '●'} {p.estado.toUpperCase()}
                             </span>
                           </div>
                           {p.ubicacion && <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.ubicacion}</div>}
