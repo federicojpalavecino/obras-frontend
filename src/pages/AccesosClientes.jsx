@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-
-const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
-const getToken = () => localStorage.getItem("obras_token") || "";
-const authH = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` });
+import api from "../cotizador/api";
 
 const C = {
   bg: "#f8f9fa", surface: "#ffffff", surface2: "#f1f3f5",
@@ -37,8 +34,8 @@ export default function AccesosClientes({ user }) {
   const cargar = async () => {
     setLoading(true);
     const [r1, r2] = await Promise.all([
-      fetch(`${API}/portal/accesos`, { headers: authH() }).then((r) => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${API}/clientes`, { headers: authH() }).then((r) => r.ok ? r.json() : []).catch(() => []),
+      api.get('/portal/accesos').then(r => r.data).catch(() => []),
+      api.get('/clientes').then(r => r.data).catch(() => []),
     ]);
     setAccesos(Array.isArray(r1) ? r1 : []);
     setClientes(Array.isArray(r2) ? r2 : (r2.clientes || []));
@@ -49,16 +46,15 @@ export default function AccesosClientes({ user }) {
     if (!form.email || !form.cliente_id || !form.password) { setMsg("Completá todos los campos obligatorios"); return; }
     setSaving(true); setMsg("");
     try {
-      const res = await fetch(`${API}/portal/accesos`, { method: "POST", headers: authH(), body: JSON.stringify({ email: form.email.toLowerCase().trim(), nombre: form.nombre, cliente_id: parseInt(form.cliente_id), password: form.password, secciones_visibles: form.secciones_visibles, presupuestos_visibles: form.presupuestos_visibles.length > 0 ? form.presupuestos_visibles : null }) });
-      if (res.ok) { setModal(false); setForm({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","contrato","cobros","gantt","consultas"], presupuestos_visibles: [] }); setPresupuestosCliente([]); showToast("✓ Acceso creado"); cargar(); }
-      else { const d = await res.json(); setMsg(d.detail || "Error al crear acceso"); }
-    } catch { setMsg("Error de conexión"); }
+      await api.post('/portal/accesos', { email: form.email.toLowerCase().trim(), nombre: form.nombre, cliente_id: parseInt(form.cliente_id), password: form.password, secciones_visibles: form.secciones_visibles, presupuestos_visibles: form.presupuestos_visibles.length > 0 ? form.presupuestos_visibles : null });
+      setModal(false); setForm({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","contrato","cobros","gantt","consultas"], presupuestos_visibles: [] }); setPresupuestosCliente([]); showToast("✓ Acceso creado"); cargar();
+    } catch(err) { setMsg(err.response?.data?.detail || "Error de conexión"); }
     setSaving(false);
   };
 
   const revocarAcceso = async (id, email) => {
     if (!window.confirm(`¿Revocar acceso de ${email}?`)) return;
-    await fetch(`${API}/portal/accesos/${id}`, { method: "DELETE", headers: authH() });
+    await api.delete(`/portal/accesos/${id}`);
     showToast("✓ Acceso revocado");
     cargar();
   };
@@ -135,8 +131,8 @@ export default function AccesosClientes({ user }) {
                   const cid = e.target.value;
                   setForm((f) => ({ ...f, cliente_id: cid, presupuestos_visibles: [] }));
                   if (cid) {
-                    fetch(`${API}/clientes/${cid}/presupuestos`, { headers: authH() })
-                      .then(r => r.ok ? r.json() : []).then(d => setPresupuestosCliente(Array.isArray(d) ? d : [])).catch(() => setPresupuestosCliente([]));
+                    api.get(`/clientes/${cid}/presupuestos`)
+                      .then(r => setPresupuestosCliente(Array.isArray(r.data) ? r.data : [])).catch(() => setPresupuestosCliente([]));
                   } else setPresupuestosCliente([]);
                 }}>
                   <option value="">— Seleccionar cliente —</option>

@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-
-const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
-const getToken = () => localStorage.getItem("obras_token") || "";
-const authH = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` });
+import api from "../cotizador/api";
 
 const C = {
   bg: "#f8f9fa", surface: "#ffffff", surface2: "#f1f3f5",
@@ -38,8 +35,8 @@ export default function Clientes({ user }) {
 
   const cargarTodo = async () => {
     const [cRes, pRes] = await Promise.all([
-      fetch(`${API}/clientes`, { headers: authH() }).then((r) => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${API}/proyectos`, { headers: authH() }).then((r) => r.ok ? r.json() : []).catch(() => []),
+      api.get('/clientes').then(r => r.data).catch(() => []),
+      api.get('/proyectos').then(r => r.data).catch(() => []),
     ]);
     setClientes(Array.isArray(cRes) ? cRes : (cRes.clientes || []));
     setProyectos(Array.isArray(pRes) ? pRes : []);
@@ -48,9 +45,9 @@ export default function Clientes({ user }) {
   const guardarCliente = async (form) => {
     try {
       if (form.id) {
-        await fetch(`${API}/clientes/${form.id}`, { method: "PUT", headers: authH(), body: JSON.stringify(form) });
+        await api.put(`/clientes/${form.id}`, form);
       } else {
-        await fetch(`${API}/clientes`, { method: "POST", headers: authH(), body: JSON.stringify(form) });
+        await api.post('/clientes', form);
       }
       setModalCliente(null);
       showToast("✓ Cliente guardado");
@@ -60,7 +57,7 @@ export default function Clientes({ user }) {
 
   const eliminarCliente = async (id) => {
     if (!window.confirm("¿Eliminar cliente?")) return;
-    await fetch(`${API}/clientes/${id}`, { method: "DELETE", headers: authH() });
+    await api.delete(`/clientes/${id}`);
     showToast("✓ Eliminado");
     cargarTodo();
   };
@@ -68,9 +65,9 @@ export default function Clientes({ user }) {
   const guardarProyecto = async (form) => {
     try {
       if (form.id) {
-        await fetch(`${API}/proyectos/${form.id}`, { method: "PUT", headers: authH(), body: JSON.stringify(form) });
+        await api.put(`/proyectos/${form.id}`, form);
       } else {
-        await fetch(`${API}/proyectos`, { method: "POST", headers: authH(), body: JSON.stringify(form) });
+        await api.post('/proyectos', form);
       }
       setModalProyecto(null);
       showToast("✓ Proyecto guardado");
@@ -80,13 +77,13 @@ export default function Clientes({ user }) {
 
   const eliminarProyecto = async (id) => {
     if (!window.confirm("¿Eliminar proyecto?")) return;
-    await fetch(`${API}/proyectos/${id}`, { method: "DELETE", headers: authH() });
+    await api.delete(`/proyectos/${id}`);
     showToast("✓ Eliminado");
     cargarTodo();
   };
 
   const toggleActivo = async (p) => {
-    await fetch(`${API}/proyectos/${p.id}`, { method: "PUT", headers: authH(), body: JSON.stringify({ ...p, activo: !p.activo }) });
+    await api.put(`/proyectos/${p.id}`, { ...p, activo: !p.activo });
     cargarTodo();
   };
 

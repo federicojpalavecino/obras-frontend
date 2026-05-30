@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-
-const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
-const getToken = () => localStorage.getItem("obras_token") || "";
-const authH = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` });
+import api from "../cotizador/api";
 
 // ── Google Calendar ───────────────────────────────────────────────────────────
 const GCAL_CLIENT_ID = "289602384269-rc91am6518mhnec4kr6ju0i19qq18ih4.apps.googleusercontent.com";
@@ -25,7 +22,7 @@ const parseGcalToken = async () => {
   const expiresAt = String(Date.now() + expiresIn * 1000);
   if (token) {
     window.history.replaceState(null, "", window.location.pathname);
-    await fetch(`${API}/estudio/usuarios/me/gcal-token`, { method: "PUT", headers: authH(), body: JSON.stringify({ token, expires_at: expiresAt }) });
+    await api.put('/estudio/usuarios/me/gcal-token', { token, expires_at: expiresAt });
     return { token, expires_at: expiresAt };
   }
   return false;
@@ -346,13 +343,10 @@ export default function Planner({ user }) {
       } else {
         // Load from backend
         try {
-          const res = await fetch(`${API}/estudio/me`, { headers: authH() });
-          if (res.ok) {
-            const me = await res.json();
-            if (gcalIsValid(me.gcal_token, me.gcal_token_exp)) {
-              setGcalToken(me.gcal_token);
-              setGcalConnected(true);
-            }
+          const me = (await api.get('/estudio/me')).data;
+          if (gcalIsValid(me.gcal_token, me.gcal_token_exp)) {
+            setGcalToken(me.gcal_token);
+            setGcalConnected(true);
           }
         } catch {}
       }
@@ -364,9 +358,9 @@ export default function Planner({ user }) {
   const cargar = async () => {
     setLoading(true);
     const [tr, pr, pres] = await Promise.all([
-      fetch(`${API}/planner/tareas`, { headers: authH() }).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${API}/planner/proyectos`, { headers: authH() }).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${API}/planner/presupuestos`, { headers: authH() }).then(r => r.ok ? r.json() : []).catch(() => []),
+      api.get('/planner/tareas').then(r => r.data).catch(() => []),
+      api.get('/planner/proyectos').then(r => r.data).catch(() => []),
+      api.get('/planner/presupuestos').then(r => r.data).catch(() => []),
     ]);
     setTareas(Array.isArray(tr) ? tr : []);
     setProyectos(Array.isArray(pr) ? pr : []);
@@ -375,7 +369,7 @@ export default function Planner({ user }) {
   };
 
   const desconectarGcal = async () => {
-    await fetch(`${API}/estudio/usuarios/me/gcal-token`, { method: "DELETE", headers: authH() });
+    await api.delete('/estudio/usuarios/me/gcal-token');
     setGcalToken(null); setGcalConnected(false);
     showToast("Google Calendar desconectado");
   };
@@ -385,10 +379,10 @@ export default function Planner({ user }) {
     const data = { titulo: form.titulo, descripcion: toNull(form.descripcion), estado: form.estado || "pendiente", prioridad: form.prioridad || "normal", proyecto_id: form.proyecto_id ? parseInt(form.proyecto_id) : null, presupuesto_id: form.presupuesto_id ? parseInt(form.presupuesto_id) : null, fecha_inicio: form.fecha_inicio || hoy(), fecha_fin: toNull(form.fecha_fin), hora_inicio: toNull(form.hora_inicio), hora_fin: toNull(form.hora_fin), asignado_a: toNull(form.asignado_a), google_event_id: toNull(form.google_event_id) };
     let savedId = form.id;
     if (form.id) {
-      await fetch(`${API}/planner/tareas/${form.id}`, { method: "PUT", headers: authH(), body: JSON.stringify(data) });
+      await api.put(`/planner/tareas/${form.id}`, data);
     } else {
-      const res = await fetch(`${API}/planner/tareas`, { method: "POST", headers: authH(), body: JSON.stringify(data) });
-      if (res.ok) { const d = await res.json(); savedId = d.id; }
+      const res = await api.post('/planner/tareas', data);
+      savedId = res.data.id;
     }
     setModalTarea(null);
     cargar();
@@ -397,7 +391,7 @@ export default function Planner({ user }) {
         const proyecto = proyectos.find(p => p.id === parseInt(form.proyecto_id));
         const eventId = await gcalUpsertEvent(data, proyecto?.nombre, gcalToken);
         if (eventId && savedId) {
-          await fetch(`${API}/planner/tareas/${savedId}/estado`, { method: "PATCH", headers: authH(), body: JSON.stringify({ google_event_id: eventId }) });
+          await api.patch(`/planner/tareas/${savedId}/estado`, { google_event_id: eventId });
         }
       } catch {}
     }
@@ -410,7 +404,7 @@ export default function Planner({ user }) {
       const t = tareas.find(x => x.id === id);
       if (t?.google_event_id) { try { await gcalDeleteEvent(t.google_event_id, gcalToken); } catch {} }
     }
-    await fetch(`${API}/planner/tareas/${id}`, { method: "DELETE", headers: authH() });
+    await api.delete(`/planner/tareas/${id}`);
     showToast("✓ Eliminado"); cargar();
   };
 
@@ -424,19 +418,19 @@ export default function Planner({ user }) {
     const t = tareas.find(x => x.id === id);
     if (!t || t.estado === nuevoEstado) return;
     setTareas(prev => prev.map(x => x.id === id ? { ...x, estado: nuevoEstado } : x));
-    await fetch(`${API}/planner/tareas/${id}/estado`, { method: "PATCH", headers: authH(), body: JSON.stringify({ estado: nuevoEstado }) });
+    await api.patch(`/planner/tareas/${id}/estado`, { estado: nuevoEstado });
   }, [tareas]);
 
   const guardarProyecto = async () => {
     if (!formProy.nombre) return;
-    await fetch(`${API}/planner/proyectos`, { method: "POST", headers: authH(), body: JSON.stringify(formProy) });
+    await api.post('/planner/proyectos', formProy);
     setModalProyecto(false); setFormProy({ nombre: "", color: COLORES_PROY[0], presupuesto_id: null });
     showToast("✓ Proyecto creado"); cargar();
   };
 
   const eliminarProyecto = async (id) => {
     if (!window.confirm("¿Eliminar proyecto?")) return;
-    await fetch(`${API}/planner/proyectos/${id}`, { method: "DELETE", headers: authH() });
+    await api.delete(`/planner/proyectos/${id}`);
     if (filtroProyecto === String(id)) setFiltroProyecto("");
     showToast("✓ Eliminado"); cargar();
   };

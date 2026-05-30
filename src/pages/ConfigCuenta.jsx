@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-
-const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
+import api from "../cotizador/api";
 
 const C = {
   bg:"#f8f9fa", surface:"#ffffff", surface2:"#f1f3f5",
@@ -9,17 +8,15 @@ const C = {
 };
 
 
-function UsuariosSection({ token }) {
+function UsuariosSection() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ nombre:'', email:'', password:'', rol:'admin' });
   const [msg, setMsg] = useState('');
-  const headers = { 'Content-Type':'application/json', Authorization: `Bearer ${token}` };
 
   const cargar = () => {
-    fetch(`${API}/estudio/usuarios`, { headers })
-      .then(r => r.ok ? r.json() : [])
-      .then(d => { setUsuarios(Array.isArray(d) ? d : []); setLoading(false); })
+    api.get('/estudio/usuarios')
+      .then(r => { setUsuarios(Array.isArray(r.data) ? r.data : []); setLoading(false); })
       .catch(() => setLoading(false));
   };
 
@@ -27,15 +24,16 @@ function UsuariosSection({ token }) {
 
   const agregar = async () => {
     if (!form.nombre || !form.email || !form.password) { setMsg('Completá todos los campos'); return; }
-    const res = await fetch(`${API}/estudio/usuarios`, { method:'POST', headers, body: JSON.stringify(form) });
-    if (res.ok) { setMsg('Usuario creado'); setForm({ nombre:'', email:'', password:'', rol:'admin' }); cargar(); }
-    else { const d = await res.json(); setMsg(d.detail || 'Error'); }
+    try {
+      await api.post('/estudio/usuarios', form);
+      setMsg('Usuario creado'); setForm({ nombre:'', email:'', password:'', rol:'admin' }); cargar();
+    } catch(err) { setMsg(err.response?.data?.detail || 'Error'); }
     setTimeout(() => setMsg(''), 3000);
   };
 
   const eliminar = async (email) => {
     if (!window.confirm(`¿Eliminar usuario ${email}?`)) return;
-    await fetch(`${API}/estudio/usuarios/${encodeURIComponent(email)}`, { method:'DELETE', headers });
+    await api.delete(`/estudio/usuarios/${encodeURIComponent(email)}`);
     cargar();
   };
 
@@ -85,12 +83,9 @@ export default function ConfigCuenta({ user, onUpdate }) {
   const [form, setForm] = useState({ nombre:"", cuit:"", telefono:"", direccion:"", ciudad:"", provincia:"", color_primario:"#059669" });
   const fileRef = useRef();
 
-  const token = localStorage.getItem("obras_token");
-  const headers = { Authorization: `Bearer ${token}` };
-
   useEffect(() => {
-    fetch(`${API}/tenant`, { headers })
-      .then(r => r.json())
+    api.get('/tenant')
+      .then(r => r.data)
       .then(d => {
         setTenant(d);
         setForm({ nombre: d.nombre||"", cuit: d.cuit||"", telefono: d.telefono||"", direccion: d.direccion||"", ciudad: d.ciudad||"", provincia: d.provincia||"", color_primario: d.color_primario||"#059669" });
@@ -100,8 +95,8 @@ export default function ConfigCuenta({ user, onUpdate }) {
 
   const guardar = async () => {
     setSaving(true); setMsg("");
-    const res = await fetch(`${API}/tenant`, { method:"PUT", headers:{...headers,"Content-Type":"application/json"}, body: JSON.stringify(form) });
-    if (res.ok) {
+    const res = await api.put('/tenant', form);
+    if (res.status === 200) {
       setMsg("Guardado correctamente");
       try {
         const s = JSON.parse(localStorage.getItem("obras_session") || "{}");
@@ -125,12 +120,8 @@ export default function ConfigCuenta({ user, onUpdate }) {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const base64 = ev.target.result; // data:image/png;base64,...
-      const res = await fetch(`${API}/tenant`, {
-        method: "PUT",
-        headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ logo_url: base64 })
-      });
-      if (res.ok) {
+      const res = await api.put('/tenant', { logo_url: base64 });
+      if (res.status === 200) {
         setTenant(prev => ({ ...prev, logo_url: base64 }));
         // Actualizar obras_tenant y obras_session para que el header lo lea
         try {
@@ -151,7 +142,7 @@ export default function ConfigCuenta({ user, onUpdate }) {
 
   const eliminarLogo = async () => {
     setSaving(true);
-    await fetch(`${API}/tenant`, { method:"PUT", headers:{...headers,"Content-Type":"application/json"}, body: JSON.stringify({logo_url: null}) });
+    await api.put('/tenant', { logo_url: null });
     setTenant(prev => ({ ...prev, logo_url: null }));
     setSaving(false);
   };
@@ -249,7 +240,7 @@ export default function ConfigCuenta({ user, onUpdate }) {
       {/* USUARIOS */}
       <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:24, marginBottom:24 }}>
         <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:16, textTransform:"uppercase", letterSpacing:"0.5px" }}>Usuarios del estudio</div>
-        <UsuariosSection token={token} />
+        <UsuariosSection />
       </div>
 
       {msg && <div style={{ fontSize:13, color: msg.includes("Error") ? C.red : C.accent, marginBottom:12, textAlign:"center" }}>{msg}</div>}
