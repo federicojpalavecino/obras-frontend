@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut } from "lucide-react";
+import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut, Check, AlertTriangle } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
@@ -48,7 +48,7 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
   return (
     <div style={{ background: C.bg, height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Syne', sans-serif" }}>
       <div style={{ width: "100%", maxWidth: 440, background: C.surface, border: "1px solid " + C.border, borderRadius: 16, padding: 40, boxShadow: "0 4px 24px rgba(0,0,0,0.06)", textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
+        <Lock size={36} strokeWidth={1} color={C.accent} style={{ marginBottom: 16 }} />
         <div style={{ fontSize: 24, fontWeight: 800, color: C.accent, letterSpacing: "-1px", marginBottom: 4 }}>FAIM OBRAS</div>
         <div style={{ fontSize: 12, color: C.muted, marginBottom: 28, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "2px" }}>PERÍODO DE PRUEBA VENCIDO</div>
         <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
@@ -68,7 +68,7 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
         <div style={{ textAlign: "left", marginBottom: 24 }}>
           {["Cotizador completo con catálogo actualizado", "Certificados y control de avance", "Panel financiero y Gantt", "Múltiples presupuestos y clientes"].map(f => (
             <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.text, marginBottom: 8 }}>
-              <span style={{ color: C.accent, fontWeight: 700 }}>✓</span> {f}
+              <Check size={13} strokeWidth={2.5} color={C.accent} /> {f}
             </div>
           ))}
         </div>
@@ -88,7 +88,7 @@ function TrialBanner({ diasRestantes }) {
   if (diasRestantes > 7) return null;
   return (
     <div style={{ background: diasRestantes <= 2 ? "#fef2f2" : "#fffbeb", borderBottom: `1px solid ${diasRestantes <= 2 ? "#fecaca" : "#fde68a"}`, color: diasRestantes <= 2 ? C.red : C.warn, textAlign: "center", padding: "7px 16px", fontSize: 13, fontFamily: "'Syne', sans-serif" }}>
-      ⚠️ Te {diasRestantes === 1 ? "queda" : "quedan"} <strong>{diasRestantes} día{diasRestantes !== 1 ? "s" : ""}</strong> de prueba gratuita.
+      <AlertTriangle size={13} strokeWidth={2} style={{ marginRight: 4, verticalAlign: "middle" }} /> Te {diasRestantes === 1 ? "queda" : "quedan"} <strong>{diasRestantes} día{diasRestantes !== 1 ? "s" : ""}</strong> de prueba gratuita.
       {diasRestantes <= 3 && " Suscribite para no perder el acceso."}
     </div>
   );

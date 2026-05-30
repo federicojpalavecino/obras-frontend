@@ -105,7 +105,7 @@ function KanbanCard({ t, proyectos, presupuestos, onEdit, onDelete, onDragStart,
       {(proy || pres) && (
         <div style={{ display: "flex", gap: 4, marginBottom: 6, flexWrap: "wrap" }}>
           {proy && <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 20, background: (proy.color || C.accent2) + "22", color: proy.color || C.accent2 }}>{proy.nombre}</span>}
-          {pres && !proy && <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 20, background: C.blue + "15", color: C.blue }}>📋 {pres.nombre_obra}</span>}
+          {pres && !proy && <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 20, background: C.blue + "15", color: C.blue }}>{pres.nombre_obra}</span>}
         </div>
       )}
       {/* Titulo */}
@@ -118,7 +118,7 @@ function KanbanCard({ t, proyectos, presupuestos, onEdit, onDelete, onDragStart,
         {t.fecha_inicio && <span style={{ fontSize: 10, color: C.muted }}>{fmtDate(t.fecha_inicio)}{t.fecha_fin && t.fecha_fin !== t.fecha_inicio ? " → " + fmtDate(t.fecha_fin) : ""}</span>}
         {t.hora_inicio && <span style={{ fontSize: 10, color: C.muted }}>{t.hora_inicio.slice(0,5)}</span>}
         {t.asignado_a && <span style={{ fontSize: 10, color: C.muted, marginLeft: "auto" }}>@{t.asignado_a.split(" ")[0]}</span>}
-        {t.google_event_id && <span style={{ fontSize: 10, color: "#4285f4", marginLeft: t.asignado_a ? 0 : "auto" }} title="En Google Calendar">📅</span>}
+        {t.google_event_id && <Calendar size={10} strokeWidth={1.5} color="#4285f4" style={{ marginLeft: t.asignado_a ? 0 : "auto", flexShrink: 0 }} title="En Google Calendar" />}
         <button onClick={e => { e.stopPropagation(); onDelete(t.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted2, fontSize: 14, padding: "0 2px", marginLeft: "auto", lineHeight: 1 }} title="Eliminar">×</button>
       </div>
     </div>
@@ -305,7 +305,7 @@ function ModalTarea({ tarea, proyectos, presupuestos, onSave, onClose, gcalConne
               <input style={inp} value={form.asignado_a || ""} onChange={e => f("asignado_a", e.target.value)} placeholder="Nombre o email" />
             </div>
           </div>
-          {gcalConnected && <div style={{ fontSize: 12, color: "#4285f4", background: "#f0f4ff", padding: "7px 11px", borderRadius: 7, border: "1px solid #bfdbfe" }}>📅 Se sincronizará con tu Google Calendar al guardar</div>}
+          {gcalConnected && <div style={{ fontSize: 12, color: "#4285f4", background: "#f0f4ff", padding: "7px 11px", borderRadius: 7, border: "1px solid #bfdbfe", display:"flex", alignItems:"center", gap:5 }}><Calendar size={13} strokeWidth={1.5} /> Se sincronizará con tu Google Calendar al guardar</div>}
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
           <Btn onClick={onClose} style={{ flex: 1 }}>Cancelar</Btn>
@@ -478,12 +478,12 @@ export default function Planner({ user }) {
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
           {!gcalConnected ? (
-            <button onClick={gcalLogin} style={{ padding: "6px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 11, cursor: "pointer", color: C.muted, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ fontSize: 14 }}>📅</span> Conectar Google Cal
+            <button onClick={gcalLogin} style={{ padding: "6px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 11, cursor: "pointer", color: C.muted, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
+              <Calendar size={13} strokeWidth={1.5} /> Conectar Google Cal
             </button>
           ) : (
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ fontSize: 11, color: "#4285f4", background: "#eff6ff", padding: "4px 10px", borderRadius: 20, border: "1px solid #bfdbfe" }}>📅 Google Cal activo</span>
+              <span style={{ fontSize: 11, color: "#4285f4", background: "#eff6ff", padding: "4px 10px", borderRadius: 20, border: "1px solid #bfdbfe", display:"flex", alignItems:"center", gap:4 }}><Calendar size={11} strokeWidth={1.5} /> Google Cal activo</span>
               <button onClick={desconectarGcal} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 12, padding: "0 4px" }} title="Desconectar">×</button>
             </div>
           )}

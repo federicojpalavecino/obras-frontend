@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Info, Lock, User } from "lucide-react";
 import api from "../cotizador/api";
 
 const C = {
@@ -69,7 +70,7 @@ export default function AccesosClientes({ user }) {
 
         {/* Info */}
         <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: "#1d4ed8" }}>
-          💡 Cada acceso le permite a un cliente ver sus presupuestos y certificados en el portal con tu marca.
+          <Info size={14} strokeWidth={1.5} style={{ flexShrink:0, marginRight:6 }} /> Cada acceso le permite a un cliente ver sus presupuestos y certificados en el portal con tu marca.
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
@@ -82,7 +83,7 @@ export default function AccesosClientes({ user }) {
           <div style={{ textAlign: "center", color: C.muted, padding: 40 }}>Cargando...</div>
         ) : accesos.length === 0 ? (
           <div style={{ textAlign: "center", color: C.muted, padding: 60 }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🔑</div>
+            <Lock size={36} strokeWidth={1} color={C.muted} style={{ marginBottom: 12 }} />
             <div style={{ fontWeight: 600, marginBottom: 6 }}>Sin accesos configurados</div>
             <div style={{ fontSize: 13 }}>Creá un acceso para que un cliente pueda ver sus proyectos.</div>
           </div>
@@ -92,7 +93,7 @@ export default function AccesosClientes({ user }) {
               const cliente = clientes.find((c) => c.id === a.cliente_id);
               return (
                 <div key={a.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 8, display: "flex", alignItems: "center", gap: 16 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.surface2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>👤</div>
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.surface2, border:`1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><User size={16} strokeWidth={1.5} color={C.muted} /></div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 700 }}>{a.nombre || a.email}</div>
                     <div style={{ fontSize: 12, color: C.muted }}>{a.email}</div>

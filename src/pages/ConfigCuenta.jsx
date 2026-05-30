@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Building2 } from "lucide-react";
 import api from "../cotizador/api";
 
 const C = {
@@ -195,7 +196,7 @@ export default function ConfigCuenta({ user, onUpdate }) {
           <div style={{ width:80, height:80, borderRadius:10, border:`2px dashed ${C.border}`, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", background:C.surface2, flexShrink:0 }}>
             {tenant?.logo_url
               ? <img src={tenant.logo_url} alt="logo" style={{ width:"100%", height:"100%", objectFit:"contain" }} />
-              : <span style={{ fontSize:28 }}>🏢</span>
+              : <Building2 size={28} strokeWidth={1} color="#c4c4d0" />
             }
           </div>
           <div>

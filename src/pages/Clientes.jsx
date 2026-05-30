@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Users, Building2, Mail, Phone, Hash, MapPin } from "lucide-react";
 import api from "../cotizador/api";
 
 const C = {
@@ -94,9 +95,9 @@ export default function Clientes({ user }) {
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif", paddingBottom: 40 }}>
       {/* TABS */}
       <div style={{ position: "sticky", top: 64, background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", zIndex: 40 }}>
-        {[["clientes", "👤", "Clientes"], ["proyectos", "🏗️", "Proyectos / Obras"]].map(([id, icon, label]) => (
-          <button key={id} onClick={() => setTab(id)} style={{ flex: 1, padding: "12px 8px", background: "none", border: "none", cursor: "pointer", color: tab === id ? C.accent : C.muted, borderBottom: `2px solid ${tab === id ? C.accent : "transparent"}`, fontSize: 13, fontFamily: "inherit" }}>
-            <span style={{ marginRight: 6 }}>{icon}</span>{label}
+        {[["clientes", Users, "Clientes"], ["proyectos", Building2, "Proyectos / Obras"]].map(([id, Icon, label]) => (
+          <button key={id} onClick={() => setTab(id)} style={{ flex: 1, padding: "12px 8px", background: "none", border: "none", cursor: "pointer", color: tab === id ? C.accent : C.muted, borderBottom: `2px solid ${tab === id ? C.accent : "transparent"}`, fontSize: 13, fontFamily: "inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
+            <Icon size={14} strokeWidth={1.5} />{label}
           </button>
         ))}
       </div>
@@ -120,11 +121,11 @@ export default function Clientes({ user }) {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{c.nombre}</div>
                     <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12, color: C.muted }}>
-                      {c.email && <span>✉ {c.email}</span>}
-                      {c.telefono && <span>📞 {c.telefono}</span>}
-                      {c.cuit && <span>🪪 {c.cuit}</span>}
+                      {c.email && <span style={{display:"flex",alignItems:"center",gap:3}}><Mail size={11} strokeWidth={1.5} /> {c.email}</span>}
+                      {c.telefono && <span style={{display:"flex",alignItems:"center",gap:3}}><Phone size={11} strokeWidth={1.5} /> {c.telefono}</span>}
+                      {c.cuit && <span style={{display:"flex",alignItems:"center",gap:3}}><Hash size={11} strokeWidth={1.5} /> {c.cuit}</span>}
                     </div>
-                    {c.direccion && <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>📍 {c.direccion}</div>}
+                    {c.direccion && <div style={{ fontSize: 12, color: C.muted, marginTop: 4, display:"flex", alignItems:"center", gap:3 }}><MapPin size={11} strokeWidth={1.5} /> {c.direccion}</div>}
                     {c.notas && <div style={{ fontSize: 12, color: C.muted, marginTop: 4, fontStyle: "italic" }}>{c.notas}</div>}
                     {/* Proyectos vinculados */}
                     {proyectos.filter((p) => p.cliente_id === c.id).length > 0 && (

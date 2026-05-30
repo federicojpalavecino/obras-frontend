@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Printer, ArrowDownLeft, ArrowUpRight, Users, Wrench, BarChart2, FileDown } from "lucide-react";
 import api from "../cotizador/api";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -477,10 +478,10 @@ export default function ControlFinanciero({ user }) {
 
       {/* ── HEADER TABS ── */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", overflowX: "auto", position: "sticky", top: 0, zIndex: 50 }}>
-        <TabBtn id="carga" label={`📋 ${TIPO_LABELS[tipoPeriodo]}`} />
-        <TabBtn id="historial" label="📅 Historial" />
-        <TabBtn id="resumen" label="📊 Resumen" />
-        <TabBtn id="config" label="⚙️ Config" />
+        <TabBtn id="carga" label={TIPO_LABELS[tipoPeriodo]} />
+        <TabBtn id="historial" label="Historial" />
+        <TabBtn id="resumen" label="Resumen" />
+        <TabBtn id="config" label="Config" />
 
         {/* Tipo de período */}
         <div style={{ marginLeft: 12, display: "flex", gap: 2, background: C.surface2, borderRadius: 7, padding: 3 }}>
@@ -491,7 +492,7 @@ export default function ControlFinanciero({ user }) {
 
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 12, gap: 6 }}>
           <button onClick={abrirImportCert} style={{ padding: "5px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 11, cursor: "pointer", fontFamily: "inherit", color: C.text, whiteSpace: "nowrap" }}>
-            📄 Importar cert.
+            <FileDown size={13} strokeWidth={1.5} style={{ marginRight: 4, verticalAlign: "middle" }} /> Importar cert.
           </button>
           {editingId && (
             <button onClick={nuevoPeriodo} style={{ padding: "5px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
@@ -528,7 +529,7 @@ export default function ControlFinanciero({ user }) {
 
             {/* Ingresos */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
-              <SectionHeader label="💰 Ingresos" total={calc.totalIng} onAdd={addIngreso} />
+              <SectionHeader label="Ingresos" total={calc.totalIng} onAdd={addIngreso} />
               {week.ingresos.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin ingresos — tocá Agregar</div>}
               {week.ingresos.map((row, i) => (
                 <div key={i} style={{ display: "grid", gridTemplateColumns: "2.5fr 130px 120px 1fr auto", gap: 5, marginBottom: 5, alignItems: "center" }}>
@@ -548,7 +549,7 @@ export default function ControlFinanciero({ user }) {
 
             {/* Egresos */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
-              <SectionHeader label="💸 Egresos" total={calc.totalEg} onAdd={addEgreso} />
+              <SectionHeader label="Egresos" total={calc.totalEg} onAdd={addEgreso} />
               {week.egresos.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin egresos</div>}
               {week.egresos.map((row, i) => (
                 <div key={i} style={{ display: "grid", gridTemplateColumns: "2.5fr 130px 120px 1fr auto", gap: 5, marginBottom: 5, alignItems: "center" }}>
@@ -574,7 +575,7 @@ export default function ControlFinanciero({ user }) {
 
             {/* Personal */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
-              <SectionHeader label="👷 Personal" total={calc.totalPersonal} onAdd={addPersonal} />
+              <SectionHeader label="Personal" total={calc.totalPersonal} onAdd={addPersonal} />
               {week.personal.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin personal</div>}
               {week.personal.map((row, i) => (
                 <div key={i} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 60px 60px 120px 100px auto", gap: 5, marginBottom: 5, alignItems: "center" }}>
@@ -591,7 +592,7 @@ export default function ControlFinanciero({ user }) {
 
             {/* Herramientas */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 14 }}>
-              <SectionHeader label="🔧 Herramientas / Equipos" onAdd={addHerramienta} />
+              <SectionHeader label="Herramientas / Equipos" onAdd={addHerramienta} />
               {week.herramientas.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin herramientas</div>}
               {week.herramientas.map((row, i) => (
                 <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 0.6fr 1.2fr 110px 110px auto", gap: 5, marginBottom: 5, alignItems: "center" }}>
@@ -656,11 +657,11 @@ export default function ControlFinanciero({ user }) {
             </div>
 
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => imprimirPeriodo(week, calc, tipoPeriodo, tenant)} style={{ padding: "12px 20px", background: C.surface2, border: `1px solid ${C.border}`, color: C.text, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                🖨️ Imprimir
+              <button onClick={() => imprimirPeriodo(week, calc, tipoPeriodo, tenant)} style={{ padding: "12px 20px", background: C.surface2, border: `1px solid ${C.border}`, color: C.text, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display:"flex", alignItems:"center", gap:6 }}>
+                <Printer size={15} strokeWidth={1.5} /> Imprimir
               </button>
               <button onClick={guardar} disabled={loading} style={{ flex: 1, padding: "12px", background: loading ? C.border : C.accent, color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-                {loading ? "Guardando..." : editingId ? "💾 Actualizar" : "💾 Guardar período"}
+                {loading ? "Guardando..." : editingId ? "Actualizar" : "Guardar período"}
               </button>
             </div>
           </>
@@ -691,7 +692,7 @@ export default function ControlFinanciero({ user }) {
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => imprimirPeriodo(s, c, tipoPeriodo, tenant)} style={{ padding: "5px 10px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>🖨️</button>
+                      <button onClick={() => imprimirPeriodo(s, c, tipoPeriodo, tenant)} style={{ padding: "5px 10px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, cursor: "pointer", fontFamily: "inherit", display:"flex", alignItems:"center" }}><Printer size={13} strokeWidth={1.5} /></button>
                       <button onClick={() => editPeriod(s)} style={{ padding: "5px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Editar</button>
                       <button onClick={() => eliminarPeriod(s.id)} style={{ padding: "5px 10px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 7, fontSize: 12, cursor: "pointer", color: C.red, fontFamily: "inherit" }}>×</button>
                     </div>
@@ -853,7 +854,7 @@ export default function ControlFinanciero({ user }) {
                 {/* Cobros */}
                 {obraPendientes.cobros?.length > 0 && (
                   <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#059669", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>💰 Cobros de clientes</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#059669", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Cobros de clientes</div>
                     {obraPendientes.cobros.map(cb => {
                       const sel = obraSeleccionados.some(i => i.tipo === "cobro" && i.id === cb.id);
                       return (
@@ -875,7 +876,7 @@ export default function ControlFinanciero({ user }) {
                 {/* Pagos subcontrato */}
                 {obraPendientes.pagos_subcontrato?.length > 0 && (
                   <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>👷 Pagos a subcontratistas</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Pagos a subcontratistas</div>
                     {obraPendientes.pagos_subcontrato.map(ps => {
                       const sel = obraSeleccionados.some(i => i.tipo === "pago_sub" && i.id === ps.id);
                       return (

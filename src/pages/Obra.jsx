@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Printer, TrendingUp, Award, BarChart2, FileText, DollarSign, Users, ShoppingCart, CheckCircle } from "lucide-react";
 import api from "../cotizador/api";
 const fmt = (n) => "$" + Math.round(n || 0).toLocaleString("es-AR");
 const today = () => new Date().toISOString().split("T")[0];
@@ -245,7 +246,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
       {/* Header */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "12px 20px" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={() => navigate(`/cotizador/presupuesto/${id}`)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 20 }}>←</button>
+          <button onClick={() => navigate(`/cotizador/presupuesto/${id}`)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", display:"flex", alignItems:"center" }}><ArrowLeft size={18} strokeWidth={1.5} /></button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800 }}>{presupuesto?.nombre_obra}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
@@ -259,16 +260,16 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
           </div>
           <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
             <button onClick={() => navigate(`/cotizador/gantt/${id}`)}
-              style={{ ...btn(C.blue), fontSize: 12 }}>
-              📅 Gantt
+              style={{ ...btn(C.blue), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
+              <BarChart2 size={13} strokeWidth={1.5} /> Gantt
             </button>
             <button onClick={() => navigate(`/cotizador/presupuesto/${id}/curva`)}
-              style={{ ...btn(C.warn), fontSize: 12 }}>
-              📈 Curva
+              style={{ ...btn(C.warn), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
+              <TrendingUp size={13} strokeWidth={1.5} /> Curva
             </button>
             <button onClick={() => setTab("certificados")}
-              style={{ ...btn(C.accent2), fontSize: 12 }}>
-              📜 Certificados
+              style={{ ...btn(C.accent2), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
+              <Award size={13} strokeWidth={1.5} /> Certificados
             </button>
           </div>
         </div>
@@ -277,12 +278,12 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
       {/* Tabs */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", overflowX: "auto" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", width: "100%" }}>
-          <TabBtn id="resumen" label="📊 Resumen" />
-          <TabBtn id="contrato" label="📋 Contrato" />
-          <TabBtn id="cobros" label="💰 Cobros" />
-          <TabBtn id="subcontratos" label="👷 Subcontratos" />
-          <TabBtn id="compras" label="🧱 Compras" />
-          <TabBtn id="certificados" label="📜 Certificados" />
+          <TabBtn id="resumen" label="Resumen" />
+          <TabBtn id="contrato" label="Contrato" />
+          <TabBtn id="cobros" label="Cobros" />
+          <TabBtn id="subcontratos" label="Subcontratos" />
+          <TabBtn id="compras" label="Compras" />
+          <TabBtn id="certificados" label="Certificados" />
         </div>
       </div>
 
@@ -353,7 +354,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
                   <div style={{ fontSize: 15, fontWeight: 700 }}>Contrato de obra</div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={imprimirContrato} style={{ ...btn(C.surface2), color: C.text, border: `1px solid ${C.border}` }}>🖨️ Imprimir</button>
+                    <button onClick={imprimirContrato} style={{ ...btn(C.surface2), color: C.text, border: `1px solid ${C.border}`, display:"flex", alignItems:"center", gap:5 }}><Printer size={13} strokeWidth={1.5} /> Imprimir</button>
                     <button onClick={() => setShowContrato(true)} style={btn(C.accent)}>Editar</button>
                   </div>
                 </div>
@@ -401,7 +402,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               </div>
             ) : (
               <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center" }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+                <FileText size={36} strokeWidth={1} color={C.muted} style={{ marginBottom: 12 }} />
                 <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Sin contrato</div>
                 <div style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>Creá el contrato para esta obra</div>
                 <button onClick={() => setShowContrato(true)} style={btn(C.accent)}>+ Crear contrato</button>
@@ -542,7 +543,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
 
             {certificados.length === 0 ? (
               <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center" }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>📜</div>
+                <Award size={32} strokeWidth={1} color={C.muted} style={{ marginBottom: 12 }} />
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Sin certificados emitidos</div>
                 <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>Emití el primer certificado de avance</div>
                 <button onClick={() => navigate(`/cotizador/presupuesto/${id}/certificado`)} style={btn(C.accent2)}>
@@ -587,7 +588,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                               <span style={{ fontSize: 12, color: C.red, fontWeight: 700 }}>Pendiente: {fmt(pendiente)}</span>
                             )}
                             {pendiente <= 0 && montoCobrado > 0 && (
-                              <span style={{ fontSize: 12, color: C.green, fontWeight: 700 }}>✓ Cobrado completo</span>
+                              <span style={{ fontSize: 12, color: C.green, fontWeight: 700, display:"flex", alignItems:"center", gap:3 }}><CheckCircle size={12} strokeWidth={2} /> Cobrado completo</span>
                             )}
                             <button
                               onClick={() => {
