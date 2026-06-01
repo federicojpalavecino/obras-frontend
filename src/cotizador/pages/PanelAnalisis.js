@@ -179,7 +179,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setModalImportar(true)} title="Importar análisis desde el catálogo" style={{ fontSize: 10 }}>
-            📋 Importar
+            Importar
           </button>
           {data?.tiene_override && (
             <button className="btn btn-secondary btn-sm" onClick={handleResetear} title="Restablecer análisis original">
@@ -337,7 +337,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
           <div style={{ background: 'var(--surface)', borderRadius: 10, padding: 20, width: 'min(480px, 95vw)', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>📋 Importar análisis del catálogo</div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>Importar análisis del catálogo</div>
               <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' }} onClick={() => setModalImportar(false)}><X size={16} /></button>
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>

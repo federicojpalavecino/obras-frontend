@@ -484,8 +484,8 @@ ${certEg ? `
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <div className="header-actions-desktop" style={{ gap: 8 }}>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowEgresos(true)}>
-                📄 Cert. egresos
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowEgresos(true)} style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <FileText size={12} strokeWidth={1.5} /> Cert. egresos
               </button>
               {presupuesto?.estado === 'cerrado' && (
                 <button className="btn btn-primary btn-sm" onClick={abrirModalNuevo}>
@@ -494,8 +494,8 @@ ${certEg ? `
               )}
             </div>
             <MobileMenu actions={[
-              { label: 'Cert. egresos', icon: '📄', onClick: () => setShowEgresos(true) },
-              ...(presupuesto?.estado === 'cerrado' ? [{ label: 'Nuevo certificado', icon: '➕', onClick: abrirModalNuevo, color: 'var(--accent2)' }] : []),
+              { label: 'Cert. egresos', icon: <FileText size={16} strokeWidth={1.5} />, onClick: () => setShowEgresos(true) },
+              ...(presupuesto?.estado === 'cerrado' ? [{ label: 'Nuevo certificado', icon: <Plus size={16} strokeWidth={1.5} />, onClick: abrirModalNuevo, color: 'var(--accent2)' }] : []),
             ]} />
           </div>
         </div>
@@ -503,7 +503,7 @@ ${certEg ? `
         <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto' }}>
           {adicionales.length > 0 && (
             <div style={{ marginBottom: 12, padding: '8px 14px', background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 8, fontSize: 11 }}>
-              <span style={{ color: 'var(--accent2)', fontWeight: 600 }}>📋 Adicionales vinculados: </span>
+              <span style={{ color: 'var(--accent2)', fontWeight: 600 }}>Adicionales vinculados: </span>
               {adicionales.map(a => (
                 <span key={a.id} style={{ marginRight: 12, color: 'var(--muted)' }}>
                   {a.nombre_obra}
@@ -564,7 +564,7 @@ ${certEg ? `
                           {cert.periodo_desde && <div style={{ fontSize: 10, color: 'var(--muted)' }}>Período: {new Date(cert.periodo_desde+'T12:00:00').toLocaleDateString('es-AR')} → {cert.periodo_hasta ? new Date(cert.periodo_hasta+'T12:00:00').toLocaleDateString('es-AR') : '—'}</div>}
                           {certEgVinculado && (
                             <div style={{ fontSize: 10, color: 'var(--danger)', marginTop: 2 }}>
-                              📎 Cert. egresos: {fmt(certEgVinculado.total)}
+                              Cert. egresos: {fmt(certEgVinculado.total)}
                             </div>
                           )}
                           {ajustesPorCert[cert.numero] && (ajustesPorCert[cert.numero].mayores_costos_pct > 0 || ajustesPorCert[cert.numero].fondo_reparo_pct > 0 || ajustesPorCert[cert.numero].multas > 0) && (
@@ -642,14 +642,14 @@ ${certEg ? `
                     {certEgVinculado && (
                       <div style={{ marginTop: 2, background: 'var(--surface)', border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 10px 10px', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--danger)' }}>📎 Certificado de Egresos adjunto</div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--danger)' }}>Certificado de Egresos adjunto</div>
                           <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>
                             {(certEgVinculado.egresos||[]).length} ítems · {certEgVinculado.fecha ? new Date(certEgVinculado.fecha+'T12:00:00').toLocaleDateString('es-AR') : '—'}
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <div style={{ fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 700, color: 'var(--danger)' }}>{fmt(certEgVinculado.total)}</div>
-                          <button className="btn btn-secondary btn-sm" onClick={() => imprimirCertEgresos(certEgVinculado.egresos||[], certEgVinculado.total, certEgVinculado.certificado_num)}>🖨 Imprimir</button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => imprimirCertEgresos(certEgVinculado.egresos||[], certEgVinculado.total, certEgVinculado.certificado_num)} style={{display:'flex',alignItems:'center',gap:4}}><Printer size={12} strokeWidth={1.5} /> Imprimir</button>
                           <button className="btn btn-danger btn-sm" onClick={async () => {
                             if(!window.confirm('¿Eliminar este certificado de egresos?')) return;
                             await api.delete(`/presupuestos/${id}/cert-egresos/${certEgVinculado.id}`);
@@ -780,7 +780,7 @@ ${certEg ? `
                       <React.Fragment key={'adic-' + adic.id}>
                         <tr>
                           <td colSpan={4} style={{ padding: '6px 12px', background: 'rgba(167,139,250,0.12)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent2)', letterSpacing: 0.8 }}>
-                            📋 Adicional — {adic.nombre_obra}
+                            Adicional — {adic.nombre_obra}
                           </td>
                         </tr>
                         {adic.rubros?.flatMap(r => r.lineas)?.map(linea => {
@@ -1024,7 +1024,7 @@ ${certEg ? `
                           <span style={{ fontSize: 11, color: 'var(--muted)' }}>{e._semana} · {e.estado || '—'}</span>
                           {e.obra && (
                             <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 10, background: 'rgba(110,231,183,0.1)', color: 'var(--accent)', fontWeight: 600 }}>
-                              🏗 {e.obra}
+                              {e.obra}
                             </span>
                           )}
                         </div>
@@ -1087,7 +1087,7 @@ ${certEg ? `
                     setEgresosSeleccion({});
                     setGastosExtra([]);
                   }}>
-                  💾 Guardar
+                  Guardar
                 </button>
                 <button className="btn btn-primary"
                   disabled={Object.values(egresosSeleccion).filter(Boolean).length === 0 && gastosExtra.length === 0}
@@ -1100,7 +1100,7 @@ ${certEg ? `
                     setEgresosSeleccion({});
                     setGastosExtra([]);
                   }}>
-                  🖨 Guardar e imprimir
+                  <span style={{display:'flex',alignItems:'center',gap:4}}><Printer size={12} strokeWidth={1.5} /> Guardar e imprimir</span>
                 </button>
               </div>
             </div>

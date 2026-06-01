@@ -234,7 +234,7 @@ export default function ListadoMateriales() {
     @media print{@page{margin:1.5cm}.aviso{display:none}}</style></head><body>
     <h1>${(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');if(s?.tenant?.nombre)return s.tenant.nombre;const t=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(t?.nombre)return t.nombre;}catch(e){}return 'FAIM OBRAS'})()}</h1>
     <h2>${data?.obra}${soloSeleccionados ? ' (selección)' : ''} · ${hoy}</h2>
-    <div class="aviso">📋 Este listado es para pedido/cotización a proveedores — sin precios internos</div>
+    <div class="aviso">Este listado es para pedido/cotización a proveedores — sin precios internos</div>
     <table><thead><tr><th>Código</th><th>Material</th><th style="text-align:right">Cantidad</th><th>Precio proveedor</th></tr></thead>
     <tbody>${filasHTML}</tbody></table>
     <div class="footer"><span>${(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}')||{};if(s?.tenant?.nombre)return s.tenant.nombre;}catch(e){}return 'FAIM OBRAS'})()}  — ${data?.obra}</span><span>${hoy}</span></div>
@@ -270,11 +270,11 @@ export default function ListadoMateriales() {
             <span style={{ fontSize: 12, color: 'var(--accent2)', fontFamily: 'var(--mono)' }}>{selCount} seleccionados · {fmt(totalSel)}</span>
           )}
           <button className="btn btn-secondary btn-sm" onClick={copiarParaProveedor}>
-            📋 Copiar {selCount > 0 ? 'selección' : 'todo'}
+            Copiar {selCount > 0 ? 'selección' : 'todo'}
           </button>
           <div style={{ display: 'flex', background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 6, overflow: 'hidden' }}>
-            <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => imprimir(selCount > 0)}>🖨 Con precios</button>
-            <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={() => imprimirPedido(selCount > 0)}>📋 Pedido/Cotizar</button>
+            <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => imprimir(selCount > 0)}>Con precios</button>
+            <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={() => imprimirPedido(selCount > 0)}>Pedido/Cotizar</button>
             <button className="btn btn-sm" style={{ borderRadius: 0, background: 'var(--accent)', color: '#0f0f11', border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: 12, fontFamily: 'inherit', fontWeight: 700 }} onClick={() => { setModalAgregar(true); cargarCatalogo(); }}>+ Agregar</button>
           </div>
         </div>

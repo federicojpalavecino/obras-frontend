@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FileText, Award, BarChart2, Calendar, Users, Building2 } from 'lucide-react';
 
 const C = {
   bg: '#f8f9fa', surface: '#ffffff', surface2: '#f1f3f5',
@@ -9,19 +10,23 @@ const C = {
   warn: '#d97706', green: '#10b981', blue: '#3b82f6',
 };
 
+const PRECIO_BASE = 30000;
+const PRECIO_EXTRA = 7000;
+const MAX_BASE = 2;
+
 const features = [
-  { icon: '📋', title: 'Cotizador profesional', desc: 'Presupuestos con análisis de costos, cómputo y coeficientes configurables. Catálogo de 524 ítems actualizado mensualmente.', color: C.accent2 },
-  { icon: '📜', title: 'Certificados de obra', desc: 'Certificados de avance vinculados al presupuesto. Gantt automático y curva de inversión incluidos.', color: C.accent },
-  { icon: '💰', title: 'Control financiero', desc: 'Ingresos, egresos y personal por semana, quincena o mes. Resumen por obra y vinculación automática con certificados.', color: C.warn },
-  { icon: '📅', title: 'Planner integrado', desc: 'Tablero kanban de tareas vinculado al Gantt y presupuestos. Sincronización individual con Google Calendar.', color: C.blue },
-  { icon: '👥', title: 'Portal de clientes', desc: 'Tus clientes ven el avance de su obra y sus certificados en un portal con tu logo y tus colores.', color: C.accent2 },
-  { icon: '🎨', title: 'Tu identidad', desc: 'Logo, nombre y color propios. Cada presupuesto y certificado sale con la imagen de tu estudio.', color: C.green },
+  { icon: FileText, title: 'Cotizador profesional', desc: 'Presupuestos con análisis de costos, cómputo y coeficientes configurables. Catálogo de 524 ítems actualizado mensualmente.', color: C.accent2 },
+  { icon: Award, title: 'Certificados de obra', desc: 'Certificados de avance vinculados al presupuesto. Gantt automático y curva de inversión incluidos.', color: C.accent },
+  { icon: BarChart2, title: 'Control financiero', desc: 'Ingresos, egresos y personal por semana, quincena o mes. Resumen por obra y vinculación automática con certificados.', color: C.warn },
+  { icon: Calendar, title: 'Planner integrado', desc: 'Tablero kanban de tareas vinculado al Gantt y presupuestos. Sincronización individual con Google Calendar.', color: C.blue },
+  { icon: Users, title: 'Portal de clientes', desc: 'Tus clientes ven el avance de su obra y sus certificados en un portal con tu logo y tus colores.', color: C.accent2 },
+  { icon: Building2, title: 'Tu identidad', desc: 'Logo, nombre y color propios. Cada presupuesto y certificado sale con la imagen de tu estudio.', color: C.green },
 ];
 
 export default function Landing() {
   const navigate = useNavigate();
   const [usuarios, setUsuarios] = useState(2);
-  const precio = 35000 + Math.max(0, usuarios - 2) * 8000;
+  const precio = PRECIO_BASE + Math.max(0, usuarios - MAX_BASE) * PRECIO_EXTRA;
 
   const goApp = () => navigate('/');
 
@@ -60,13 +65,13 @@ export default function Landing() {
           </a>
         </div>
         <div style={{ marginTop: 16, fontSize: 12, color: C.muted }}>
-          15 días de prueba gratuita · Sin tarjeta de crédito
+          30 días de prueba gratuita · Sin tarjeta de crédito
         </div>
       </div>
 
       {/* STATS */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 48, padding: '28px 48px', borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap', background: C.surface2 }}>
-        {[['524+', 'ítems en el catálogo'], ['100%', 'en la nube'], ['15 días', 'prueba gratis'], ['Multi', 'usuario']].map(([num, label]) => (
+        {[['524+', 'ítems en el catálogo'], ['100%', 'en la nube'], ['30 días', 'prueba gratis'], ['Multi', 'usuario']].map(([num, label]) => (
           <div key={label} style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 26, fontWeight: 900, color: C.accent, fontFamily: "'IBM Plex Mono', monospace" }}>{num}</div>
             <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>{label}</div>
@@ -79,16 +84,21 @@ export default function Landing() {
         <h2 style={{ textAlign: 'center', fontSize: 30, fontWeight: 800, marginBottom: 10, letterSpacing: -1, color: C.text }}>Todo lo que necesitás</h2>
         <p style={{ textAlign: 'center', color: C.muted, marginBottom: 44, fontSize: 15 }}>Un solo sistema para gestionar toda tu operación</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
-          {features.map(f => (
-            <div key={f.title}
-              style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 22, transition: 'border-color 0.2s, box-shadow 0.2s', cursor: 'default' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = f.color; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none'; }}>
-              <div style={{ fontSize: 30, marginBottom: 12 }}>{f.icon}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: C.text }}>{f.title}</div>
-              <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6 }}>{f.desc}</div>
-            </div>
-          ))}
+          {features.map(f => {
+            const Icon = f.icon;
+            return (
+              <div key={f.title}
+                style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 22, transition: 'border-color 0.2s, box-shadow 0.2s', cursor: 'default' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = f.color; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none'; }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: f.color + '12', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                  <Icon size={20} strokeWidth={1.5} color={f.color} />
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: C.text }}>{f.title}</div>
+                <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6 }}>{f.desc}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -107,21 +117,30 @@ export default function Landing() {
               <span style={{ fontSize: 13, color: C.muted }}>Cantidad de usuarios</span>
               <span style={{ fontSize: 14, fontWeight: 700, color: C.accent }}>{usuarios}</span>
             </div>
-            <input type="range" min="2" max="10" value={usuarios} onChange={e => setUsuarios(parseInt(e.target.value))}
+            <input type="range" min="1" max="10" value={usuarios} onChange={e => setUsuarios(parseInt(e.target.value))}
               style={{ width: '100%', accentColor: C.accent }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.muted, marginTop: 5 }}>
-              <span>2 usuarios (base)</span>
-              <span>+$8.000/usuario extra</span>
+              <span>{MAX_BASE} usuarios incluidos</span>
+              <span>+${PRECIO_EXTRA.toLocaleString('es-AR')}/usuario extra</span>
             </div>
           </div>
-          {['Cotizador ilimitado', 'Certificados de obra', 'Control financiero', 'Planner + Google Calendar', 'Portal de clientes', 'Tu logo y marca', `${usuarios} usuarios incluidos`, 'Soporte por WhatsApp'].map(f => (
-            <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          {[
+            'Cotizador ilimitado',
+            'Certificados de obra',
+            'Control financiero',
+            'Planner + Google Calendar',
+            'Portal de clientes',
+            'Tu logo y marca',
+            `${usuarios} usuario${usuarios !== 1 ? 's' : ''} incluido${usuarios !== 1 ? 's' : ''}`,
+            'Soporte por WhatsApp',
+          ].map(item => (
+            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <span style={{ color: C.accent, fontWeight: 700, fontSize: 15 }}>✓</span>
-              <span style={{ fontSize: 13, color: C.text }}>{f}</span>
+              <span style={{ fontSize: 13, color: C.text }}>{item}</span>
             </div>
           ))}
           <button onClick={goApp} style={{ display: 'block', width: '100%', marginTop: 28, padding: '13px', borderRadius: 9, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, fontFamily: "'Syne', sans-serif" }}>
-            Empezar 15 días gratis →
+            Empezar 30 días gratis →
           </button>
           <div style={{ fontSize: 11, color: C.muted, marginTop: 10, textAlign: 'center' }}>Sin tarjeta de crédito requerida</div>
         </div>
@@ -130,7 +149,7 @@ export default function Landing() {
       {/* CTA */}
       <div style={{ padding: '64px 48px', textAlign: 'center', background: C.bg }}>
         <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 12, letterSpacing: -1, color: C.text }}>¿Listo para empezar?</h2>
-        <p style={{ color: C.muted, marginBottom: 36, fontSize: 15 }}>15 días de prueba gratuita. Sin compromisos.</p>
+        <p style={{ color: C.muted, marginBottom: 36, fontSize: 15 }}>30 días de prueba gratuita. Sin compromisos.</p>
         <button onClick={goApp} style={{ padding: '14px 44px', borderRadius: 12, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 800, fontFamily: "'Syne', sans-serif", letterSpacing: -0.5 }}>
           Crear cuenta gratis →
         </button>
@@ -138,7 +157,7 @@ export default function Landing() {
 
       {/* FOOTER */}
       <div style={{ textAlign: 'center', padding: '24px', borderTop: `1px solid ${C.border}`, color: C.muted, fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.3px', background: C.surface }}>
-        © 2026 FAIM OBRAS · by FIMA Arquitectura · faimobras@gmail.com · +54 362 530-5155 · Todos los derechos reservados
+        © 2026 FAIM OBRAS · by FIMA Arquitectura · faimobras@gmail.com · Todos los derechos reservados
       </div>
     </div>
   );
