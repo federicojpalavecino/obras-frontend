@@ -23,11 +23,19 @@ function Badge({ plan }) {
 }
 
 // ── Panel de Mano de Obra ──────────────────────────────────────────────────────
+const CS_REF = 65; // % cargas sociales referencia UOCRA construcción Argentina
+
+function fmtFechaCorta(iso) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString("es-AR", { day:"2-digit", month:"2-digit", year:"numeric" });
+}
+
 function PanelMO({ token }) {
-  const [list, setList] = useState([]);
-  const [edit, setEdit] = useState({});
+  const [list, setList]     = useState([]);
+  const [edit, setEdit]     = useState({});
   const [saving, setSaving] = useState({});
-  const [saved, setSaved] = useState({});
+  const [saved, setSaved]   = useState({});
+  const [csRef, setCsRef]   = useState(CS_REF);
 
   useEffect(() => { cargar(); }, []);
 
@@ -36,51 +44,82 @@ function PanelMO({ token }) {
     if (r.ok) setList(await r.json());
   };
 
+  // Usa el endpoint bulk que está confirmado funcionando
   const guardar = async (id, costo) => {
     setSaving(s => ({ ...s, [id]: true }));
-    await fetch(`${API}/admin/mo/${id}/precio?costo_hora=${costo}`, {
-      method: "PUT", headers: { Authorization: `Bearer ${token}` }
+    const r = await fetch(`${API}/admin/bulk-precios/mo`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify([{ id, costo_hora: parseFloat(costo) }])
     });
+    const ok2 = r.ok;
     setSaving(s => ({ ...s, [id]: false }));
-    setSaved(s => ({ ...s, [id]: true }));
-    setTimeout(() => setSaved(s => ({ ...s, [id]: false })), 1500);
+    if (ok2) { setSaved(s => ({ ...s, [id]: true })); setTimeout(() => setSaved(s => ({ ...s, [id]: false })), 1500); }
+    else { alert("Error al guardar"); }
     cargar();
   };
 
+  // Fecha de última actualización (la más reciente del conjunto)
+  const lastUpdate = list.reduce((mx, m) => {
+    if (!m.updated_at) return mx;
+    return !mx || m.updated_at > mx ? m.updated_at : mx;
+  }, null);
+
   return (
     <div>
-      <div style={{ fontSize:13, color:C.muted, marginBottom:16 }}>
-        Tasas UOCRA — actualizá los valores según el convenio vigente. Los cambios aplican a todos los estudios.
+      {/* Info cargas sociales */}
+      <div style={{ background:"#fffbeb", border:"1px solid #fde68a", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:12, color:"#92400e" }}>
+        <strong>Tasas base UOCRA Zona A.</strong> Las cargas sociales (jubilación, obra social, ART, SAC, vacaciones, etc.)
+        se aplican <em>por presupuesto</em> en el cotizador — por defecto el 65% sobre el salario base.
+        Costo empleador estimado = tasa base × (1 + CS%/100).
+        <div style={{ marginTop:6, display:"flex", alignItems:"center", gap:8 }}>
+          <span>CS% de referencia:</span>
+          <input type="number" value={csRef} onChange={e => setCsRef(parseFloat(e.target.value)||0)} min={0} max={200}
+            style={{ width:60, padding:"2px 6px", borderRadius:5, border:"1px solid #fde68a", fontSize:12, fontFamily:"'IBM Plex Mono',monospace" }} />
+          <span style={{ color:"#78350f" }}>→ factor {(1 + csRef/100).toFixed(2)}x</span>
+        </div>
       </div>
+
       <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 160px 80px", padding:"10px 16px", background:C.surface2, borderBottom:`1px solid ${C.border}` }}>
-          {["Categoría","Grupo","Costo/hora (ARS)",""].map(h => (
+        <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 140px 140px 70px 110px", padding:"10px 16px", background:C.surface2, borderBottom:`1px solid ${C.border}` }}>
+          {["Categoría","Grupo","Tasa base/hora","Con CS " + csRef + "%","","Actualizado"].map(h => (
             <div key={h} style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.5px" }}>{h}</div>
           ))}
         </div>
         {list.map((m, i) => {
           const val = edit[m.id] !== undefined ? edit[m.id] : String(m.costo_hora);
+          const base = parseFloat(val) || 0;
+          const conCs = Math.round(base * (1 + csRef / 100));
+          const changed = base !== m.costo_hora;
           return (
-            <div key={m.id} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 160px 80px", padding:"10px 16px", borderBottom: i < list.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center" }}>
+            <div key={m.id} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 140px 140px 70px 110px", padding:"10px 16px", borderBottom: i < list.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center" }}>
               <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{m.nombre}</div>
               <div style={{ fontSize:12, color:C.muted }}>{m.categoria || "—"}</div>
               <input
                 type="number" value={val}
                 onChange={e => setEdit(prev => ({ ...prev, [m.id]: e.target.value }))}
-                style={{ padding:"6px 10px", border:`1px solid ${C.border}`, borderRadius:6, fontSize:13, fontFamily:"'IBM Plex Mono',monospace", width:"100%", outline:"none", boxSizing:"border-box" }}
+                style={{ padding:"5px 8px", border:`1px solid ${changed ? C.accent : C.border}`, borderRadius:6, fontSize:13, fontFamily:"'IBM Plex Mono',monospace", width:"100%", outline:"none", boxSizing:"border-box" }}
               />
+              <div style={{ fontSize:13, fontFamily:"'IBM Plex Mono',monospace", color:C.accent, fontWeight:600 }}>
+                $ {conCs.toLocaleString("es-AR")}
+              </div>
               <button
                 onClick={() => guardar(m.id, parseFloat(val))}
-                disabled={saving[m.id] || parseFloat(val) === m.costo_hora}
-                style={{ padding:"5px 12px", borderRadius:6, border:"none", fontSize:12, fontWeight:700, cursor:"pointer", background: saved[m.id] ? C.green : C.accent, color:"white", opacity: (saving[m.id] || parseFloat(val) === m.costo_hora) ? 0.5 : 1 }}>
-                {saved[m.id] ? "✓" : saving[m.id] ? "..." : "Guardar"}
+                disabled={saving[m.id] || !changed}
+                style={{ padding:"5px 10px", borderRadius:6, border:"none", fontSize:12, fontWeight:700, cursor:"pointer", background: saved[m.id] ? C.green : changed ? C.accent : C.surface2, color: saved[m.id] || changed ? "white" : C.muted, opacity:saving[m.id]?0.6:1 }}>
+                {saved[m.id] ? "✓" : saving[m.id] ? "..." : "OK"}
               </button>
+              <div style={{ fontSize:11, color:C.muted, fontFamily:"'IBM Plex Mono',monospace" }}>
+                {fmtFechaCorta(m.updated_at) || "—"}
+              </div>
             </div>
           );
         })}
       </div>
-      <div style={{ fontSize:12, color:C.muted, marginTop:8, fontFamily:"'IBM Plex Mono',monospace" }}>
-        Fuente: UOCRA Mayo 2026 — Zona A. Actualizar mensualmente.
+
+      <div style={{ fontSize:12, color:C.muted, marginTop:8, fontFamily:"'IBM Plex Mono',monospace", display:"flex", justifyContent:"space-between" }}>
+        <span>Fuente: UOCRA — Zona A. Actualizar mensualmente con el convenio vigente.</span>
+        {lastUpdate && <span>Ultima actualización: {fmtFechaCorta(lastUpdate)}</span>}
       </div>
     </div>
   );
