@@ -995,7 +995,7 @@ ${firma}
                 )}
                 {cerrado && (
                   <div style={{ margin: 10, padding: '7px 12px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--warn)', textAlign: 'center' }}>
-                    🔒 Precios congelados al {new Date(data.fecha_cierre).toLocaleDateString('es-AR')}
+                    <Lock size={10} strokeWidth={2} style={{ display:'inline', verticalAlign:'middle', marginRight:4 }} />Precios congelados al {new Date(data.fecha_cierre).toLocaleDateString('es-AR')}
                   </div>
                 )}
 
@@ -1183,11 +1183,11 @@ ${firma}
                           <td colSpan={12} style={{ padding: '8px 12px', background: 'rgba(167,139,250,0.08)', borderTop: '2px solid rgba(167,139,250,0.3)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent2)' }}>📋 {a.nombre_obra}</span>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent2)' }}>{a.nombre_obra}</span>
                                 <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4,
                                   background: a.estado === 'cerrado' ? 'rgba(251,191,36,.15)' : 'rgba(110,231,183,.15)',
                                   color: a.estado === 'cerrado' ? 'var(--warn)' : 'var(--accent)' }}>
-                                  {a.estado === 'cerrado' ? '🔒' : '●'} {a.estado}
+                                  {a.estado === 'cerrado' ? <Lock size={9} strokeWidth={2} /> : '●'} {a.estado}
                                 </span>
                                 <span style={{ fontSize: 10, color: 'var(--muted)' }}>{a.cant_items} ítem{a.cant_items !== 1 ? 's' : ''}</span>
                               </div>
@@ -1270,8 +1270,8 @@ ${firma}
           <button
             onClick={() => setObsOpen(v => !v)}
             title="Observaciones generales"
-            style={{ width: 40, height: 40, borderRadius: '50%', background: observaciones ? 'var(--accent)' : 'var(--surface)', border: '1px solid var(--border2)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: observaciones ? '#fff' : 'var(--muted)' }}>
-            📝
+            style={{ width: 40, height: 40, borderRadius: '50%', background: observaciones ? 'var(--accent)' : 'var(--surface)', border: '1px solid var(--border2)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: observaciones ? '#fff' : 'var(--muted)' }}>
+            <FileText size={16} strokeWidth={1.5} />
           </button>
         </div>
 
@@ -1361,7 +1361,7 @@ ${firma}
                 <button
                   onClick={() => handleAgregarItem(itemPendiente, null)}
                   style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface2)', cursor: 'pointer', textAlign: 'left' }}>
-                  <div style={{ fontSize: 12, fontWeight: 600 }}>📦 Rubro original del catálogo</div>
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>Rubro original del catálogo</div>
                   <div style={{ fontSize: 11, color: 'var(--muted)' }}>{itemPendiente.categoria_nombre || 'Sin rubro'}</div>
                 </button>
                 {(data?.rubros || []).map(r => (
@@ -1411,9 +1411,9 @@ ${firma}
               {/* Header */}
               <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(167,139,250,0.08)', flexShrink: 0 }}>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--accent2)' }}>📋 {modalAdicional.nombre_obra}</div>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--accent2)' }}>{modalAdicional.nombre_obra}</div>
                   <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                    {modalAdicional.estado === 'cerrado' ? '🔒 Cerrado' : '● Abierto — podés agregar ítems'}
+                    {modalAdicional.estado === 'cerrado' ? <span style={{display:'flex',alignItems:'center',gap:4}}><Lock size={10} strokeWidth={2}/>Cerrado</span> : '● Abierto — podés agregar ítems'}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1427,7 +1427,7 @@ ${firma}
                     const win = window.open('','_blank');
                     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${adicData.nombre_obra}</title><style>body{font-family:Arial,sans-serif;font-size:10pt;padding:20px}table{width:100%;border-collapse:collapse}th{background:#1a1a1a;color:#fff;padding:5px 8px;text-align:left;font-size:8pt}td{padding:4px 8px;border-bottom:1px solid #eee}h2{margin-bottom:4px}h3{color:#666;font-size:9pt;margin-bottom:16px}@media print{@page{margin:1.5cm}}</style></head><body><h2>${adicData.nombre_obra}</h2><h3>Adicional de obra</h3><table><thead><tr><th>Ítem</th><th>Unid.</th><th>Cant.</th><th>Total Ejec.</th><th>Precio c/IVA</th></tr></thead><tbody>${rubrosHTML2}</tbody></table><div style="margin-top:16px;text-align:right;font-size:13pt;font-weight:700">Total: ${fmt2(adicData.totales?.total_precio_con_iva || adicData.total_precio_con_iva)}</div></body></html>`);
                     win.document.close(); setTimeout(()=>win.print(),500);
-                  }}>🖨 Imprimir</button>
+                  }} style={{display:'flex',alignItems:'center',gap:4}}><Printer size={12} strokeWidth={1.5}/>Imprimir</button>
                   {modalAdicional.estado === 'abierto' ? (
                     <button onClick={cerrarAdicional} className="btn btn-warn btn-sm"><Lock size={12} /> Cerrar</button>
                   ) : (
