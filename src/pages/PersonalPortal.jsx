@@ -93,7 +93,7 @@ export default function PersonalPortal({ user, userInfo, onLogout }) {
 
       {/* Tabs */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", padding: "0 20px" }}>
-        {[["egresos", "💰 Cargar egreso"], ["herramientas", "🔧 Herramientas"]].map(([id, label]) => (
+        {[["egresos", "Cargar egreso"], ["herramientas", "Herramientas"]].map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)} style={{ padding: "12px 14px", background: "none", border: "none", borderBottom: `2px solid ${tab === id ? tenantColor : "transparent"}`, color: tab === id ? tenantColor : C.muted, cursor: "pointer", fontSize: 13, fontWeight: tab === id ? 700 : 400, fontFamily: "inherit" }}>
             {label}
           </button>

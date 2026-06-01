@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { FileText, Package, BarChart2, User } from "lucide-react";
 
 const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
 const getToken = () => localStorage.getItem("obras_token") || "";
@@ -282,10 +283,10 @@ export default function Fiscal({ user }) {
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Syne', sans-serif", color: C.text }}>
       {/* TABS */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", position: "sticky", top: 0, zIndex: 50, overflowX: "auto" }}>
-        <TabBtn id="facturas" label="🧾 Facturas" />
-        <TabBtn id="negro" label="📦 Sin facturar" />
-        <TabBtn id="resumen" label="📊 Resumen" />
-        <TabBtn id="config" label="👤 Perfiles" />
+        <TabBtn id="facturas" label="Facturas" />
+        <TabBtn id="negro" label="Sin facturar" />
+        <TabBtn id="resumen" label="Resumen" />
+        <TabBtn id="config" label="Perfiles" />
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 12, gap: 8 }}>
           <select value={anio} onChange={(e) => setAnio(parseInt(e.target.value))} style={{ padding: "5px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, background: C.surface, fontFamily: "inherit" }}>
             {[2024, 2025, 2026, 2027].map((y) => <option key={y}>{y}</option>)}
@@ -319,7 +320,7 @@ export default function Fiscal({ user }) {
 
             {facturasFiltradas.length === 0 ? (
               <div style={{ textAlign: "center", color: C.muted, padding: 60, background: C.surface, borderRadius: 12, border: `1px solid ${C.border}` }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>🧾</div>
+                <FileText size={32} strokeWidth={1} color={C.muted} style={{ marginBottom: 12 }} />
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>Sin facturas en {anio}</div>
                 <Btn primary onClick={() => setModalFactura(true)} style={{ marginTop: 12 }}>Registrar primera factura</Btn>
               </div>
@@ -421,7 +422,7 @@ export default function Fiscal({ user }) {
             </div>
             {configs.length === 0 && (
               <div style={{ textAlign: "center", color: C.muted, padding: 60, background: C.surface, borderRadius: 12, border: `1px solid ${C.border}` }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
+                <User size={32} strokeWidth={1} color={C.muted} style={{ marginBottom: 12 }} />
                 <div style={{ fontWeight: 600 }}>Sin perfiles configurados</div>
                 <Btn primary onClick={() => setModalConfig({})} style={{ marginTop: 16 }}>Agregar primer perfil</Btn>
               </div>
@@ -437,7 +438,7 @@ export default function Fiscal({ user }) {
                     </div>
                     {c.cuit && <div style={{ fontSize: 13, color: C.muted }}>CUIT: {c.cuit}</div>}
                     {c.categoria_actual && <div style={{ fontSize: 13, color: C.muted }}>Cat. {c.categoria_actual} — límite {fmtM(CATEGORIAS_MONO[c.categoria_actual]?.limite || 0)}/año</div>}
-                    {c.proxima_recategorizacion && <div style={{ fontSize: 12, color: C.warn, marginTop: 4 }}>📅 Próx. recategorización: {fmtFecha(c.proxima_recategorizacion)}</div>}
+                    {c.proxima_recategorizacion && <div style={{ fontSize: 12, color: C.warn, marginTop: 4 }}>Próx. recategorización: {fmtFecha(c.proxima_recategorizacion)}</div>}
                     {c.cbu && <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>CBU/Alias: {c.cbu}</div>}
                   </div>
                   <Btn small onClick={() => setModalConfig(c)}>Editar</Btn>

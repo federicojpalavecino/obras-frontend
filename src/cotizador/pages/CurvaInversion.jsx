@@ -1,6 +1,7 @@
 import '../index.css';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Printer, TrendingUp } from 'lucide-react';
 
 import api from '../api';
 
@@ -214,7 +215,7 @@ export default function CurvaInversion() {
               </button>
             ))}
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={imprimir}>🖨 Imprimir</button>
+          <button className="btn btn-secondary btn-sm" onClick={imprimir} style={{ display:'flex', alignItems:'center', gap:4 }}><Printer size={12} strokeWidth={1.5} /> Imprimir</button>
         </div>
       </div>
 
@@ -222,7 +223,7 @@ export default function CurvaInversion() {
 
         {tareas.length === 0 && (
           <div className="card" style={{ textAlign: 'center', padding: 40 }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📊</div>
+            <TrendingUp size={32} strokeWidth={1} style={{ marginBottom: 12, color: 'var(--muted)' }} />
             <div style={{ fontWeight: 700, marginBottom: 8 }}>Sin datos de Gantt</div>
             <p style={{ color: 'var(--muted)', marginBottom: 16 }}>Necesitás generar el diagrama de Gantt primero para calcular la curva de inversión.</p>
             <button className="btn btn-primary" onClick={() => navigate(`/cotizador/gantt/${id}`)}>Ir al Gantt</button>

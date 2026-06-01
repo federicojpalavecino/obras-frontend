@@ -898,7 +898,7 @@ export default function ControlFinanciero({ user }) {
                 {/* Compras */}
                 {obraPendientes.compras?.length > 0 && (
                   <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>🧱 Compras de materiales</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Compras de materiales</div>
                     {obraPendientes.compras.map(cm => {
                       const sel = obraSeleccionados.some(i => i.tipo === "compra" && i.id === cm.id);
                       return (

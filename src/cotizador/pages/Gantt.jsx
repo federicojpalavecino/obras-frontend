@@ -1,6 +1,7 @@
 import '../index.css';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Calendar, BarChart2 } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 
 import api from '../api';
@@ -156,7 +157,7 @@ export default function Gantt() {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <div className="header-actions-desktop" style={{ gap: 8 }}>
-            <button className="btn btn-secondary btn-sm" onClick={enviarAlPlanner}>📅 Planner</button>
+            <button className="btn btn-secondary btn-sm" onClick={enviarAlPlanner} style={{ display:'flex', alignItems:'center', gap:4 }}><Calendar size={12} strokeWidth={1.5} /> Planner</button>
             <button className="btn btn-secondary btn-sm" onClick={() => setEditando({})}>+ Tarea</button>
             {tareas.length === 0 && (
               <button className="btn btn-primary btn-sm" onClick={generarDesdePresupuesto} disabled={generando}>
@@ -170,13 +171,13 @@ export default function Gantt() {
             )}
             {tareas.length > 0 && (
               <button className="btn btn-secondary btn-sm" onClick={exportarAlPlanner} title="Copiar tareas del Gantt al Planner">
-                📅 Exportar al Planner
+                Exportar al Planner
               </button>
             )}
           </div>
           <MobileMenu actions={[
-            { label: 'Enviar al Planner', icon: '📅', onClick: enviarAlPlanner },
-            { label: 'Nueva tarea', icon: '➕', onClick: () => setEditando({}) },
+            { label: 'Enviar al Planner', icon: <Calendar size={16} strokeWidth={1.5} />, onClick: enviarAlPlanner },
+            { label: 'Nueva tarea', icon: '+', onClick: () => setEditando({}) },
             tareas.length === 0
               ? { label: 'Generar desde presupuesto', icon: '⚡', onClick: generarDesdePresupuesto, disabled: generando }
               : { label: 'Regenerar Gantt', icon: '↺', onClick: generarDesdePresupuesto, disabled: generando, color: 'var(--warn)' },
@@ -210,7 +211,7 @@ export default function Gantt() {
       {/* GANTT */}
       {tareas.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
-          <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
+          <BarChart2 size={40} strokeWidth={1} style={{ marginBottom: 16, color: 'var(--muted)' }} />
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Sin tareas en el Gantt</div>
           <div style={{ fontSize: 13, marginBottom: 20 }}>Generá automáticamente desde el presupuesto o agregá tareas manualmente</div>
           <button className="btn btn-primary" onClick={generarDesdePresupuesto} disabled={generando}>
