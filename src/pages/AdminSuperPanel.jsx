@@ -86,6 +86,68 @@ function PanelMO({ token }) {
   );
 }
 
+// ── Panel de Maquinaria ────────────────────────────────────────────────────────
+function PanelMaquinaria({ token }) {
+  const [list, setList] = useState([]);
+  const [edit, setEdit] = useState({});
+  const [saving, setSaving] = useState({});
+  const [saved, setSaved] = useState({});
+
+  useEffect(() => { cargar(); }, []);
+
+  const cargar = async () => {
+    const r = await fetch(`${API}/admin/maquinaria`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) setList(await r.json());
+  };
+
+  const guardar = async (id, costo) => {
+    setSaving(s => ({ ...s, [id]: true }));
+    await fetch(`${API}/admin/bulk-precios/maquinaria`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify([{ id, costo_hora: parseFloat(costo) }])
+    });
+    setSaving(s => ({ ...s, [id]: false }));
+    setSaved(s => ({ ...s, [id]: true }));
+    setTimeout(() => setSaved(s => ({ ...s, [id]: false })), 1500);
+    cargar();
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize:13, color:C.muted, marginBottom:16 }}>
+        Costo horario de equipos y herramientas. Representa la amortización por hora de uso. Aplica a todos los estudios.
+      </div>
+      <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"2fr 160px 80px", padding:"10px 16px", background:C.surface2, borderBottom:`1px solid ${C.border}` }}>
+          {["Equipo / Herramienta","Costo/hora (ARS)",""].map(h => (
+            <div key={h} style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.5px" }}>{h}</div>
+          ))}
+        </div>
+        {list.map((m, i) => {
+          const val = edit[m.id] !== undefined ? edit[m.id] : String(m.costo_hora);
+          const changed = parseFloat(val) !== m.costo_hora;
+          return (
+            <div key={m.id} style={{ display:"grid", gridTemplateColumns:"2fr 160px 80px", padding:"10px 16px", borderBottom: i < list.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center" }}>
+              <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{m.nombre}</div>
+              <input
+                type="number" value={val}
+                onChange={e => setEdit(prev => ({ ...prev, [m.id]: e.target.value }))}
+                style={{ padding:"6px 10px", border:`1px solid ${changed ? C.accent : C.border}`, borderRadius:6, fontSize:13, fontFamily:"'IBM Plex Mono',monospace", width:"100%", outline:"none", boxSizing:"border-box" }}
+              />
+              <button
+                onClick={() => guardar(m.id, val)}
+                disabled={saving[m.id] || !changed}
+                style={{ padding:"5px 12px", borderRadius:6, border:"none", fontSize:12, fontWeight:700, cursor:"pointer", background: saved[m.id] ? C.green : changed ? C.accent : C.surface2, color: saved[m.id] || changed ? "white" : C.muted, opacity:saving[m.id]?0.6:1 }}>
+                {saved[m.id] ? "✓" : saving[m.id] ? "..." : "OK"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Panel de Materiales ────────────────────────────────────────────────────────
 function PanelMateriales({ token }) {
   const [list, setList]           = useState([]);
@@ -497,7 +559,7 @@ export default function AdminPanel() {
         {tab === "precios" && (
           <div>
             <div style={{ display:"flex", gap:4, background:C.surface2, borderRadius:8, padding:4, marginBottom:20, width:"fit-content" }}>
-              {[["mo","Mano de Obra UOCRA"],["materiales","Materiales"]].map(([id, label]) => (
+              {[["mo","Mano de Obra UOCRA"],["materiales","Materiales"],["maquinaria","Maquinaria"]].map(([id, label]) => (
                 <button key={id} onClick={() => setPreciosTab(id)}
                   style={{ padding:"7px 14px", borderRadius:6, border:"none", cursor:"pointer", fontFamily:"'Syne',sans-serif", fontWeight:600, fontSize:13, background:preciosTab===id ? C.surface : "transparent", color:preciosTab===id ? C.text : C.muted, boxShadow:preciosTab===id?"0 1px 3px rgba(0,0,0,0.08)":"none" }}>
                   {label}
@@ -507,6 +569,7 @@ export default function AdminPanel() {
 
             {preciosTab === "mo" && <PanelMO token={token} />}
             {preciosTab === "materiales" && <PanelMateriales token={token} />}
+            {preciosTab === "maquinaria" && <PanelMaquinaria token={token} />}
           </div>
         )}
 
