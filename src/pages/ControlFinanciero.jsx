@@ -533,7 +533,7 @@ export default function ControlFinanciero({ user }) {
             {/* Header período */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, minWidth: isMobile ? 0 : 260, width: isMobile ? "100%" : "auto" }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flex: isMobile ? "1 1 100%" : 1, minWidth: isMobile ? 0 : 260, marginBottom: isMobile ? 10 : 0 }}>
                   <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>{TIPO_LABELS[tipoPeriodo]}</div>
                   <input type="date" value={week.fecha_inicio || week.fecha} onChange={e => setWeek(w => ({ ...w, fecha_inicio: e.target.value, fecha: e.target.value }))} style={{ ...inp, flex: 1, minWidth: 0 }} />
                   <span style={{ color: C.muted }}>→</span>
