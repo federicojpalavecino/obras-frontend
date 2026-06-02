@@ -38,8 +38,12 @@ function UsuariosSection() {
 
   const eliminar = async (email) => {
     if (!window.confirm(`¿Eliminar usuario ${email}?`)) return;
-    await api.delete(`/estudio/usuarios/${encodeURIComponent(email)}`);
-    cargar();
+    try {
+      await api.delete(`/estudio/usuarios/${encodeURIComponent(email)}`);
+      cargar();
+    } catch(err) {
+      alert('Error al eliminar: ' + (err.response?.data?.detail || err.message));
+    }
   };
 
   const inp = { width:'100%', padding:'9px 12px', border:`1px solid ${C.border}`, borderRadius:8, fontSize:14, background:C.surface2, outline:'none', boxSizing:'border-box', fontFamily:"'Syne',sans-serif" };
