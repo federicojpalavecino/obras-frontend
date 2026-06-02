@@ -263,10 +263,32 @@ body {
   }
 }
 
-/* SIDEBAR presupuesto mobile */
+/* SIDEBAR presupuesto mobile — drawer deslizable desde la izquierda */
 @media (max-width: 900px) {
   .sidebar-presupuesto {
-    display: none !important;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 86vw !important;
+    max-width: 340px;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 2px 0 16px rgba(0,0,0,0.25);
+  }
+  .sidebar-presupuesto.open {
+    transform: translateX(0);
+  }
+  /* Botón flotante para abrir el panel "Agregar ítems" */
+  .sidebar-toggle-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 5px;
+  }
+  /* Botón de cerrar dentro del drawer */
+  .sidebar-mobile-close {
+    display: flex !important;
   }
 }
 
