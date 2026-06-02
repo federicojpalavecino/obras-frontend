@@ -273,6 +273,12 @@ export default function Menu() {
                           <div style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--precio)', marginTop: 2 }}>
                             {fmt(p.total_precio_con_iva)}
                           </div>
+                          {p.creado_por_nombre && (
+                            <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>
+                              por {p.creado_por_nombre}
+                              {p.created_at && ` · ${new Date(p.created_at).toLocaleDateString('es-AR')}`}
+                            </div>
+                          )}
                         </div>
                         <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
                           <button className="btn btn-secondary btn-sm" onClick={e => handleDuplicar(p.id, e)} title="Duplicar">

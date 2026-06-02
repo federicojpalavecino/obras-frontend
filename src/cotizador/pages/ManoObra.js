@@ -138,10 +138,10 @@ export default function ManoObra() {
       </div>
 
       {loading ? <div className="loading">Cargando...</div> : (
-        <div style={{ display: 'flex', gap: 24, padding: 24 }}>
+        <div className="mo-layout" style={{ display: 'flex', gap: 24, padding: 24 }}>
 
           {/* PANEL CARGAS SOCIALES */}
-          <div style={{ width: 300, flexShrink: 0 }}>
+          <div className="mo-panel-cs" style={{ width: 300, flexShrink: 0 }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)', marginBottom: 12 }}>
               1) Cargas sociales
             </div>
@@ -222,6 +222,7 @@ export default function ManoObra() {
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--muted)', marginBottom: 8, paddingBottom: 6, borderBottom: '2px solid var(--border)' }}>
                   {cat}
                 </div>
+                <div className="table-scroll">
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'var(--surface2)' }}>
@@ -305,6 +306,7 @@ export default function ManoObra() {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             ))}
           </div>

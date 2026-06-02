@@ -339,3 +339,67 @@ body {
     display: flex !important;
   }
 }
+
+/* ═══════════════════════════════════════
+   MOBILE — FIXES ADICIONALES
+   ═══════════════════════════════════════ */
+
+/* Presupuesto table: ocultar columnas de ejecución en mobile */
+@media (max-width: 768px) {
+  .col-ejec, .col-pct, .col-cod, .col-unid {
+    display: none !important;
+  }
+  /* Wrap presupuesto table */
+  .tabla-presupuesto-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabla-presupuesto-wrapper table {
+    min-width: 300px;
+    white-space: normal;
+  }
+}
+
+/* ManoObra: layout dos columnas → una columna en mobile */
+@media (max-width: 768px) {
+  .mo-layout {
+    flex-direction: column !important;
+  }
+  .mo-panel-cs {
+    width: 100% !important;
+  }
+}
+
+/* Materiales / Maquinaria: tablas con scroll horizontal */
+@media (max-width: 768px) {
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-scroll table {
+    min-width: 600px;
+  }
+  /* Form grids: una columna */
+  .form-grid-4 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* Obra: header buttons wrap en mobile */
+@media (max-width: 640px) {
+  .obra-header-actions {
+    width: 100%;
+    margin-left: 0 !important;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+/* Tabla con scroll en cotizador pages */
+@media (max-width: 768px) {
+  .card table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

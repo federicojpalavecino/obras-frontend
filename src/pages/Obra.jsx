@@ -245,7 +245,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif" }}>
       {/* Header */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "12px 20px" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <button onClick={() => navigate(`/cotizador/presupuesto/${id}`)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", display:"flex", alignItems:"center" }}><ArrowLeft size={18} strokeWidth={1.5} /></button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800 }}>{presupuesto?.nombre_obra}</div>
@@ -258,7 +258,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               )}
             </div>
           </div>
-          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          <div className="obra-header-actions" style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button onClick={() => navigate(`/cotizador/gantt/${id}`)}
               style={{ ...btn(C.blue), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
               <BarChart2 size={13} strokeWidth={1.5} /> Gantt

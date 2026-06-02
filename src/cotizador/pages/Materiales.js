@@ -192,6 +192,7 @@ export default function Materiales() {
               </div>
 
               {!expandidos[rubro] && (
+                <div className="table-scroll">
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 4 }}>
                   <thead>
                     <tr style={{ background: 'var(--surface2)' }}>
@@ -323,6 +324,7 @@ export default function Materiales() {
                     })}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           ))

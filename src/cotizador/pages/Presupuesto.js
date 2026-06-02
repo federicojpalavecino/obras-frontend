@@ -659,9 +659,10 @@ ${firma}
             </button>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.nombre_obra}</div>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 1 }}>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 1, alignItems: 'center' }}>
                 {data.ubicacion && <span style={{ fontSize: 10, color: 'var(--muted)' }}>{data.ubicacion}</span>}
                 {data.proyecto && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: (data.proyecto.color || '#6ee7b7') + '22', color: data.proyecto.color || '#059669' }}>{data.proyecto.nombre}</span>}
+                {data.creado_por_nombre && <span style={{ fontSize: 10, color: 'var(--muted)' }}>· por {data.creado_por_nombre}</span>}
               </div>
             </div>
             <span className={`badge badge-${data.estado}`} style={{ flexShrink: 0, fontSize: 9, display:'flex', alignItems:'center', gap:3 }}>
@@ -983,7 +984,7 @@ ${firma}
                 )}
               </div>
 
-              <div style={{ flex: 1, overflow: 'auto', paddingBottom: 80 }}>
+              <div className="tabla-presupuesto-wrapper" style={{ flex: 1, overflow: 'auto', paddingBottom: 80 }}>
                 {data?.es_adicional && data?.presupuesto_base_id && (
                   <div style={{ margin: 10, padding: '7px 12px', background: 'rgba(110,231,183,0.06)', border: '1px solid rgba(110,231,183,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ display:'flex', alignItems:'center', gap:4 }}><FileText size={11} strokeWidth={1.5} /> Adicional de obra</span>
@@ -999,7 +1000,7 @@ ${firma}
                   </div>
                 )}
 
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 400 }}>
+                <table className="tabla-presupuesto" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'var(--surface2)', position: 'sticky', top: 0, zIndex: 10 }}>
                       <th style={{ ...th, display: vista === 'comercial' ? 'none' : undefined }} className="col-cod">Cód.</th>

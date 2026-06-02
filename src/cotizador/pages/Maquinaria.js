@@ -127,7 +127,7 @@ export default function Maquinaria() {
         </div>
 
         {/* Tabla */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 24 }}>
+        <div className="card table-scroll" style={{ padding: 0, marginBottom: 24 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--surface2)' }}>
@@ -240,7 +240,7 @@ export default function Maquinaria() {
             <Plus size={12} style={{ marginRight: 4 }} />
             Agregar equipo / herramienta
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div className="form-grid-4" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4,
                 textTransform: 'uppercase', letterSpacing: 1 }}>Nombre *</label>
