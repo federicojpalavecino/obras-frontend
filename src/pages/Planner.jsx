@@ -122,6 +122,7 @@ function KanbanCard({ t, proyectos, presupuestos, onEdit, onDelete, onDragStart,
         {t.google_event_id && <Calendar size={10} strokeWidth={1.5} color="#4285f4" style={{ marginLeft: t.asignado_a ? 0 : "auto", flexShrink: 0 }} title="En Google Calendar" />}
         <button onClick={e => { e.stopPropagation(); onDelete(t.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted2, fontSize: 14, padding: "0 2px", marginLeft: "auto", lineHeight: 1 }} title="Eliminar">×</button>
       </div>
+      {t.created_by && <div style={{ fontSize: 9, color: C.muted2, marginTop: 6, borderTop: `1px solid ${C.border}`, paddingTop: 5 }}>Creó: {t.created_by}</div>}
     </div>
   );
 }

@@ -8,7 +8,7 @@ const today = () => new Date().toISOString().split("T")[0];
 const C = {
   bg: "#f8f9fa", surface: "#ffffff", surface2: "#f1f3f5",
   border: "#e0e0e8", border2: "#d0d0dc",
-  text: "#1a1a2e", muted: "#6b7280",
+  text: "#1a1a2e", muted: "#6b7280", muted2: "#9ca3af",
   accent: "#059669", accent2: "#7c3aed", warn: "#d97706",
   green: "#10b981", red: "#ef4444", blue: "#3b82f6",
 };
@@ -434,6 +434,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{c.forma_pago}</div>
                       <div style={{ fontSize: 12, color: C.muted }}>{c.fecha} {c.referencia ? `· Ref: ${c.referencia}` : ""} {c.nota ? `· ${c.nota}` : ""}</div>
+                      {c.creado_por_nombre && <div style={{ fontSize: 11, color: C.muted2 }}>Registró: {c.creado_por_nombre}</div>}
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 800, color: C.green, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(c.monto)}</div>
                     <button onClick={() => eliminarCobro(c.id)} style={{ background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", padding: "4px 10px", fontSize: 13 }}>×</button>
@@ -466,6 +467,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                     <div style={{ fontSize: 15, fontWeight: 700 }}>{s.nombre_contratista}</div>
                     <div style={{ fontSize: 12, color: C.muted }}>{s.tipo} {s.cuit_contratista ? `· CUIT: ${s.cuit_contratista}` : ""}</div>
                     {s.descripcion_trabajo && <div style={{ fontSize: 13, color: C.text, marginTop: 4 }}>{s.descripcion_trabajo}</div>}
+                    {s.creado_por_nombre && <div style={{ fontSize: 11, color: C.muted2, marginTop: 2 }}>Cargó: {s.creado_por_nombre}</div>}
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 18, fontWeight: 800, color: C.warn, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(s.monto_total)}</div>
@@ -511,6 +513,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                     <div style={{ fontSize: 14, fontWeight: 700 }}>{c.proveedor_nombre}</div>
                     <div style={{ fontSize: 12, color: C.muted }}>{c.fecha_pedido} · {c.estado}</div>
                     {c.nota && <div style={{ fontSize: 12, color: C.muted }}>{c.nota}</div>}
+                    {c.creado_por_nombre && <div style={{ fontSize: 11, color: C.muted2, marginTop: 2 }}>Cargó: {c.creado_por_nombre}</div>}
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 16, fontWeight: 700, color: C.warn, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(c.monto_total)}</div>
@@ -568,6 +571,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                           <div style={{ fontSize: 12, color: C.accent2, marginTop: 2 }}>
                             Avance acumulado: {parseFloat(cert.avance_total_pct || 0).toFixed(1)}%
                           </div>
+                          {cert.creado_por_nombre && <div style={{ fontSize: 11, color: C.muted2, marginTop: 2 }}>Emitió: {cert.creado_por_nombre}</div>}
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <div style={{ fontSize: 18, fontWeight: 800, color: C.accent2, fontFamily: "'IBM Plex Mono',monospace" }}>

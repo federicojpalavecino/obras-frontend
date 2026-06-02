@@ -2,6 +2,17 @@ import { useState, useEffect, useRef } from "react";
 import { Printer, ArrowDownLeft, ArrowUpRight, Users, Wrench, BarChart2, FileDown } from "lucide-react";
 import api from "../cotizador/api";
 
+// ── Hook detección mobile ──────────────────────────────────────────────────────
+function useIsMobile(bp = 720) {
+  const [m, setM] = useState(typeof window !== "undefined" && window.innerWidth <= bp);
+  useEffect(() => {
+    const fn = () => setM(window.innerWidth <= bp);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, [bp]);
+  return m;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n) => "$" + Math.round(n || 0).toLocaleString("es-AR");
 const fmtShort = (n) => {
@@ -201,6 +212,20 @@ ${period.herramientas?.length ? `<section>
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function ControlFinanciero({ user }) {
+  const isMobile = useIsMobile();
+  // Grid de fila: en mobile apila concepto arriba y el resto debajo
+  const rowGrid = isMobile
+    ? { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 6, marginBottom: 10, alignItems: "center", paddingBottom: 10, borderBottom: "1px dashed var(--border, #e0e0e8)" }
+    : { display: "grid", gridTemplateColumns: "2.5fr 130px 120px 1fr auto", gap: 5, marginBottom: 5, alignItems: "center" };
+  const conceptoSpan = isMobile ? { gridColumn: "1 / -1" } : {};
+  const personalGrid = isMobile
+    ? { display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 6, marginBottom: 10, alignItems: "center", paddingBottom: 10, borderBottom: "1px dashed var(--border, #e0e0e8)" }
+    : { display: "grid", gridTemplateColumns: "1.5fr 1fr 60px 60px 120px 100px auto", gap: 5, marginBottom: 5, alignItems: "center" };
+  const herramGrid = isMobile
+    ? { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 6, marginBottom: 10, alignItems: "center", paddingBottom: 10, borderBottom: "1px dashed var(--border, #e0e0e8)" }
+    : { display: "grid", gridTemplateColumns: "2fr 0.6fr 1.2fr 110px 110px auto", gap: 5, marginBottom: 5, alignItems: "center" };
+  const fullSpan = isMobile ? { gridColumn: "1 / -1" } : {};
+  const totalPersonalSpan = isMobile ? { gridColumn: "1 / 4" } : {};
   const [tab, setTab] = useState("carga");
   const [tipoPeriodo, setTipoPeriodo] = useState(() => localStorage.getItem("cf_tipo_periodo") || "semana");
   const [semanas, setSemanas] = useState([]);
@@ -525,6 +550,11 @@ export default function ControlFinanciero({ user }) {
                   ))}
                 </div>
               </div>
+              {(week.updated_by || week.created_by) && (
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                  {week.updated_by ? `Última edición: ${week.updated_by}` : `Creó: ${week.created_by}`}
+                </div>
+              )}
             </div>
 
             {/* Ingresos */}
@@ -532,8 +562,8 @@ export default function ControlFinanciero({ user }) {
               <SectionHeader label="Ingresos" total={calc.totalIng} onAdd={addIngreso} />
               {week.ingresos.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin ingresos — tocá Agregar</div>}
               {week.ingresos.map((row, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "2.5fr 130px 120px 1fr auto", gap: 5, marginBottom: 5, alignItems: "center" }}>
-                  <input style={inp} placeholder="Concepto" value={row.concepto || ""} onChange={e => updIngreso(i, "concepto", e.target.value)} />
+                <div key={i} style={rowGrid}>
+                  <input style={{ ...inp, ...conceptoSpan }} placeholder="Concepto" value={row.concepto || ""} onChange={e => updIngreso(i, "concepto", e.target.value)} />
                   <input style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} type="number" placeholder="Monto" value={row.monto || ""} onChange={e => updIngreso(i, "monto", e.target.value)} />
                   <select style={inp} value={row.estado || "PENDIENTE"} onChange={e => updIngreso(i, "estado", e.target.value)}>
                     {["PENDIENTE", "COBRADO", "EN PROCESO"].map(s => <option key={s}>{s}</option>)}
@@ -552,8 +582,8 @@ export default function ControlFinanciero({ user }) {
               <SectionHeader label="Egresos" total={calc.totalEg} onAdd={addEgreso} />
               {week.egresos.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin egresos</div>}
               {week.egresos.map((row, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "2.5fr 130px 120px 1fr auto", gap: 5, marginBottom: 5, alignItems: "center" }}>
-                  <input style={inp} placeholder="Concepto" value={row.concepto || ""} onChange={e => updEgreso(i, "concepto", e.target.value)} />
+                <div key={i} style={rowGrid}>
+                  <input style={{ ...inp, ...conceptoSpan }} placeholder="Concepto" value={row.concepto || ""} onChange={e => updEgreso(i, "concepto", e.target.value)} />
                   <input style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} type="number" placeholder="Monto" value={row.monto || ""} onChange={e => updEgreso(i, "monto", e.target.value)} />
                   <select style={inp} value={row.estado || "PENDIENTE"} onChange={e => updEgreso(i, "estado", e.target.value)}>
                     {["PENDIENTE", "PAGADO"].map(s => <option key={s}>{s}</option>)}
@@ -578,13 +608,13 @@ export default function ControlFinanciero({ user }) {
               <SectionHeader label="Personal" total={calc.totalPersonal} onAdd={addPersonal} />
               {week.personal.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin personal</div>}
               {week.personal.map((row, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 60px 60px 120px 100px auto", gap: 5, marginBottom: 5, alignItems: "center" }}>
-                  <input style={inp} placeholder="Nombre" value={row.nombre || ""} onChange={e => updPersonal(i, "nombre", e.target.value)} />
-                  <input style={inp} placeholder="Rango/Rol" value={row.rango || ""} onChange={e => updPersonal(i, "rango", e.target.value)} />
+                <div key={i} style={personalGrid}>
+                  <input style={{ ...inp, ...fullSpan }} placeholder="Nombre" value={row.nombre || ""} onChange={e => updPersonal(i, "nombre", e.target.value)} />
+                  <input style={{ ...inp, ...fullSpan }} placeholder="Rango/Rol" value={row.rango || ""} onChange={e => updPersonal(i, "rango", e.target.value)} />
                   <input style={{ ...inp, textAlign: "center" }} type="number" placeholder="Días" value={row.dias || ""} onChange={e => updPersonal(i, "dias", e.target.value)} title="Días trabajados" />
                   <input style={{ ...inp, textAlign: "center" }} type="number" placeholder="Hs" value={row.hs || ""} onChange={e => updPersonal(i, "hs", e.target.value)} title="Horas por día" />
                   <input style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} type="number" placeholder="$/hs" value={row.costo || ""} onChange={e => updPersonal(i, "costo", e.target.value)} />
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, fontFamily: "'IBM Plex Mono', monospace", textAlign: "right", paddingRight: 4 }}>{fmt(row.total || 0)}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, fontFamily: "'IBM Plex Mono', monospace", textAlign: "right", paddingRight: 4, ...totalPersonalSpan }}>{fmt(row.total || 0)}</div>
                   <button onClick={() => delPersonal(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
                 </div>
               ))}
@@ -595,8 +625,8 @@ export default function ControlFinanciero({ user }) {
               <SectionHeader label="Herramientas / Equipos" onAdd={addHerramienta} />
               {week.herramientas.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin herramientas</div>}
               {week.herramientas.map((row, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 0.6fr 1.2fr 110px 110px auto", gap: 5, marginBottom: 5, alignItems: "center" }}>
-                  <select style={inp} value={row.nombre || ""} onChange={e => updHerramienta(i, "nombre", e.target.value)}>
+                <div key={i} style={herramGrid}>
+                  <select style={{ ...inp, ...fullSpan }} value={row.nombre || ""} onChange={e => updHerramienta(i, "nombre", e.target.value)}>
                     <option value="">— Herramienta —</option>
                     {HERRAM_LIST.map(h => <option key={h}>{h}</option>)}
                   </select>
