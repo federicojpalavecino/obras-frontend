@@ -14,6 +14,28 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Manejo de sesión expirada — si el token venció, cerrar sesión y volver al login
+let sesionExpiradaAvisada = false;
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const detail = error.response?.data?.detail || '';
+    const tokenMuerto = status === 401 || (status === 403 && /token/i.test(detail));
+    if (tokenMuerto && localStorage.getItem('obras_token')) {
+      if (!sesionExpiradaAvisada) {
+        sesionExpiradaAvisada = true;
+        localStorage.removeItem('obras_token');
+        localStorage.removeItem('obras_tenant');
+        localStorage.removeItem('obras_estudio');
+        alert('Tu sesión expiró. Por favor, ingresá de nuevo.');
+        window.location.href = '/';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // PRESUPUESTOS
 export const getMenu = (estado, clienteId) => {
   const params = {};
