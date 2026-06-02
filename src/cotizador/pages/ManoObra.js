@@ -41,7 +41,7 @@ export default function ManoObra() {
   const handleGuardarMO = async (id) => {
     setGuardando(true);
     try {
-      await api.patch(`/maestros/mo/${id}`, { costo_hora_base: parseFloat(baseEdit) });
+      await api.patch(`/maestros/mo/${id}/costo`, { costo_hora: parseFloat(baseEdit) });
       setEditandoMO(null);
       cargar();
     } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
@@ -239,7 +239,7 @@ export default function ManoObra() {
                       const dias = diasDesde(mo.fecha_actualizacion);
                       const base = parseFloat(mo.costo_hora_base || mo.costo_hora || 0);
                       const costoCargas = base * totalCargas / 100;
-                      const costoTotal = parseFloat(mo.costo_hora || 0);
+                      const costoTotal = base * (1 + totalCargas / 100);
                       const baseEditPreview = isEdit && baseEdit ? parseFloat(baseEdit) : null;
                       return (
                         <tr key={mo.id} style={{ borderBottom: '1px solid rgba(46,46,56,0.5)', background: isEdit ? 'rgba(167,139,250,0.04)' : 'transparent' }}
