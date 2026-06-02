@@ -187,6 +187,163 @@ function PanelMaquinaria({ token }) {
   );
 }
 
+// ── Panel Hierros Líder ───────────────────────────────────────────────────────
+// Pesos estándar (kg/m) para hierro nervurado según norma CIRSOC 201
+const PESO_KG_M = { "6": 0.222, "8": 0.395, "10": 0.617, "12": 0.888, "14": 1.208, "16": 1.578, "20": 2.466, "25": 3.853, "32": 6.313 };
+const KG_BARRA = (mm) => (PESO_KG_M[mm] || 0) * 12;
+
+function PanelHierros({ token }) {
+  const [items, setItems]       = useState([]);
+  const [edits, setEdits]       = useState({});
+  const [saving, setSaving]     = useState({});
+  const [saved, setSaved]       = useState({});
+  const [fuente, setFuente]     = useState("Hierros Líder");
+  const [fecha, setFecha]       = useState(new Date().toISOString().slice(0, 10));
+  const [result, setResult]     = useState(null);
+
+  useEffect(() => { cargar(); }, []);
+
+  const cargar = async () => {
+    const r = await fetch(`${API}/admin/materiales?q=HYA&limit=50`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) { const d = await r.json(); setItems(d.items || []); }
+  };
+
+  const setEdit = (id, val) => setEdits(p => ({ ...p, [id]: val }));
+
+  // Extraer mm del nombre
+  const getMm = (nombre) => {
+    const m = nombre.match(/(\d+)\s*mm/i) || nombre.match(/[øØ]\s*(\d+)/);
+    return m ? m[1] : null;
+  };
+
+  // Calcular precio/barra 12m para nervurado
+  const precioBarra = (m) => {
+    const mm = getMm(m.nombre);
+    const kg = KG_BARRA(mm);
+    if (!kg) return null;
+    const precio = parseFloat(edits[m.id] ?? m.precio_unitario);
+    return Math.round(precio * kg);
+  };
+
+  const guardar = async (id, precio) => {
+    setSaving(s => ({ ...s, [id]: true }));
+    const r = await fetch(`${API}/admin/materiales/${id}/precio`, {
+      method: "PUT", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ precio_unitario: parseFloat(precio), fuente_precio: fuente, fecha_precio: fecha })
+    });
+    setSaving(s => ({ ...s, [id]: false }));
+    if (r.ok) { setSaved(s => ({ ...s, [id]: true })); setTimeout(() => setSaved(s => ({ ...s, [id]: false })), 1500); }
+    else { const e = await r.json().catch(() => ({})); alert(`Error ${r.status}: ${e.detail || r.statusText}`); }
+    cargar();
+  };
+
+  // Guardar todos los modificados
+  const guardarTodos = async () => {
+    const changed = items.filter(m => edits[m.id] !== undefined && parseFloat(edits[m.id]) !== m.precio_unitario);
+    if (!changed.length) { alert("Sin cambios"); return; }
+    const payload = changed.map(m => ({
+      id: m.id, precio_unitario: parseFloat(edits[m.id]),
+      fuente_precio: fuente, fecha_precio: fecha
+    }));
+    const r = await fetch(`${API}/admin/bulk-precios/materiales`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (r.ok) { const d = await r.json(); setResult(`✓ ${d.updated} actualizados`); setEdits({}); cargar(); }
+    else { alert("Error al guardar"); }
+  };
+
+  // Separar en grupos
+  const nervurado = items.filter(m => /nervurado|nervado|hierro\s+\d|dn|adn/i.test(m.nombre) || (m.codigo?.startsWith("HYA") && /^hierro\s+\d/i.test(m.nombre)));
+  const liso      = items.filter(m => /liso/i.test(m.nombre));
+  const angulo    = items.filter(m => /ángulo|angulo/i.test(m.nombre));
+  const planchuela= items.filter(m => /planchuela/i.test(m.nombre));
+  const otros     = items.filter(m => !nervurado.includes(m) && !liso.includes(m) && !angulo.includes(m) && !planchuela.includes(m));
+
+  const Row = ({ m, showBarra }) => {
+    const val = edits[m.id] !== undefined ? edits[m.id] : String(Math.round(m.precio_unitario));
+    const changed = parseFloat(val) !== Math.round(m.precio_unitario);
+    const mm = getMm(m.nombre);
+    const barra = showBarra && mm ? precioBarra({ ...m, precio_unitario: val }) : null;
+    const diasAnt = m.fecha_precio ? Math.floor((Date.now() - new Date(m.fecha_precio)) / 86400000) : null;
+    const alertColor = diasAnt === null ? C.muted : diasAnt > 60 ? C.red : diasAnt > 30 ? C.warn : C.green;
+    return (
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 80px 130px 110px 70px 110px", padding:"8px 14px", borderBottom:`1px solid ${C.border}`, alignItems:"center" }}>
+        <div>
+          <div style={{ fontSize:13, color:C.text }}>{m.nombre}</div>
+          {m.fuente_precio && <div style={{ fontSize:10, color:C.muted }}>{m.fuente_precio} {m.fecha_precio ? `· ${new Date(m.fecha_precio+'T12:00').toLocaleDateString('es-AR')}` : ''}</div>}
+        </div>
+        <div style={{ fontSize:11, color:C.muted }}>{m.unidad}</div>
+        <input type="number" value={val}
+          onChange={e => setEdit(m.id, e.target.value)}
+          style={{ padding:"5px 8px", border:`1px solid ${changed ? C.accent : C.border}`, borderRadius:6, fontSize:12, fontFamily:"'IBM Plex Mono',monospace", width:"100%", outline:"none", boxSizing:"border-box" }} />
+        <div style={{ fontSize:11, color:C.muted, fontFamily:"'IBM Plex Mono',monospace", textAlign:"right" }}>
+          {barra ? `barra: $${barra.toLocaleString("es-AR")}` : ""}
+        </div>
+        <button onClick={() => guardar(m.id, val)} disabled={saving[m.id] || !changed}
+          style={{ padding:"4px 10px", borderRadius:6, border:"none", fontSize:11, fontWeight:700, cursor:"pointer", background: saved[m.id] ? C.green : changed ? C.accent : C.surface2, color: saved[m.id] || changed ? "white" : C.muted, opacity:saving[m.id]?0.6:1 }}>
+          {saved[m.id] ? "✓" : saving[m.id] ? "..." : "OK"}
+        </button>
+        <div style={{ fontSize:10, color:alertColor, fontFamily:"'IBM Plex Mono',monospace" }}>
+          {diasAnt !== null ? `hace ${diasAnt}d` : "sin fecha"}
+        </div>
+      </div>
+    );
+  };
+
+  const Section = ({ title, mats, showBarra }) => mats.length === 0 ? null : (
+    <div style={{ marginBottom:20 }}>
+      <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.8px", color:C.muted, padding:"8px 14px", background:C.surface2, borderBottom:`1px solid ${C.border}` }}>
+        {title} ({mats.length})
+      </div>
+      {mats.sort((a,b) => { const na = parseFloat(getMm(a.nombre)||0); const nb=parseFloat(getMm(b.nombre)||0); return na-nb || a.nombre.localeCompare(b.nombre); }).map(m => <Row key={m.id} m={m} showBarra={showBarra} />)}
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Header fuente + fecha */}
+      <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8, padding:"12px 16px", marginBottom:16 }}>
+        <div style={{ display:"flex", gap:16, alignItems:"center", flexWrap:"wrap" }}>
+          <div style={{ fontSize:13, fontWeight:700, color:C.accent }}>Fuente de precios</div>
+          <input value={fuente} onChange={e => setFuente(e.target.value)}
+            style={{ flex:1, minWidth:160, padding:"6px 10px", border:"1px solid #bbf7d0", borderRadius:6, fontSize:13, outline:"none", background:"white" }} />
+          <div style={{ fontSize:13, color:C.muted }}>Fecha referencia</div>
+          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+            style={{ padding:"6px 10px", border:"1px solid #bbf7d0", borderRadius:6, fontSize:13, outline:"none", background:"white" }} />
+          <a href="https://tienda.hierroslider.com/hierros/" target="_blank" rel="noreferrer"
+            style={{ fontSize:12, color:"#0284c7", textDecoration:"none", padding:"6px 12px", border:"1px solid #bae6fd", borderRadius:6, background:"#f0f9ff", whiteSpace:"nowrap" }}>
+            Abrir Hierros Líder →
+          </a>
+          <button onClick={guardarTodos}
+            style={{ padding:"7px 16px", borderRadius:7, border:"none", background:C.accent, color:"white", fontSize:13, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
+            Guardar todos los cambios
+          </button>
+          {result && <span style={{ fontSize:13, color:C.green, fontWeight:700 }}>{result}</span>}
+        </div>
+        <div style={{ fontSize:11, color:C.muted, marginTop:6 }}>
+          Fuente y fecha se aplican a todos los precios que guardés en esta sesión. El precio/barra se calcula automáticamente usando pesos CIRSOC (kg/m × 12m).
+        </div>
+      </div>
+
+      {/* Tabla encabezado */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 80px 130px 110px 70px 110px", padding:"8px 14px", background:C.surface2, border:`1px solid ${C.border}`, borderRadius:"8px 8px 0 0" }}>
+        {["Material","Unidad","Precio/unidad","Precio/barra 12m","","Antigüedad"].map(h => (
+          <div key={h} style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.5px" }}>{h}</div>
+        ))}
+      </div>
+
+      <div style={{ border:`1px solid ${C.border}`, borderTop:"none", borderRadius:"0 0 8px 8px", overflow:"hidden" }}>
+        <Section title="Nervurado / DN Construcción" mats={[...nervurado, ...otros.filter(m => /^hierro\s+\d/i.test(m.nombre))]} showBarra={true} />
+        <Section title="Liso" mats={liso} showBarra={true} />
+        <Section title="Ángulos" mats={angulo} showBarra={false} />
+        <Section title="Planchuelas" mats={planchuela} showBarra={false} />
+        <Section title="Otros" mats={otros.filter(m => !/^hierro\s+\d/i.test(m.nombre) && !/caño|tee/i.test(m.nombre))} showBarra={false} />
+      </div>
+    </div>
+  );
+}
+
 // ── Panel de Materiales ────────────────────────────────────────────────────────
 function PanelMateriales({ token }) {
   const [list, setList]           = useState([]);
@@ -348,16 +505,18 @@ function PanelMateriales({ token }) {
 
       {/* Tabla materiales */}
       <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"90px 1fr 60px 180px 80px", padding:"10px 16px", background:C.surface2, borderBottom:`1px solid ${C.border}` }}>
-          {["Código","Nombre","Unidad","Precio unitario (ARS)",""].map(h => (
+        <div style={{ display:"grid", gridTemplateColumns:"90px 1fr 50px 150px 160px 70px", padding:"10px 16px", background:C.surface2, borderBottom:`1px solid ${C.border}` }}>
+          {["Código","Nombre","Ud.","Precio (ARS)","Fuente · Fecha",""].map(h => (
             <div key={h} style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.5px" }}>{h}</div>
           ))}
         </div>
         {list.map((m, i) => {
           const val = edit[m.id] !== undefined ? edit[m.id] : String(Math.round(m.precio_unitario));
           const changed = parseFloat(val) !== Math.round(m.precio_unitario);
+          const diasAnt = m.fecha_precio ? Math.floor((Date.now() - new Date(m.fecha_precio)) / 86400000) : null;
+          const ageColor = diasAnt === null ? C.muted : diasAnt > 60 ? C.red : diasAnt > 30 ? C.warn : C.green;
           return (
-            <div key={m.id} style={{ display:"grid", gridTemplateColumns:"90px 1fr 60px 180px 80px", padding:"8px 16px", borderBottom: i < list.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center" }}>
+            <div key={m.id} style={{ display:"grid", gridTemplateColumns:"90px 1fr 50px 150px 160px 70px", padding:"8px 16px", borderBottom: i < list.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center" }}>
               <div style={{ fontSize:11, color:C.muted, fontFamily:"'IBM Plex Mono',monospace" }}>{m.codigo}</div>
               <div style={{ fontSize:13, color:C.text }}>{m.nombre}</div>
               <div style={{ fontSize:12, color:C.muted }}>{m.unidad}</div>
@@ -366,6 +525,13 @@ function PanelMateriales({ token }) {
                 onChange={e => setEdit(prev => ({ ...prev, [m.id]: e.target.value }))}
                 style={{ padding:"5px 8px", border:`1px solid ${changed ? C.accent : C.border}`, borderRadius:6, fontSize:12, fontFamily:"'IBM Plex Mono',monospace", width:"100%", outline:"none", boxSizing:"border-box" }}
               />
+              <div style={{ fontSize:10, color:ageColor, lineHeight:1.4 }}>
+                <div>{m.fuente_precio || <span style={{ color:C.muted }}>—</span>}</div>
+                <div style={{ fontFamily:"'IBM Plex Mono',monospace" }}>
+                  {m.fecha_precio ? new Date(m.fecha_precio+'T12:00').toLocaleDateString('es-AR') : "sin fecha"}
+                  {diasAnt !== null && <span> ({diasAnt}d)</span>}
+                </div>
+              </div>
               <button
                 onClick={() => guardarPrecio(m.id, val)}
                 disabled={saving[m.id] || !changed}
@@ -610,7 +776,7 @@ export default function AdminPanel() {
         {tab === "precios" && (
           <div>
             <div style={{ display:"flex", gap:4, background:C.surface2, borderRadius:8, padding:4, marginBottom:20, width:"fit-content" }}>
-              {[["mo","Mano de Obra UOCRA"],["materiales","Materiales"],["maquinaria","Maquinaria"]].map(([id, label]) => (
+              {[["mo","Mano de Obra UOCRA"],["hierros","Hierros"],["materiales","Materiales"],["maquinaria","Maquinaria"]].map(([id, label]) => (
                 <button key={id} onClick={() => setPreciosTab(id)}
                   style={{ padding:"7px 14px", borderRadius:6, border:"none", cursor:"pointer", fontFamily:"'Syne',sans-serif", fontWeight:600, fontSize:13, background:preciosTab===id ? C.surface : "transparent", color:preciosTab===id ? C.text : C.muted, boxShadow:preciosTab===id?"0 1px 3px rgba(0,0,0,0.08)":"none" }}>
                   {label}
@@ -619,6 +785,7 @@ export default function AdminPanel() {
             </div>
 
             {preciosTab === "mo" && <PanelMO token={token} />}
+            {preciosTab === "hierros" && <PanelHierros token={token} />}
             {preciosTab === "materiales" && <PanelMateriales token={token} />}
             {preciosTab === "maquinaria" && <PanelMaquinaria token={token} />}
           </div>
