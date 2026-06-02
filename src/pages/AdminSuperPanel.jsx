@@ -215,13 +215,18 @@ function PanelMateriales({ token }) {
 
   const guardarPrecio = async (id, precio) => {
     setSaving(s => ({ ...s, [id]: true }));
-    await fetch(`${API}/admin/materiales/${id}/precio`, {
+    const r = await fetch(`${API}/admin/materiales/${id}/precio`, {
       method: "PUT", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ precio_unitario: parseFloat(precio) })
     });
     setSaving(s => ({ ...s, [id]: false }));
-    setSaved(s => ({ ...s, [id]: true }));
-    setTimeout(() => setSaved(s => ({ ...s, [id]: false })), 1500);
+    if (r.ok) {
+      setSaved(s => ({ ...s, [id]: true }));
+      setTimeout(() => setSaved(s => ({ ...s, [id]: false })), 1500);
+    } else {
+      const err = await r.json().catch(() => ({}));
+      alert(`Error ${r.status}: ${err.detail || r.statusText || "Intentá volver a ingresar al panel"}`);
+    }
     cargar();
   };
 
@@ -402,6 +407,13 @@ export default function AdminPanel() {
         fetch(`${API}/admin/tenants`, { headers: { Authorization: `Bearer ${t}` } }),
         fetch(`${API}/admin/stats`,   { headers: { Authorization: `Bearer ${t}` } }),
       ]);
+      if (r1.status === 401 || r2.status === 401) {
+        // Sesión expirada — limpiar y pedir relogin
+        localStorage.removeItem("obras_admin_token");
+        setToken(null); setTenants([]); setStats(null);
+        setLoading(false);
+        return;
+      }
       if (r1.ok) setTenants(await r1.json());
       if (r2.ok) setStats(await r2.json());
     } catch {}
