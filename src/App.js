@@ -486,8 +486,8 @@ export default function App() {
     setUser(null); setClienteInfo(null); setEstudioInfo(null); setSuscripcion(null); setTenant(null);
   };
 
-  // Super admin panel — ruta directa
-  if (window.location.pathname === "/admin-panel") {
+  // Super admin panel — rutas directas
+  if (window.location.pathname === "/admin-panel" || window.location.pathname === "/admin") {
     return <AdminSuperPanel />;
   }
 
