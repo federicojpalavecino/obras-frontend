@@ -213,19 +213,17 @@ ${period.herramientas?.length ? `<section>
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function ControlFinanciero({ user }) {
   const isMobile = useIsMobile();
-  // Grid de fila: en mobile apila concepto arriba y el resto debajo
-  const rowGrid = isMobile
-    ? { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 6, marginBottom: 10, alignItems: "center", paddingBottom: 10, borderBottom: "1px dashed var(--border, #e0e0e8)" }
+  // Mobile: grid de 2 columnas. Concepto/nombre ocupan toda la fila arriba, el resto fluye de a 2.
+  const mobileRow = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 12, alignItems: "center", paddingBottom: 12, borderBottom: "1px dashed var(--border, #e0e0e8)" };
+  const rowGrid = isMobile ? mobileRow
     : { display: "grid", gridTemplateColumns: "2.5fr 130px 120px 1fr auto", gap: 5, marginBottom: 5, alignItems: "center" };
-  const conceptoSpan = isMobile ? { gridColumn: "1 / -1" } : {};
-  const personalGrid = isMobile
-    ? { display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 6, marginBottom: 10, alignItems: "center", paddingBottom: 10, borderBottom: "1px dashed var(--border, #e0e0e8)" }
+  const personalGrid = isMobile ? mobileRow
     : { display: "grid", gridTemplateColumns: "1.5fr 1fr 60px 60px 120px 100px auto", gap: 5, marginBottom: 5, alignItems: "center" };
-  const herramGrid = isMobile
-    ? { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 6, marginBottom: 10, alignItems: "center", paddingBottom: 10, borderBottom: "1px dashed var(--border, #e0e0e8)" }
+  const herramGrid = isMobile ? mobileRow
     : { display: "grid", gridTemplateColumns: "2fr 0.6fr 1.2fr 110px 110px auto", gap: 5, marginBottom: 5, alignItems: "center" };
+  const conceptoSpan = isMobile ? { gridColumn: "1 / -1" } : {};
   const fullSpan = isMobile ? { gridColumn: "1 / -1" } : {};
-  const totalPersonalSpan = isMobile ? { gridColumn: "1 / 4" } : {};
+  const totalPersonalSpan = {};  // en mobile fluye naturalmente a una celda
   const [tab, setTab] = useState("carga");
   const [tipoPeriodo, setTipoPeriodo] = useState(() => localStorage.getItem("cf_tipo_periodo") || "semana");
   const [semanas, setSemanas] = useState([]);
@@ -535,13 +533,13 @@ export default function ControlFinanciero({ user }) {
             {/* Header período */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, minWidth: 260 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, minWidth: isMobile ? 0 : 260, width: isMobile ? "100%" : "auto" }}>
                   <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>{TIPO_LABELS[tipoPeriodo]}</div>
-                  <input type="date" value={week.fecha_inicio || week.fecha} onChange={e => setWeek(w => ({ ...w, fecha_inicio: e.target.value, fecha: e.target.value }))} style={{ ...inp, flex: 1 }} />
+                  <input type="date" value={week.fecha_inicio || week.fecha} onChange={e => setWeek(w => ({ ...w, fecha_inicio: e.target.value, fecha: e.target.value }))} style={{ ...inp, flex: 1, minWidth: 0 }} />
                   <span style={{ color: C.muted }}>→</span>
-                  <input type="date" value={week.fecha_fin || week.fecha_inicio || week.fecha} onChange={e => setWeek(w => ({ ...w, fecha_fin: e.target.value }))} style={{ ...inp, flex: 1 }} />
+                  <input type="date" value={week.fecha_fin || week.fecha_inicio || week.fecha} onChange={e => setWeek(w => ({ ...w, fecha_fin: e.target.value }))} style={{ ...inp, flex: 1, minWidth: 0 }} />
                 </div>
-                <div style={{ display: "flex", gap: 20 }}>
+                <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
                   {[["Ingresos", calc.totalIng, C.green], ["Egresos", calc.totalEg + calc.totalPersonal, C.red], ["Resultado", calc.resultado, calc.resultado >= 0 ? C.accent : C.red], ["Ganancia", calc.ganancia, calc.ganancia >= 0 ? C.green : C.red]].map(([label, val, color]) => (
                     <div key={label} style={{ textAlign: "center" }}>
                       <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>{label}</div>
