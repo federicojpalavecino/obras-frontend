@@ -968,17 +968,16 @@ ${firma}
                 {!cerrado && (
                   <button className="btn btn-primary btn-sm sidebar-toggle-btn"
                     style={{ display: 'none' }}
-                    onClick={() => setSidebarOpen(true)}>
+                    onClick={() => { setSidebarOpen(true); setCoefsOpen(false); }}>
                     <Plus size={13} /> Agregar ítem
                   </button>
                 )}
-                {cerrado && (
-                  <button className="btn btn-secondary btn-sm sidebar-toggle-btn"
-                    style={{ display: 'none', fontSize: 11 }}
-                    onClick={() => setSidebarOpen(true)}>
-                    <Settings size={11} strokeWidth={1.5} /> Coeficientes
-                  </button>
-                )}
+                {/* Mobile: botón dedicado de coeficientes — abre el drawer con la sección expandida */}
+                <button className="btn btn-secondary btn-sm sidebar-toggle-btn"
+                  style={{ display: 'none', fontSize: 11 }}
+                  onClick={() => { setSidebarOpen(true); setCoefsOpen(true); }}>
+                  <Settings size={12} strokeWidth={1.5} /> Coeficientes
+                </button>
                 {lineaSeleccionada && (
                   <span style={{ fontSize: 11, color: 'var(--accent2)', fontFamily: 'var(--mono)', display:'flex', alignItems:'center', gap:4 }}><Settings size={11} strokeWidth={1.5} /> {lineaSeleccionada.nombre_item}</span>
                 )}
