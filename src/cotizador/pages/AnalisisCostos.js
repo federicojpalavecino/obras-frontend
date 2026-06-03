@@ -4,11 +4,18 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { ArrowLeft, Search, Plus, Trash2, Edit2, Check, X, Copy, ChevronDown, ChevronRight } from 'lucide-react';
 
+function useIsMobile(bp = 820) {
+  const [m, setM] = useState(typeof window !== 'undefined' && window.innerWidth <= bp);
+  useEffect(() => { const fn = () => setM(window.innerWidth <= bp); window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn); }, [bp]);
+  return m;
+}
+
 const fmt = (n) => n ? '$ ' + Math.round(n).toLocaleString('es-AR') : '$ 0';
 const fmtD = (n) => n ? '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
 
 export default function AnalisisCostos() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [categorias, setCategorias] = useState([]);
   const [items, setItems] = useState([]);
   const [itemDetalle, setItemDetalle] = useState(null);
@@ -222,8 +229,13 @@ export default function AnalisisCostos() {
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-        {/* LISTA IZQUIERDA */}
-        <div style={{ width: itemDetalle ? 380 : '100%', borderRight: itemDetalle ? '1px solid var(--border)' : 'none', overflowY: 'auto', transition: 'width 0.2s' }}>
+        {/* LISTA IZQUIERDA — en mobile se oculta cuando hay un ítem abierto */}
+        <div style={{
+          width: itemDetalle ? (isMobile ? '0' : 380) : '100%',
+          display: (isMobile && itemDetalle) ? 'none' : 'block',
+          borderRight: itemDetalle && !isMobile ? '1px solid var(--border)' : 'none',
+          overflowY: 'auto', transition: 'width 0.2s', flexShrink: 0,
+        }}>
           {loading ? <div className="loading">Cargando...</div> : (
             Object.entries(porCategoria).map(([cat, catItems]) => (
               <div key={cat}>
@@ -263,9 +275,15 @@ export default function AnalisisCostos() {
 
         {/* DETALLE DERECHA */}
         {itemDetalle && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: 20, width: isMobile ? '100%' : 'auto' }}>
             {loadingDetalle ? <div className="loading">Cargando...</div> : (
               <>
+                {/* Mobile: volver a la lista */}
+                {isMobile && (
+                  <button className="btn btn-secondary btn-sm" onClick={() => setItemDetalle(null)} style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <ArrowLeft size={14} /> Volver a la lista
+                  </button>
+                )}
                 {/* Header ítem */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
                   <div style={{ flex: 1 }}>

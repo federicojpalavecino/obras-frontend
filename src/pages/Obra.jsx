@@ -2,8 +2,15 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Printer, TrendingUp, Award, BarChart2, FileText, DollarSign, Users, ShoppingCart, CheckCircle } from "lucide-react";
 import api from "../cotizador/api";
+import MenuAcciones from "../shared/MenuAcciones";
 const fmt = (n) => "$" + Math.round(n || 0).toLocaleString("es-AR");
 const today = () => new Date().toISOString().split("T")[0];
+
+function useIsMobile(bp = 720) {
+  const [m, setM] = useState(typeof window !== "undefined" && window.innerWidth <= bp);
+  useEffect(() => { const fn = () => setM(window.innerWidth <= bp); window.addEventListener("resize", fn); return () => window.removeEventListener("resize", fn); }, [bp]);
+  return m;
+}
 
 const C = {
   bg: "#f8f9fa", surface: "#ffffff", surface2: "#f1f3f5",
@@ -27,6 +34,7 @@ const btn = (color = C.accent) => ({
 export default function Obra() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState("resumen");
   const [presupuesto, setPresupuesto] = useState(null);
   const [contrato, setContrato] = useState(null);
@@ -258,34 +266,58 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               )}
             </div>
           </div>
-          <div className="obra-header-actions" style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={() => navigate(`/cotizador/gantt/${id}`)}
-              style={{ ...btn(C.blue), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
-              <BarChart2 size={13} strokeWidth={1.5} /> Gantt
-            </button>
-            <button onClick={() => navigate(`/cotizador/presupuesto/${id}/curva`)}
-              style={{ ...btn(C.warn), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
-              <TrendingUp size={13} strokeWidth={1.5} /> Curva
-            </button>
-            <button onClick={() => setTab("certificados")}
-              style={{ ...btn(C.accent2), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
-              <Award size={13} strokeWidth={1.5} /> Certificados
-            </button>
-          </div>
+          {isMobile ? (
+            <div style={{ marginLeft: "auto" }}>
+              <MenuAcciones C={C} acciones={[
+                { label: "Ver Gantt", icon: <BarChart2 size={16} strokeWidth={1.5} />, color: C.blue, onClick: () => navigate(`/cotizador/gantt/${id}`) },
+                { label: "Curva de inversión", icon: <TrendingUp size={16} strokeWidth={1.5} />, color: C.warn, onClick: () => navigate(`/cotizador/presupuesto/${id}/curva`) },
+                { label: "Certificados", icon: <Award size={16} strokeWidth={1.5} />, color: C.accent2, onClick: () => setTab("certificados") },
+              ]} />
+            </div>
+          ) : (
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+              <button onClick={() => navigate(`/cotizador/gantt/${id}`)}
+                style={{ ...btn(C.blue), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
+                <BarChart2 size={13} strokeWidth={1.5} /> Gantt
+              </button>
+              <button onClick={() => navigate(`/cotizador/presupuesto/${id}/curva`)}
+                style={{ ...btn(C.warn), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
+                <TrendingUp size={13} strokeWidth={1.5} /> Curva
+              </button>
+              <button onClick={() => setTab("certificados")}
+                style={{ ...btn(C.accent2), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
+                <Award size={13} strokeWidth={1.5} /> Certificados
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", overflowX: "auto" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", width: "100%" }}>
-          <TabBtn id="resumen" label="Resumen" />
-          <TabBtn id="contrato" label="Contrato" />
-          <TabBtn id="cobros" label="Cobros" />
-          <TabBtn id="subcontratos" label="Subcontratos" />
-          <TabBtn id="compras" label="Compras" />
-          <TabBtn id="certificados" label="Certificados" />
+      {/* Tabs — en mobile selector desplegable, en desktop pestañas */}
+      {isMobile ? (
+        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "10px 16px" }}>
+          <select value={tab} onChange={e => setTab(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.border2}`, borderRadius: 8, fontSize: 15, fontWeight: 700, color: C.text, background: C.surface2, fontFamily: "inherit", outline: "none" }}>
+            <option value="resumen">Resumen</option>
+            <option value="contrato">Contrato</option>
+            <option value="cobros">Cobros</option>
+            <option value="subcontratos">Subcontratos</option>
+            <option value="compras">Compras</option>
+            <option value="certificados">Certificados</option>
+          </select>
         </div>
-      </div>
+      ) : (
+        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex" }}>
+          <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", width: "100%" }}>
+            <TabBtn id="resumen" label="Resumen" />
+            <TabBtn id="contrato" label="Contrato" />
+            <TabBtn id="cobros" label="Cobros" />
+            <TabBtn id="subcontratos" label="Subcontratos" />
+            <TabBtn id="compras" label="Compras" />
+            <TabBtn id="certificados" label="Certificados" />
+          </div>
+        </div>
+      )}
 
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: "20px 16px 60px" }}>
 

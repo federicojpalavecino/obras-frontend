@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Printer, ArrowDownLeft, ArrowUpRight, Users, Wrench, BarChart2, FileDown } from "lucide-react";
 import api from "../cotizador/api";
+import MenuAcciones from "../shared/MenuAcciones";
 
 // ── Hook detección mobile ──────────────────────────────────────────────────────
 function useIsMobile(bp = 720) {
@@ -500,30 +501,54 @@ export default function ControlFinanciero({ user }) {
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif" }}>
 
       {/* ── HEADER TABS ── */}
-      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", overflowX: "auto", position: "sticky", top: 0, zIndex: 50 }}>
-        <TabBtn id="carga" label={TIPO_LABELS[tipoPeriodo]} />
-        <TabBtn id="historial" label="Historial" />
-        <TabBtn id="resumen" label="Resumen" />
-        <TabBtn id="config" label="Config" />
-
-        {/* Tipo de período */}
-        <div style={{ marginLeft: 12, display: "flex", gap: 2, background: C.surface2, borderRadius: 7, padding: 3 }}>
-          {Object.entries(TIPO_LABELS).map(([k, v]) => (
-            <button key={k} onClick={() => cambiarTipo(k)} style={{ padding: "4px 10px", borderRadius: 5, border: "none", background: tipoPeriodo === k ? C.accent : "transparent", color: tipoPeriodo === k ? "#fff" : C.muted, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{v}</button>
-          ))}
+      {isMobile ? (
+        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "10px 14px", position: "sticky", top: 0, zIndex: 50, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <select value={tab} onChange={e => setTab(e.target.value)}
+              style={{ flex: 1, padding: "9px 12px", border: `1px solid ${C.border2}`, borderRadius: 8, fontSize: 14, fontWeight: 700, color: C.text, background: C.surface2, fontFamily: "inherit", outline: "none" }}>
+              <option value="carga">{TIPO_LABELS[tipoPeriodo]}</option>
+              <option value="historial">Historial</option>
+              <option value="resumen">Resumen</option>
+              <option value="config">Config</option>
+            </select>
+            <MenuAcciones C={C} label="Más" acciones={[
+              { label: "Importar certificado", icon: <FileDown size={16} strokeWidth={1.5} />, onClick: abrirImportCert },
+              ...(editingId ? [{ label: "Nuevo período", onClick: nuevoPeriodo }] : []),
+            ]} />
+          </div>
+          {/* Tipo de período — segmentado full width */}
+          <div style={{ display: "flex", gap: 2, background: C.surface2, borderRadius: 7, padding: 3 }}>
+            {Object.entries(TIPO_LABELS).map(([k, v]) => (
+              <button key={k} onClick={() => cambiarTipo(k)} style={{ flex: 1, padding: "6px 8px", borderRadius: 5, border: "none", background: tipoPeriodo === k ? C.accent : "transparent", color: tipoPeriodo === k ? "#fff" : C.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{v}</button>
+            ))}
+          </div>
         </div>
+      ) : (
+        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", position: "sticky", top: 0, zIndex: 50 }}>
+          <TabBtn id="carga" label={TIPO_LABELS[tipoPeriodo]} />
+          <TabBtn id="historial" label="Historial" />
+          <TabBtn id="resumen" label="Resumen" />
+          <TabBtn id="config" label="Config" />
 
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 12, gap: 6 }}>
-          <button onClick={abrirImportCert} style={{ padding: "5px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 11, cursor: "pointer", fontFamily: "inherit", color: C.text, whiteSpace: "nowrap" }}>
-            <FileDown size={13} strokeWidth={1.5} style={{ marginRight: 4, verticalAlign: "middle" }} /> Importar cert.
-          </button>
-          {editingId && (
-            <button onClick={nuevoPeriodo} style={{ padding: "5px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
-              + Nuevo
+          {/* Tipo de período */}
+          <div style={{ marginLeft: 12, display: "flex", gap: 2, background: C.surface2, borderRadius: 7, padding: 3 }}>
+            {Object.entries(TIPO_LABELS).map(([k, v]) => (
+              <button key={k} onClick={() => cambiarTipo(k)} style={{ padding: "4px 10px", borderRadius: 5, border: "none", background: tipoPeriodo === k ? C.accent : "transparent", color: tipoPeriodo === k ? "#fff" : C.muted, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{v}</button>
+            ))}
+          </div>
+
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 12, gap: 6 }}>
+            <button onClick={abrirImportCert} style={{ padding: "5px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 11, cursor: "pointer", fontFamily: "inherit", color: C.text, whiteSpace: "nowrap" }}>
+              <FileDown size={13} strokeWidth={1.5} style={{ marginRight: 4, verticalAlign: "middle" }} /> Importar cert.
             </button>
-          )}
+            {editingId && (
+              <button onClick={nuevoPeriodo} style={{ padding: "5px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+                + Nuevo
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "16px 16px 60px" }}>
 
