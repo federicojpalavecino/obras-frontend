@@ -285,7 +285,7 @@ export default function AnalisisCostos() {
                   </button>
                 )}
                 {/* Header ítem */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'flex-start', gap: 12, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
                   <div style={{ flex: 1 }}>
                     {editandoNombre ? (
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -306,10 +306,10 @@ export default function AnalisisCostos() {
                       <span>{itemDetalle.horas_unidad} hs/unidad</span>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ textAlign: isMobile ? 'left' : 'right', flexShrink: 0, width: isMobile ? '100%' : 'auto' }}>
                     <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Costo total</div>
                     <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--ejec)' }}>{fmt(itemDetalle.costo_total)}</div>
-                    <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 11, fontFamily: 'var(--mono)' }}>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 11, fontFamily: 'var(--mono)', flexWrap: 'wrap' }}>
                       <span style={{ color: 'var(--mat)' }}>Mat: {fmt(itemDetalle.costo_materiales)}</span>
                       <span style={{ color: 'var(--mo)' }}>MO: {fmt(itemDetalle.costo_mano_obra)}</span>
                       <span style={{ color: 'var(--maq)' }}>Maq: {fmt(itemDetalle.costo_maquinaria)}</span>
@@ -457,6 +457,7 @@ function SeccionLineas({ titulo, color, columnas, lineas, editLinea, setEditLine
       {lineas.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--muted)', padding: '8px 0' }}>Sin líneas — agregá usando el formulario abajo</div>
       ) : (
+        <div className="table-scroll">
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'var(--surface2)' }}>
@@ -505,6 +506,7 @@ function SeccionLineas({ titulo, color, columnas, lineas, editLinea, setEditLine
             })}
           </tbody>
         </table>
+        </div>
       )}
       {children}
     </div>
