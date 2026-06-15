@@ -22,6 +22,7 @@ import PersonalPortal from "./pages/PersonalPortal";
 import AccesosClientes from "./pages/AccesosClientes";
 import Landing from "./pages/Landing";
 import Obra from "./pages/Obra";
+import Asistente from "./components/Asistente";
 import api from "./cotizador/api";
 
 const C = {
@@ -291,6 +292,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
         <Route path="/accesos-clientes" element={<AccesosClientes user={user} />}/>
         <Route path="/config" element={<ConfigCuenta user={user} onUpdate={onTenantUpdate} />}/>
       </Routes>
+      <Asistente />
     </div>
   );
 }
