@@ -53,14 +53,23 @@ function lev(a, b) {
 // Peso de coincidencia entre dos palabras (con tolerancia a errores)
 function pesoToken(q, k) {
   if (q === k) return 2;
-  if (q.length >= 4 && (k.includes(q) || q.includes(k))) return 1.4;
+  // Prefijo: cubre abreviaturas y morfología (presu→presupuesto, certific→certificado)
+  // sin los falsos positivos de un substring suelto (presupuesto ⊅ puesto).
+  if (q.length >= 4 && k.length >= 4 && (k.startsWith(q) || q.startsWith(k))) return 1.4;
   const tol = q.length <= 4 ? 1 : 2;          // palabras cortas, menos tolerancia
   if (Math.abs(q.length - k.length) > tol) return 0;
   return lev(q, k) <= tol ? 1 : 0;
 }
 
 // Palabras vacías que no aportan al match (no penalizan ni inflan el score)
-const STOP = new Set(["como", "que", "cual", "donde", "para", "porque", "por", "con", "los", "las", "del", "una", "uno", "mis", "tus", "sus", "hago", "hacer", "puedo", "quiero", "necesito", "the", "and", "una", "este", "esta", "eso", "ahi", "aca"]);
+const STOP = new Set([
+  "como", "que", "cual", "cuales", "donde", "para", "porque", "por", "con", "sin",
+  "los", "las", "del", "una", "uno", "unos", "unas", "mis", "tus", "sus", "mi", "tu", "su",
+  "hago", "hacer", "haces", "puedo", "puede", "quiero", "queria", "necesito", "tengo",
+  "the", "and", "este", "esta", "esto", "esos", "esas", "ese", "esa", "eso", "ahi", "aca",
+  "es", "el", "la", "de", "un", "al", "lo", "se", "le", "les", "muy", "tan", "hay", "son",
+  "ser", "estar", "me", "te", "nos", "ya", "asi", "pero", "mas", "menos", "todo", "toda",
+]);
 const tokens = (s) => normalizar(s).split(" ").filter((t) => t.length >= 2 && !STOP.has(t));
 
 // ── Base de conocimiento ──────────────────────────────────────────────────────
@@ -71,7 +80,7 @@ const BASE = [
   {
     id: "crear-presupuesto", sec: "cotizador",
     titulo: "Crear un presupuesto nuevo",
-    kw: "crear nuevo presupuesto cotizacion cotizar armar empezar obra agregar añadir hacer presu cotiza",
+    kw: "crear creo crea armo hago nuevo presupuesto cotizacion cotizar armar empezar obra agregar añadir hacer presu cotiza",
     pasos: [
       "Entrá a “Presupuestos y obras” desde el inicio (módulo Cotizador).",
       "Arriba a la derecha tocá “＋ Presupuesto” (en celular dice “＋ Nuevo”).",
@@ -84,7 +93,7 @@ const BASE = [
   {
     id: "crear-cliente", sec: "cotizador",
     titulo: "Cargar un cliente nuevo",
-    kw: "cliente nuevo crear cargar agregar añadir comitente contacto alta razon social comprador",
+    kw: "cliente nuevo crear creo crea cargo cargar agregar agrego añadir doy comitente contacto alta razon social comprador",
     pasos: [
       "Desde el Cotizador, al hacer un presupuesto nuevo, tocá “＋ Nuevo cliente”.",
       "O entrá al módulo “Clientes y Proyectos” desde el inicio.",
@@ -174,7 +183,7 @@ const BASE = [
   {
     id: "crear-analisis", sec: "costos",
     titulo: "Crear mi propio análisis de costo (ítem)",
-    kw: "crear propio analisis costo costos item nuevo armar componer hacer mio personalizado unitario apu",
+    kw: "crear creo crea armo hago propio analisis costo costos item nuevo armar componer hacer mio personalizado unitario apu",
     pasos: [
       "Desde el Cotizador, entrá a “Análisis de costos” y tocá “＋ Nuevo ítem”.",
       "Cargá Código, Nombre, Rubro y Unidad de ejecución (m2, m3, Gl…) y tocá “Crear ítem”.",
@@ -317,7 +326,7 @@ const BASE = [
   {
     id: "certificado", sec: "certificado",
     titulo: "Hacer un certificado de avance",
-    kw: "certificado certificar avance medicion porcentaje ejecutado cobrar emitir nuevo egresos obra acumulado",
+    kw: "certificado certificar avance medicion porcentaje ejecutado cobrar emitir nuevo egresos obra acumulado hago armo creo",
     pasos: [
       "Conviene tener el presupuesto cerrado. Abrilo y tocá “Cert.” (Certificado) en la barra superior.",
       "Tocá “Nuevo certificado”.",
@@ -370,7 +379,7 @@ const BASE = [
   {
     id: "generar-contrato", sec: "obra",
     titulo: "Generar / cargar el contrato",
-    kw: "contrato generar crear cargar hacer firmar monto anticipo plazo desembolsos condiciones imprimir pdf",
+    kw: "contrato generar genero crear creo cargar hacer hago armo firmar monto anticipo plazo desembolsos condiciones imprimir pdf",
     pasos: [
       "Abrí la “Obra” del presupuesto y andá a la pestaña “Contrato”.",
       "Si no hay, tocá “＋ Crear contrato” (si ya existe, tocá “Editar”).",
@@ -449,7 +458,7 @@ const BASE = [
   {
     id: "accesos-clientes", sec: "accesos",
     titulo: "Dar acceso a un cliente (portal)",
-    kw: "acceso accesos cliente portal ver online clave contraseña usuario invitar habilitar mostrar secciones permiso",
+    kw: "acceso accesos cliente portal ver online clave contraseña usuario invitar habilitar mostrar secciones permiso doy dar darle nuevo crear",
     pasos: [
       "Entrá al módulo “Accesos de clientes” y tocá “＋ Nuevo acceso”.",
       "Elegí el cliente y cargá su email y una contraseña.",
@@ -890,34 +899,45 @@ function sugerencias(sec) {
   return m[sec] || m.home;
 }
 
-// Motor de búsqueda: devuelve la mejor entrada y alternativas cercanas
-function buscar(consulta, sec) {
-  const qTokens = [...new Set(tokens(consulta))];
-  if (!qTokens.length) return { mejor: null, otras: [] };
+// Tokens precalculados por entrada + IDF (palabras distintivas pesan más)
+const ENTRADAS = BASE.map((e) => ({
+  e,
+  toks: [...new Set(tokens(e.kw + " " + e.titulo))],
+  titleToks: new Set(tokens(e.titulo)),
+}));
+const N_DOCS = ENTRADAS.length;
+const DF = {};
+for (const { toks } of ENTRADAS) for (const t of toks) DF[t] = (DF[t] || 0) + 1;
+// idf alto = palabra rara/distintiva; bajo = palabra común a muchos temas
+const idf = (t) => Math.log((N_DOCS + 1) / ((DF[t] || 0) + 1)) + 0.4;
 
-  const ranked = BASE.map((e) => {
-    const eTokens = tokens(e.kw + " " + e.titulo);
-    let score = 0;
-    for (const q of qTokens) {
-      let best = 0;
-      for (const k of eTokens) {
-        const w = pesoToken(q, k);
-        if (w > best) best = w;
-        if (best === 2) break;
-      }
-      score += best;
+function puntuar(qTokens, entryToks, titleToks) {
+  let score = 0, hits = 0;
+  for (const q of qTokens) {
+    let best = 0, bestTok = null;
+    for (const k of entryToks) {
+      const w = pesoToken(q, k);
+      if (w > best) { best = w; bestTok = k; }
+      if (best === 2) break;
     }
-    if (e.sec === sec) score += 1.5;   // empujón por contexto de pantalla
-    return { e, score };
-  }).sort((a, b) => b.score - a.score);
+    if (best > 0) {
+      const titleBoost = titleToks.has(bestTok) ? 1.7 : 1;  // la palabra está en el título
+      score += best * idf(bestTok) * titleBoost;
+      hits++;
+    }
+  }
+  return { score, hits };
+}
 
-  const umbral = Math.max(2, qTokens.length * 0.6);
-  const mejor = ranked[0] && ranked[0].score >= umbral ? ranked[0].e : null;
-  const otras = ranked
-    .filter((r, i) => i > 0 && r.score >= umbral * 0.8 && r.e.id !== mejor?.id)
-    .slice(0, 3)
-    .map((r) => r.e);
-  return { mejor, otras };
+// Devuelve TODAS las entradas con score > 0, ordenadas de mejor a peor
+function rankear(consulta, sec) {
+  const qTokens = [...new Set(tokens(consulta))];
+  if (!qTokens.length) return [];
+  return ENTRADAS.map(({ e, toks, titleToks }) => {
+    let { score, hits } = puntuar(qTokens, toks, titleToks);
+    if (e.sec === sec) score *= 1.25;   // empujón por contexto de pantalla
+    return { e, score, hits };
+  }).filter((r) => r.score > 0).sort((a, b) => b.score - a.score);
 }
 
 const SALUDOS = ["hola", "buenas", "buen dia", "buenos dias", "buenas tardes", "que tal", "hey", "holaa"];
@@ -965,8 +985,12 @@ export default function Asistente() {
       return [{ from: "bot", texto: "¡De nada! Cualquier otra cosa, acá estoy. 🙌" }];
     }
 
-    const { mejor, otras } = buscar(texto, sec);
-    if (!mejor) {
+    // Atajo: si el texto es exactamente el título de un tema (clic en chip)
+    const exacto = BASE.find((e) => e.titulo === texto.trim());
+    const ranked = exacto ? [{ e: exacto, score: 999, hits: 9 }] : rankear(texto, sec);
+
+    // Nada se parece → fallback con sugerencias
+    if (!ranked.length || ranked[0].score < 1.5) {
       return [{
         from: "bot",
         titulo: "No estoy seguro de haber entendido 🤔",
@@ -974,14 +998,32 @@ export default function Asistente() {
         chips: [...sugerencias(sec), "Contactar a soporte"],
       }];
     }
+
+    const top = ranked[0];
+    const segundo = ranked[1];
+    const confiado = top.score >= 999 || (top.score >= 4 && (!segundo || top.score >= segundo.score * 1.22));
+
+    // Confiado → respuesta directa + alternativas cercanas
+    if (confiado) {
+      const otras = ranked.slice(1, 4).filter((r) => r.score >= 2.5).map((r) => r.e);
+      return [{
+        from: "bot",
+        titulo: top.e.titulo,
+        pasos: top.e.pasos,
+        route: top.e.route,
+        routeLabel: top.e.routeLabel,
+        chips: otras.length ? otras.map((o) => o.titulo) : null,
+        chipsHint: otras.length ? "Temas relacionados:" : null,
+      }];
+    }
+
+    // Ambiguo pero hay candidatos → ofrecer opciones para que elija
+    const candidatos = ranked.slice(0, 4).map((r) => r.e);
     return [{
       from: "bot",
-      titulo: mejor.titulo,
-      pasos: mejor.pasos,
-      route: mejor.route,
-      routeLabel: mejor.routeLabel,
-      chips: otras.length ? otras.map((o) => o.titulo) : null,
-      chipsHint: otras.length ? "¿Buscabas alguno de estos?" : null,
+      titulo: "Puede que busques alguno de estos 👇",
+      texto: "Tocá el que más se acerque a lo que necesitás:",
+      chips: [...candidatos.map((c) => c.titulo), "Contactar a soporte"],
     }];
   };
 
