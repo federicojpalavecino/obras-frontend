@@ -513,17 +513,177 @@ const BASE = [
     ],
   },
 
-  // ── PLANNER / SOPORTE ───────────────────────────────────────────────────────
+  // ── PLANNER ─────────────────────────────────────────────────────────────────
   {
-    id: "planner", sec: "planner",
-    titulo: "Usar el Planner (tareas y calendario)",
-    kw: "planner tareas calendario tablero agenda pendientes organizar planificar todo recordatorio",
+    id: "planner-tarea", sec: "planner",
+    titulo: "Crear una tarea en el Planner",
+    kw: "planner tarea crear nueva agregar pendiente todo recordatorio hacer cargar kanban tablero",
     pasos: [
-      "Entrá al módulo “Planner” desde el inicio.",
-      "Es un tablero de tareas con calendario para organizar lo del estudio.",
+      "Entrá al módulo “Planner” desde el inicio (tablero tipo Kanban).",
+      "Tocá el “＋” en la columna del estado donde querés que arranque (ej: Pendiente).",
+      "Cargá el título (obligatorio), descripción, prioridad y fechas/horas.",
+      "Opcional: vinculá la tarea a un proyecto y/o a un presupuesto, y asignala a alguien.",
+      "Tocá “Guardar”.",
     ],
     route: "/planner", routeLabel: "Ir al Planner",
   },
+  {
+    id: "planner-estados", sec: "planner",
+    titulo: "Mover tareas entre estados (Kanban)",
+    kw: "mover tarea estado arrastrar columna pendiente en progreso completado cancelado avanzar terminar kanban",
+    pasos: [
+      "El tablero tiene 4 columnas: Pendiente, En progreso, Completado y Cancelado.",
+      "Arrastrá la tarjeta de una columna a otra para cambiarle el estado.",
+      "También podés editar la tarea y cambiar el estado desde el desplegable.",
+      "Usá la búsqueda y los filtros por proyecto/estado para encontrar tareas.",
+    ],
+    route: "/planner", routeLabel: "Ir al Planner",
+  },
+  {
+    id: "planner-google", sec: "planner",
+    titulo: "Conectar el Planner con Google Calendar",
+    kw: "google calendar conectar sincronizar agenda evento gcal vincular integrar tareas calendario",
+    pasos: [
+      "En el Planner, conectá tu cuenta de Google con el botón de Google Calendar.",
+      "Las tareas con fecha se sincronizan como eventos en tu calendario.",
+      "Las que ya están sincronizadas muestran un ícono de calendario azul.",
+    ],
+    route: "/planner", routeLabel: "Ir al Planner",
+  },
+  {
+    id: "crear-proyecto", sec: "planner",
+    titulo: "Crear un proyecto",
+    kw: "proyecto crear nuevo agregar obra agrupar carpeta presupuesto vincular organizar",
+    pasos: [
+      "Un proyecto agrupa tareas y presupuestos de una misma obra/cliente.",
+      "En el Planner, tocá “Nuevo proyecto”, ponele nombre y (opcional) vinculá un presupuesto.",
+      "También aparecen al asignar clientes/presupuestos en el Cotizador.",
+    ],
+    route: "/planner", routeLabel: "Ir al Planner",
+  },
+
+  // ── FISCAL ──────────────────────────────────────────────────────────────────
+  {
+    id: "fiscal-factura", sec: "fiscal",
+    titulo: "Cargar una factura",
+    kw: "factura facturas cargar nueva emitir registrar fiscal afip comprobante venta iva monto",
+    pasos: [
+      "Entrá al módulo Fiscal y, en la pestaña “Facturas”, tocá “＋ Nueva factura”.",
+      "Elegí el Tipo (A, B, C, M o E) y cargá número, fecha, emisor y cliente.",
+      "Poné el Concepto, el Monto neto y la alícuota de IVA: el total se calcula solo.",
+      "Elegí el estado (emitida, cobrada o anulada) y tocá “Guardar factura”.",
+    ],
+    route: "/fiscal", routeLabel: "Ir a Fiscal",
+  },
+  {
+    id: "fiscal-monotributo", sec: "fiscal",
+    titulo: "Configurar monotributo / condición fiscal",
+    kw: "monotributo categoria fiscal condicion responsable inscripto exento recategorizacion cuit afip limite configurar",
+    pasos: [
+      "En el módulo Fiscal, andá a la pestaña “Configuración”.",
+      "Elegí la condición (Monotributo, Responsable Inscripto o Exento) y cargá CUIT, banco y CBU.",
+      "Si sos monotributista, elegí tu categoría (A a K) y la fecha de próxima recategorización.",
+      "El módulo te muestra un semáforo con el uso del límite de facturación de tu categoría.",
+    ],
+    route: "/fiscal", routeLabel: "Ir a Fiscal",
+  },
+  {
+    id: "fiscal-negro", sec: "fiscal",
+    titulo: "Cargar un movimiento sin facturar",
+    kw: "movimiento sin facturar negro informal efectivo ingreso egreso fiscal no facturado registrar",
+    pasos: [
+      "En el módulo Fiscal, pestaña “Movimientos sin facturar”.",
+      "Cargá el tipo (ingreso o egreso), concepto, monto y fecha.",
+      "Sirve para tener la foto real de ingresos/egresos más allá de lo facturado.",
+    ],
+    route: "/fiscal", routeLabel: "Ir a Fiscal",
+  },
+
+  // ── CONTROL FINANCIERO (avanzado) ───────────────────────────────────────────
+  {
+    id: "cf-honorarios", sec: "finanzas",
+    titulo: "Configurar honorarios de socios y reserva",
+    kw: "honorarios socios reparto distribucion ganancia reserva porcentaje retiro sueldo socio dividir resultado",
+    pasos: [
+      "En el Control Financiero, configurá los honorarios (uno por socio).",
+      "Cada honorario puede ser un porcentaje del resultado o un monto fijo.",
+      "Definí también el % de Reserva que querés guardar del resultado positivo.",
+      "Ganancia neta = Resultado − Honorarios − Reserva (se calcula automáticamente).",
+    ],
+    route: "/finanzas", routeLabel: "Ir a Control Financiero",
+  },
+  {
+    id: "cf-personal", sec: "finanzas",
+    titulo: "Cargar personal y sueldos del período",
+    kw: "personal sueldos jornales pagar empleados obreros cuadrilla salario semana cargar planilla",
+    pasos: [
+      "En el Control Financiero, dentro del período abierto, andá a la sección Personal.",
+      "Cargá cada persona con su pago del período.",
+      "El total de Personal se resta junto con los egresos para dar el resultado.",
+    ],
+    route: "/finanzas", routeLabel: "Ir a Control Financiero",
+  },
+  {
+    id: "cf-imprimir", sec: "finanzas",
+    titulo: "Imprimir / exportar un período financiero",
+    kw: "imprimir exportar pdf periodo financiero resumen semana mes reporte planilla descargar",
+    pasos: [
+      "En el Control Financiero, abrí el período que querés.",
+      "Usá la opción de imprimir: muestra ingresos, egresos, personal, honorarios, reserva y ganancia neta.",
+      "En la ventana de impresión elegí “Guardar como PDF” para descargarlo.",
+    ],
+    route: "/finanzas", routeLabel: "Ir a Control Financiero",
+  },
+
+  // ── PORTAL / CONSULTAS ──────────────────────────────────────────────────────
+  {
+    id: "consultas", sec: "accesos",
+    titulo: "Ver y responder consultas de un cliente",
+    kw: "consultas consulta mensaje cliente pregunta responder contestar portal chat duda comunicacion",
+    pasos: [
+      "Los clientes con portal pueden dejar consultas desde su cuenta.",
+      "Las ves en la sección de la obra/portal y podés responderlas para que el cliente las lea.",
+      "Definí en “Accesos de clientes” si el cliente tiene habilitada la sección de consultas.",
+    ],
+  },
+
+  // ── CONCEPTUALES ────────────────────────────────────────────────────────────
+  {
+    id: "concepto-costo-margen", sec: "*",
+    titulo: "Qué es el costo de ejecución y el margen",
+    kw: "costo ejecucion margen ganancia diferencia precio venta significa que es entender concepto utilidad",
+    pasos: [
+      "Costo de ejecución = lo que te sale hacer la obra (materiales + mano de obra + maquinaria), sin recargos.",
+      "Sobre ese costo se aplican los coeficientes: Gastos Generales, Beneficio e IVA.",
+      "El Precio de venta es el costo con esos recargos. El Margen es la diferencia entre venta y costo.",
+      "En la impresión “Interno” ves el costo de ejecución y el margen; en la “Cliente”, solo el precio final.",
+    ],
+  },
+  {
+    id: "concepto-coeficientes", sec: "*",
+    titulo: "Qué significan GG, Beneficio, IVA y los K",
+    kw: "que significa gg gastos generales beneficio ben iva coeficiente k materiales mano obra concepto entender para que sirve",
+    pasos: [
+      "GG (Gastos Generales): % para cubrir costos indirectos del estudio/obra (oficina, seguros, etc.).",
+      "Beneficio (Ben): % de utilidad que querés ganar sobre el costo.",
+      "IVA: impuesto que se suma al final (según corresponda).",
+      "K Materiales / K Mano de obra / K Maquinaria: coeficientes de actualización para ajustar precios sin tocar el análisis.",
+      "Se configuran en el botón “Coeficientes” dentro del presupuesto.",
+    ],
+  },
+  {
+    id: "concepto-flujo", sec: "*",
+    titulo: "¿Por dónde empiezo? Flujo recomendado",
+    kw: "empezar primero arrancar inicio flujo orden pasos como uso sistema guia tutorial principiante nuevo",
+    pasos: [
+      "1) Revisá tus precios base en Materiales, Mano de obra y Maquinaria.",
+      "2) Cargá tu cliente y creá el presupuesto con sus rubros e ítems.",
+      "3) Ajustá los Coeficientes y exportá el presupuesto para el cliente.",
+      "4) Cuando lo aprueben, cerralo y gestioná la obra (contrato, cobros, certificados).",
+      "5) Importá los cobros y pagos al Control Financiero para ver la rentabilidad.",
+    ],
+  },
+
   {
     id: "soporte", sec: "*",
     titulo: "Contactar a soporte",
@@ -551,6 +711,7 @@ function seccionActual(pathname) {
   if (/\/accesos/.test(p)) return "accesos";
   if (/\/config/.test(p)) return "config";
   if (/\/planner/.test(p)) return "planner";
+  if (/\/fiscal/.test(p)) return "fiscal";
   return "home";
 }
 
@@ -565,8 +726,9 @@ function sugerencias(sec) {
     finanzas: ["¿Cómo importo cobros de una obra?", "¿Cómo cargo ingresos y egresos?"],
     accesos: ["¿Cómo le doy acceso a un cliente?", "¿Qué ve el cliente en el portal?"],
     config: ["¿Cómo cambio el logo y color?", "¿Cómo agrego usuarios?"],
-    planner: ["¿Para qué sirve el Planner?"],
-    clientes: ["¿Cómo cargo un cliente?", "¿Cómo creo un presupuesto?"],
+    planner: ["¿Cómo creo una tarea?", "¿Cómo conecto Google Calendar?", "¿Cómo creo un proyecto?"],
+    fiscal: ["¿Cómo cargo una factura?", "¿Cómo configuro mi monotributo?", "¿Qué es un movimiento sin facturar?"],
+    clientes: ["¿Cómo cargo un cliente?", "¿Cómo creo un proyecto?", "¿Cómo creo un presupuesto?"],
     home: ["¿Cómo creo un presupuesto?", "¿Cómo agrego un material?", "¿Cómo le doy acceso a un cliente?"],
   };
   return m[sec] || m.home;
