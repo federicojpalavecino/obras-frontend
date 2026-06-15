@@ -684,6 +684,162 @@ const BASE = [
     ],
   },
 
+  // ── GENERAL / NAVEGACIÓN ────────────────────────────────────────────────────
+  {
+    id: "que-es-sistema", sec: "*",
+    titulo: "Qué es FAIM OBRAS y qué puedo hacer",
+    kw: "que es faim obras sistema sirve hacer puedo modulos para funciones overview general ayuda capacidades",
+    pasos: [
+      "Es un sistema integral de gestión para estudios y empresas constructoras.",
+      "Cotizador: presupuestos con análisis de costos, coeficientes y cómputo.",
+      "Obra: contrato, cobros, subcontratos, compras y certificados de avance.",
+      "Gantt y Curva de inversión, Control Financiero, Planner, Fiscal y Portal de clientes.",
+      "Todo está conectado: cargás el dato una vez y viaja entre los módulos.",
+    ],
+  },
+  {
+    id: "navegar-inicio", sec: "*",
+    titulo: "Volver al inicio / moverme entre módulos",
+    kw: "volver inicio home menu principal navegar moverme modulos ir pantalla atras donde",
+    pasos: [
+      "Tocá el nombre o logo del estudio (arriba a la izquierda) para volver al inicio.",
+      "Desde el inicio elegís cualquier módulo de la lista.",
+      "Dentro del Cotizador, el botón con la flecha (←) te lleva atrás.",
+    ],
+    route: "/", routeLabel: "Ir al inicio",
+  },
+  {
+    id: "salir-sesion", sec: "*",
+    titulo: "Cerrar sesión / salir",
+    kw: "salir cerrar sesion logout desconectar logout cuenta cerrar terminar",
+    pasos: [
+      "Arriba a la derecha tocá “Salir” (junto al círculo con tus iniciales).",
+      "Volvés a la pantalla de ingreso.",
+    ],
+  },
+  {
+    id: "registrarme", sec: "*",
+    titulo: "Crear una cuenta / prueba gratuita",
+    kw: "registrarme registrar cuenta nueva crear alta prueba gratis trial empezar suscribir estudio",
+    pasos: [
+      "En la pantalla de ingreso, tocá la pestaña “Registrarme”.",
+      "Cargá el nombre del estudio o empresa, tu nombre, email y contraseña.",
+      "Tocá “Comenzar prueba gratuita 15 días”. Entrás directo con tu estudio creado.",
+    ],
+  },
+  {
+    id: "mobile", sec: "*",
+    titulo: "¿Funciona en el celular o tablet?",
+    kw: "celular telefono movil mobile tablet android iphone funciona app responsive afuera obra terreno",
+    pasos: [
+      "Sí, funciona desde el navegador del celular y la tablet, sin instalar nada.",
+      "En pantallas chicas, las acciones extra se agrupan en un menú (ícono de tres líneas o desplegable).",
+      "Ideal para cargar avances o ver la caja desde la obra.",
+    ],
+  },
+  {
+    id: "datos-seguridad", sec: "*",
+    titulo: "¿Dónde se guardan mis datos? ¿Es seguro?",
+    kw: "datos seguro seguridad nube guardan perder respaldo backup privado donde almacena online proteccion",
+    pasos: [
+      "Todo se guarda en la nube, no en tu computadora.",
+      "Accedés desde cualquier dispositivo con tu usuario y contraseña.",
+      "Cada estudio ve solo sus propios datos (sistema multiempresa).",
+    ],
+  },
+  {
+    id: "buscar", sec: "*",
+    titulo: "Buscar un material, ítem o presupuesto",
+    kw: "buscar busqueda encontrar filtrar buscador material item presupuesto lupa filtro rubro",
+    pasos: [
+      "En Materiales y Análisis de costos tenés un buscador por nombre o código, más un filtro por rubro.",
+      "En el Cotizador, los presupuestos están agrupados por cliente (desplegá cada cliente).",
+    ],
+  },
+
+  // ── TROUBLESHOOTING / PROBLEMAS FRECUENTES ──────────────────────────────────
+  {
+    id: "no-aparece-certificado", sec: "*",
+    titulo: "No me aparecen Certificados / Gantt / Obra",
+    kw: "no aparece falta boton certificado gantt obra curva no encuentro no esta no veo donde habilitar",
+    pasos: [
+      "Esos botones se habilitan cuando el presupuesto está cerrado.",
+      "Abrí el presupuesto y cerralo (queda con candado).",
+      "Ahí aparecen en la barra superior: Cert., Gantt, Curva, Listado y Obra.",
+    ],
+  },
+  {
+    id: "no-puedo-editar", sec: "presupuesto",
+    titulo: "No puedo editar el presupuesto",
+    kw: "no puedo editar modificar bloqueado cerrado candado no me deja cambiar trabado reabrir",
+    pasos: [
+      "Si tiene candado, está cerrado: por eso no se edita (para no romper la obra en curso).",
+      "Abrí el presupuesto y tocá “Reabrir” para volver a editarlo.",
+      "Cuando termines, podés cerrarlo de nuevo.",
+    ],
+  },
+  {
+    id: "precio-no-cambia", sec: "*",
+    titulo: "Cambié un precio pero el presupuesto no se actualizó",
+    kw: "precio no cambia no actualiza viejo desactualizado presupuesto cerrado congelado no recalcula material",
+    pasos: [
+      "Los presupuestos cerrados quedan congelados a propósito (no recalculan).",
+      "Si querés que tome el precio nuevo, reabrí el presupuesto.",
+      "Los presupuestos abiertos sí recalculan solos al cambiar un material, MO o equipo.",
+    ],
+  },
+  {
+    id: "no-borra-cliente", sec: "cotizador",
+    titulo: "No me deja eliminar un cliente",
+    kw: "no puedo eliminar borrar cliente error no deja quitar tiene presupuestos",
+    pasos: [
+      "Un cliente solo se puede eliminar si NO tiene presupuestos asociados.",
+      "Primero eliminá o reasigná sus presupuestos, y después borrá el cliente.",
+    ],
+  },
+  {
+    id: "sesion-expiro", sec: "*",
+    titulo: "Se cerró la sesión sola / me pide ingresar de nuevo",
+    kw: "sesion expiro cerro sola caduco token vencio me saco ingresar de nuevo desconecto solo",
+    pasos: [
+      "Por seguridad, la sesión vence cada cierto tiempo.",
+      "Volvé a ingresar con tu email y contraseña y seguís donde estabas.",
+      "Lo que guardaste no se pierde: queda en la nube.",
+    ],
+  },
+  {
+    id: "olvide-contrasena", sec: "*",
+    titulo: "Olvidé mi contraseña / no puedo entrar",
+    kw: "olvide contraseña clave password no puedo entrar ingresar recuperar resetear cambiar acceso bloqueado",
+    pasos: [
+      "Verificá que el email esté bien escrito y sin espacios.",
+      "Si sos usuario del estudio, el admin puede recrear tu acceso desde Configuración → Usuarios.",
+      "Si no podés resolverlo, escribí a soporte para recuperar el acceso.",
+    ],
+    route: "/soporte", routeLabel: "Ir a Soporte",
+  },
+  {
+    id: "semaforo-precios", sec: "costos",
+    titulo: "Qué significan los colores en los precios",
+    kw: "color colores punto verde amarillo rojo semaforo material precio actualizacion dias significa antiguedad",
+    pasos: [
+      "El puntito de color indica hace cuánto se actualizó el precio.",
+      "Verde: actualizado hace poco. Amarillo: más de 30 días. Rojo: más de 60 días.",
+      "Sirve para detectar de un vistazo qué precios conviene revisar.",
+    ],
+  },
+  {
+    id: "roles-usuarios", sec: "config",
+    titulo: "Diferencia entre usuario admin y personal",
+    kw: "rol roles admin personal usuario permisos diferencia tipo empleado acceso limitado que puede",
+    pasos: [
+      "Admin: acceso completo al sistema del estudio.",
+      "Personal: acceso acotado (su portal de trabajo), pensado para empleados.",
+      "El rol se elige al crear el usuario en Configuración → Usuarios del estudio.",
+    ],
+    route: "/config", routeLabel: "Ir a Configuración",
+  },
+
   {
     id: "soporte", sec: "*",
     titulo: "Contactar a soporte",
