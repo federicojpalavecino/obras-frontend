@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { ArrowLeft, Search, Plus, Trash2, Edit2, Check, X, Copy, ChevronDown, ChevronRight } from 'lucide-react';
+import { coincide } from '../buscar';
 
 function useIsMobile(bp = 820) {
   const [m, setM] = useState(typeof window !== 'undefined' && window.innerWidth <= bp);
@@ -187,7 +188,7 @@ export default function AnalisisCostos() {
   };
 
   const itemsFiltrados = items.filter(i => {
-    const matchBusq = !busqueda || i.nombre.toLowerCase().includes(busqueda.toLowerCase()) || i.codigo.includes(busqueda);
+    const matchBusq = !busqueda || coincide(i.nombre, busqueda) || coincide(i.codigo, busqueda);
     const matchCat = !catFiltro || String(i.categoria_id) === catFiltro;
     return matchBusq && matchCat;
   });

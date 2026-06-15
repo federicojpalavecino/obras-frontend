@@ -2,7 +2,8 @@ import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { ArrowLeft, Search, ChevronDown, ChevronRight, Check, X, Plus, Copy, Trash2 } from 'lucide-react';
+import { ArrowLeft, Search, ChevronDown, ChevronRight, Check, X, Plus, Copy, Trash2, Printer } from 'lucide-react';
+import { coincide } from '../buscar';
 
 const fmtU = (n) => n ? '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '—';
 const fmtP = (n) => n ? '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
@@ -124,8 +125,8 @@ export default function Materiales() {
 
   const matsFiltrados = materiales.filter(m => {
     const matchBusqueda = !busqueda ||
-      m.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      m.codigo.toLowerCase().includes(busqueda.toLowerCase());
+      coincide(m.nombre, busqueda) ||
+      coincide(m.codigo, busqueda);
     const matchRubro = !rubroFiltro || m.rubro === rubroFiltro;
     return matchBusqueda && matchRubro;
   });
@@ -140,6 +141,68 @@ export default function Materiales() {
   const diasDesde = (f) => f ? Math.floor((new Date() - new Date(f)) / 86400000) : null;
   const colorAlerta = (d) => d === null ? 'var(--muted)' : d > 60 ? 'var(--danger)' : d > 30 ? 'var(--warn)' : 'var(--success)';
   const rubrosUnicos = [...new Set(materiales.map(m => m.rubro).filter(Boolean))];
+
+  // Genera un HTML imprimible (o PDF) con toda la lista de materiales para
+  // mandar a proveedores: precio actual de referencia + columnas en blanco
+  // para que completen el precio nuevo y el proveedor.
+  const exportarListaPrecios = () => {
+    const tenantNombre = (() => { try { const t = JSON.parse(localStorage.getItem('obras_tenant') || 'null'); return t?.nombre || 'FAIM OBRAS'; } catch (e) { return 'FAIM OBRAS'; } })();
+    const fecha = new Date().toLocaleDateString('es-AR');
+    const base = (busqueda || rubroFiltro) ? matsFiltrados : materiales;
+    const grupos = {};
+    base.forEach(m => { const r = m.rubro || 'Sin rubro'; (grupos[r] = grupos[r] || []).push(m); });
+    const cuerpo = Object.keys(grupos).sort((a, b) => a.localeCompare(b)).map(rubro => {
+      const filas = grupos[rubro].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')).map(m => `<tr>
+        <td class="cod">${m.codigo || ''}</td>
+        <td>${m.nombre || ''}</td>
+        <td class="c">${m.presentacion || m.unidad || ''}</td>
+        <td class="r ref">${m.precio_presentacion ? '$ ' + Number(m.precio_presentacion).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}</td>
+        <td class="nuevo"></td>
+        <td class="prov"></td>
+      </tr>`).join('');
+      return `<tr class="rubro"><td colspan="6">${rubro} <span class="cnt">(${grupos[rubro].length})</span></td></tr>${filas}`;
+    }).join('');
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<title>Lista de materiales — ${tenantNombre}</title>
+<style>
+  *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;color:#1a1a2e;margin:24px;font-size:12px}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #059669;padding-bottom:10px;margin-bottom:8px}
+  .t{font-size:19px;font-weight:800}
+  .sub{font-size:12px;color:#6b7280;margin-top:2px}
+  .instr{font-size:11px;color:#6b7280;background:#f1f3f5;border-radius:6px;padding:8px 12px;margin:10px 0}
+  table{width:100%;border-collapse:collapse;margin-top:4px}
+  th{background:#f1f3f5;text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;border-bottom:1px solid #e0e0e8}
+  td{padding:6px 8px;border-bottom:1px solid #eee;font-size:12px}
+  td.cod{font-family:'Courier New',monospace;color:#6b7280;white-space:nowrap}
+  td.c{text-align:center;color:#6b7280}
+  td.r,th.r{text-align:right}
+  td.ref{font-family:'Courier New',monospace;color:#6b7280}
+  td.nuevo{width:120px;background:#f0fdf4;border:1px solid #bbf7d0}
+  td.prov{width:160px}
+  tr.rubro td{background:#059669;color:#fff;font-weight:700;font-size:12px;padding:7px 8px;border:none}
+  tr.rubro .cnt{font-weight:400;opacity:.85}
+  button{background:#059669;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer}
+  @media print{body{margin:8mm} button,.noprint{display:none} tr.rubro td{-webkit-print-color-adjust:exact;print-color-adjust:exact} td.nuevo{-webkit-print-color-adjust:exact;print-color-adjust:exact} th{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+  <div class="head">
+    <div><div class="t">Lista de materiales — solicitud de precios</div>
+    <div class="sub">${tenantNombre} · ${fecha} · ${base.length} materiales</div></div>
+    <button class="noprint" onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>
+  <div class="instr">Complete las columnas <b>Precio nuevo</b> y <b>Proveedor / Obs.</b> y devuélvanos esta planilla. El <b>precio actual</b> es solo de referencia (puede estar desactualizado).</div>
+  <table>
+    <thead><tr>
+      <th>Código</th><th>Material</th><th class="c">Present.</th>
+      <th class="r">Precio actual</th><th class="r">Precio nuevo</th><th>Proveedor / Obs.</th>
+    </tr></thead>
+    <tbody>${cuerpo}</tbody>
+  </table>
+</body></html>`;
+    const win = window.open('', '_blank');
+    if (!win) { alert('Permití las ventanas emergentes para exportar la lista.'); return; }
+    win.document.write(html);
+    win.document.close();
+  };
 
   return (
     <div>
@@ -157,6 +220,9 @@ export default function Materiales() {
             <span style={{ color: 'var(--warn)' }}>● +30 días</span>
             <span style={{ color: 'var(--danger)' }}>● +60 días</span>
           </div>
+          <button className="btn btn-secondary btn-sm" onClick={exportarListaPrecios} title="Exportar lista para pedir precios a proveedores">
+            <Printer size={14} /> Exportar lista
+          </button>
           <button className="btn btn-primary btn-sm" onClick={() => setModalNuevo(true)}>
             <Plus size={14} /> Nuevo material
           </button>

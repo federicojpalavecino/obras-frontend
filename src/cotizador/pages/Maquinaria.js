@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { ArrowLeft, Edit2, Trash2, Plus, AlertCircle } from 'lucide-react';
+import { coincide } from '../buscar';
 
 const fmt = n => n != null ? '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
 const FORM_VACIO = { nombre: '', unidad: 'hs', costo_hora: '', tipo: '' };
@@ -92,8 +93,7 @@ export default function Maquinaria() {
   };
 
   const filtrados = items.filter(m =>
-    m.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    m.codigo?.toLowerCase().includes(busqueda.toLowerCase())
+    !busqueda || coincide(m.nombre, busqueda) || coincide(m.codigo, busqueda)
   );
 
   if (loading) return <div className="loading">Cargando...</div>;
