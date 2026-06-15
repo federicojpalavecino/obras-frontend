@@ -2,7 +2,7 @@ import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { ArrowLeft, Search, ChevronDown, ChevronRight, Check, X, Plus, Copy, Trash2, Printer } from 'lucide-react';
+import { ArrowLeft, Search, ChevronDown, ChevronRight, Check, X, Plus, Copy, Trash2, Printer, Download } from 'lucide-react';
 import { coincide } from '../buscar';
 
 const fmtU = (n) => n ? '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '—';
@@ -204,6 +204,32 @@ export default function Materiales() {
     win.document.close();
   };
 
+  // Descarga la lista en CSV (se abre en Excel/Sheets) para que el proveedor
+  // complete el precio nuevo en planilla. Respeta el filtro activo.
+  const exportarCSV = () => {
+    const base = (busqueda || rubroFiltro) ? matsFiltrados : materiales;
+    const esc = (v) => '"' + (v == null ? '' : String(v)).replace(/"/g, '""') + '"';
+    const ordenadas = [...base].sort((a, b) => {
+      const r = (a.rubro || '').localeCompare(b.rubro || '');
+      return r !== 0 ? r : (a.nombre || '').localeCompare(b.nombre || '');
+    });
+    const encabezado = ['Codigo', 'Material', 'Rubro', 'Presentacion', 'Precio actual', 'Precio nuevo', 'Proveedor / Obs.'];
+    const filas = ordenadas.map(m => [
+      m.codigo || '', m.nombre || '', m.rubro || '', m.presentacion || m.unidad || '',
+      m.precio_presentacion ? Number(m.precio_presentacion).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+      '', '',
+    ]);
+    // BOM + separador ';' para que Excel en español lo abra en columnas
+    const contenido = '﻿' + [encabezado, ...filas].map(f => f.map(esc).join(';')).join('\r\n');
+    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `materiales_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
       <div className="header">
@@ -220,8 +246,11 @@ export default function Materiales() {
             <span style={{ color: 'var(--warn)' }}>● +30 días</span>
             <span style={{ color: 'var(--danger)' }}>● +60 días</span>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={exportarListaPrecios} title="Exportar lista para pedir precios a proveedores">
-            <Printer size={14} /> Exportar lista
+          <button className="btn btn-secondary btn-sm" onClick={exportarListaPrecios} title="Exportar lista imprimible / PDF">
+            <Printer size={14} /> PDF
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={exportarCSV} title="Descargar lista en CSV (Excel) para que el proveedor complete precios">
+            <Download size={14} /> CSV
           </button>
           <button className="btn btn-primary btn-sm" onClick={() => setModalNuevo(true)}>
             <Plus size={14} /> Nuevo material
