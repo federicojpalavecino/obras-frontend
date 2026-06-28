@@ -12,6 +12,7 @@ import PrintPresupuesto from './PrintPresupuesto';
 import PanelAnalisis from './PanelAnalisis';
 import PanelComputo from './PanelComputo';
 import MobileMenu from './MobileMenu';
+import { coincide } from '../buscar';
 import '../print.css';
 
 const fmt = (n) => {
@@ -620,10 +621,10 @@ ${firma}
   };
 
   const itemsFiltrados = items.filter(i =>
-    i.nombre.toLowerCase().includes(busqueda.toLowerCase()) || i.codigo.includes(busqueda)
+    coincide(i.nombre, busqueda) || coincide(i.codigo, busqueda)
   );
   const itemsAdicFiltrados = itemsAdic.filter(i =>
-    i.nombre.toLowerCase().includes(busquedaAdic.toLowerCase()) || i.codigo.includes(busquedaAdic)
+    coincide(i.nombre, busquedaAdic) || coincide(i.codigo, busquedaAdic)
   );
 
   const cerrado = data?.estado === 'cerrado';

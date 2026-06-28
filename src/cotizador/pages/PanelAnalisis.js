@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import { X, Plus, Trash2, Check, RotateCcw, AlertTriangle } from 'lucide-react';
+import { coincide } from '../buscar';
 
 const fmt2 = (n) => n != null ? '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
 const fmt0 = (n) => n != null ? '$ ' + Math.round(n).toLocaleString('es-AR') : '$ 0';
@@ -248,7 +249,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                   {showMatDropdown && busquedaMat.length > 0 && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 6, maxHeight: 200, overflowY: 'auto', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
                       {materiales
-                        .filter(m => m.nombre.toLowerCase().includes(busquedaMat.toLowerCase()) || m.codigo.toLowerCase().includes(busquedaMat.toLowerCase()))
+                        .filter(m => coincide(m.nombre, busquedaMat) || coincide(m.codigo, busquedaMat))
                         .slice(0, 30)
                         .map(m => (
                           <div key={m.id}
@@ -261,7 +262,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                             <span style={{ float: 'right', color: 'var(--muted)', fontSize: 10 }}>{m.unidad}</span>
                           </div>
                         ))}
-                      {materiales.filter(m => m.nombre.toLowerCase().includes(busquedaMat.toLowerCase()) || m.codigo.toLowerCase().includes(busquedaMat.toLowerCase())).length === 0 && (
+                      {materiales.filter(m => coincide(m.nombre, busquedaMat) || coincide(m.codigo, busquedaMat)).length === 0 && (
                         <div style={{ padding: '8px 10px', fontSize: 11, color: 'var(--muted)' }}>Sin resultados</div>
                       )}
                     </div>
@@ -348,7 +349,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
               autoFocus style={{ fontSize: 12 }} />
             <div style={{ flex: 1, overflowY: 'auto', maxHeight: 340, display: 'flex', flexDirection: 'column', gap: 4 }}>
               {itemsCatalogo
-                .filter(it => !busquedaImport || it.nombre.toLowerCase().includes(busquedaImport.toLowerCase()) || it.codigo.toLowerCase().includes(busquedaImport.toLowerCase()))
+                .filter(it => !busquedaImport || coincide(it.nombre, busquedaImport) || coincide(it.codigo, busquedaImport))
                 .slice(0, 50)
                 .map(it => (
                   <button key={it.id}
@@ -365,7 +366,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                     <div style={{ fontSize: 11, color: 'var(--accent2)', fontWeight: 600 }}>{importando ? '...' : '→'}</div>
                   </button>
                 ))}
-              {itemsCatalogo.filter(it => !busquedaImport || it.nombre.toLowerCase().includes(busquedaImport.toLowerCase()) || it.codigo.toLowerCase().includes(busquedaImport.toLowerCase())).length === 0 && (
+              {itemsCatalogo.filter(it => !busquedaImport || coincide(it.nombre, busquedaImport) || coincide(it.codigo, busquedaImport)).length === 0 && (
                 <div style={{ color: 'var(--muted)', fontSize: 12, padding: 12, textAlign: 'center' }}>Sin resultados</div>
               )}
             </div>
