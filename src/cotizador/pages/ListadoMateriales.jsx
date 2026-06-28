@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import { coincide } from '../buscar';
 
 const fmt = n => '$ ' + Math.round(n || 0).toLocaleString('es-AR');
 const fmtCant = n => Number(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
@@ -77,9 +78,8 @@ export default function ListadoMateriales() {
   const buscarCatalogo = (q) => {
     setBusquedaCatalogo(q);
     if (q.length < 2) { setCatalogoResultados([]); return; }
-    const lower = q.toLowerCase();
     const resultados = catalogoCompleto.filter(m =>
-      m.nombre.toLowerCase().includes(lower) || (m.codigo || '').toLowerCase().includes(lower)
+      coincide(m.nombre, q) || coincide(m.codigo, q)
     ).slice(0, 20);
     setCatalogoResultados(resultados);
   };
@@ -140,7 +140,7 @@ export default function ListadoMateriales() {
   const eliminarExtra = (mid) => setMaterialesExtra(prev => prev.filter(m => m.material_id !== mid));
 
   const materialesFiltrados = todosLosMateriales.filter(m => {
-    const matchBusq = !busqueda || m.nombre.toLowerCase().includes(busqueda.toLowerCase()) || m.codigo?.toLowerCase().includes(busqueda.toLowerCase());
+    const matchBusq = !busqueda || coincide(m.nombre, busqueda) || coincide(m.codigo, busqueda);
     const matchRubro = !rubroFiltro || m.rubro === rubroFiltro;
     return matchBusq && matchRubro;
   });

@@ -6,6 +6,7 @@ export const norm = (s) =>
     .toLowerCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "") // quita tildes/diacríticos
+    .replace(/ñ/g, "n")              // ñ y n se tratan igual
     .replace(/\s+/g, " ")
     .trim();
 
