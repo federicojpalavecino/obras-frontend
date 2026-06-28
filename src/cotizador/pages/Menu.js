@@ -2,7 +2,7 @@
 import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMenu, getClientes, crearCliente, crearPresupuesto, duplicarPresupuesto } from '../api';
+import { getMenu, getClientes, crearCliente, crearPresupuesto, duplicarPresupuesto, actualizarPresupuesto } from '../api';
 import api from '../api';
 import { Plus, Copy, FolderOpen, Lock, User, Package, BarChart2, Edit2, Trash2, X, Check, Menu as MenuIcon, Wrench } from 'lucide-react';
 import MobileMenu from './MobileMenu';
@@ -101,6 +101,18 @@ export default function Menu() {
       cargar();
       navigate(`/cotizador/presupuesto/${res.data.id}`);
     } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
+  };
+
+  const handleRenombrar = async (p, e) => {
+    e.stopPropagation();
+    const nuevo = window.prompt('Nuevo nombre del presupuesto:', p.nombre_obra);
+    if (nuevo === null) return; // canceló
+    const nombre = nuevo.trim();
+    if (!nombre || nombre === p.nombre_obra) return;
+    try {
+      await actualizarPresupuesto(p.id, { nombre_obra: nombre });
+      cargar();
+    } catch (err) { alert('Error al renombrar: ' + (err.response?.data?.detail || err.message)); }
   };
 
   const handleEliminarPresupuesto = async (pid, nombre, e) => {
@@ -281,6 +293,9 @@ export default function Menu() {
                           )}
                         </div>
                         <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                          <button className="btn btn-secondary btn-sm" onClick={e => handleRenombrar(p, e)} title="Renombrar">
+                            <Edit2 size={13} />
+                          </button>
                           <button className="btn btn-secondary btn-sm" onClick={e => handleDuplicar(p.id, e)} title="Duplicar">
                             <Copy size={13} />
                           </button>
