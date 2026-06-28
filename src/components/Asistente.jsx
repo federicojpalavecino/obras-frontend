@@ -5,6 +5,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MessageCircle, X, Send, Sparkles, ArrowRight } from "lucide-react";
+import api from "../cotizador/api";
 
 const C = {
   bg: "#f8f9fa", surface: "#ffffff", surface2: "#f1f3f5",
@@ -359,7 +360,9 @@ const BASE = [
     titulo: "Listado de materiales y cómputo de cantidades",
     kw: "listado materiales computo cantidades comprar pedido totales resumen insumos cuanto material",
     pasos: [
-      "Dentro del presupuesto tocá “Listado materiales” para ver los materiales totales a comprar.",
+      "IMPORTANTE: el presupuesto tiene que estar CERRADO. El botón “Listado materiales” solo aparece con el presupuesto cerrado (con el candado).",
+      "Si está abierto, primero cerralo (botón “Cerrar”). Eso congela precios y cantidades.",
+      "Ya cerrado, en la barra superior tocá “Listado materiales” para ver los materiales totales a comprar (se puede exportar a PDF y CSV/Excel).",
       "Para el cómputo de cantidades general, tocá “∑ Cómputo” (se puede imprimir).",
     ],
   },
@@ -943,6 +946,34 @@ function rankear(consulta, sec) {
 const SALUDOS = ["hola", "buenas", "buen dia", "buenos dias", "buenas tardes", "que tal", "hey", "holaa"];
 const GRACIAS = ["gracias", "muchas gracias", "genial", "perfecto", "joya", "buenisimo", "ok gracias"];
 
+// ── Consultas de DATOS reales (precios, costos, materiales, cobros, certificados, rendimiento) ──
+const money = (n) => "$ " + Math.round(Number(n) || 0).toLocaleString("es-AR");
+const tieneAlguna = (texto, arr) => {
+  const ts = tokens(texto);
+  return arr.some((k) => ts.some((q) => pesoToken(q, k) >= 1));
+};
+// Palabras que disparan una consulta de datos por sí solas (sin nombre de obra)
+const KW_DATOS = ["precio", "precios", "costo", "costos", "cuanto", "cuesta", "sale", "vale",
+  "saldo", "cobro", "cobros", "cobrado", "cobre", "certificado", "certificados", "avance",
+  "margen", "ganancia", "gano", "rendimiento"];
+const KW_RENDIMIENTO = ["rendimiento", "tiempo", "tarda", "demora", "tardan", "hora", "horas"];
+
+// Busca el ítem de una lista cuyo `campo` se parece más a las palabras de la pregunta
+function matchPorNombre(texto, lista, campo) {
+  const qt = tokens(texto);
+  let best = null, bestHits = 0, bestCov = 0;
+  for (const it of lista || []) {
+    const nt = tokens(it[campo] || "");
+    if (!nt.length) continue;
+    let hits = 0;
+    for (const k of nt) if (qt.some((q) => pesoToken(q, k) >= 1)) hits++;
+    const cov = hits / nt.length;
+    if (hits > bestHits || (hits === bestHits && cov > bestCov)) { best = it; bestHits = hits; bestCov = cov; }
+  }
+  if (best && (bestHits >= 2 || (bestHits === 1 && bestCov >= 0.5))) return best;
+  return null;
+}
+
 // ── Componente ────────────────────────────────────────────────────────────────
 export default function Asistente() {
   const navigate = useNavigate();
@@ -954,6 +985,9 @@ export default function Asistente() {
   const [input, setInput] = useState("");
   const [msgs, setMsgs] = useState([]);
   const scrollRef = useRef(null);
+  const presuRef = useRef(null);   // cache de presupuestos del tenant
+  const cliRef = useRef(null);     // cache de clientes
+  const esCliente = useMemo(() => !!localStorage.getItem("obras_cliente"), []);
 
   // Mensaje de bienvenida al abrir por primera vez
   useEffect(() => {
@@ -961,8 +995,8 @@ export default function Asistente() {
       setMsgs([{
         from: "bot",
         titulo: "¡Hola! Soy el asistente de FAIM OBRAS 👋",
-        texto: "Preguntame lo que necesites sobre cómo usar el sistema y te explico paso a paso. No importa si escribís rápido o con algún error, te entiendo igual.",
-        chips: sugerencias(sec),
+        texto: "Te ayudo de dos formas:\n• Cómo usar el sistema (te explico paso a paso).\n• Datos de tus obras: precios, costos, materiales, cobros y certificados de un presupuesto o cliente, y rendimientos.\n\nProbá: \"¿cuánto sale el presupuesto …?\" o \"materiales de …\".",
+        chips: [...(esCliente ? [] : ["materiales de un presupuesto", "cobros de un presupuesto"]), ...sugerencias(sec)],
       }]);
     }
   }, [open]);
@@ -1027,11 +1061,129 @@ export default function Asistente() {
     }];
   };
 
-  const enviar = (textoForzado) => {
+  // ── Capa de DATOS ──────────────────────────────────────────────────────────
+  const ensureData = async () => {
+    if (esCliente) return;
+    if (presuRef.current === null) {
+      try { presuRef.current = (await api.get("/presupuestos")).data || []; } catch { presuRef.current = []; }
+    }
+    if (cliRef.current === null) {
+      try { cliRef.current = (await api.get("/clientes")).data || []; } catch { cliRef.current = []; }
+    }
+  };
+  // Precargar al abrir para que las respuestas salgan al instante
+  useEffect(() => { if (open) ensureData(); }, [open]);
+
+  // Decide si la pregunta es de DATOS y de qué tipo (usa los datos ya cacheados)
+  const clasificar = (texto) => {
+    if (esCliente) return null;
+    const presu = presuRef.current || [];
+    const clientes = cliRef.current || [];
+    if (tieneAlguna(texto, ["cliente", "clientes"])) {
+      const c = matchPorNombre(texto, clientes, "nombre");
+      if (c) return { tipo: "cliente", c };
+    }
+    const p = matchPorNombre(texto, presu, "nombre_obra");
+    if (p) return { tipo: "presupuesto", p };
+    if (tieneAlguna(texto, KW_RENDIMIENTO)) return { tipo: "rendimiento" };
+    const c2 = matchPorNombre(texto, clientes, "nombre");
+    if (c2) return { tipo: "cliente", c: c2 };
+    if (tieneAlguna(texto, KW_DATOS)) return { tipo: "ambiguo" };
+    return null;
+  };
+
+  const resolverPresupuesto = async (texto, p) => {
+    const ruta = `/cotizador/presupuesto/${p.id}`;
+    const cerrado = (p.estado || "").toLowerCase() === "cerrado";
+    if (tieneAlguna(texto, ["material", "materiales"])) {
+      const aviso = cerrado ? null : "⚠️ Este presupuesto está ABIERTO. La lista de materiales se genera con el presupuesto CERRADO (se congelan precios y cantidades).";
+      const r = await api.get(`/presupuestos/${p.id}/materiales-listado`);
+      const arr = Array.isArray(r.data) ? r.data : Object.values(r.data || {});
+      const orden = arr.filter((m) => m && m.nombre).sort((a, b) => (b.subtotal || 0) - (a.subtotal || 0));
+      if (!orden.length) return [{ from: "bot", titulo: p.nombre_obra, texto: aviso || "No tiene materiales cargados en los análisis." }];
+      const total = orden.reduce((s, m) => s + (m.subtotal || 0), 0);
+      const top = orden.slice(0, 8).map((m) => `${m.nombre} — ${Math.round(m.cantidad_total || 0)} ${m.unidad || ""} (${money(m.subtotal)})`);
+      return [{ from: "bot", titulo: `Materiales — ${p.nombre_obra}`, texto: (aviso ? aviso + "\n\n" : "") + `${orden.length} materiales · total ${money(total)}`, pasos: top, route: `${ruta}/materiales`, routeLabel: "Ver listado completo" }];
+    }
+    if (tieneAlguna(texto, ["cobro", "cobros", "cobre", "cobrado", "saldo", "cuenta", "debe", "adeuda", "resta"])) {
+      const d = (await api.get(`/presupuestos/${p.id}/cuenta-corriente`)).data || {};
+      return [{ from: "bot", titulo: `Cobros — ${p.nombre_obra}`, lineas: [
+        `Certificado: ${money(d.total_certificado)}`,
+        `Cobrado: ${money(d.total_cobrado)}`,
+        `Saldo pendiente: ${money(d.saldo_pendiente)}`,
+      ], route: `${ruta}/obra`, routeLabel: "Abrir gestión de obra" }];
+    }
+    if (tieneAlguna(texto, ["certificado", "certificados", "avance"])) {
+      const cs = ((await api.get(`/presupuestos/${p.id}/certificados`)).data || {}).certificados || [];
+      if (!cs.length) return [{ from: "bot", titulo: p.nombre_obra, texto: "Todavía no tiene certificados emitidos." + (cerrado ? "" : " (El presupuesto tiene que estar cerrado para certificar.)"), route: cerrado ? `${ruta}/certificado` : ruta, routeLabel: cerrado ? "Crear certificado" : "Abrir presupuesto" }];
+      const ult = cs[cs.length - 1];
+      return [{ from: "bot", titulo: `Certificados — ${p.nombre_obra}`, lineas: [
+        `Cantidad: ${cs.length}`,
+        `Avance acumulado: ${(ult.avance_total_pct || 0).toFixed(1)}%`,
+        `Acumulado: ${money(ult.total_acumulado)}`,
+      ], route: `${ruta}/certificado`, routeLabel: "Ver certificados" }];
+    }
+    // Económico / resumen (por defecto)
+    const d = (await api.get(`/presupuestos/${p.id}`)).data || {};
+    const t = d.totales || {};
+    const lineas = [`Total c/IVA: ${money(t.total_precio_con_iva)}`, `Subtotal s/IVA: ${money(t.total_precio_sin_iva)}`];
+    if (t.total_ejecucion) lineas.push(`Costo de ejecución: ${money(t.total_ejecucion)}`);
+    if (t.margen_pct != null) lineas.push(`Margen: ${Number(t.margen_pct).toFixed(1)}%`);
+    lineas.push(`Estado: ${(d.estado || p.estado || "").toUpperCase()}`);
+    return [{ from: "bot", titulo: p.nombre_obra, texto: p.cliente_nombre ? `Cliente: ${p.cliente_nombre}` : null, lineas,
+      route: ruta, routeLabel: "Abrir presupuesto",
+      chips: [`materiales de ${p.nombre_obra}`, `cobros de ${p.nombre_obra}`, `certificados de ${p.nombre_obra}`], chipsHint: "Preguntame también:" }];
+  };
+
+  const resolverCliente = (c) => {
+    const presu = (presuRef.current || []).filter((p) => p.cliente_id === c.id);
+    if (!presu.length) return [{ from: "bot", titulo: c.nombre, texto: "No tiene presupuestos cargados." }];
+    const total = presu.reduce((s, p) => s + (p.total_precio_con_iva || 0), 0);
+    return [{ from: "bot", titulo: `Cliente: ${c.nombre}`, texto: `${presu.length} presupuesto(s) · total ${money(total)}`,
+      pasos: presu.slice(0, 10).map((p) => `${p.nombre_obra} — ${money(p.total_precio_con_iva)} (${(p.estado || "").toUpperCase()})`),
+      chips: presu.slice(0, 6).map((p) => p.nombre_obra), chipsHint: "Ver detalle de:" }];
+  };
+
+  const resolverRendimiento = async (texto) => {
+    const items = (await api.get("/analisis/items")).data || [];
+    const it = matchPorNombre(texto, items, "nombre");
+    if (!it) return [{ from: "bot", titulo: "¿Qué tarea?", texto: "Decime el nombre del ítem o tarea (ej.: \"rendimiento de revoque grueso\") y te paso las horas de mano de obra por unidad." }];
+    const d = (await api.get(`/analisis/items/${it.id}`)).data || {};
+    const mos = d.lineas_mo || d.mo || [];
+    if (!mos.length) return [{ from: "bot", titulo: it.nombre, texto: "Ese ítem no tiene mano de obra cargada en su análisis." }];
+    const horasTot = mos.reduce((s, m) => s + (Number(m.horas) || 0), 0);
+    const lineas = mos.map((m) => `${m.funcion || "Mano de obra"}: ${m.horas} h`);
+    lineas.push(`Total: ${horasTot} h por unidad`);
+    return [{ from: "bot", titulo: `Rendimiento — ${it.nombre}`, texto: "Mano de obra por unidad:", pasos: lineas }];
+  };
+
+  const resolverDatos = async (intent, texto) => {
+    try {
+      if (intent.tipo === "rendimiento") return await resolverRendimiento(texto);
+      if (intent.tipo === "cliente") return resolverCliente(intent.c);
+      if (intent.tipo === "presupuesto") return await resolverPresupuesto(texto, intent.p);
+      const presu = presuRef.current || [];
+      if (!presu.length) return [{ from: "bot", texto: "Todavía no tenés presupuestos cargados." }];
+      return [{ from: "bot", titulo: "¿Sobre qué presupuesto?", texto: "Tocá uno (o escribí el nombre) y te paso precios, materiales, cobros o certificados.", chips: presu.slice(0, 8).map((p) => p.nombre_obra) }];
+    } catch (e) {
+      return [{ from: "bot", texto: "Tuve un problema consultando los datos. Probá de nuevo en un momento." }];
+    }
+  };
+
+  const enviar = async (textoForzado) => {
     const texto = (textoForzado ?? input).trim();
     if (!texto) return;
     setInput("");
-    setMsgs((m) => [...m, { from: "user", texto }, ...responder(texto)]);
+    setMsgs((m) => [...m, { from: "user", texto }]);
+    await ensureData();
+    const intent = clasificar(texto);
+    if (intent) {
+      setMsgs((m) => [...m, { from: "bot", texto: "Un segundo, busco eso… ⏳", loading: true }]);
+      const res = await resolverDatos(intent, texto);
+      setMsgs((m) => [...m.filter((x) => !x.loading), ...res]);
+      return;
+    }
+    setMsgs((m) => [...m, ...responder(texto)]);
   };
 
   const irA = (route) => { setOpen(false); navigate(route); };
@@ -1095,7 +1247,12 @@ export default function Asistente() {
                   boxShadow: m.from === "bot" ? "0 1px 2px rgba(0,0,0,0.04)" : "none",
                 }}>
                   {m.titulo && <div style={{ fontWeight: 700, marginBottom: 6 }}>{m.titulo}</div>}
-                  {m.texto && <div>{m.texto}</div>}
+                  {m.texto && <div style={{ whiteSpace: "pre-wrap" }}>{m.texto}</div>}
+                  {m.lineas && (
+                    <div style={{ margin: "6px 0 0", display: "flex", flexDirection: "column", gap: 3 }}>
+                      {m.lineas.map((l, j) => <div key={j} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5 }}>{l}</div>)}
+                    </div>
+                  )}
                   {m.pasos && (
                     <ol style={{ margin: "4px 0 0", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
                       {m.pasos.map((p, j) => <li key={j}>{p}</li>)}

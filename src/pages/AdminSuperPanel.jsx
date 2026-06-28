@@ -546,6 +546,64 @@ function PanelMateriales({ token }) {
   );
 }
 
+// ── Panel de Anuncio global ─────────────────────────────────────────────────────
+function PanelAnuncio({ token }) {
+  const [titulo, setTitulo] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [activo, setActivo] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  useEffect(() => { cargar(); }, []);
+  const cargar = async () => {
+    const r = await fetch(`${API}/admin/anuncio`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) {
+      const d = await r.json();
+      if (d) { setTitulo(d.titulo || ""); setMensaje(d.mensaje || ""); setActivo(!!d.activo); }
+    }
+  };
+  const guardar = async () => {
+    setSaving(true); setMsg(null);
+    const r = await fetch(`${API}/admin/anuncio`, {
+      method: "PUT", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ titulo, mensaje, activo }),
+    });
+    setSaving(false);
+    setMsg(r.ok ? "✓ Guardado. Los usuarios lo verán la próxima vez que entren." : "Error al guardar");
+    if (r.ok) setTimeout(() => setMsg(null), 4000);
+  };
+
+  return (
+    <div style={{ maxWidth: 640 }}>
+      <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+        Mensaje que aparece como banner arriba para <strong>todos los estudios</strong>. Cada usuario lo puede cerrar; si publicás uno nuevo, vuelve a aparecer.
+      </div>
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+        <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Título (opcional)</label>
+        <input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Novedad"
+          style={{ width: "100%", padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 6, marginBottom: 14, boxSizing: "border-box", outline: "none" }} />
+        <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Mensaje</label>
+        <textarea value={mensaje} onChange={e => setMensaje(e.target.value)} placeholder="Ej: ¡Nuevo! Ahora el asistente responde consultas sobre tus presupuestos: precios, materiales, cobros y certificados."
+          style={{ width: "100%", height: 90, padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 6, marginBottom: 14, boxSizing: "border-box", outline: "none", resize: "vertical", fontFamily: "inherit" }} />
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: C.text, marginBottom: 16, cursor: "pointer" }}>
+          <input type="checkbox" checked={activo} onChange={e => setActivo(e.target.checked)} /> Mostrar el anuncio (destildá para ocultarlo)
+        </label>
+        {mensaje && activo && (
+          <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", color: "#3730a3", borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 16 }}>
+            Vista previa: {titulo && <strong>{titulo} </strong>}{mensaje}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <button onClick={guardar} disabled={saving} style={{ padding: "9px 20px", background: C.accent, color: "white", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: saving ? 0.6 : 1 }}>
+            {saving ? "Guardando..." : "Publicar anuncio"}
+          </button>
+          {msg && <span style={{ fontSize: 13, color: msg.startsWith("✓") ? C.green : C.red, fontWeight: 600 }}>{msg}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function AdminPanel() {
   const [tab, setTab]               = useState("cuentas");
@@ -741,7 +799,10 @@ export default function AdminPanel() {
         <div style={{ display:"flex", gap:4, background:C.surface2, borderRadius:8, padding:4, marginBottom:20, width:"fit-content" }}>
           <button style={tabStyle("cuentas")} onClick={()=>setTab("cuentas")}>Cuentas</button>
           <button style={tabStyle("precios")} onClick={()=>setTab("precios")}>Precios</button>
+          <button style={tabStyle("anuncio")} onClick={()=>setTab("anuncio")}>Anuncio</button>
         </div>
+
+        {tab === "anuncio" && <PanelAnuncio token={token} />}
 
         {/* ── CUENTAS ──────────────────────────────────────────────────────────── */}
         {tab === "cuentas" && (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut, Check, AlertTriangle, Activity } from "lucide-react";
+import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut, Check, AlertTriangle, Activity, Sparkles, X } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
@@ -91,6 +91,21 @@ function TrialBanner({ diasRestantes }) {
     <div style={{ background: diasRestantes <= 2 ? "#fef2f2" : "#fffbeb", borderBottom: `1px solid ${diasRestantes <= 2 ? "#fecaca" : "#fde68a"}`, color: diasRestantes <= 2 ? C.red : C.warn, textAlign: "center", padding: "7px 16px", fontSize: 13, fontFamily: "'Syne', sans-serif" }}>
       <AlertTriangle size={13} strokeWidth={2} style={{ marginRight: 4, verticalAlign: "middle" }} /> Te {diasRestantes === 1 ? "queda" : "quedan"} <strong>{diasRestantes} día{diasRestantes !== 1 ? "s" : ""}</strong> de prueba gratuita.
       {diasRestantes <= 3 && " Suscribite para no perder el acceso."}
+    </div>
+  );
+}
+
+// ── Banner de anuncio global (lo publica el admin de plataforma) ───────────────
+function AnuncioBanner({ anuncio, onClose }) {
+  if (!anuncio) return null;
+  return (
+    <div style={{ background: "#eef2ff", borderBottom: "1px solid #c7d2fe", color: "#3730a3", padding: "8px 40px 8px 16px", fontSize: 13, fontFamily: "'Syne', sans-serif", position: "relative", textAlign: "center" }}>
+      <Sparkles size={13} strokeWidth={2} style={{ marginRight: 6, verticalAlign: "middle" }} />
+      {anuncio.titulo && <strong>{anuncio.titulo} </strong>}
+      <span>{anuncio.mensaje}</span>
+      <button onClick={onClose} aria-label="Cerrar" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#3730a3", lineHeight: 0 }}>
+        <X size={16} />
+      </button>
     </div>
   );
 }
@@ -312,12 +327,24 @@ export default function App() {
   const [regNombre, setRegNombre] = useState("");
   const [regEstudio, setRegEstudio] = useState("");
   const [regLoading, setRegLoading] = useState(false);
+  const [anuncio, setAnuncio] = useState(null);
 
   const checkSuscripcion = async () => {
     try {
       const res = await api.get('/suscripcion/estado');
       setSuscripcion(res.data);
     } catch (e) {}
+    try {
+      const a = await api.get('/anuncio');
+      if (a.data && String(localStorage.getItem('anuncio_visto')) !== String(a.data.id)) {
+        setAnuncio(a.data);
+      }
+    } catch (e) {}
+  };
+
+  const cerrarAnuncio = () => {
+    if (anuncio) localStorage.setItem('anuncio_visto', String(anuncio.id));
+    setAnuncio(null);
   };
 
   useEffect(()=>{
@@ -575,6 +602,7 @@ export default function App() {
     }
     return (
       <BrowserRouter>
+        <AnuncioBanner anuncio={anuncio} onClose={cerrarAnuncio} />
         {banner}
         <AppInner user={{ ...user, rol: estudioInfo.rol, nombre: estudioInfo.nombre }} tenant={tenant} onLogout={handleLogout} onTenantUpdate={(data) => setTenant(t => ({...t, ...data}))} />
       </BrowserRouter>
@@ -583,6 +611,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <AnuncioBanner anuncio={anuncio} onClose={cerrarAnuncio} />
       {banner}
       <AppInner user={user} tenant={tenant} onLogout={handleLogout} onTenantUpdate={(data) => setTenant(t => ({...t, ...data}))} />
     </BrowserRouter>
