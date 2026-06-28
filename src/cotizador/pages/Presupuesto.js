@@ -592,21 +592,12 @@ ${firma}
   const handleRenombrarLinea = async (lineaId, nuevoNombre) => {
     if (!nuevoNombre || !nuevoNombre.trim()) { setEditandoNombreId(null); return; }
     try {
-      const res = await fetch(`https://obras-backend-production.up.railway.app/presupuestos/${id}/lineas/${lineaId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre_override: nuevoNombre.trim() }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert('Error al guardar: ' + (err.detail || res.status));
-        return;
-      }
+      await actualizarLinea(id, lineaId, { nombre_override: nuevoNombre.trim() });
       setEditandoNombreId(null);
       setNombreEditVal('');
       await cargar();
     } catch(e) {
-      alert('Error de red: ' + e.message);
+      alert('Error al guardar: ' + (e.response?.data?.detail || e.message));
     }
   };
 
@@ -617,16 +608,14 @@ ${firma}
     try {
       await Promise.all(
         rubro.lineas.map(l =>
-          fetch(`https://obras-backend-production.up.railway.app/presupuestos/${id}/lineas/${l.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ categoria_nombre: nuevoNombre.trim() }),
-          })
+          actualizarLinea(id, l.id, { categoria_nombre: nuevoNombre.trim() })
         )
       );
+      setEditandoRubroNum(null);
+      setRubroEditVal('');
       await cargar();
     } catch(e) {
-      alert('Error: ' + e.message);
+      alert('Error: ' + (e.response?.data?.detail || e.message));
     }
   };
 

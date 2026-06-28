@@ -16,6 +16,7 @@ api.interceptors.request.use((config) => {
 
 // Manejo de sesión expirada — si el token venció, cerrar sesión y volver al login
 let sesionExpiradaAvisada = false;
+let suscripcionBloqueadaAvisada = false;
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -29,6 +30,15 @@ api.interceptors.response.use(
         localStorage.removeItem('obras_tenant');
         localStorage.removeItem('obras_estudio');
         alert('Tu sesión expiró. Por favor, ingresá de nuevo.');
+        window.location.href = '/';
+      }
+    }
+    // Suscripción vencida / cuenta suspendida → recargar UNA vez para que App muestre el paywall.
+    // El guard en sessionStorage evita un bucle de recargas si el restore vuelve a recibir 402.
+    if (status === 402 && localStorage.getItem('obras_token')) {
+      if (!suscripcionBloqueadaAvisada && !sessionStorage.getItem('susc_reload')) {
+        suscripcionBloqueadaAvisada = true;
+        sessionStorage.setItem('susc_reload', '1');
         window.location.href = '/';
       }
     }

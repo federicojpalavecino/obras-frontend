@@ -559,6 +559,9 @@ export default function AdminPanel() {
   const [loginError, setLoginError] = useState("");
   const [search, setSearch]         = useState("");
   const [filterPlan, setFilterPlan] = useState("todos");
+  const [precioEdit, setPrecioEdit] = useState({}); // { [tid]: valor }
+  const [precioSaving, setPrecioSaving] = useState({});
+  const [precioSaved, setPrecioSaved]   = useState({});
 
   useEffect(() => {
     const t = localStorage.getItem("obras_admin_token");
@@ -607,6 +610,40 @@ export default function AdminPanel() {
       method: "PUT", headers: { Authorization: `Bearer ${token}` }
     });
     cargar(token);
+  };
+
+  const guardarPrecio = async (tid, precio) => {
+    setPrecioSaving(s => ({ ...s, [tid]: true }));
+    try {
+      const res = await fetch(`${API}/admin/tenants/${tid}/precio`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ precio_mensual: parseFloat(precio) || 0 }),
+      });
+      if (res.ok) {
+        setPrecioSaved(s => ({ ...s, [tid]: true }));
+        setTimeout(() => setPrecioSaved(s => ({ ...s, [tid]: false })), 1500);
+        setPrecioEdit(p => { const n = { ...p }; delete n[tid]; return n; });
+        await cargar(token);
+      } else {
+        const e = await res.json().catch(() => ({}));
+        alert("Error al guardar el precio: " + (e.detail || res.status));
+      }
+    } catch { alert("Error de conexión"); }
+    setPrecioSaving(s => ({ ...s, [tid]: false }));
+  };
+
+  const guardarTrial = async (tid, fecha) => {
+    if (!fecha) return;
+    try {
+      const res = await fetch(`${API}/admin/tenants/${tid}/trial`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ trial_hasta: fecha }),
+      });
+      if (res.ok) await cargar(token);
+      else { const e = await res.json().catch(() => ({})); alert("Error: " + (e.detail || res.status)); }
+    } catch { alert("Error de conexión"); }
   };
 
   const toggleActivo = async (tid) => {
@@ -725,8 +762,8 @@ export default function AdminPanel() {
             </div>
 
             <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"2fr 2fr 1fr 1fr 1fr auto", gap:0, borderBottom:`1px solid ${C.border}`, padding:"10px 16px", background:C.surface2 }}>
-                {["Estudio","Email","Plan","Trial hasta","Usuarios","Acciones"].map(h => (
+              <div style={{ display:"grid", gridTemplateColumns:"1.6fr 1.8fr 0.9fr 1.3fr 0.6fr 1.4fr auto", gap:0, borderBottom:`1px solid ${C.border}`, padding:"10px 16px", background:C.surface2 }}>
+                {["Estudio","Email","Plan","Trial hasta","Usuarios","Precio/mes","Acciones"].map(h => (
                   <div key={h} style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.5px" }}>{h}</div>
                 ))}
               </div>
@@ -734,15 +771,31 @@ export default function AdminPanel() {
                 <div style={{ padding:32, textAlign:"center", color:C.muted }}>Cargando...</div>
               ) : tenantsFiltrados.length === 0 ? (
                 <div style={{ padding:32, textAlign:"center", color:C.muted }}>No hay cuentas</div>
-              ) : tenantsFiltrados.map((t, i) => (
-                <div key={t.id} style={{ display:"grid", gridTemplateColumns:"2fr 2fr 1fr 1fr 1fr auto", gap:0, padding:"12px 16px", borderBottom: i < tenantsFiltrados.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center", background: t.activo===false ? "#fef2f2" : "white" }}>
+              ) : tenantsFiltrados.map((t, i) => {
+                const precioVal = precioEdit[t.id] !== undefined ? precioEdit[t.id] : String(Math.round(t.precio_mensual || 0));
+                const precioChanged = parseFloat(precioVal || 0) !== Math.round(t.precio_mensual || 0);
+                const trialISO = t.trial_hasta ? new Date(t.trial_hasta).toISOString().slice(0, 10) : "";
+                return (
+                <div key={t.id} style={{ display:"grid", gridTemplateColumns:"1.6fr 1.8fr 0.9fr 1.3fr 0.6fr 1.4fr auto", gap:0, padding:"12px 16px", borderBottom: i < tenantsFiltrados.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center", background: t.activo===false ? "#fef2f2" : "white" }}>
                   <div style={{ fontWeight:600, fontSize:14, color:C.text }}>{t.nombre}</div>
                   <div style={{ fontSize:13, color:C.muted }}>{t.email_admin}</div>
                   <div><Badge plan={t.plan_estado} /></div>
-                  <div style={{ fontSize:12, color:C.muted, fontFamily:"'IBM Plex Mono',monospace" }}>
-                    {t.trial_hasta ? new Date(t.trial_hasta).toLocaleDateString("es-AR") : "—"}
+                  <div>
+                    <input type="date" defaultValue={trialISO}
+                      onChange={e => e.target.value && guardarTrial(t.id, e.target.value)}
+                      style={{ fontSize:11, color:C.muted, fontFamily:"'IBM Plex Mono',monospace", border:`1px solid ${C.border}`, borderRadius:6, padding:"3px 6px", background:C.surface, outline:"none", width:"100%", boxSizing:"border-box" }} />
                   </div>
-                  <div style={{ fontSize:13, color:C.muted }}>{t.usuarios ?? "—"}</div>
+                  <div style={{ fontSize:13, color:C.muted }}>{t.cant_usuarios ?? t.usuarios ?? "—"}</div>
+                  <div style={{ display:"flex", gap:5, alignItems:"center" }}>
+                    <span style={{ fontSize:12, color:C.muted }}>$</span>
+                    <input type="number" value={precioVal}
+                      onChange={e => setPrecioEdit(p => ({ ...p, [t.id]: e.target.value }))}
+                      style={{ width:"100%", minWidth:70, padding:"5px 8px", border:`1px solid ${precioChanged ? C.accent : C.border}`, borderRadius:6, fontSize:12, fontFamily:"'IBM Plex Mono',monospace", outline:"none", boxSizing:"border-box" }} />
+                    <button onClick={() => guardarPrecio(t.id, precioVal)} disabled={precioSaving[t.id] || !precioChanged}
+                      style={{ padding:"4px 9px", borderRadius:6, border:"none", fontSize:11, fontWeight:700, cursor: precioChanged ? "pointer" : "default", background: precioSaved[t.id] ? C.green : precioChanged ? C.accent : C.surface2, color: precioSaved[t.id] || precioChanged ? "white" : C.muted, opacity: precioSaving[t.id] ? 0.6 : 1, whiteSpace:"nowrap" }}>
+                      {precioSaved[t.id] ? "✓" : precioSaving[t.id] ? "..." : "OK"}
+                    </button>
+                  </div>
                   <div style={{ display:"flex", gap:6 }}>
                     {t.plan_estado !== "activo" && (
                       <button onClick={()=>cambiarPlan(t.id,"activo")}
@@ -766,7 +819,8 @@ export default function AdminPanel() {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div style={{ fontSize:12, color:C.muted, marginTop:8 }}>{tenantsFiltrados.length} cuenta{tenantsFiltrados.length!==1?"s":""}</div>
           </>

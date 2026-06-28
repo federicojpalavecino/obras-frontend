@@ -485,6 +485,7 @@ export default function App() {
     localStorage.removeItem("obras_session");
     localStorage.removeItem("obras_cliente");
     localStorage.removeItem("obras_estudio");
+    sessionStorage.removeItem("susc_reload");
     setUser(null); setClienteInfo(null); setEstudioInfo(null); setSuscripcion(null); setTenant(null);
   };
 
