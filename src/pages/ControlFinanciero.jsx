@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Printer, ArrowDownLeft, ArrowUpRight, Users, Wrench, BarChart2, FileDown } from "lucide-react";
 import api from "../cotizador/api";
 import MenuAcciones from "../shared/MenuAcciones";
+import NumeroInput from "../cotizador/NumeroInput";
 
 // ── Hook detección mobile ──────────────────────────────────────────────────────
 function useIsMobile(bp = 720) {
@@ -587,7 +588,7 @@ export default function ControlFinanciero({ user }) {
               {week.ingresos.map((row, i) => (
                 <div key={i} style={rowGrid}>
                   <input style={{ ...inp, ...conceptoSpan }} placeholder="Concepto" value={row.concepto || ""} onChange={e => updIngreso(i, "concepto", e.target.value)} />
-                  <input style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} type="number" placeholder="Monto" value={row.monto || ""} onChange={e => updIngreso(i, "monto", e.target.value)} />
+                  <NumeroInput style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} placeholder="Monto" value={row.monto || ""} onChange={v => updIngreso(i, "monto", v)} />
                   <select style={inp} value={row.estado || "PENDIENTE"} onChange={e => updIngreso(i, "estado", e.target.value)}>
                     {["PENDIENTE", "COBRADO", "EN PROCESO"].map(s => <option key={s}>{s}</option>)}
                   </select>
@@ -607,7 +608,7 @@ export default function ControlFinanciero({ user }) {
               {week.egresos.map((row, i) => (
                 <div key={i} style={rowGrid}>
                   <input style={{ ...inp, ...conceptoSpan }} placeholder="Concepto" value={row.concepto || ""} onChange={e => updEgreso(i, "concepto", e.target.value)} />
-                  <input style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} type="number" placeholder="Monto" value={row.monto || ""} onChange={e => updEgreso(i, "monto", e.target.value)} />
+                  <NumeroInput style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} placeholder="Monto" value={row.monto || ""} onChange={v => updEgreso(i, "monto", v)} />
                   <select style={inp} value={row.estado || "PENDIENTE"} onChange={e => updEgreso(i, "estado", e.target.value)}>
                     {["PENDIENTE", "PAGADO"].map(s => <option key={s}>{s}</option>)}
                   </select>
@@ -636,7 +637,7 @@ export default function ControlFinanciero({ user }) {
                   <input style={{ ...inp, ...fullSpan }} placeholder="Rango/Rol" value={row.rango || ""} onChange={e => updPersonal(i, "rango", e.target.value)} />
                   <input style={{ ...inp, textAlign: "center" }} type="number" placeholder="Días" value={row.dias || ""} onChange={e => updPersonal(i, "dias", e.target.value)} title="Días trabajados" />
                   <input style={{ ...inp, textAlign: "center" }} type="number" placeholder="Hs" value={row.hs || ""} onChange={e => updPersonal(i, "hs", e.target.value)} title="Horas por día" />
-                  <input style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} type="number" placeholder="$/hs" value={row.costo || ""} onChange={e => updPersonal(i, "costo", e.target.value)} />
+                  <NumeroInput style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} placeholder="$/hs" value={row.costo || ""} onChange={v => updPersonal(i, "costo", v)} />
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, fontFamily: "'IBM Plex Mono', monospace", textAlign: "right", paddingRight: 4, ...totalPersonalSpan }}>{fmt(row.total || 0)}</div>
                   <button onClick={() => delPersonal(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
                 </div>
