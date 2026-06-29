@@ -1228,10 +1228,10 @@ ${firma}
             </div>
 
             {lineaSeleccionada && (
-              <PanelAnalisis presupuestoId={id} linea={lineaSeleccionada} onClose={() => setLineaSeleccionada(null)} onCostoChange={() => cargar(true)} />
+              <PanelAnalisis key={lineaSeleccionada.id} presupuestoId={id} linea={lineaSeleccionada} onClose={() => setLineaSeleccionada(null)} onCostoChange={() => cargar(true)} />
             )}
             {computoLinea && (
-              <PanelComputo presupuestoId={id} linea={computoLinea} onClose={() => setComputoLinea(null)}
+              <PanelComputo key={computoLinea.id} presupuestoId={id} linea={computoLinea} onClose={() => setComputoLinea(null)}
                 lineas={(data?.rubros || []).flatMap(r => r.lineas || [])}
                 onCantidadChange={(lineaId, cant) => { cargar(true); }} />
             )}
