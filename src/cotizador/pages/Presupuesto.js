@@ -13,6 +13,7 @@ import PanelAnalisis from './PanelAnalisis';
 import PanelComputo from './PanelComputo';
 import MobileMenu from './MobileMenu';
 import { coincide } from '../buscar';
+import { parseNum } from '../num';
 import '../print.css';
 
 const fmt = (n) => {
@@ -77,8 +78,8 @@ export default function Presupuesto() {
     else getItems().then(r => setItemsAdic(r.data));
   }, [catAdic]);
 
-  const cargar = async () => {
-    setLoading(true);
+  const cargar = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await getPresupuesto(id);
       setData(res.data);
@@ -103,7 +104,7 @@ export default function Presupuesto() {
           .catch(() => {});
       }
     } catch (e) { console.error(e); }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   const cargarAdicionales = async () => {
@@ -182,8 +183,8 @@ export default function Presupuesto() {
         tipo: 'libre',
         nombre_libre: itemLibreAdic.nombre_libre,
         unidad_libre: itemLibreAdic.unidad_libre,
-        cantidad: parseFloat(itemLibreAdic.cantidad) || 1,
-        costo_directo_libre: parseFloat(itemLibreAdic.costo_directo_libre),
+        cantidad: parseNum(itemLibreAdic.cantidad) || 1,
+        costo_directo_libre: parseNum(itemLibreAdic.costo_directo_libre),
       });
       setItemLibreAdic({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1 });
       setShowLibreAdic(false);
@@ -202,7 +203,7 @@ export default function Presupuesto() {
   const handleCantidadAdicional = async (lineaId, cant) => {
     if (!modalAdicional || !cant || cant <= 0) return;
     const adicId = modalAdicional.id;
-    await api.patch(`/presupuestos/${adicId}/lineas/${lineaId}`, { cantidad: parseFloat(cant) });
+    await api.patch(`/presupuestos/${adicId}/lineas/${lineaId}`, { cantidad: parseNum(cant) });
     const fullRes = await api.get(`/presupuestos/${adicId}`);
     setModalAdicional(fullRes.data);
   };
@@ -234,19 +235,19 @@ export default function Presupuesto() {
   const guardarCoefs = async () => {
     if (!coefs) return;
     setGuardando(true);
-    try { await actualizarPresupuesto(id, { ...coefs, dias_vigencia: coefs.dias_vigencia, observaciones: observaciones || null }); await cargar(); }
+    try { await actualizarPresupuesto(id, { ...coefs, dias_vigencia: coefs.dias_vigencia, observaciones: observaciones || null }); await cargar(true); }
     catch (e) { console.error(e); }
     setGuardando(false);
   };
 
   const handleCerrar = async () => {
     if (!window.confirm('¿Cerrar el presupuesto? Los precios quedarán congelados.')) return;
-    await cerrarPresupuesto(id); cargar();
+    await cerrarPresupuesto(id); cargar(true);
   };
 
   const handleReabrir = async () => {
     if (!window.confirm('¿Reabrir el presupuesto?')) return;
-    await reabrirPresupuesto(id); cargar();
+    await reabrirPresupuesto(id); cargar(true);
   };
 
   const handleAgregarItem = async (item, rubroDestino) => {
@@ -264,7 +265,7 @@ export default function Presupuesto() {
         payload.categoria_nombre = rubroDestino.nombre;
       }
       await agregarLinea(id, payload);
-      cargar();
+      cargar(true);
     } catch (e) { console.error(e); }
     setItemPendiente(null);
   };
@@ -275,7 +276,7 @@ export default function Presupuesto() {
       await api.post(`/presupuestos/${id}/rubros`, { nombre: nuevoRubroNombre.trim() });
       setNuevoRubroNombre('');
       setModalNuevoRubro(false);
-      await cargar();
+      await cargar(true);
     } catch(e) { alert('Error: ' + e.message); }
   };
 
@@ -286,14 +287,14 @@ export default function Presupuesto() {
       await api.patch(`/presupuestos/${id}/lineas/${itemLibre._editId}`, {
         nombre_libre: itemLibre.nombre_libre,
         unidad_libre: itemLibre.unidad_libre,
-        cantidad: parseFloat(itemLibre.cantidad),
-        costo_directo_libre: modoLibre === 'global' ? parseFloat(itemLibre.costo_directo_libre) : 0,
+        cantidad: parseNum(itemLibre.cantidad),
+        costo_directo_libre: modoLibre === 'global' ? parseNum(itemLibre.costo_directo_libre) : 0,
       });
       const editId = itemLibre._editId;
       const editNombre = itemLibre.nombre_libre;
       setModalLibre(false);
       setItemLibre({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1 });
-      await cargar();
+      await cargar(true);
       // Si eligió desglosar en modo edición, abrir panel
       if (modoLibre === 'desglosado') {
         setLineaSeleccionada({ id: editId, tipo: 'libre', nombre_libre: editNombre });
@@ -312,13 +313,13 @@ export default function Presupuesto() {
         tipo: 'libre',
         nombre_libre: itemLibre.nombre_libre,
         unidad_libre: itemLibre.unidad_libre,
-        cantidad: parseFloat(itemLibre.cantidad) || 1,
-        costo_directo_libre: modoLibre === 'global' ? parseFloat(itemLibre.costo_directo_libre) : 0,
+        cantidad: parseNum(itemLibre.cantidad) || 1,
+        costo_directo_libre: modoLibre === 'global' ? parseNum(itemLibre.costo_directo_libre) : 0,
         ...(catNum !== null ? { categoria_numero: catNum, categoria_nombre: catNom } : {}),
       });
       setModalLibre(false);
       setItemLibre({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1 });
-      await cargar();
+      await cargar(true);
       // Si eligió desglosar, abrir PanelAnalisis automáticamente
       if (modoLibre === 'desglosado' && res?.id) {
         setLineaSeleccionada({ id: res.id, tipo: 'libre', nombre_libre: itemLibre.nombre_libre });
@@ -331,13 +332,13 @@ export default function Presupuesto() {
     const items = [];
     rubros.forEach(rubro => {
       (rubro.lineas || []).forEach(linea => {
-        const key = 'computo_' + id + '_' + linea.id;
         try {
-          const saved = localStorage.getItem(key);
-          if (saved) {
-            const filas = JSON.parse(saved);
-            if (filas.length > 0) items.push({ linea, rubro, filas });
-          }
+          // Servidor primero (robusto), sino localStorage. Acepta formato nuevo {tipo,filas} o array viejo.
+          let raw = linea.computo_detalle || localStorage.getItem('computo_' + id + '_' + linea.id);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          const filas = Array.isArray(parsed) ? parsed : (parsed && parsed.filas);
+          if (filas && filas.length > 0) items.push({ linea, rubro, filas });
         } catch {}
       });
     });
@@ -429,14 +430,14 @@ export default function Presupuesto() {
 
     const handleCantidad = async (linea_id, cant) => {
     if (!cant || cant <= 0) return;
-    await actualizarLinea(id, linea_id, { cantidad: parseFloat(cant) });
-    cargar();
+    await actualizarLinea(id, linea_id, { cantidad: parseNum(cant) });
+    cargar(true);
   };
 
   const handleEliminar = async (linea_id) => {
     if (lineaSeleccionada?.id === linea_id) setLineaSeleccionada(null);
     await eliminarLinea(id, linea_id);
-    cargar();
+    cargar(true);
   };
 
   const handleImprimir = (modo) => {
@@ -596,7 +597,7 @@ ${firma}
       await actualizarLinea(id, lineaId, { nombre_override: nuevoNombre.trim() });
       setEditandoNombreId(null);
       setNombreEditVal('');
-      await cargar();
+      await cargar(true);
     } catch(e) {
       alert('Error al guardar: ' + (e.response?.data?.detail || e.message));
     }
@@ -614,7 +615,7 @@ ${firma}
       );
       setEditandoRubroNum(null);
       setRubroEditVal('');
-      await cargar();
+      await cargar(true);
     } catch(e) {
       alert('Error: ' + (e.response?.data?.detail || e.message));
     }
@@ -1227,11 +1228,12 @@ ${firma}
             </div>
 
             {lineaSeleccionada && (
-              <PanelAnalisis presupuestoId={id} linea={lineaSeleccionada} onClose={() => setLineaSeleccionada(null)} onCostoChange={() => cargar()} />
+              <PanelAnalisis presupuestoId={id} linea={lineaSeleccionada} onClose={() => setLineaSeleccionada(null)} onCostoChange={() => cargar(true)} />
             )}
             {computoLinea && (
               <PanelComputo presupuestoId={id} linea={computoLinea} onClose={() => setComputoLinea(null)}
-                onCantidadChange={(lineaId, cant) => { cargar(); }} />
+                lineas={(data?.rubros || []).flatMap(r => r.lineas || [])}
+                onCantidadChange={(lineaId, cant) => { cargar(true); }} />
             )}
           </div>
         </div>
@@ -1297,8 +1299,8 @@ ${firma}
                 </div>
                 <div className="form-group" style={{ flex: 1, minWidth: 120 }}>
                   <label>Cantidad</label>
-                  <input className="input input-mono" type="number" min="0" step="0.01" value={itemLibre.cantidad}
-                    onChange={e => setItemLibre({ ...itemLibre, cantidad: parseFloat(e.target.value) })} />
+                  <input className="input input-mono" type="text" inputMode="decimal" value={itemLibre.cantidad}
+                    onChange={e => setItemLibre({ ...itemLibre, cantidad: e.target.value })} />
                 </div>
               </div>
 
@@ -1318,7 +1320,7 @@ ${firma}
               {modoLibre === 'global' ? (
                 <div className="form-group">
                   <label>Costo directo de ejecución *</label>
-                  <input className="input input-mono" type="number" min="0"
+                  <input className="input input-mono" type="text" inputMode="decimal"
                     value={itemLibre.costo_directo_libre}
                     onChange={e => setItemLibre({ ...itemLibre, costo_directo_libre: e.target.value })}
                     placeholder="0" />
@@ -1436,9 +1438,9 @@ ${firma}
                   {[['GG%', 'gg_porcentaje'], ['Ben%', 'ben_porcentaje'], ['IVA%', 'iva_porcentaje'], ['K Mat', 'k_materiales'], ['K MO', 'k_mano_obra'], ['K Maq', 'k_maquinaria'], ['CS%', 'cargas_sociales_factor']].map(([label, key]) => (
                     <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span style={{ color: 'var(--muted)', fontSize: 10 }}>{label}:</span>
-                      <input type="number" step="0.1" value={modalAdicional.coeficientes?.[key] ?? ''} style={{ width: 54, background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 4, padding: '2px 5px', fontSize: 11, fontFamily: 'var(--mono)', textAlign: 'right', color: 'var(--text)' }}
+                      <input type="text" inputMode="decimal" value={modalAdicional.coeficientes?.[key] ?? ''} style={{ width: 54, background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 4, padding: '2px 5px', fontSize: 11, fontFamily: 'var(--mono)', textAlign: 'right', color: 'var(--text)' }}
                         onBlur={async e => {
-                          const val = parseFloat(e.target.value);
+                          const val = parseNum(e.target.value);
                           if (isNaN(val)) return;
                           await api.put(`/presupuestos/${modalAdicional.id}`, { [key]: val });
                           const res = await api.get(`/presupuestos/${modalAdicional.id}`);

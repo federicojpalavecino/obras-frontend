@@ -5,6 +5,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://obras-backend-producti
 const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 25000, // corta esperas eternas con conexión débil
 });
 
 // JWT token interceptor
@@ -19,8 +20,22 @@ let sesionExpiradaAvisada = false;
 let suscripcionBloqueadaAvisada = false;
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const status = error.response?.status;
+    // ── Reintentos con conexión débil ──
+    // Reintenta GET (y otros idempotentes) ante error de red / timeout / 5xx.
+    const cfg = error.config || {};
+    const metodo = (cfg.method || 'get').toLowerCase();
+    const sinRespuesta = !error.response || error.code === 'ECONNABORTED';
+    const servidorCaido = status >= 500 && status < 600;
+    const reintentable = ['get', 'head', 'options'].includes(metodo) && (sinRespuesta || servidorCaido);
+    if (reintentable) {
+      cfg.__retry = (cfg.__retry || 0) + 1;
+      if (cfg.__retry <= 3) {
+        await new Promise((r) => setTimeout(r, 700 * cfg.__retry)); // backoff: 0.7s, 1.4s, 2.1s
+        return api(cfg);
+      }
+    }
     const detail = error.response?.data?.detail || '';
     const tokenMuerto = status === 401 || (status === 403 && /token/i.test(detail));
     if (tokenMuerto && localStorage.getItem('obras_token')) {

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Plus, Trash2, Copy } from 'lucide-react';
 import api from '../api';
+import { parseNum } from '../num';
 
 // Detectar tipo de fórmula según unidad
 function detectarTipo(unidad) {
@@ -13,9 +14,9 @@ function detectarTipo(unidad) {
   return 'u';
 }
 
-// Calcular resultado de una fila según tipo
+// Calcular resultado de una fila según tipo (acepta coma o punto)
 function calcFila(tipo, fila) {
-  const n = (v) => parseFloat(v) || 0;
+  const n = (v) => parseNum(v);
   switch (tipo) {
     case 'm2':   return n(fila.alto) * n(fila.ancho) * n(fila.cant);
     case 'm3':   return n(fila.alto) * n(fila.ancho) * n(fila.largo) * n(fila.cant);
@@ -37,6 +38,25 @@ function filaVacia(tipo) {
   }
 }
 
+// ¿La fila tiene algún dato cargado por el usuario?
+function filaTieneDatos(f) {
+  return !!(f.desc || f.alto || f.ancho || f.largo || f.long || f.perim || (f.cant !== '' && f.cant !== 1 && f.cant != null));
+}
+function hayDatos(filas) { return (filas || []).some(filaTieneDatos); }
+
+// Lee el cómputo guardado de una línea (servidor primero, sino localStorage)
+function leerComputo(presupuestoId, l) {
+  let raw = l?.computo_detalle;
+  if (!raw) { try { raw = localStorage.getItem(`computo_${presupuestoId}_${l?.id}`); } catch {} }
+  if (!raw) return null;
+  try {
+    const d = JSON.parse(raw);
+    if (Array.isArray(d)) return { tipo: null, filas: d };
+    if (d && Array.isArray(d.filas)) return { tipo: d.tipo || null, filas: d.filas };
+  } catch {}
+  return null;
+}
+
 const TIPO_LABELS = {
   m2:   { label: 'm²', campos: ['Descripción', 'Alto', 'Ancho', 'Cant'] },
   m3:   { label: 'm³', campos: ['Descripción', 'Alto', 'Ancho', 'Largo', 'Cant'] },
@@ -45,29 +65,38 @@ const TIPO_LABELS = {
   u:    { label: 'u/Gl', campos: ['Descripción', 'Cantidad'] },
 };
 
-export default function PanelComputo({ presupuestoId, linea, onClose, onCantidadChange }) {
+export default function PanelComputo({ presupuestoId, linea, onClose, onCantidadChange, lineas = [] }) {
   const unidad = linea?.unidad_item || linea?.unidad_libre || 'u';
   const tipoDetectado = detectarTipo(unidad);
-
-  const [tipo, setTipo] = useState(tipoDetectado);
-  const [filas, setFilas] = useState(() => {
-    // Intentar cargar desde localStorage
-    const key = `computo_${presupuestoId}_${linea?.id}`;
-    try {
-      const saved = localStorage.getItem(key);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [filaVacia(tipoDetectado)];
-  });
-  const [guardando, setGuardando] = useState(false);
-  const [aplicado, setAplicado] = useState(false);
-
   const storageKey = `computo_${presupuestoId}_${linea?.id}`;
 
-  // Guardar en localStorage cada vez que cambian las filas
+  // Estado inicial: servidor → localStorage → vacío
+  const inicial = leerComputo(presupuestoId, linea);
+  const [tipo, setTipo] = useState(inicial?.tipo || tipoDetectado);
+  const [filas, setFilas] = useState(inicial?.filas?.length ? inicial.filas : [filaVacia(tipoDetectado)]);
+  const [guardando, setGuardando] = useState(false);
+  const [aplicado, setAplicado] = useState(false);
+  const [estadoGuardado, setEstadoGuardado] = useState('guardado'); // 'guardado' | 'guardando' | 'pendiente'
+  const [copiarOpen, setCopiarOpen] = useState(false);
+  const primerRender = useRef(true);
+
+  // Guardado robusto: localStorage al instante + servidor (debounce)
+  const persistir = async (fs, tp) => {
+    const payload = JSON.stringify({ tipo: tp, filas: fs });
+    try { localStorage.setItem(storageKey, payload); } catch {}
+    try {
+      setEstadoGuardado('guardando');
+      await api.patch(`/presupuestos/${presupuestoId}/lineas/${linea.id}`, { computo_detalle: payload });
+      setEstadoGuardado('guardado');
+    } catch { setEstadoGuardado('pendiente'); }
+  };
+
   useEffect(() => {
-    try { localStorage.setItem(storageKey, JSON.stringify(filas)); } catch {}
-  }, [filas, storageKey]);
+    if (primerRender.current) { primerRender.current = false; return; }
+    setEstadoGuardado('pendiente');
+    const t = setTimeout(() => { persistir(filas, tipo); }, 700);
+    return () => clearTimeout(t);
+  }, [filas, tipo]);
 
   // Recalcular total
   const totalFilas = filas.reduce((acc, f) => {
@@ -77,7 +106,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
   const total = Math.round(totalFilas * 1000) / 1000;
 
   const addFila = () => setFilas(f => [...f, filaVacia(tipo)]);
-  const delFila = (i) => setFilas(f => f.filter((_, j) => j !== i));
+  const delFila = (i) => setFilas(f => (f.length <= 1 ? [filaVacia(tipo)] : f.filter((_, j) => j !== i)));
   const updFila = (i, campo, val) => setFilas(f => {
     const arr = [...f];
     arr[i] = { ...arr[i], [campo]: val };
@@ -85,14 +114,29 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
   });
 
   const changeTipo = (nuevoTipo) => {
+    if (nuevoTipo === tipo) return;
+    if (hayDatos(filas) && !window.confirm('Cambiar el tipo de cómputo vacía las filas que cargaste. ¿Querés continuar?')) return;
     setTipo(nuevoTipo);
     setFilas([filaVacia(nuevoTipo)]);
+  };
+
+  // Copiar el cómputo de otra línea (la otra NO se modifica)
+  const lineasConComputo = (lineas || []).filter(l => l && l.id !== linea?.id && leerComputo(presupuestoId, l));
+  const copiarDe = (l) => {
+    const data = leerComputo(presupuestoId, l);
+    if (!data || !data.filas?.length) { alert('Ese ítem no tiene cómputo cargado.'); return; }
+    if (hayDatos(filas) && !window.confirm(`Esto reemplaza el cómputo actual por el de "${l.nombre_override || l.nombre_item || l.nombre_libre || 'ese ítem'}". El otro ítem no se modifica. ¿Continuar?`)) return;
+    const srcTipo = data.tipo || detectarTipo(l.unidad_item || l.unidad_libre || 'u');
+    setTipo(srcTipo);
+    setFilas(data.filas.map(f => ({ ...f })));   // copia profunda → no toca el origen
+    setCopiarOpen(false);
   };
 
   const aplicarCantidad = async () => {
     if (total <= 0) return;
     setGuardando(true);
     try {
+      await persistir(filas, tipo); // asegura que el detalle quede guardado
       await api.patch(`/presupuestos/${presupuestoId}/lineas/${linea.id}`, { cantidad: total });
       setAplicado(true);
       setTimeout(() => setAplicado(false), 2000);
@@ -148,6 +192,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
     padding: '3px 6px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 11,
     width: '100%', boxSizing: 'border-box',
   };
+  const numProps = { type: 'text', inputMode: 'decimal' };
 
   return (
     <div style={{
@@ -161,7 +206,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
             {linea?.nombre_override || linea?.nombre_item || linea?.nombre_libre}
           </div>
           <div style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--muted)', marginTop: 3 }}>
-            Cómputo métrico · {unidad}
+            Cómputo métrico · {unidad} · {estadoGuardado === 'guardando' ? 'guardando…' : estadoGuardado === 'pendiente' ? 'sin guardar…' : '✓ guardado'}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -171,6 +216,28 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
           <button className="btn btn-secondary btn-sm" onClick={onClose}><X size={14} /></button>
         </div>
       </div>
+
+      {/* Copiar de otro ítem */}
+      {lineasConComputo.length > 0 && (
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)' }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setCopiarOpen(o => !o)}
+            style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Copy size={12} /> Copiar cómputo de otro ítem
+          </button>
+          {copiarOpen && (
+            <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 6, maxHeight: 160, overflowY: 'auto', background: 'var(--bg)' }}>
+              {lineasConComputo.map(l => (
+                <div key={l.id} onClick={() => copiarDe(l)}
+                  style={{ padding: '7px 10px', fontSize: 11, cursor: 'pointer', borderBottom: '1px solid var(--border)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  {l.nombre_override || l.nombre_item || l.nombre_libre || `Ítem ${l.id}`}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Selector de tipo */}
       <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -186,7 +253,6 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
 
       {/* Tabla de filas */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
-        {/* Encabezado columnas */}
         <div style={{ display: 'grid', gridTemplateColumns: columnas(tipo), gap: 4, marginBottom: 4 }}>
           {colLabels(tipo).map((l, i) => (
             <div key={i} style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: i > 0 ? 'center' : 'left' }}>{l}</div>
@@ -195,44 +261,39 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
           <div />
         </div>
 
-        {/* Filas */}
         {filas.map((fila, i) => {
           const parcial = calcFila(tipo, fila);
           return (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: columnas(tipo), gap: 4, marginBottom: 5, alignItems: 'center' }}>
-              {/* Descripción */}
               <input style={inp} value={fila.desc || ''} onChange={e => updFila(i, 'desc', e.target.value)} placeholder={`Sector ${i + 1}`} />
-              {/* Campos numéricos según tipo */}
               {tipo === 'm2' && <>
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="0.01" value={fila.alto || ''} onChange={e => updFila(i, 'alto', e.target.value)} placeholder="Alto" />
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="0.01" value={fila.ancho || ''} onChange={e => updFila(i, 'ancho', e.target.value)} placeholder="Ancho" />
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="1" value={fila.cant || ''} onChange={e => updFila(i, 'cant', e.target.value)} placeholder="Cant" />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.alto || ''} onChange={e => updFila(i, 'alto', e.target.value)} placeholder="Alto" />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.ancho || ''} onChange={e => updFila(i, 'ancho', e.target.value)} placeholder="Ancho" />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.cant || ''} onChange={e => updFila(i, 'cant', e.target.value)} placeholder="Cant" />
               </>}
               {tipo === 'm3' && <>
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="0.01" value={fila.alto || ''} onChange={e => updFila(i, 'alto', e.target.value)} placeholder="Alto" />
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="0.01" value={fila.ancho || ''} onChange={e => updFila(i, 'ancho', e.target.value)} placeholder="Ancho" />
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="0.01" value={fila.largo || ''} onChange={e => updFila(i, 'largo', e.target.value)} placeholder="Largo" />
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="1" value={fila.cant || ''} onChange={e => updFila(i, 'cant', e.target.value)} placeholder="Cant" />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.alto || ''} onChange={e => updFila(i, 'alto', e.target.value)} placeholder="Alto" />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.ancho || ''} onChange={e => updFila(i, 'ancho', e.target.value)} placeholder="Ancho" />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.largo || ''} onChange={e => updFila(i, 'largo', e.target.value)} placeholder="Largo" />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.cant || ''} onChange={e => updFila(i, 'cant', e.target.value)} placeholder="Cant" />
               </>}
               {tipo === 'ml' && <>
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="0.01" value={fila.long || ''} onChange={e => updFila(i, 'long', e.target.value)} placeholder="Long." />
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="1" value={fila.cant || ''} onChange={e => updFila(i, 'cant', e.target.value)} placeholder="Cant" />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.long || ''} onChange={e => updFila(i, 'long', e.target.value)} placeholder="Long." />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.cant || ''} onChange={e => updFila(i, 'cant', e.target.value)} placeholder="Cant" />
               </>}
               {tipo === 'm2pm' && <>
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="0.01" value={fila.perim || ''} onChange={e => updFila(i, 'perim', e.target.value)} placeholder="Perím." />
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="0.01" value={fila.alto || ''} onChange={e => updFila(i, 'alto', e.target.value)} placeholder="Alto" />
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="1" value={fila.cant || ''} onChange={e => updFila(i, 'cant', e.target.value)} placeholder="Cant" />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.perim || ''} onChange={e => updFila(i, 'perim', e.target.value)} placeholder="Perím." />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.alto || ''} onChange={e => updFila(i, 'alto', e.target.value)} placeholder="Alto" />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.cant || ''} onChange={e => updFila(i, 'cant', e.target.value)} placeholder="Cant" />
               </>}
               {tipo === 'u' && <>
-                <input style={{ ...inp, textAlign: 'right' }} type="number" step="1" value={fila.cant || ''} onChange={e => updFila(i, 'cant', e.target.value)} placeholder="Cant" />
+                <input style={{ ...inp, textAlign: 'right' }} {...numProps} value={fila.cant || ''} onChange={e => updFila(i, 'cant', e.target.value)} placeholder="Cant" />
               </>}
-              {/* Parcial */}
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: fila.signo === '-' ? 'var(--danger)' : 'var(--accent)', textAlign: 'right', cursor: 'pointer' }}
                 title="Click para cambiar signo (+/-)"
                 onClick={() => updFila(i, 'signo', fila.signo === '-' ? '+' : '-')}>
                 {fila.signo === '-' ? '−' : '+'}{parcial.toFixed(3)}
               </div>
-              {/* Eliminar */}
               <button onClick={() => delFila(i)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: '2px 4px', display: 'flex', alignItems: 'center' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
@@ -243,7 +304,6 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
           );
         })}
 
-        {/* Botón agregar fila */}
         <button onClick={addFila}
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 6, border: '1px dashed var(--border2)', background: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 11, width: '100%', justifyContent: 'center', marginTop: 4 }}
           onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent2)'}
@@ -261,16 +321,12 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
               {total.toFixed(3)} <span style={{ fontSize: 12, color: 'var(--muted)' }}>{unidad}</span>
             </div>
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={aplicarCantidad}
-            disabled={guardando || total <= 0}
-            style={{ minWidth: 120 }}>
+          <button className="btn btn-primary" onClick={aplicarCantidad} disabled={guardando || total <= 0} style={{ minWidth: 120 }}>
             {guardando ? '...' : aplicado ? '✓ Aplicado' : `Aplicar ${total.toFixed(2)} ${unidad}`}
           </button>
         </div>
         <div style={{ fontSize: 10, color: 'var(--muted)' }}>
-          Click en el parcial de cada fila para cambiar el signo (+/−) y descontar áreas.
+          El cómputo se guarda solo (en el servidor). Click en el parcial de cada fila cambia el signo (+/−) para descontar áreas.
         </div>
       </div>
     </div>

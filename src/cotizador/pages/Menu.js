@@ -43,12 +43,20 @@ export default function Menu() {
           presupPorCliente[cid].push(p);
         });
       }
+      // Más recientes primero (por fecha de creación, con id como desempate)
+      const byNew = (a, b) => (new Date(b.created_at || 0) - new Date(a.created_at || 0)) || ((b.id || 0) - (a.id || 0));
       const menuCompleto = clientesRes.data.map(c => ({
         ...c,
-        presupuestos: presupPorCliente[c.id] || [],
+        presupuestos: (presupPorCliente[c.id] || []).slice().sort(byNew),
       }));
       const sinCliente = presupPorCliente['sin_cliente'] || [];
-      if (sinCliente.length > 0) menuCompleto.push({ id: 'sin_cliente', nombre: 'Sin cliente', email: '', presupuestos: sinCliente });
+      if (sinCliente.length > 0) menuCompleto.push({ id: 'sin_cliente', nombre: 'Sin cliente', email: '', presupuestos: sinCliente.slice().sort(byNew) });
+      // Clientes con actividad más reciente arriba
+      menuCompleto.sort((a, b) => {
+        const af = a.presupuestos[0]?.created_at ? new Date(a.presupuestos[0].created_at).getTime() : 0;
+        const bf = b.presupuestos[0]?.created_at ? new Date(b.presupuestos[0].created_at).getTime() : 0;
+        return bf - af;
+      });
       setMenu(menuCompleto);
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -252,13 +260,13 @@ export default function Menu() {
                     </>
                   )}
                   <div style={{ color: 'var(--muted)', fontSize: 12 }}>
-                    {expandidos[cliente.id] !== false ? '▼' : '▶'}
+                    {expandidos[cliente.id] === true ? '▼' : '▶'}
                   </div>
                 </div>
               </div>
 
               {/* PRESUPUESTOS */}
-              {expandidos[cliente.id] !== false && (
+              {expandidos[cliente.id] === true && (
                 <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
                   {(!cliente.presupuestos || cliente.presupuestos.length === 0) ? (
                     <div style={{ fontSize: 12, color: 'var(--muted)', padding: '6px 0' }}>Sin presupuestos</div>

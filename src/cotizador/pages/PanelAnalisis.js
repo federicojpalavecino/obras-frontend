@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../api';
 import { X, Plus, Trash2, Check, RotateCcw, AlertTriangle } from 'lucide-react';
 import { coincide } from '../buscar';
+import { parseNum } from '../num';
 
 const fmt2 = (n) => n != null ? '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
 const fmt0 = (n) => n != null ? '$ ' + Math.round(n).toLocaleString('es-AR') : '$ 0';
@@ -80,17 +81,17 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
       // Agregar materiales
       for (const m of (analisis.lineas_material || [])) {
         await api.post(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/materiales`,
-          { material_id: m.material_id, cantidad: parseFloat(m.cantidad) });
+          { material_id: m.material_id, cantidad: parseNum(m.cantidad) });
       }
       // Agregar MO
       for (const mo of (analisis.lineas_mo || [])) {
         await api.post(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/mo`,
-          { unidad_mo_id: mo.unidad_mo_id, horas: parseFloat(mo.horas) });
+          { unidad_mo_id: mo.unidad_mo_id, horas: parseNum(mo.horas) });
       }
       // Agregar Maquinaria
       for (const maq of (analisis.lineas_maquinaria || [])) {
         await api.post(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/maquinaria`,
-          { maquinaria_id: maq.maquinaria_id, horas: parseFloat(maq.horas) });
+          { maquinaria_id: maq.maquinaria_id, horas: parseNum(maq.horas) });
       }
       setModalImportar(false);
       setBusquedaImport('');
@@ -105,14 +106,14 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
   const handleAgregarMat = async () => {
     if (!addMat.material_id) return;
     await api.post(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/materiales`,
-      { material_id: parseInt(addMat.material_id), cantidad: parseFloat(addMat.cantidad) });
+      { material_id: parseInt(addMat.material_id), cantidad: parseNum(addMat.cantidad) });
     setAddMat({ material_id: '', cantidad: 1 });
     recargar();
   };
   const handleEditarMat = async (id, campo, valor) => {
     const body = {};
-    if (campo === 'cantidad') body.cantidad = parseFloat(valor);
-    if (campo === 'precio_manual') body.precio_manual = parseFloat(valor) || null;
+    if (campo === 'cantidad') body.cantidad = parseNum(valor);
+    if (campo === 'precio_manual') body.precio_manual = parseNum(valor) || null;
     await api.patch(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/materiales/${id}`, body);
     setEditando(null); recargar();
   };
@@ -125,14 +126,14 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
   const handleAgregarMO = async () => {
     if (!addMO.unidad_mo_id) return;
     await api.post(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/mo`,
-      { unidad_mo_id: parseInt(addMO.unidad_mo_id), horas: parseFloat(addMO.horas) });
+      { unidad_mo_id: parseInt(addMO.unidad_mo_id), horas: parseNum(addMO.horas) });
     setAddMO({ unidad_mo_id: '', horas: 1 });
     recargar();
   };
   const handleEditarMO = async (id, campo, valor) => {
     const body = {};
-    if (campo === 'horas') body.horas = parseFloat(valor);
-    if (campo === 'costo_manual') body.costo_manual = parseFloat(valor) || null;
+    if (campo === 'horas') body.horas = parseNum(valor);
+    if (campo === 'costo_manual') body.costo_manual = parseNum(valor) || null;
     await api.patch(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/mo/${id}`, body);
     setEditando(null); recargar();
   };
@@ -145,14 +146,14 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
   const handleAgregarMaq = async () => {
     if (!addMaq.maquinaria_id) return;
     await api.post(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/maquinaria`,
-      { maquinaria_id: parseInt(addMaq.maquinaria_id), horas: parseFloat(addMaq.horas) });
+      { maquinaria_id: parseInt(addMaq.maquinaria_id), horas: parseNum(addMaq.horas) });
     setAddMaq({ maquinaria_id: '', horas: 1 });
     recargar();
   };
   const handleEditarMaq = async (id, campo, valor) => {
     const body = {};
-    if (campo === 'horas') body.horas = parseFloat(valor);
-    if (campo === 'costo_manual') body.costo_manual = parseFloat(valor) || null;
+    if (campo === 'horas') body.horas = parseNum(valor);
+    if (campo === 'costo_manual') body.costo_manual = parseNum(valor) || null;
     await api.patch(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/maquinaria/${id}`, body);
     setEditando(null); recargar();
   };
@@ -268,7 +269,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                     </div>
                   )}
                 </div>
-                <input type="number" min="0" step="0.001" className="input input-mono" style={{ width: 70, fontSize: 11 }}
+                <input type="text" inputMode="decimal" className="input input-mono" style={{ width: 70, fontSize: 11 }}
                   placeholder="Cant" value={addMat.cantidad} onChange={e => setAddMat(p => ({ ...p, cantidad: e.target.value }))} />
                 <button className="btn btn-primary btn-sm" onClick={() => { handleAgregarMat(); setBusquedaMat(''); }}><Plus size={11} /></button>
               </FilaAgregar>
@@ -295,7 +296,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                   <option value="">Función...</option>
                   {moList.map(m => <option key={m.id} value={m.id}>{m.funcion}</option>)}
                 </select>
-                <input type="number" min="0" step="0.001" className="input input-mono" style={{ width: 70, fontSize: 11 }}
+                <input type="text" inputMode="decimal" className="input input-mono" style={{ width: 70, fontSize: 11 }}
                   placeholder="Hs" value={addMO.horas} onChange={e => setAddMO(p => ({ ...p, horas: e.target.value }))} />
                 <button className="btn btn-primary btn-sm" onClick={handleAgregarMO}><Plus size={11} /></button>
               </FilaAgregar>
@@ -322,7 +323,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                   <option value="">Equipo...</option>
                   {maqList.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                 </select>
-                <input type="number" min="0" step="0.001" className="input input-mono" style={{ width: 70, fontSize: 11 }}
+                <input type="text" inputMode="decimal" className="input input-mono" style={{ width: 70, fontSize: 11 }}
                   placeholder="Hs" value={addMaq.horas} onChange={e => setAddMaq(p => ({ ...p, horas: e.target.value }))} />
                 <button className="btn btn-primary btn-sm" onClick={handleAgregarMaq}><Plus size={11} /></button>
               </FilaAgregar>
@@ -410,7 +411,7 @@ function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, camp
               <td style={{ padding: '5px 4px', textAlign: 'right', width: 70 }}>
                 {isEdit1 ? (
                   <div style={{ display: 'flex', gap: 2 }}>
-                    <input type="number" min="0" step="0.001" autoFocus value={editVal}
+                    <input type="text" inputMode="decimal" autoFocus value={editVal}
                       onChange={e => setEditVal(e.target.value)}
                       style={{ width: 55, background: 'var(--bg)', border: '1px solid var(--accent2)', borderRadius: 3, padding: '2px 4px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'right' }} />
                     <button style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer' }} onClick={() => onEditar(l.id, campo1, editVal)}><Check size={11} /></button>
@@ -428,7 +429,7 @@ function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, camp
               <td style={{ padding: '5px 4px', textAlign: 'right', width: 90 }}>
                 {isEdit2 ? (
                   <div style={{ display: 'flex', gap: 2 }}>
-                    <input type="number" min="0" step="0.01" autoFocus value={editVal}
+                    <input type="text" inputMode="decimal" autoFocus value={editVal}
                       onChange={e => setEditVal(e.target.value)}
                       style={{ width: 70, background: 'var(--bg)', border: '1px solid var(--warn)', borderRadius: 3, padding: '2px 4px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'right' }} />
                     <button style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer' }} onClick={() => onEditar(l.id, campo2, editVal)}><Check size={11} /></button>
