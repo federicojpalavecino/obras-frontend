@@ -70,6 +70,11 @@ const STOP = new Set([
   "the", "and", "este", "esta", "esto", "esos", "esas", "ese", "esa", "eso", "ahi", "aca",
   "es", "el", "la", "de", "un", "al", "lo", "se", "le", "les", "muy", "tan", "hay", "son",
   "ser", "estar", "me", "te", "nos", "ya", "asi", "pero", "mas", "menos", "todo", "toda",
+  // Conectores: sin esto "en" se colaba como palabra de contenido y, al ser raro
+  // en el catálogo, tenía IDF alto y hacía ganar "REVOQUE 2 EN 1" a una consulta
+  // de mampostería.
+  "en", "sobre", "entre", "hasta", "desde", "cada", "segun", "tras", "ante", "bajo",
+  "contra", "durante", "mediante", "salvo", "cuando", "mientras", "aunque",
 ]);
 const tokens = (s) => normalizar(s).split(" ").filter((t) => t.length >= 2 && !STOP.has(t));
 
@@ -864,6 +869,74 @@ const BASE = [
     ],
     route: "/soporte", routeLabel: "Ir a Soporte",
   },
+
+  // ── OBRA / ANÁLISIS DE PRECIOS ──────────────────────────────────────────────
+  // Conocimiento de oficio, no de la app. Los números concretos salen siempre
+  // del catálogo del estudio (ver resolverRendimiento), no de acá.
+  {
+    id: "armar-analisis", sec: "costos",
+    titulo: "Cómo se arma un análisis de precio unitario",
+    kw: "armar analisis precio unitario apu como se arma componer desglosar costo directo item tarea armado estructura",
+    pasos: [
+      "Un análisis calcula cuánto cuesta UNA unidad de la tarea (1 m² de mampostería, 1 m³ de hormigón).",
+      "Materiales: cuánto entra por unidad, ya con desperdicio. Ej.: 1 m² de pared de ladrillo común lleva ladrillos + mortero de asiento.",
+      "Mano de obra: horas de cada gremio por unidad. Eso es el rendimiento (ver “Qué es un rendimiento”).",
+      "Maquinaria/equipos: horas de uso por unidad (hormigonera, andamios, amoladora).",
+      "La suma de los tres es el COSTO DIRECTO. Sobre eso el sistema aplica los coeficientes K, después GG + Beneficio, y al final IVA.",
+      "En la app: abrí el presupuesto, tocá el nombre del ítem y se abre el panel de análisis a la derecha.",
+    ],
+    route: "/cotizador", routeLabel: "Ir a Presupuestos",
+  },
+  {
+    id: "que-es-rendimiento", sec: "costos",
+    titulo: "Qué es un rendimiento y cómo se lee",
+    kw: "rendimiento que es como se lee horas unidad hs m2 jornada productividad significa interpretar",
+    pasos: [
+      "El rendimiento son las horas de mano de obra que lleva UNA unidad de tarea. Se escribe h/m², h/m³ o h/m.",
+      "Ej.: 0,6 h/m² de un oficial quiere decir que en 1 hora hace 1,67 m², y en una jornada de 8 h hace ~13 m².",
+      "Para pasar de horas a producción diaria: 8 ÷ (horas por unidad).",
+      "Si el análisis tiene varios gremios trabajando a la par, el ritmo lo marca el que más horas necesita, no la suma.",
+      "Preguntame “rendimiento de …” y te lo calculo con los valores cargados en TU catálogo.",
+    ],
+  },
+  {
+    id: "cuadrilla-jornada", sec: "costos",
+    titulo: "Cuadrilla, jornada y cómo pasar horas a días de obra",
+    kw: "cuadrilla jornada dias obra plazo cuantos dias equipo gente personal calcular duracion tarea",
+    pasos: [
+      "Jornada de referencia: 8 horas. Se puede cambiar en la configuración del Gantt.",
+      "Horas totales de una tarea = rendimiento (h/unidad) × cantidad del cómputo.",
+      "Días = horas totales ÷ (8 × cantidad de personas de ese gremio).",
+      "Ej.: 200 m² de mampostería a 0,6 h/m² de oficial = 120 h. Con 2 oficiales: 120 ÷ 16 = 7,5 días.",
+      "El Gantt del presupuesto hace esta cuenta solo a partir de los análisis.",
+    ],
+    route: "/cotizador", routeLabel: "Ir a Presupuestos",
+  },
+  {
+    id: "cargas-sociales", sec: "costos",
+    titulo: "Cargas sociales: por qué la mano de obra sale más que el jornal",
+    kw: "cargas sociales jornal basico uocra aportes contribuciones porcentaje factor mano obra costo real encarece",
+    pasos: [
+      "El valor por hora que cargás en el maestro de mano de obra es el jornal básico, sin cargas.",
+      "El presupuesto le suma el factor de cargas sociales que tengas configurado (por defecto 65%).",
+      "O sea: una hora de oficial a $5.000 de básico entra al costo a $8.250 con el 65%.",
+      "El factor se edita en los coeficientes del presupuesto, y el maestro de gremios en Análisis de costos → Mano de obra.",
+      "Si cargás el jornal YA con cargas incluidas, poné el factor en 0 para no contarlas dos veces.",
+    ],
+  },
+  {
+    id: "computo-unidades", sec: "costos",
+    titulo: "En qué unidad se computa cada tarea",
+    kw: "computo unidad medida como se mide m2 m3 ml global tarea medir cubicar metrar cuantificar",
+    pasos: [
+      "Mampostería, revoques, contrapisos, carpetas, pisos, revestimientos y pintura: m² (superficie).",
+      "Hormigones, excavaciones, rellenos y submuraciones: m³ (volumen).",
+      "Zócalos, cordones, cañerías, cenefas y babetas: m lineal.",
+      "Artefactos, aberturas, bocas de electricidad: unidad.",
+      "Ayuda de gremios, limpieza de obra y similares: global (Gl).",
+      "El panel de cómputo del ítem ya te calcula m², m³ y ml a partir de largo, ancho, alto y cantidad.",
+    ],
+  },
 ];
 
 // Sección actual a partir de la URL (para priorizar respuestas relevantes)
@@ -956,7 +1029,14 @@ const tieneAlguna = (texto, arr) => {
 const KW_DATOS = ["precio", "precios", "costo", "costos", "cuanto", "cuesta", "sale", "vale",
   "saldo", "cobro", "cobros", "cobrado", "cobre", "certificado", "certificados", "avance",
   "margen", "ganancia", "gano", "rendimiento"];
-const KW_RENDIMIENTO = ["rendimiento", "tiempo", "tarda", "demora", "tardan", "hora", "horas"];
+const KW_RENDIMIENTO = ["rendimiento", "rendimientos", "rinde", "tiempo", "tarda", "tardan",
+  "demora", "demoran", "hora", "horas", "jornada", "jornal", "productividad"];
+// Nombrar un gremio ya es preguntar por rendimiento ("¿cuánto hace un oficial…?")
+const KW_GREMIO = ["oficial", "oficiales", "ayudante", "ayudantes", "cuadrilla", "operario"];
+const KW_PRECIO = ["precio", "precios", "costo", "costos", "cuanto", "cuesta", "sale", "vale"];
+// Si aparecen, la pregunta es de gestión y no del catálogo de análisis
+const KW_GESTION = ["cobro", "cobros", "cobrado", "saldo", "certificado", "certificados",
+  "cliente", "clientes", "factura", "presupuesto", "presupuestos", "obra", "avance", "margen"];
 
 // Busca el ítem de una lista cuyo `campo` se parece más a las palabras de la pregunta
 function matchPorNombre(texto, lista, campo) {
@@ -973,6 +1053,124 @@ function matchPorNombre(texto, lista, campo) {
   if (best && (bestHits >= 2 || (bestHits === 1 && bestCov >= 0.5))) return best;
   return null;
 }
+
+// ── Búsqueda de ítems del catálogo ────────────────────────────────────────────
+// matchPorNombre alcanza para nombres de obra y clientes (textos cortos que el
+// usuario escribe casi igual), pero NO para el catálogo: puntuaba por cuántas
+// palabras del nombre se tocaban, sin pesar cuán rara es cada palabra, así que
+// "GUARDA CANTO POR UNIDAD" le ganaba a "MAMPOST. ELEVACIÓN LADRILLO 15 HCCA"
+// en "cuánto tarda un oficial en un m2 de mampostería" (canto≈cuanto,
+// guarda≈tarda). Acá se puntúa por IDF, por cobertura DE LA CONSULTA y por
+// posición en el nombre.
+
+// Raíz aproximada: acerca verbo y sustantivo (pintar~pintura, colocar~colocación).
+const stem = (w) => {
+  let s = w;
+  s = s.replace(/(aciones|acion|amiento|imiento)$/, "");
+  s = s.replace(/(ciones|cion|siones|sion)$/, "");
+  s = s.replace(/(uras|ura)$/, "");
+  s = s.replace(/(ados|adas|ado|ada|idos|idas|ido|ida)$/, "");
+  s = s.replace(/(ares|ar|er|ir)$/, "");
+  s = s.replace(/(es|s)$/, "");
+  return s.length >= 4 ? s : w;
+};
+
+function pesoItem(q, k) {
+  if (q === k) return 2;
+  if (q.length >= 5 && k.length >= 5 && (k.startsWith(q) || q.startsWith(k))) return 1.5;
+  const sq = stem(q), sk = stem(k);
+  if (sq.length >= 4 && sq === sk) return 1.2;
+  if (Math.min(q.length, k.length) >= 6 && Math.abs(q.length - k.length) <= 2 && lev(q, k) <= 1) return 1;
+  return 0;
+}
+
+// Palabras que dicen QUÉ se pregunta, no CUÁL ítem. Nunca deben identificar uno.
+const INTENCION = new Set([
+  "cuanto", "cuanta", "cuantos", "cuantas", "tarda", "tardan", "demora", "demoran",
+  "lleva", "llevan", "toma", "tomar", "rendimiento", "rendimientos", "tiempo", "tiempos",
+  "hora", "horas", "jornal", "jornada", "jornadas", "dia", "dias",
+  "oficial", "oficiales", "ayudante", "ayudantes", "medio", "especializado",
+  "cuadrilla", "obrero", "operario", "personal",
+  "precio", "precios", "costo", "costos", "vale", "sale", "cuesta", "analisis",
+  "unitario", "unitarios", "m2", "m3", "ml", "mt", "mts", "metro", "metros",
+  "unidad", "unidades", "kilo", "kilos",
+  "levantar", "ejecutar", "construir", "armar", "colocar", "poner",
+]);
+
+const tokensNombre = (s) => normalizar(s).split(" ").filter((t) => t.length >= 2 && !STOP.has(t));
+const tokensContenido = (s) => {
+  const t = tokens(s).filter((x) => !INTENCION.has(x));
+  const palabras = t.filter((x) => !/^\d+$/.test(x));
+  return palabras.length ? t : palabras;   // un número suelto no identifica nada
+};
+
+// "DEMOLICIÓN DE REVOQUES" no es "REVOQUE".
+const MODIF = ["demolicion", "demoler", "retiro", "retirar", "extraccion", "extraer",
+  "picado", "picar", "reparacion", "reparar", "reposicion", "recolocacion",
+  "desarme", "desmonte", "limpieza", "remocion", "remover", "rotura", "relleno"];
+
+function construirIndice(items) {
+  const df = new Map();
+  const docs = (items || []).map((it) => {
+    const toks = [...new Set(tokensNombre(it.nombre))];
+    for (const t of toks) df.set(t, (df.get(t) || 0) + 1);
+    return { it, toks, set: new Set(toks) };
+  });
+  const N = docs.length || 1;
+  return { docs, idf: (t) => Math.log(1 + N / (1 + (df.get(t) || 0))) };
+}
+
+const UNIDAD_Q = [["m2", /\bm2\b|\bmetros? cuadrados?\b/], ["m3", /\bm3\b|\bmetros? cubicos?\b/],
+                  ["ml", /\bml\b|\bmetros? lineales?\b/]];
+
+function buscarItems(consulta, indice, max = 4) {
+  const q = normalizar(consulta);
+  const cont = [...new Set(tokensContenido(consulta))];
+  if (!cont.length || !indice) return [];
+  const unidadPedida = (UNIDAD_Q.find(([, re]) => re.test(q)) || [null])[0];
+  const pideModif = MODIF.some((m) => q.includes(m.slice(0, 6)));
+
+  const res = [];
+  for (const d of indice.docs) {
+    let score = 0, hits = 0;
+    for (const qt of cont) {
+      let mejor = 0;
+      for (let i = 0; i < d.toks.length; i++) {
+        const w = pesoItem(qt, d.toks[i]);
+        if (w <= 0) continue;
+        // la cabeza del nombre identifica el ítem; el final suele ser detalle
+        const pos = 1 + 0.7 * (1 - i / Math.max(d.toks.length, 1));
+        mejor = Math.max(mejor, w * indice.idf(d.toks[i]) * pos);
+      }
+      if (mejor > 0) { score += mejor; hits++; }
+    }
+    if (!hits) continue;
+    const cobertura = hits / cont.length;
+    if (cobertura < 0.5) continue;          // el ítem tiene que explicar lo que preguntaste
+    score *= 0.6 + 0.4 * cobertura;
+    const esModif = MODIF.some((m) => d.set.has(m));
+    if (esModif && !pideModif) score *= 0.3;
+    if (!esModif && pideModif) score *= 0.5;
+    if (unidadPedida && normalizar(d.it.unidad_ejecucion || d.it.unidad || "") === unidadPedida) score *= 1.35;
+    res.push({ it: d.it, score });
+  }
+  return res.sort((a, b) => b.score - a.score).slice(0, max);
+}
+
+const GREMIOS = [
+  ["Oficial Especializado", /oficial\s+especializad/],
+  ["Medio Oficial", /medio\s+oficial/],
+  ["Ayudante", /\bayudantes?\b/],
+  // OJO: /oficiales?/ pide "oficiale"+s y NUNCA matchea "oficial". Va (es)?.
+  ["Oficial", /\boficial(es)?\b/],
+];
+const gremioPedido = (s) => (GREMIOS.find(([, re]) => re.test(normalizar(s))) || [null])[0];
+
+// ── Formato de rendimientos ──────────────────────────────────────────────────
+const JORNADA = 8; // horas
+const nfmt = (n, d = 2) => Number(n).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: d });
+// De "horas por unidad" a "unidades por jornada"
+const porJornada = (h) => (h > 0 ? JORNADA / h : null);
 
 // ── Componente ────────────────────────────────────────────────────────────────
 export default function Asistente() {
@@ -995,8 +1193,8 @@ export default function Asistente() {
       setMsgs([{
         from: "bot",
         titulo: "¡Hola! Soy el asistente de FAIM OBRAS 👋",
-        texto: "Te ayudo de dos formas:\n• Cómo usar el sistema (te explico paso a paso).\n• Datos de tus obras: precios, costos, materiales, cobros y certificados de un presupuesto o cliente, y rendimientos.\n\nProbá: \"¿cuánto sale el presupuesto …?\" o \"materiales de …\".",
-        chips: [...(esCliente ? [] : ["materiales de un presupuesto", "cobros de un presupuesto"]), ...sugerencias(sec)],
+        texto: "Te ayudo con tres cosas:\n• Cómo usar el sistema, paso a paso.\n• Datos de tus obras: precios, materiales, cobros y certificados.\n• Obra y análisis de precios: rendimientos de mano de obra, costo por m², cómo se arma un análisis.\n\nProbá: \"¿cuánto tarda un oficial en un m2 de mampostería?\"",
+        chips: [...(esCliente ? [] : ["cuánto tarda un oficial en un m2 de mampostería", "rendimiento de contrapiso", "cómo se arma un análisis de precio unitario", "materiales de un presupuesto"]), ...sugerencias(sec)],
       }]);
     }
   }, [open]);
@@ -1079,12 +1277,22 @@ export default function Asistente() {
     if (esCliente) return null;
     const presu = presuRef.current || [];
     const clientes = cliRef.current || [];
+    // ¿Quedan palabras que identifiquen una tarea del catálogo, sacando las de intención?
+    const hayTarea = tokensContenido(texto).length > 0;
+    const esGestion = tieneAlguna(texto, KW_GESTION);
+
+    // 1) Rendimiento / horas de mano de obra de una tarea
+    if (hayTarea && !esGestion && (tieneAlguna(texto, KW_RENDIMIENTO) || tieneAlguna(texto, KW_GREMIO))) {
+      return { tipo: "rendimiento" };
+    }
     if (tieneAlguna(texto, ["cliente", "clientes"])) {
       const c = matchPorNombre(texto, clientes, "nombre");
       if (c) return { tipo: "cliente", c };
     }
     const p = matchPorNombre(texto, presu, "nombre_obra");
     if (p) return { tipo: "presupuesto", p };
+    // 2) Costo unitario de una tarea del catálogo ("¿cuánto sale el m2 de …?")
+    if (hayTarea && !esGestion && tieneAlguna(texto, KW_PRECIO)) return { tipo: "precioItem" };
     if (tieneAlguna(texto, KW_RENDIMIENTO)) return { tipo: "rendimiento" };
     const c2 = matchPorNombre(texto, clientes, "nombre");
     if (c2) return { tipo: "cliente", c: c2 };
@@ -1144,22 +1352,133 @@ export default function Asistente() {
       chips: presu.slice(0, 6).map((p) => p.nombre_obra), chipsHint: "Ver detalle de:" }];
   };
 
-  const resolverRendimiento = async (texto) => {
-    const items = (await api.get("/analisis/items")).data || [];
-    const it = matchPorNombre(texto, items, "nombre");
-    if (!it) return [{ from: "bot", titulo: "¿Qué tarea?", texto: "Decime el nombre del ítem o tarea (ej.: \"rendimiento de revoque grueso\") y te paso las horas de mano de obra por unidad." }];
+  // Índice del catálogo (se arma una sola vez por sesión)
+  const idxRef = useRef(null);
+  const ensureCatalogo = async () => {
+    if (idxRef.current) return idxRef.current;
+    try {
+      const items = (await api.get("/analisis/items")).data || [];
+      idxRef.current = { indice: construirIndice(items), items };
+    } catch { idxRef.current = { indice: construirIndice([]), items: [] }; }
+    return idxRef.current;
+  };
+
+  // Detalle de mano de obra de un ítem, ya formateado
+  const detalleMO = async (it, gremio) => {
     const d = (await api.get(`/analisis/items/${it.id}`)).data || {};
-    const mos = d.lineas_mo || d.mo || [];
+    const mos = (d.lineas_mo || d.mo || []).filter((m) => Number(m.horas) > 0);
+    const un = it.unidad_ejecucion || d.unidad_ejecucion || "unidad";
+    return { d, mos, un, gremio };
+  };
+
+  const resolverRendimiento = async (texto) => {
+    const { indice } = await ensureCatalogo();
+    const cands = buscarItems(texto, indice);
+    if (!cands.length) {
+      return [{ from: "bot", titulo: "¿De qué tarea?", texto: "Decime la tarea y te paso las horas de mano de obra por unidad, y cuánto rinde por jornada.", chips: ["rendimiento de mampostería", "rendimiento de revoque", "rendimiento de contrapiso", "rendimiento de cerámico"] }];
+    }
+    const gremio = gremioPedido(texto);
+    const top = cands[0], seg = cands[1];
+    const confiado = !seg || top.score >= seg.score * 1.35;
+
+    // Ambiguo: en vez de pedirte que elijas a ciegas, te muestro el rango de las
+    // variantes que coinciden, con el rendimiento de cada una.
+    if (!confiado) {
+      const detalles = await Promise.all(cands.slice(0, 4).map((c) => detalleMO(c.it, gremio)));
+      const lineas = [];
+      detalles.forEach(({ d: dd, mos, un }, i) => {
+        const it = cands[i].it;
+        const foco = gremio ? mos.filter((m) => normalizar(m.funcion || "") === normalizar(gremio)) : mos;
+        const usa = foco.length ? foco : mos;
+        const h = usa.reduce((s, m) => s + Number(m.horas || 0), 0);
+        const pj = porJornada(h);
+        lineas.push(`${it.nombre}`);
+        lineas.push(`   ${gremio && foco.length ? gremio : "Mano de obra"}: ${nfmt(h)} h/${un}` + (pj ? `  →  ${nfmt(pj, 1)} ${un}/jornada` : ""));
+      });
+      return [{
+        from: "bot",
+        titulo: gremio ? `${gremio} — variantes que coinciden` : "Variantes que coinciden",
+        texto: `Jornada de ${JORNADA} h. Tocá una para ver el análisis completo:`,
+        lineas,
+        chips: cands.slice(0, 4).map((c) => `rendimiento de ${c.it.nombre}`),
+        chipsHint: "Ver una en detalle:",
+      }];
+    }
+
+    const it = top.it;
+    const { mos, un } = await detalleMO(it, gremio);
     if (!mos.length) return [{ from: "bot", titulo: it.nombre, texto: "Ese ítem no tiene mano de obra cargada en su análisis." }];
-    const horasTot = mos.reduce((s, m) => s + (Number(m.horas) || 0), 0);
-    const lineas = mos.map((m) => `${m.funcion || "Mano de obra"}: ${m.horas} h`);
-    lineas.push(`Total: ${horasTot} h por unidad`);
-    return [{ from: "bot", titulo: `Rendimiento — ${it.nombre}`, texto: "Mano de obra por unidad:", pasos: lineas }];
+
+    const lineas = [];
+    for (const m of mos) {
+      const h = Number(m.horas) || 0;
+      const pj = porJornada(h);
+      const marca = gremio && normalizar(m.funcion || "") === normalizar(gremio) ? "▸ " : "  ";
+      lineas.push(`${marca}${(m.funcion || "Mano de obra").padEnd(22)} ${nfmt(h)} h/${un}` + (pj ? `  →  ${nfmt(pj, 1)} ${un} por jornada` : ""));
+    }
+    const total = mos.reduce((s, m) => s + (Number(m.horas) || 0), 0);
+    lineas.push("─".repeat(30));
+    lineas.push(`  Total mano de obra     ${nfmt(total)} h/${un}`);
+
+    // Cuadrilla: trabajando en paralelo, el que más tarda marca el ritmo
+    const cuello = mos.reduce((a, b) => (Number(a.horas) > Number(b.horas) ? a : b), mos[0]);
+    const ritmo = porJornada(Number(cuello.horas) || 0);
+    const nota = mos.length > 1 && ritmo
+      ? `Con una cuadrilla de ${mos.map((m) => "1 " + (m.funcion || "")).join(" + ")} trabajando a la par, avanzás ~${nfmt(ritmo, 1)} ${un} por jornada (lo marca ${cuello.funcion}).`
+      : null;
+
+    return [{
+      from: "bot",
+      titulo: `Rendimiento — ${it.nombre}`,
+      texto: nota,
+      lineas,
+      route: "/cotizador/analisis",
+      routeLabel: "Ver análisis completo",
+      chips: [`cuánto sale el ${un} de ${it.nombre}`, ...cands.slice(1, 3).map((c) => `rendimiento de ${c.it.nombre}`)],
+      chipsHint: "Preguntame también:",
+    }];
+  };
+
+  // "¿Cuánto sale el m2 de …?" — costo del análisis unitario del ítem
+  const resolverPrecioItem = async (texto) => {
+    const { indice } = await ensureCatalogo();
+    const cands = buscarItems(texto, indice);
+    if (!cands.length) return null;
+    const top = cands[0], seg = cands[1];
+    if (seg && top.score < seg.score * 1.35) {
+      return [{
+        from: "bot", titulo: "¿Cuál de estas?",
+        texto: "Tocá la que buscás y te paso el costo unitario desglosado:",
+        chips: cands.slice(0, 4).map((c) => `cuánto sale ${c.it.nombre}`),
+      }];
+    }
+    const it = top.it;
+    const d = (await api.get(`/analisis/items/${it.id}`)).data || {};
+    const un = it.unidad_ejecucion || "unidad";
+    const mat = Number(d.costo_materiales) || 0, mo = Number(d.costo_mano_obra) || 0, maq = Number(d.costo_maquinaria) || 0;
+    const tot = mat + mo + maq;
+    if (!tot) return [{ from: "bot", titulo: it.nombre, texto: "Ese ítem no tiene análisis de costos cargado todavía." }];
+    const pct = (n) => (tot > 0 ? ` (${Math.round((n / tot) * 100)}%)` : "");
+    return [{
+      from: "bot",
+      titulo: `Costo por ${un} — ${it.nombre}`,
+      texto: "Costo directo del análisis, sin GG, beneficio ni IVA:",
+      lineas: [
+        `  Materiales      ${money(mat)}${pct(mat)}`,
+        `  Mano de obra    ${money(mo)}${pct(mo)}`,
+        `  Maquinaria      ${money(maq)}${pct(maq)}`,
+        "─".repeat(30),
+        `  Costo directo   ${money(tot)} por ${un}`,
+      ],
+      chips: [`rendimiento de ${it.nombre}`, "cómo se arma un análisis de precio"],
+      chipsHint: "Preguntame también:",
+    }];
   };
 
   const resolverDatos = async (intent, texto) => {
     try {
       if (intent.tipo === "rendimiento") return await resolverRendimiento(texto);
+      if (intent.tipo === "precioItem") return await resolverPrecioItem(texto);
       if (intent.tipo === "cliente") return resolverCliente(intent.c);
       if (intent.tipo === "presupuesto") return await resolverPresupuesto(texto, intent.p);
       const presu = presuRef.current || [];
@@ -1180,7 +1499,10 @@ export default function Asistente() {
     if (intent) {
       setMsgs((m) => [...m, { from: "bot", texto: "Un segundo, busco eso… ⏳", loading: true }]);
       const res = await resolverDatos(intent, texto);
-      setMsgs((m) => [...m.filter((x) => !x.loading), ...res]);
+      // Si la capa de datos no encontró nada, caemos a la base de conocimiento
+      // en vez de dejar al usuario en un callejón sin salida.
+      const salida = res && res.length ? res : responder(texto);
+      setMsgs((m) => [...m.filter((x) => !x.loading), ...salida]);
       return;
     }
     setMsgs((m) => [...m, ...responder(texto)]);
