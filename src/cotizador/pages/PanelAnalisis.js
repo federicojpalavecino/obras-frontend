@@ -294,7 +294,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                 <select className="input" style={{ flex: 2, fontSize: 11 }}
                   value={addMO.unidad_mo_id} onChange={e => setAddMO(p => ({ ...p, unidad_mo_id: e.target.value }))}>
                   <option value="">Función...</option>
-                  {moList.map(m => <option key={m.id} value={m.id}>{m.funcion}</option>)}
+                  {moList.map(m => <option key={m.id} value={m.id}>{m.funcion || m.nombre}</option>)}
                 </select>
                 <input type="text" inputMode="decimal" className="input input-mono" style={{ width: 70, fontSize: 11 }}
                   placeholder="Hs" value={addMO.horas} onChange={e => setAddMO(p => ({ ...p, horas: e.target.value }))} />

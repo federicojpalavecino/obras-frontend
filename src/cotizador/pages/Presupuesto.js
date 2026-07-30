@@ -112,7 +112,7 @@ export default function Presupuesto() {
       const adics = await api.get(`/presupuestos/${id}/adicionales`);
       const adicData = adics.data || [];
       // Load full data for each adicional
-      const full = await Promise.all(adicData.map(a => api.get(`/presupuestos/${a.id}`).then(r => r.data).catch(() => a)));
+      const full = await Promise.all(adicData.map(a => api.get(`/presupuestos/${a.id}`).then(r => ({ ...a, ...r.data })).catch(() => a)));
       setAdicionales(full);
       // Refresh modal if open
       if (modalAdicional && modalAdicional.id) {
@@ -120,6 +120,22 @@ export default function Presupuesto() {
         if (updated) setModalAdicional(updated);
       }
     } catch(e) { console.error(e); }
+  };
+
+  // El GET de presupuesto trae los totales en `totales`; el listado de adicionales
+  // los trae en la raíz. Leemos los dos para no depender de una sola forma.
+  const totalAdicDe = (a) => a?.totales?.total_precio_con_iva ?? a?.total_precio_con_iva ?? 0;
+  const cantItemsDe = (a) => a?.cant_items ?? (a?.rubros || []).reduce((n, r) => n + (r.lineas?.length || 0), 0);
+
+  // Guarda el adicional recién traído del backend TANTO en el modal como en la
+  // lista `adicionales`. Sin esto la lista quedaba con la foto vieja (vacía) y el
+  // presupuesto se imprimía con los adicionales sin ítems y en $0.
+  const aplicarAdicional = (full) => {
+    if (!full || !full.id) return;
+    setAdicionales(prev => prev.some(a => a.id === full.id)
+      ? prev.map(a => (a.id === full.id ? { ...a, ...full } : a))
+      : [...prev, full]);
+    setModalAdicional(prev => (prev && prev.id === full.id ? { ...prev, ...full } : prev));
   };
 
   const crearAdicional = async () => {
@@ -133,11 +149,11 @@ export default function Presupuesto() {
         presupuesto_base_id: parseInt(id),
       });
       const nuevoId = res.data?.id;
+      await cargarAdicionales();
       if (nuevoId) {
         const fullRes = await api.get(`/presupuestos/${nuevoId}`);
-        setModalAdicional(fullRes.data);
+        setModalAdicional({ ...fullRes.data, id: nuevoId });
       }
-      await cargarAdicionales();
     } catch(e) {
       alert('Error: ' + (e.response?.data?.detail || e.message));
     }
@@ -151,7 +167,8 @@ export default function Presupuesto() {
     // Load full presupuesto data
     try {
       const fullRes = await api.get(`/presupuestos/${adic.id}`);
-      adic = fullRes.data;
+      adic = { ...adic, ...fullRes.data };
+      aplicarAdicional(adic);
     } catch(e) { console.error(e); }
     setItemLibreAdic({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1 });
     setModalAdicional(adic);
@@ -162,8 +179,7 @@ export default function Presupuesto() {
     const adicId = modalAdicional.id;
     try {
       await api.post(`/presupuestos/${adicId}/lineas`, { tipo: 'catalogo', item_obra_id: item.id, cantidad: 1 });
-      const fullRes = await api.get(`/presupuestos/${adicId}`);
-      setModalAdicional(fullRes.data);
+      await refreshModalAdicional(adicId);
     } catch(e) { console.error(e); }
   };
 
@@ -172,7 +188,7 @@ export default function Presupuesto() {
     if (!targetId) return;
     try {
       const res = await api.get(`/presupuestos/${targetId}`);
-      setModalAdicional(res.data);
+      aplicarAdicional({ ...res.data, id: targetId });
     } catch(e) { console.error(e); }
   };
 
@@ -204,8 +220,7 @@ export default function Presupuesto() {
     if (!modalAdicional || !cant || cant <= 0) return;
     const adicId = modalAdicional.id;
     await api.patch(`/presupuestos/${adicId}/lineas/${lineaId}`, { cantidad: parseNum(cant) });
-    const fullRes = await api.get(`/presupuestos/${adicId}`);
-    setModalAdicional(fullRes.data);
+    await refreshModalAdicional(adicId);
   };
 
   const cerrarAdicional = async () => {
@@ -448,12 +463,13 @@ export default function Presupuesto() {
     const esComercial = modo === 'comercial';
     const fmt = (n) => { if (!n && n !== 0) return '—'; if (n === 0) return '$ 0'; return '$ ' + Math.round(n).toLocaleString('es-AR'); };
     const fmtPct = (n) => n != null ? n.toFixed(1) + '%' : '—';
+    const totalAdicImpresion = adicionales.reduce((s, a) => s + totalAdicDe(a), 0);
 
     const rubrosHTML = (rubros || []).map(rubro => {
       const filas = (rubro.lineas || []).map(linea => {
         const precioUnit = linea.cantidad > 0 ? linea.precio_venta_con_iva / linea.cantidad : linea.precio_venta_con_iva;
         return `<tr>
-          ${!esComercial ? `<td class="cod">${linea.tipo === 'libre' ? '—' : linea.item_obra_id}</td>` : ''}
+          ${!esComercial ? `<td class="cod">${linea.tipo === 'libre' ? '—' : (linea.item_obra_id || linea.item_global_id || '')}</td>` : ''}
           <td>${linea.nombre_override || linea.nombre_item || linea.nombre_libre || ''}${linea.tipo === 'libre' && !esComercial ? ' <span class="sub">(subcontrato)</span>' : ''}</td>
           <td class="c">${linea.unidad_item || linea.unidad_libre || ''}</td>
           <td class="r">${linea.cantidad}</td>
@@ -555,16 +571,16 @@ ${coefs}
 ${observaciones ? '<div style="margin-top:20px;padding:12px 16px;border:1px solid #e0e0e8;border-radius:6px;page-break-inside:avoid"><div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-bottom:6px">Observaciones</div><div style="font-size:10pt;color:#1a1a2e;white-space:pre-wrap">' + observaciones + '</div></div>' : ''}
 ${adicionales.length > 0 ? adicionales.map(adic => {
       const adicRubros = (adic.rubros || []);
-      const adicTotal = adic.totales?.total_precio_con_iva || 0;
+      const adicTotal = totalAdicDe(adic);
       const adicFilas = adicRubros.map(rubro => {
         const filas = (rubro.lineas || []).map(linea => {
           const precioUnit = linea.cantidad > 0 ? linea.precio_venta_con_iva / linea.cantidad : linea.precio_venta_con_iva;
           return `<tr>
-            ${!esComercial ? `<td class="cod">${linea.tipo === 'libre' ? '—' : ''}</td>` : ''}
+            ${!esComercial ? `<td class="cod">${linea.tipo === 'libre' ? '—' : (linea.item_obra_id || linea.item_global_id || '')}</td>` : ''}
             <td>${linea.nombre_override || linea.nombre_item || linea.nombre_libre || ''}</td>
             <td class="c">${linea.unidad_item || linea.unidad_libre || ''}</td>
             <td class="r">${linea.cantidad}</td>
-            ${!esComercial ? `<td class="r">${linea.costo_mat ? fmt(linea.costo_mat) : '—'}</td><td class="r">${linea.costo_mo ? fmt(linea.costo_mo) : '—'}</td><td class="r">—</td><td class="r ejec">${fmt(linea.total_ejecucion)}</td>` : ''}
+            ${!esComercial ? `<td class="r">${linea.costo_mat ? fmt(linea.costo_mat) : '—'}</td><td class="r">${linea.costo_mo ? fmt(linea.costo_mo) : '—'}</td><td class="r">${linea.costo_maq ? fmt(linea.costo_maq) : '—'}</td><td class="r ejec">${fmt(linea.total_ejecucion)}</td>` : ''}
             <td class="r precio">${fmt(precioUnit)}</td>
             <td class="r precio bold">${fmt(linea.precio_venta_con_iva)}</td>
             ${!esComercial ? '<td></td>' : ''}
@@ -572,14 +588,25 @@ ${adicionales.length > 0 ? adicionales.map(adic => {
         }).join('');
         return `<tr class="rubro"><td colspan="${esComercial ? 6 : 11}">${rubro.numero} — ${rubro.nombre}</td></tr>${filas}`;
       }).join('');
+      const colspan = esComercial ? 6 : 11;
+      const cuerpo = adicFilas
+        ? `<tbody>${adicFilas}</tbody>`
+        : `<tbody><tr><td colspan="${colspan}" class="muted" style="text-align:center;padding:10px">Sin ítems cargados</td></tr></tbody>`;
       return `<div style="margin-top:24px;page-break-before:auto">
         <div style="font-size:11pt;font-weight:900;border-bottom:2px solid #333;padding-bottom:6px;margin-bottom:10px">${adic.nombre_obra}</div>
         <table><thead><tr>${!esComercial ? '<th>Cód.</th>' : ''}<th>Ítem</th><th class="c">Unid.</th><th class="r">Cant.</th>${!esComercial ? '<th>Mat×Cant</th><th>MO×Cant</th><th>Maq×Cant</th><th class="r">Total Ejec</th>' : ''}<th class="r">P. Unitario</th><th class="r">Total</th>${!esComercial ? '<th class="r">%</th>' : ''}</tr></thead>
-        <tbody>${adicFilas}</tbody></table>
+        ${cuerpo}</table>
         <div class="totales"><div class="totales-h">Total Adicional</div>
         <div class="totales-b"><div class="blk"><div class="lbl">TOTAL ADICIONAL</div><div class="val precio" style="font-size:14pt">${fmt(adicTotal)}</div></div></div></div>
       </div>`;
-    }).join('') : ''}
+    }).join('') + `<div class="totales" style="margin-top:20px">
+  <div class="totales-h">Total general de obra (presupuesto + adicionales)</div>
+  <div class="totales-b">
+    <div class="blk"><div class="lbl">Presupuesto base</div><div class="val precio">${fmt(totales?.total_precio_con_iva)}</div></div>
+    <div class="blk"><div class="lbl">Adicionales (${adicionales.length})</div><div class="val precio">${fmt(totalAdicImpresion)}</div></div>
+    <div class="blk"><div class="lbl">TOTAL GENERAL</div><div class="val precio" style="font-size:16pt">${fmt((totales?.total_precio_con_iva || 0) + totalAdicImpresion)}</div></div>
+  </div>
+</div>` : ''}
 ${firma}
 <footer><span>${_pN} — ${hoy}</span><span>${data.nombre_obra}${data.ubicacion ? ' · ' + data.ubicacion : ''}</span></footer>
 </body></html>`;
@@ -635,7 +662,7 @@ ${firma}
   if (!data) return <div className="loading">No encontrado</div>;
 
   const { totales } = data;
-  const totalAdic = adicionales.reduce((s, a) => s + (a.total_precio_con_iva || 0), 0);
+  const totalAdic = adicionales.reduce((s, a) => s + totalAdicDe(a), 0);
 
   return (
     <>
@@ -1114,7 +1141,7 @@ ${firma}
                               </td>
                               <td style={{ ...td, textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }} className="col-unid">{linea.unidad_item || linea.unidad_libre}</td>
                               <td style={{ ...td, textAlign: 'right' }}>
-                                <input type="number" min="0" step="0.01" defaultValue={linea.cantidad} disabled={cerrado}
+                                <input key={`cant-${linea.id}-${linea.cantidad}`} type="number" min="0" step="0.01" defaultValue={linea.cantidad} disabled={cerrado}
                                   style={{ width: 55, background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 4, padding: '3px 5px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'right' }}
                                   onBlur={e => handleCantidad(linea.id, e.target.value)} />
                                 {!cerrado && (
@@ -1180,10 +1207,10 @@ ${firma}
                                   color: a.estado === 'cerrado' ? 'var(--warn)' : 'var(--accent)' }}>
                                   {a.estado === 'cerrado' ? <Lock size={9} strokeWidth={2} /> : '●'} {a.estado}
                                 </span>
-                                <span style={{ fontSize: 10, color: 'var(--muted)' }}>{a.cant_items} ítem{a.cant_items !== 1 ? 's' : ''}</span>
+                                <span style={{ fontSize: 10, color: 'var(--muted)' }}>{cantItemsDe(a)} ítem{cantItemsDe(a) !== 1 ? 's' : ''}</span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--accent2)' }}>{fmt(a.total_precio_con_iva)}</span>
+                                <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--accent2)' }}>{fmt(totalAdicDe(a))}</span>
                                 <button onClick={e => { e.stopPropagation(); eliminarAdicional(a.id); }}
                                   style={{ background: 'none', border: '1px solid rgba(248,113,113,.3)', borderRadius: 4, color: 'var(--danger)', cursor: 'pointer', padding: '2px 7px', fontSize: 11 }}>×</button>
                               </div>
@@ -1443,8 +1470,7 @@ ${firma}
                           const val = parseNum(e.target.value);
                           if (isNaN(val)) return;
                           await api.put(`/presupuestos/${modalAdicional.id}`, { [key]: val });
-                          const res = await api.get(`/presupuestos/${modalAdicional.id}`);
-                          setModalAdicional(res.data);
+                          await refreshModalAdicional(modalAdicional.id);
                         }} onChange={e => setModalAdicional(p => ({ ...p, coeficientes: { ...p.coeficientes, [key]: e.target.value } }))} />
                     </div>
                   ))}
@@ -1530,7 +1556,7 @@ ${firma}
                                   </td>
                                   <td style={{ ...td, textAlign: 'center', fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{linea.unidad_item || linea.unidad_libre}</td>
                                   <td style={{ ...td, textAlign: 'right' }}>
-                                    <input type="number" min="0" step="0.01" defaultValue={linea.cantidad}
+                                    <input key={`cant-adic-${linea.id}-${linea.cantidad}`} type="number" min="0" step="0.01" defaultValue={linea.cantidad}
                                       disabled={modalAdicional.estado === 'cerrado'}
                                       style={{ width: 55, background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 4, padding: '2px 5px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'right' }}
                                       onBlur={e => handleCantidadAdicional(linea.id, e.target.value)} />
@@ -1573,7 +1599,7 @@ ${firma}
                       presupuestoId={modalAdicional.id}
                       linea={lineaSeleccionadaAdic}
                       onClose={() => setLineaSeleccionadaAdic(null)}
-                      onCostoChange={async () => { const res = await api.get(`/presupuestos/${modalAdicional.id}`); setModalAdicional(res.data); }}
+                      onCostoChange={() => refreshModalAdicional(modalAdicional.id)}
                     />
                   </div>
                 )}

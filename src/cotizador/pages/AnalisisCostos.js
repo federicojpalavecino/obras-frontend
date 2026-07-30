@@ -364,7 +364,7 @@ export default function AnalisisCostos() {
                     <select className="input" style={{ flex: 2 }} value={addMO.unidad_mo_id}
                       onChange={e => setAddMO(p => ({ ...p, unidad_mo_id: e.target.value }))}>
                       <option value="">Seleccionar función...</option>
-                      {moList.map(m => <option key={m.id} value={m.id}>{m.funcion} — {fmtD(m.costo_hora)}/hs</option>)}
+                      {moList.map(m => <option key={m.id} value={m.id}>{m.funcion || m.nombre} — {fmtD(m.costo_hora)}/hs</option>)}
                     </select>
                     <input type="number" min="0" step="0.001" className="input input-mono" style={{ width: 90 }}
                       placeholder="Horas" value={addMO.horas}
