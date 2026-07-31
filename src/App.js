@@ -21,6 +21,7 @@ import ClientePortal from "./pages/ClientePortal";
 import PersonalPortal from "./pages/PersonalPortal";
 import AccesosClientes from "./pages/AccesosClientes";
 import Landing from "./pages/Landing";
+import Presentacion from "./pages/Presentacion";
 import Obra from "./pages/Obra";
 import Asistente from "./components/Asistente";
 import api from "./cotizador/api";
@@ -498,6 +499,12 @@ export default function App() {
   // Super admin panel — rutas directas
   if (window.location.pathname === "/admin-panel" || window.location.pathname === "/admin") {
     return <AdminSuperPanel />;
+  }
+
+  // Presentación comercial — pública, sin login. Es el link que se le manda a
+  // un prospecto. Va antes del chequeo de sesión para que abra directo.
+  if (window.location.pathname === "/presentacion" || window.location.pathname === "/presentacion/") {
+    return <Presentacion />;
   }
 
   if (loading) return (

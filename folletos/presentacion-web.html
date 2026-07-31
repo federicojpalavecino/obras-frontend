@@ -1,0 +1,299 @@
+<title>FAIM OBRAS — Cotizá una obra en horas, no en días</title>
+<style>
+  /* ── Tokens ─────────────────────────────────────────────────────────────
+     Neutros con sesgo verde (el acento de marca), para que el gris se lea
+     elegido y no heredado. Se define todo acá y los componentes consumen
+     tokens, nunca colores sueltos: por eso el tema oscuro funciona solo. */
+  :root{
+    --ground:#fbfcfb;
+    --panel:#f2f5f3;
+    --panel-2:#e8ede9;
+    --line:#dde3df;
+    --ink:#141916;
+    --ink-soft:#5d6b64;
+    --accent:#047857;
+    --accent-soft:#eaf5f0;
+    --accent-line:#b9dfcd;
+    --alt:#6d28d9;
+    --bad:#c2410c;
+    --shadow:rgba(20,25,22,.07);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0f1412;
+      --panel:#161d19;
+      --panel-2:#1d2621;
+      --line:#28322c;
+      --ink:#e9efeb;
+      --ink-soft:#94a49b;
+      --accent:#34d399;
+      --accent-soft:#13251d;
+      --accent-line:#255043;
+      --alt:#a78bfa;
+      --bad:#fb923c;
+      --shadow:rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0f1412; --panel:#161d19; --panel-2:#1d2621; --line:#28322c;
+    --ink:#e9efeb; --ink-soft:#94a49b; --accent:#34d399; --accent-soft:#13251d;
+    --accent-line:#255043; --alt:#a78bfa; --bad:#fb923c; --shadow:rgba(0,0,0,.4);
+  }
+  :root[data-theme="light"]{
+    --ground:#fbfcfb; --panel:#f2f5f3; --panel-2:#e8ede9; --line:#dde3df;
+    --ink:#141916; --ink-soft:#5d6b64; --accent:#047857; --accent-soft:#eaf5f0;
+    --accent-line:#b9dfcd; --alt:#6d28d9; --bad:#c2410c; --shadow:rgba(20,25,22,.07);
+  }
+
+  /* Sin webfonts: el CSP de la página bloquea los CDN de tipografías y una
+     @font-face rota degrada en silencio. Stacks del sistema, elegidos para
+     que el display tenga densidad y el mono alinee cifras. */
+  :root{
+    --display:'Segoe UI Variable Display','Segoe UI',ui-sans-serif,system-ui,-apple-system,Roboto,'Helvetica Neue',sans-serif;
+    --body:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+    --mono:ui-monospace,'Cascadia Mono','Segoe UI Mono','SF Mono',Consolas,monospace;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--ground);color:var(--ink);
+    font-family:var(--body);font-size:16.5px;line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:940px;margin:0 auto;padding:0 26px}
+  section{padding:0 0 72px}
+
+  h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+  h1{
+    font-size:clamp(34px,6vw,62px);line-height:1.02;font-weight:800;
+    letter-spacing:-.035em;margin:20px 0 18px;
+  }
+  h1 .hi{color:var(--accent)}
+  h2{font-size:clamp(23px,3.4vw,33px);font-weight:750;letter-spacing:-.022em;margin-bottom:10px}
+  .lead{font-size:clamp(16.5px,2.1vw,19.5px);color:var(--ink-soft);max-width:62ch}
+  .sub{color:var(--ink-soft);max-width:66ch;margin:0 0 34px}
+
+  /* Etiqueta de sección: mono, no emoji. Marca de qué habla la sección. */
+  .tag{
+    font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--accent);
+    display:inline-flex;align-items:center;gap:9px;margin-bottom:13px;
+  }
+  .tag::before{content:'';width:22px;height:2px;background:var(--accent);border-radius:2px}
+
+  /* ── Apertura ── */
+  header{padding:64px 0 0}
+  .marca{
+    font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.32em;
+    text-transform:uppercase;color:var(--ink-soft);
+  }
+  .cifras{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:26px;
+    margin-top:42px;padding-top:26px;border-top:2px solid var(--ink);
+  }
+  .cifra .n{
+    font-family:var(--mono);font-size:31px;font-weight:600;color:var(--accent);
+    line-height:1;font-variant-numeric:tabular-nums;
+  }
+  .cifra .l{font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-soft);margin-top:7px}
+
+  /* ── Comparación ── */
+  .comp{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .col{border:1px solid var(--line);border-radius:15px;padding:26px;background:var(--panel)}
+  .col.si{background:var(--accent-soft);border-color:var(--accent-line)}
+  .col h3{
+    font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.15em;
+    text-transform:uppercase;margin-bottom:19px;color:var(--ink-soft);
+  }
+  .col.si h3{color:var(--accent)}
+  .col ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:13px}
+  .col li{padding-left:26px;position:relative;font-size:15.5px;line-height:1.5}
+  .col.no li::before{content:'—';position:absolute;left:0;color:var(--bad);font-weight:700}
+  .col.si li::before{content:'✓';position:absolute;left:0;color:var(--accent);font-weight:700}
+
+  /* ── Cadena de valor ───────────────────────────────────────────────────
+     El orden es el argumento del producto: el dato entra una vez y recorre
+     la obra. Por eso va como secuencia numerada y no como grilla suelta. */
+  .cadena{display:flex;gap:14px;flex-wrap:wrap;counter-reset:paso}
+  .eslabon{
+    flex:1 1 158px;background:var(--panel);border:1px solid var(--line);
+    border-radius:13px;padding:19px 17px;position:relative;
+  }
+  .eslabon::before{
+    counter-increment:paso;content:counter(paso);
+    font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--accent);
+    display:block;margin-bottom:9px;
+  }
+  .eslabon .t{font-family:var(--display);font-weight:700;font-size:15px;margin-bottom:5px;letter-spacing:-.012em}
+  .eslabon .d{font-size:13px;color:var(--ink-soft);line-height:1.48}
+  .destaque{
+    margin-top:30px;padding:22px 26px;background:var(--panel-2);
+    border-left:3px solid var(--accent);border-radius:0 12px 12px 0;font-size:15.5px;
+  }
+  .destaque b{color:var(--accent)}
+
+  /* ── Módulos ── */
+  .grilla{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:17px}
+  .item{border:1px solid var(--line);border-radius:13px;padding:21px;background:var(--panel)}
+  .item .k{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-soft);display:block;margin-bottom:9px;
+  }
+  .item .t{font-family:var(--display);font-weight:700;font-size:15.5px;margin-bottom:6px;letter-spacing:-.012em}
+  .item .d{font-size:13.8px;color:var(--ink-soft);line-height:1.52}
+
+  /* ── Cierre ── */
+  .cierre{
+    background:var(--ink);color:var(--ground);border-radius:19px;
+    padding:48px 42px;margin-bottom:34px;
+  }
+  .cierre h2{color:var(--ground)}
+  .cierre p{color:var(--ink-soft);max-width:54ch;margin:12px 0 28px}
+  .cta{
+    display:inline-block;background:var(--accent);color:#fff;text-decoration:none;
+    padding:15px 32px;border-radius:11px;font-weight:700;font-size:15.5px;
+    font-family:var(--display);letter-spacing:-.01em;
+    transition:transform .16s ease,box-shadow .16s ease;
+  }
+  .cta:hover{transform:translateY(-1px);box-shadow:0 7px 22px var(--shadow)}
+  .cta:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+  .datos{margin-top:26px;font-family:var(--mono);font-size:13px;color:var(--ink-soft);line-height:2.05}
+  .datos b{color:var(--ground);font-weight:500}
+  footer{
+    padding:0 0 60px;font-size:12.5px;color:var(--ink-soft);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:9px;
+  }
+
+  @media (max-width:700px){
+    .comp{grid-template-columns:1fr}
+    section{padding-bottom:52px}
+    .cierre{padding:34px 26px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+  }
+</style>
+
+<header class="wrap">
+  <div class="marca">FAIM OBRAS</div>
+  <h1>Cotizá una obra en <span class="hi">horas</span>, no en días.</h1>
+  <p class="lead">El sistema de gestión para estudios de arquitectura e ingeniería.
+    Presupuestos con análisis de costos reales, y todo lo que viene después
+    —certificados, plazos, cobranzas— saliendo del mismo lugar.</p>
+  <div class="cifras">
+    <div class="cifra"><div class="n">436</div><div class="l">ítems con análisis</div></div>
+    <div class="cifra"><div class="n">829</div><div class="l">materiales</div></div>
+    <div class="cifra"><div class="n">14</div><div class="l">gremios · escala UOCRA</div></div>
+    <div class="cifra"><div class="n">1</div><div class="l">carga, todo vinculado</div></div>
+  </div>
+</header>
+
+<section class="wrap" style="padding-top:66px">
+  <div class="tag">El problema</div>
+  <h2>Cotizar bien cuesta demasiado tiempo</h2>
+  <p class="sub">Y cuando por fin está lista, la planilla queda huérfana: el certificado
+    se rehace, el plazo se estima aparte, la cobranza vive en otro archivo.</p>
+  <div class="comp">
+    <div class="col no">
+      <h3>Con planillas sueltas</h3>
+      <ul>
+        <li>Días armando un presupuesto desde cero, ítem por ítem</li>
+        <li>Precios de materiales que nadie sabe de cuándo son</li>
+        <li>El certificado se vuelve a cargar a mano</li>
+        <li>El plazo de obra se estima «a ojo»</li>
+        <li>Un adicional obliga a rehacer medio archivo</li>
+        <li>El cliente llama para preguntar cómo viene la obra</li>
+      </ul>
+    </div>
+    <div class="col si">
+      <h3>Con FAIM OBRAS</h3>
+      <ul>
+        <li>Catálogo con análisis de costos ya cargado: elegís y computás</li>
+        <li>Precios con fuente y fecha, actualizables por rubro</li>
+        <li>El certificado sale del presupuesto, con su avance</li>
+        <li>El plazo lo calcula el sistema desde las horas de cada tarea</li>
+        <li>Los adicionales se vinculan al presupuesto base</li>
+        <li>El cliente entra a su portal y ve el avance solo</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="tag">Cómo funciona</div>
+  <h2>Cargás una vez. Sirve para todo lo demás.</h2>
+  <p class="sub">No son módulos sueltos que se parecen entre sí: es el mismo dato
+    recorriendo la obra de punta a punta.</p>
+  <div class="cadena">
+    <div class="eslabon"><div class="t">Presupuesto</div><div class="d">Rubros, ítems y cómputo. Coeficientes GG, beneficio e IVA.</div></div>
+    <div class="eslabon"><div class="t">Análisis de costos</div><div class="d">Materiales, mano de obra y equipos por unidad. Editable por obra.</div></div>
+    <div class="eslabon"><div class="t">Planificación</div><div class="d">Gantt con dependencias y camino crítico, calculado desde las horas.</div></div>
+    <div class="eslabon"><div class="t">Certificados</div><div class="d">Avance sobre el presupuesto, con sus egresos.</div></div>
+    <div class="eslabon"><div class="t">Cobranzas</div><div class="d">Contrato, cuenta corriente y control financiero.</div></div>
+  </div>
+  <div class="destaque">
+    <b>Un ejemplo concreto.</b> Cambiás la cuadrilla de una tarea de 1 a 3 personas.
+    El sistema recalcula la duración con las horas de mano de obra de tu propio análisis,
+    corre las tareas que dependen de esa y te da la nueva fecha de fin de obra.
+    Sin tocar una planilla.
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="tag">Qué incluye</div>
+  <h2>Todo lo que hoy tenés repartido en archivos</h2>
+  <div class="grilla">
+    <div class="item"><span class="k">Cotización</span><div class="t">Cotizador</div>
+      <div class="d">Catálogo de ítems con análisis real. Cómputo por m², m³ y ml integrado.</div></div>
+    <div class="item"><span class="k">Cotización</span><div class="t">Análisis de costos</div>
+      <div class="d">Catálogo global más tus propios precios y rendimientos por obra.</div></div>
+    <div class="item"><span class="k">Obra</span><div class="t">Planificación</div>
+      <div class="d">Gantt con vínculos entre tareas, camino crítico y curva de inversión.</div></div>
+    <div class="item"><span class="k">Obra</span><div class="t">Certificados</div>
+      <div class="d">Avance vinculado al presupuesto. Adicionales con coeficientes propios.</div></div>
+    <div class="item"><span class="k">Administración</span><div class="t">Control financiero</div>
+      <div class="d">Ingresos, egresos y personal por semana, quincena o mes.</div></div>
+    <div class="item"><span class="k">Administración</span><div class="t">Gestión de obra</div>
+      <div class="d">Contrato, cobros, subcontratos y compras en un solo lugar.</div></div>
+    <div class="item"><span class="k">Cliente</span><div class="t">Portal de clientes</div>
+      <div class="d">Tu cliente ve avance, contrato y cuenta corriente. Vos elegís qué.</div></div>
+    <div class="item"><span class="k">Cliente</span><div class="t">Salida profesional</div>
+      <div class="d">Presupuesto para el cliente o interno, con tu logo y tus colores.</div></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="tag">Por qué importa</div>
+  <h2>Tres cosas que cambian la semana</h2>
+  <div class="grilla">
+    <div class="item"><div class="t">Cotizás más rápido</div>
+      <div class="d">El análisis de costos ya está armado. Elegís el ítem, cargás la cantidad
+        y el precio sale solo, con tus coeficientes.</div></div>
+    <div class="item"><div class="t">Cotizás mejor</div>
+      <div class="d">Precios con fuente y fecha, y mano de obra según escala vigente.
+        Se ve de un vistazo qué precio conviene revisar.</div></div>
+    <div class="item"><div class="t">No perdés el hilo</div>
+      <div class="d">Del presupuesto al certificado y a la cobranza sin volver a cargar nada.
+        Cada obra con su historia completa.</div></div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="cierre">
+    <h2>Veámoslo con una obra tuya</h2>
+    <p>La mejor forma de evaluarlo es con un presupuesto real de tu estudio.
+      En una reunión de 30 minutos lo cargamos juntos y ves el flujo completo,
+      de la cotización al certificado.</p>
+    <a class="cta" href="https://wa.me/5493625305155">Coordinar una demo →</a>
+    <div class="datos">
+      WhatsApp <b>+54 9 362 530-5155</b><br>
+      Email <b>faimobras@gmail.com</b><br>
+      Web <b>faimobras.com</b>
+    </div>
+  </div>
+</div>
+
+<div class="wrap"><footer>
+  <span>FAIM OBRAS — Gestión integral para estudios de arquitectura e ingeniería</span>
+  <span>Resistencia, Chaco · Argentina</span>
+</footer></div>
