@@ -10,7 +10,7 @@ const C = {
   warn: '#d97706', green: '#10b981', blue: '#3b82f6',
 };
 
-const PRECIO_BASE = 30000;
+const PRECIO_BASE = 57000;
 const PRECIO_EXTRA = 7000;
 const MAX_BASE = 2;
 
@@ -40,7 +40,7 @@ export default function Landing() {
           <a href="#funcionalidades" style={{ color: C.muted, textDecoration: 'none', fontSize: 14 }}>Funcionalidades</a>
           <a href="#precios" style={{ color: C.muted, textDecoration: 'none', fontSize: 14 }}>Precios</a>
           <button onClick={goApp} style={{ padding: '7px 18px', borderRadius: 8, border: `1px solid ${C.border2}`, color: C.muted, background: 'none', cursor: 'pointer', fontSize: 13, fontFamily: "'Syne', sans-serif" }}>Ingresar</button>
-          <button onClick={goApp} style={{ padding: '7px 18px', borderRadius: 8, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: "'Syne', sans-serif" }}>Empezar gratis →</button>
+          <button onClick={goApp} style={{ padding: '7px 18px', borderRadius: 8, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: "'Syne', sans-serif" }}>Crear cuenta →</button>
         </div>
       </nav>
 
@@ -58,20 +58,20 @@ export default function Landing() {
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={goApp} style={{ padding: '13px 32px', borderRadius: 10, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, fontFamily: "'Syne', sans-serif" }}>
-            Empezar prueba gratuita →
+            Crear cuenta →
           </button>
           <a href="#funcionalidades" style={{ padding: '13px 32px', borderRadius: 10, border: `1px solid ${C.border2}`, color: C.muted, textDecoration: 'none', fontSize: 15, display: 'inline-flex', alignItems: 'center' }}>
             Ver funcionalidades
           </a>
         </div>
         <div style={{ marginTop: 16, fontSize: 12, color: C.muted }}>
-          30 días de prueba gratuita · Sin tarjeta de crédito
+          Suscripción mensual · Cancelás cuando quieras
         </div>
       </div>
 
       {/* STATS */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 48, padding: '28px 48px', borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap', background: C.surface2 }}>
-        {[['524+', 'ítems en el catálogo'], ['100%', 'en la nube'], ['30 días', 'prueba gratis'], ['Multi', 'usuario']].map(([num, label]) => (
+        {[['524+', 'ítems en el catálogo'], ['100%', 'en la nube'], ['Multi', 'usuario'], ['Cloud', 'siempre actualizado']].map(([num, label]) => (
           <div key={label} style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 26, fontWeight: 900, color: C.accent, fontFamily: "'IBM Plex Mono', monospace" }}>{num}</div>
             <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>{label}</div>
@@ -140,18 +140,18 @@ export default function Landing() {
             </div>
           ))}
           <button onClick={goApp} style={{ display: 'block', width: '100%', marginTop: 28, padding: '13px', borderRadius: 9, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, fontFamily: "'Syne', sans-serif" }}>
-            Empezar 30 días gratis →
+            Crear cuenta →
           </button>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 10, textAlign: 'center' }}>Sin tarjeta de crédito requerida</div>
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 10, textAlign: 'center' }}>Suscripción mensual · Cancelás cuando quieras</div>
         </div>
       </div>
 
       {/* CTA */}
       <div style={{ padding: '64px 48px', textAlign: 'center', background: C.bg }}>
         <h2 style={{ fontSize: 30, fontWeight: 800, marginBottom: 12, letterSpacing: -1, color: C.text }}>¿Listo para empezar?</h2>
-        <p style={{ color: C.muted, marginBottom: 36, fontSize: 15 }}>30 días de prueba gratuita. Sin compromisos.</p>
+        <p style={{ color: C.muted, marginBottom: 36, fontSize: 15 }}>Suscripción mensual, sin permanencia. Cancelás cuando quieras.</p>
         <button onClick={goApp} style={{ padding: '14px 44px', borderRadius: 12, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 800, fontFamily: "'Syne', sans-serif", letterSpacing: -0.5 }}>
-          Crear cuenta gratis →
+          Crear cuenta →
         </button>
       </div>
 

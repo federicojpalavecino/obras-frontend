@@ -521,11 +521,11 @@ const BASE = [
   },
   {
     id: "suscripcion", sec: "config",
-    titulo: "Suscripción, prueba y pago",
-    kw: "suscripcion pago pagar precio plan trial prueba vencido mercadopago factura abono mensual cobro renovar",
+    titulo: "Suscripción y pago",
+    kw: "suscripcion pago pagar precio plan vencido mercadopago factura abono mensual cobro renovar",
     pasos: [
-      "El sistema arranca con una prueba gratuita; al vencer pide suscribirse para seguir.",
-      "El pago es mensual por MercadoPago: plan base 2 usuarios + adicionales por usuario extra.",
+      "El pago es mensual por MercadoPago: plan base con 2 usuarios incluidos, más un adicional por cada usuario extra.",
+      "El monto se muestra al momento de activar la suscripción.",
       "Si tenés un problema con el pago, escribinos a soporte.",
     ],
   },
@@ -736,12 +736,12 @@ const BASE = [
   },
   {
     id: "registrarme", sec: "*",
-    titulo: "Crear una cuenta / prueba gratuita",
-    kw: "registrarme registrar cuenta nueva crear alta prueba gratis trial empezar suscribir estudio",
+    titulo: "Crear una cuenta",
+    kw: "registrarme registrar cuenta nueva crear alta empezar suscribir suscripcion estudio",
     pasos: [
       "En la pantalla de ingreso, tocá la pestaña “Registrarme”.",
       "Cargá el nombre del estudio o empresa, tu nombre, email y contraseña.",
-      "Tocá “Comenzar prueba gratuita 15 días”. Entrás directo con tu estudio creado.",
+      "Tocá “Crear cuenta y suscribirme”. Entrás directo con tu estudio creado.",
     ],
   },
   {

@@ -10,8 +10,6 @@ const C = {
 
 
 const MAX_BASE = 2;
-const PRECIO_BASE = 30000;
-const PRECIO_EXTRA = 7000;
 
 function UsuariosSection() {
   const [usuarios, setUsuarios] = useState([]);
@@ -52,24 +50,15 @@ function UsuariosSection() {
 
   const totalUsuarios = usuarios.length;
   const extra = Math.max(0, totalUsuarios - MAX_BASE);
-  const precioTotal = PRECIO_BASE + extra * PRECIO_EXTRA;
 
   return (
     <div>
-      {/* Resumen del plan */}
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>Plan actual</div>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-            {totalUsuarios} usuario{totalUsuarios !== 1 ? 's' : ''} en total · base 2 incluidos
-            {extra > 0 && <span style={{ color: '#d97706' }}> · {extra} adicional{extra > 1 ? 'es' : ''} × $ {PRECIO_EXTRA.toLocaleString('es-AR')}</span>}
-          </div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: C.accent, fontFamily: "'IBM Plex Mono', monospace" }}>
-            $ {precioTotal.toLocaleString('es-AR')}
-          </div>
-          <div style={{ fontSize: 10, color: C.muted }}>/ mes</div>
+      {/* Resumen del plan (sin monto — el precio se muestra recién al pagar) */}
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>Plan actual</div>
+        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+          {totalUsuarios} usuario{totalUsuarios !== 1 ? 's' : ''} en total · base 2 incluidos
+          {extra > 0 && <span> · {extra} adicional{extra > 1 ? 'es' : ''}</span>}
         </div>
       </div>
 
@@ -86,9 +75,6 @@ function UsuariosSection() {
       <div style={{ marginTop:16, display:'grid', gap:10 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize:12, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:'0.5px' }}>Agregar usuario</div>
-          {totalUsuarios >= MAX_BASE && (
-            <div style={{ fontSize: 11, color: '#d97706', fontWeight: 600 }}>+ $ {PRECIO_EXTRA.toLocaleString('es-AR')}/mes</div>
-          )}
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           <input value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} placeholder="Nombre" style={inp} />

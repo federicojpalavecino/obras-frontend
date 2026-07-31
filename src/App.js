@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut, Check, AlertTriangle, Activity, Sparkles, X } from "lucide-react";
+import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
@@ -39,11 +39,11 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
   const handlePagar = async () => {
     setLoading(true);
     try {
-      const res = await api.post('/suscripcion/crear-preferencia');
+      const res = await api.post('/suscripcion/crear');
       const data = res.data;
       if (data.init_point) window.location.href = data.init_point;
-      else alert("Error al crear el pago. Contactá a soporte.");
-    } catch (e) { alert("Error de conexión."); }
+      else alert("Error al crear la suscripción. Contactá a soporte.");
+    } catch (e) { alert(e.response?.data?.detail || "Error de conexión. Probá de nuevo o contactá a soporte."); }
     setLoading(false);
   };
   return (
@@ -51,10 +51,10 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
       <div style={{ width: "100%", maxWidth: 440, background: C.surface, border: "1px solid " + C.border, borderRadius: 16, padding: 40, boxShadow: "0 4px 24px rgba(0,0,0,0.06)", textAlign: "center" }}>
         <Lock size={36} strokeWidth={1} color={C.accent} style={{ marginBottom: 16 }} />
         <div style={{ fontSize: 24, fontWeight: 800, color: C.accent, letterSpacing: "-1px", marginBottom: 4 }}>FAIM OBRAS</div>
-        <div style={{ fontSize: 12, color: C.muted, marginBottom: 28, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "2px" }}>PERÍODO DE PRUEBA VENCIDO</div>
+        <div style={{ fontSize: 12, color: C.muted, marginBottom: 28, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "2px" }}>ACTIVÁ TU SUSCRIPCIÓN</div>
         <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "16px 20px", marginBottom: 24 }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: C.accent, fontFamily: "'IBM Plex Mono', monospace" }}>
-            $ {(suscripcion?.precio_total || suscripcion?.precio_mensual || 30000).toLocaleString("es-AR")}
+            $ {(suscripcion?.precio_total || suscripcion?.precio_mensual || 57000).toLocaleString("es-AR")}
           </div>
           <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
             por mes · plan base 2 usuarios
@@ -62,7 +62,7 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
           </div>
           {suscripcion?.usuarios_extra > 0 && (
             <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
-              $ {(suscripcion.precio_mensual || 30000).toLocaleString("es-AR")} base + $ {((suscripcion.precio_usuario_extra || 7000) * suscripcion.usuarios_extra).toLocaleString("es-AR")} usuarios adicionales
+              $ {(suscripcion.precio_mensual || 57000).toLocaleString("es-AR")} base + $ {((suscripcion.precio_usuario_extra || 7000) * suscripcion.usuarios_extra).toLocaleString("es-AR")} usuarios adicionales
             </div>
           )}
         </div>
@@ -174,46 +174,25 @@ function PaginaSoporte() {
   );
 }
 
-// ── Feed de actividad ─────────────────────────────────────────────────────────
-function ActividadFeed() {
-  const [items, setItems] = useState([]);
-  useEffect(() => {
-    api.get('/actividad?limit=12')
-      .then(r => setItems(Array.isArray(r.data) ? r.data : []))
-      .catch(() => {});
-  }, []);
+// ── Espacio publicitario ──────────────────────────────────────────────────────
+// Reemplaza al viejo feed de actividad. Dejá acá tu banner / imagen / promo.
+// Para publicar un aviso: poné la URL de la imagen en AD y (opcional) el link.
+function EspacioPublicidad() {
+  const AD = null;        // ej: { img: "https://...", href: "https://...", alt: "Promo" }
 
-  if (!items.length) return null;
+  if (AD && AD.img) {
+    const img = <img src={AD.img} alt={AD.alt || "Publicidad"} style={{ width: "100%", borderRadius: 12, display: "block" }} />;
+    return (
+      <div style={{ marginTop: 40 }}>
+        {AD.href ? <a href={AD.href} target="_blank" rel="noreferrer">{img}</a> : img}
+      </div>
+    );
+  }
 
-  const fmtRelativo = (iso) => {
-    if (!iso) return '';
-    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-    if (diff < 60) return 'ahora';
-    if (diff < 3600) return `hace ${Math.floor(diff/60)} min`;
-    if (diff < 86400) return `hace ${Math.floor(diff/3600)} h`;
-    return `hace ${Math.floor(diff/86400)} d`;
-  };
-
+  // Placeholder mientras no haya aviso cargado.
   return (
-    <div style={{marginTop:40}}>
-      <div style={{display:"flex", alignItems:"center", gap:6, marginBottom:16}}>
-        <Activity size={14} strokeWidth={1.5} color={C.muted} />
-        <span style={{fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1px", color:C.muted}}>Actividad reciente</span>
-      </div>
-      <div style={{display:"flex", flexDirection:"column", gap:0}}>
-        {items.map((a, i) => (
-          <div key={a.id} style={{display:"flex", alignItems:"baseline", gap:8, padding:"9px 0", borderBottom: i < items.length-1 ? `1px solid ${C.border}` : "none"}}>
-            <div style={{width:26, height:26, borderRadius:"50%", background:C.surface2, border:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:C.muted, flexShrink:0, fontFamily:"'IBM Plex Mono',monospace"}}>
-              {(a.user_nombre||"?").slice(0,2).toUpperCase()}
-            </div>
-            <div style={{flex:1, minWidth:0}}>
-              <span style={{fontSize:13, fontWeight:600, color:C.text}}>{a.user_nombre} </span>
-              <span style={{fontSize:13, color:C.muted}}>{a.detalle}</span>
-            </div>
-            <span style={{fontSize:11, color:"#c4c4d0", flexShrink:0, fontFamily:"'IBM Plex Mono',monospace"}}>{fmtRelativo(a.created_at)}</span>
-          </div>
-        ))}
-      </div>
+    <div style={{ marginTop: 40, border: `1px dashed ${C.border}`, borderRadius: 12, padding: "28px 20px", textAlign: "center", background: C.surface }}>
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.5px", color: "#c4c4d0" }}>Espacio publicitario</div>
     </div>
   );
 }
@@ -273,7 +252,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
               {modules.map((m, i) => (
                 <button key={m.id} onClick={()=>navigate(m.path)}
                   style={{background:"none", border:"none", borderTop: i === 0 ? "1px solid " + C.border : "none", borderBottom:"1px solid " + C.border, padding:"clamp(14px,3vw,18px) 0", cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:14, width:"100%"}}>
-                  <m.Icon size={18} strokeWidth={1.5} color={m.color} style={{flexShrink:0}} />
+                  <m.Icon size={18} strokeWidth={1.5} color={C.text} style={{flexShrink:0}} />
                   <div style={{flex:1, minWidth:0}}>
                     <div style={{fontSize:14, fontWeight:600, color:C.text, marginBottom:2}}>{m.label}</div>
                     <div style={{fontSize:12, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{m.desc}</div>
@@ -282,7 +261,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
                 </button>
               ))}
             </div>
-            <ActividadFeed />
+            <EspacioPublicidad />
             <div style={{marginTop:"clamp(40px, 6vw, 56px)", fontSize:11, color:"#c4c4d0", fontFamily:"'IBM Plex Mono', monospace", letterSpacing:"0.5px", textAlign:"center"}}>
               © 2026 FAIM OBRAS · by FIMA Arquitectura
             </div>
@@ -575,7 +554,7 @@ export default function App() {
             </div>
             {error&&<div style={{fontSize:13,color:"#f87171",marginBottom:12,textAlign:"center"}}>{error}</div>}
             <button onClick={registrar} disabled={regLoading} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center",opacity:regLoading?0.7:1}}>
-              {regLoading ? "Creando cuenta..." : "Comenzar prueba gratuita 15 días"}
+              {regLoading ? "Creando cuenta..." : "Crear cuenta y suscribirme"}
             </button>
             
           </>
