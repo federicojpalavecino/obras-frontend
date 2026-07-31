@@ -107,7 +107,7 @@ export default function Presentacion() {
 
       <header className="wrap">
         <div className="marca">FAIM OBRAS</div>
-        <h1>Cotizá una obra en <span className="hi">horas</span>, no en días.</h1>
+        <h1>Cotizá una obra en <span className="hi">minutos</span>, no en días.</h1>
         <p className="lead">
           El sistema de gestión para estudios de arquitectura e ingeniería.
           Presupuestos con análisis de costos reales, y todo lo que viene después
@@ -205,9 +205,9 @@ export default function Presentacion() {
           <p>La mejor forma de evaluarlo es con un presupuesto real de tu estudio.
             En una reunión de 30 minutos lo cargamos juntos y ves el flujo completo,
             de la cotización al certificado.</p>
-          <a className="cta" href="https://wa.me/5493625305155" target="_blank" rel="noreferrer">Coordinar una demo →</a>
+          <a className="cta" href="https://wa.me/5493482305155" target="_blank" rel="noreferrer">Coordinar una demo →</a>
           <div className="datos">
-            WhatsApp <b>+54 9 362 530-5155</b><br />
+            WhatsApp <b>+54 9 3482 30-5155</b><br />
             Email <b>faimobras@gmail.com</b><br />
             Web <b>faimobras.com</b>
           </div>
