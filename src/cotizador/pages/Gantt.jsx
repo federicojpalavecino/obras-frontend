@@ -38,19 +38,33 @@ export default function Gantt() {
   const [editando, setEditando] = useState(null);
   const [toast, setToast] = useState('');
   const [generando, setGenerando] = useState(false);
+  // Dependencias entre tareas
+  const [vinculos, setVinculos] = useState([]);
+  const [plan, setPlan] = useState(null);          // fechas + holguras + camino crítico
+  const [errorPlan, setErrorPlan] = useState('');
+  const [modoVincular, setModoVincular] = useState(false);
+  const [predSel, setPredSel] = useState(null);    // tarea elegida como predecesora
+  const [verCritico, setVerCritico] = useState(true);
+  const [arrastre, setArrastre] = useState(null);   // {id, dx} mientras se arrastra
   const scrollRef = useRef(null);
 
   const showToast = msg => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+
+  const PX_DIA = 28;
+  const ROW_H = 40;
+  const LABEL_W = 260;
 
   useEffect(() => { cargar(); }, [id]);
 
   const cargar = async () => {
     setLoading(true);
     try {
-      const [pRes, tRes, cRes] = await Promise.all([
+      const [pRes, tRes, cRes, vRes, planRes] = await Promise.all([
         api.get(`/presupuestos/${id}`).then(r => r.data),
         api.get(`/presupuestos/${id}/gantt/tareas`).then(r => ({data: r.data})),
         api.get(`/presupuestos/${id}/gantt/config`).catch(() => ({data: {}})),
+        api.get(`/presupuestos/${id}/gantt/vinculos`).catch(() => ({data: []})),
+        api.get(`/presupuestos/${id}/gantt/plan`).catch(e => ({data: null, err: e})),
       ]);
       setPresupuesto(pRes);
       // Extraer lineas desde rubros
@@ -58,8 +72,136 @@ export default function Gantt() {
       setLineas(todasLineas);
       setTareas(Array.isArray(tRes.data) ? tRes.data : []);
       if (cRes.data && Object.keys(cRes.data).length) setConfig(c => ({...c, ...cRes.data}));
+      setVinculos(Array.isArray(vRes.data) ? vRes.data : []);
+      setPlan(planRes.data || null);
+      setErrorPlan(planRes.data ? '' : (planRes.err?.response?.data?.detail || ''));
     } catch (e) { console.error(e); }
     setLoading(false);
+  };
+
+  // Recalcula el plan (fechas, holguras, camino crítico) sin recargar todo
+  const refrescarPlan = async () => {
+    try {
+      const r = await api.get(`/presupuestos/${id}/gantt/plan`);
+      setPlan(r.data); setErrorPlan('');
+    } catch (e) {
+      setPlan(null);
+      setErrorPlan(e.response?.data?.detail || 'No se pudo calcular la planificación.');
+    }
+  };
+
+  const crearVinculo = async (predId, sucId) => {
+    try {
+      await api.post(`/presupuestos/${id}/gantt/vinculos`, {
+        predecesora_id: predId, sucesora_id: sucId, tipo: 'FS', lag: 0,
+      });
+      const v = await api.get(`/presupuestos/${id}/gantt/vinculos`);
+      setVinculos(v.data || []);
+      await refrescarPlan();
+      showToast('✓ Tareas vinculadas');
+    } catch (e) {
+      showToast('⚠ ' + (e.response?.data?.detail || 'No se pudo vincular'));
+    }
+  };
+
+  const borrarVinculo = async (vid) => {
+    try {
+      await api.delete(`/presupuestos/${id}/gantt/vinculos/${vid}`);
+      setVinculos(vs => vs.filter(v => v.id !== vid));
+      await refrescarPlan();
+      showToast('✓ Vínculo eliminado');
+    } catch (e) { showToast('⚠ No se pudo eliminar'); }
+  };
+
+  const cambiarVinculo = async (vid, campos) => {
+    try {
+      await api.patch(`/presupuestos/${id}/gantt/vinculos/${vid}`, campos);
+      const v = await api.get(`/presupuestos/${id}/gantt/vinculos`);
+      setVinculos(v.data || []);
+      await refrescarPlan();
+    } catch (e) { showToast('⚠ ' + (e.response?.data?.detail || 'No se pudo actualizar')); }
+  };
+
+  const encadenarTodo = async () => {
+    if (!window.confirm('Se van a reemplazar todos los vínculos actuales por una cadena en orden (cada tarea después de la anterior). ¿Seguir?')) return;
+    try {
+      await api.post(`/presupuestos/${id}/gantt/vincular-cadena`);
+      await cargar();
+      showToast('✓ Tareas encadenadas');
+    } catch (e) { showToast('⚠ ' + (e.response?.data?.detail || 'Error')); }
+  };
+
+  const aplicarPlan = async () => {
+    try {
+      await api.post(`/presupuestos/${id}/gantt/replanificar`);
+      await cargar();
+      showToast('✓ Fechas recalculadas según las dependencias');
+    } catch (e) { showToast('⚠ ' + (e.response?.data?.detail || 'Error')); }
+  };
+
+  const soltarTarea = async (tareaId) => {
+    try {
+      await api.post(`/presupuestos/${id}/gantt/soltar-tarea/${tareaId}`);
+      await cargar();
+      showToast('✓ La tarea vuelve a regirse por sus dependencias');
+    } catch (e) { showToast('⚠ Error'); }
+  };
+
+  // ── Arrastrar una barra para cambiarle la fecha ────────────────────────────
+  // Se calcula el corrimiento en días sobre la grilla y se manda al backend,
+  // que reacomoda las sucesoras.
+  const iniciarArrastre = (e, tarea) => {
+    if (modoVincular || tarea.es_resumen) return;
+    e.preventDefault(); e.stopPropagation();
+    const x0 = e.clientX;
+    const inicio0 = tarea.fecha_inicio;
+    setArrastre({ id: tarea.id, dx: 0 });
+    const mover = (ev) => setArrastre({ id: tarea.id, dx: ev.clientX - x0 });
+    const soltar = async (ev) => {
+      document.removeEventListener('mousemove', mover);
+      document.removeEventListener('mouseup', soltar);
+      setArrastre(null);
+      const dias = Math.round((ev.clientX - x0) / PX_DIA);
+      if (!dias) return;
+      const nueva = addDias(inicio0, dias);
+      try {
+        const r = await api.post(`/presupuestos/${id}/gantt/mover`, { tarea_id: tarea.id, fecha_inicio: nueva });
+        setPlan(r.data); setErrorPlan('');
+        const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
+        setTareas(t.data || []);
+        showToast('✓ Tarea movida — las siguientes se reacomodaron');
+      } catch (err) {
+        showToast('⚠ ' + (err.response?.data?.detail || 'No se pudo mover'));
+      }
+    };
+    document.addEventListener('mousemove', mover);
+    document.addEventListener('mouseup', soltar);
+  };
+
+  const cambiarCuadrilla = async (tareaId, personas) => {
+    try {
+      const r = await api.patch(`/presupuestos/${id}/gantt/tareas/${tareaId}/cuadrilla`, { personas });
+      setPlan(r.data); setErrorPlan('');
+      const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
+      setTareas(t.data || []);
+    } catch (e) { showToast('⚠ ' + (e.response?.data?.detail || 'Error')); }
+  };
+
+  const cargarHoras = async () => {
+    try {
+      const r = await api.post(`/presupuestos/${id}/gantt/cargar-horas`);
+      await cargar();
+      const { actualizadas = 0, sin_analisis = 0 } = r.data || {};
+      showToast(`✓ ${actualizadas} tarea(s) con horas del análisis` + (sin_analisis ? ` · ${sin_analisis} sin datos` : ''));
+    } catch (e) { showToast('⚠ ' + (e.response?.data?.detail || 'Error')); }
+  };
+
+  // Vincular con dos clicks: primero la predecesora, después la sucesora.
+  const clickVincular = (t) => {
+    if (!predSel) { setPredSel(t); showToast('Ahora tocá la tarea que va DESPUÉS'); return; }
+    if (predSel.id === t.id) { setPredSel(null); return; }
+    crearVinculo(predSel.id, t.id);
+    setPredSel(null);
   };
 
   const guardarConfig = async (cfg) => {
@@ -126,12 +268,34 @@ export default function Gantt() {
   // ── CÁLCULOS DEL GANTT ──
   if (loading) return <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontFamily: 'var(--sans)' }}>Cargando...</div>;
 
-  const fechaMin = tareas.reduce((a, t) => t.fecha_inicio < a ? t.fecha_inicio : a, tareas[0]?.fecha_inicio || config.fecha_inicio_obra);
-  const fechaMax = tareas.reduce((a, t) => t.fecha_fin > a ? t.fecha_fin : a, addDias(fechaMin, 30));
+  // El plan del backend manda: trae las fechas que salen de las dependencias,
+  // más holgura y camino crítico. Si falla (p.ej. dependencia circular), caemos
+  // a las fechas guardadas para que el Gantt siga siendo usable.
+  const planPorId = {};
+  (plan?.tareas || []).forEach(x => { planPorId[x.id] = x; });
+  const filas = tareas.map(t => {
+    const p = planPorId[t.id];
+    return {
+      ...t,
+      fecha_inicio: p?.inicio || t.fecha_inicio,
+      fecha_fin: p?.fin || addDias(t.fecha_inicio, (t.duracion_dias || 1) - 1),
+      critica: !!p?.critica,
+      holgura: p?.holgura ?? null,
+      es_hito: p?.es_hito || (t.duracion_dias || 1) === 0,
+      es_resumen: !!p?.es_resumen,
+      padre_id: p?.padre_id ?? t.padre_id ?? null,
+      personas: p?.personas ?? t.personas ?? 1,
+      horas_totales: p?.horas_totales ?? t.horas_totales ?? 0,
+      dur_calc: p?.duracion ?? t.duracion_dias,
+    };
+  });
+  const porId = {};
+  filas.forEach((f, i) => { porId[f.id] = { ...f, fila: i }; });
+
+  const fechaMin = filas.reduce((a, t) => t.fecha_inicio < a ? t.fecha_inicio : a, filas[0]?.fecha_inicio || config.fecha_inicio_obra);
+  const fechaMax = filas.reduce((a, t) => t.fecha_fin > a ? t.fecha_fin : a, addDias(fechaMin, 30));
   const totalDias = Math.max(30, diasEntre(fechaMin, fechaMax) + 7);
-  const PX_DIA = 28;
-  const ROW_H = 40;
-  const LABEL_W = 260;
+
 
   // Generar cabecera de fechas
   const diasHeader = [];
@@ -159,6 +323,31 @@ export default function Gantt() {
           <div className="header-actions-desktop" style={{ gap: 8 }}>
             <button className="btn btn-secondary btn-sm" onClick={enviarAlPlanner} style={{ display:'flex', alignItems:'center', gap:4 }}><Calendar size={12} strokeWidth={1.5} /> Planner</button>
             <button className="btn btn-secondary btn-sm" onClick={() => setEditando({})}>+ Tarea</button>
+            {tareas.length > 1 && (
+              <button className={`btn btn-sm ${modoVincular ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => { setModoVincular(m => !m); setPredSel(null); }}
+                title="Vincular dos tareas: tocá primero la que va antes y después la que va después">
+                🔗 {modoVincular ? (predSel ? 'Elegí la de después…' : 'Elegí la primera…') : 'Vincular'}
+              </button>
+            )}
+            {tareas.length > 1 && (
+              <button className="btn btn-secondary btn-sm" onClick={cargarHoras}
+                title="Trae las horas de mano de obra desde el análisis de costos para calcular la duración por cuadrilla">⏱ Horas</button>
+            )}
+            {tareas.length > 1 && (
+              <button className="btn btn-secondary btn-sm" onClick={encadenarTodo}
+                title="Encadena todas las tareas en orden (cada una después de la anterior)">⛓ Encadenar</button>
+            )}
+            {vinculos.length > 0 && (
+              <button className="btn btn-secondary btn-sm" onClick={aplicarPlan}
+                title="Recalcula y guarda las fechas según las dependencias">↻ Recalcular</button>
+            )}
+            {vinculos.length > 0 && (
+              <button className={`btn btn-sm ${verCritico ? 'btn-warn' : 'btn-secondary'}`}
+                onClick={() => setVerCritico(v => !v)} title="Resaltar el camino crítico">
+                ▲ Crítico
+              </button>
+            )}
             {tareas.length === 0 && (
               <button className="btn btn-primary btn-sm" onClick={generarDesdePresupuesto} disabled={generando}>
                 {generando ? 'Generando...' : '⚡ Generar'}
@@ -184,6 +373,25 @@ export default function Gantt() {
           ]} />
         </div>
       </div>
+
+      {/* Aviso si la planificación no cierra (p. ej. dependencia circular) */}
+      {errorPlan && (
+        <div style={{ background: 'rgba(248,113,113,.12)', borderBottom: '1px solid rgba(248,113,113,.35)', padding: '8px 20px', fontSize: 12, color: '#f87171', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>⚠ {errorPlan}</span>
+          <span style={{ color: 'var(--muted)' }}>— mientras tanto se muestran las fechas guardadas.</span>
+        </div>
+      )}
+
+      {/* Resumen del plan */}
+      {plan && vinculos.length > 0 && (
+        <div style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border)', padding: '7px 20px', display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 11, alignItems: 'center' }}>
+          <span style={{ color: 'var(--muted)' }}>Inicio <b style={{ color: 'var(--text)' }}>{fmtFechaLarga(plan.inicio)}</b></span>
+          <span style={{ color: 'var(--muted)' }}>Fin <b style={{ color: 'var(--text)' }}>{fmtFechaLarga(plan.fin)}</b></span>
+          <span style={{ color: 'var(--muted)' }}>Duración <b style={{ color: 'var(--text)' }}>{plan.duracion_dias} días hábiles</b></span>
+          <span style={{ color: '#f87171' }}>▲ {plan.criticas?.length || 0} tarea(s) en camino crítico</span>
+          <span style={{ color: 'var(--muted)' }}>🔗 {vinculos.length} vínculo(s)</span>
+        </div>
+      )}
 
       {/* CONFIG BAR */}
       <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -225,15 +433,33 @@ export default function Gantt() {
             <div style={{ height: 50, borderBottom: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
               Tarea
             </div>
-            {tareas.map(t => (
+            {filas.map(t => (
               <div key={t.id} style={{ height: ROW_H, borderBottom: '1px solid var(--border2)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, cursor: 'pointer' }}
                 onClick={() => setEditando(t)}>
-                <div style={{ width: 10, height: 10, borderRadius: 2, background: t.color, flexShrink: 0 }} />
-                <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.nombre}</div>
-                  {t.rubro && <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.rubro}</div>}
+                {t.padre_id && <span style={{ width: 12, flexShrink: 0 }} />}
+                <div style={{ width: 10, height: 10, borderRadius: t.es_resumen ? 0 : 2, background: t.critica && verCritico ? '#f87171' : t.color, flexShrink: 0 }} />
+                <div style={{ flex: 1, overflow: 'hidden' }} onClick={() => modoVincular ? clickVincular(t) : setEditando(t)}>
+                  <div style={{ fontSize: 12, fontWeight: t.es_resumen ? 800 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textTransform: t.es_resumen ? 'uppercase' : 'none', letterSpacing: t.es_resumen ? 0.4 : 0 }}>
+                    {t.nombre}
+                    {t.no_antes_de && <span title={'Fijada al ' + fmtFecha(t.no_antes_de)} style={{ marginLeft: 4, fontSize: 9 }}>📌</span>}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {t.horas_totales > 0
+                      ? `${Math.round(t.horas_totales)} h${t.holgura ? ` · holgura ${t.holgura}d` : ''}`
+                      : (t.rubro || (t.holgura ? `holgura ${t.holgura}d` : ''))}
+                  </div>
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0 }}>{t.duracion_dias}d</div>
+                {/* Cuadrilla: cuántas personas trabajan. Cambia la duración. */}
+                {!t.es_resumen && t.horas_totales > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }} title="Personas trabajando en esta tarea">
+                    <button onClick={e => { e.stopPropagation(); cambiarCuadrilla(t.id, Math.max(1, (t.personas || 1) - 1)); }}
+                      style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--muted)', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1, padding: 0 }}>−</button>
+                    <span style={{ fontSize: 10, fontFamily: 'var(--mono)', minWidth: 14, textAlign: 'center' }}>👷{t.personas || 1}</span>
+                    <button onClick={e => { e.stopPropagation(); cambiarCuadrilla(t.id, (t.personas || 1) + 1); }}
+                      style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--muted)', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1, padding: 0 }}>+</button>
+                  </div>
+                )}
+                <div style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0, minWidth: 22, textAlign: 'right' }}>{t.dur_calc ?? t.duracion_dias}d</div>
               </div>
             ))}
           </div>
@@ -258,7 +484,7 @@ export default function Gantt() {
               </div>
 
               {/* Filas */}
-              {tareas.map(t => {
+              {filas.map(t => {
                 const offsetDias = diasEntre(fechaMin, t.fecha_inicio || fechaMin);
                 const anchoDias = t.duracion_dias || 1;
                 const left = offsetDias * PX_DIA;
@@ -274,8 +500,23 @@ export default function Gantt() {
                       return <div key={dia} style={{ width: PX_DIA, height: '100%', flexShrink: 0, background: esHoyDia ? 'rgba(110,231,183,.04)' : esDomingo ? 'rgba(74,74,88,.15)' : 'transparent', borderLeft: d.getDay() === 1 ? '1px solid #3a3a4844' : '1px solid transparent' }} />;
                     })}
                     {/* Barra de tarea */}
-                    <div style={{ position: 'absolute', left, top: 6, width, height: ROW_H - 12, borderRadius: 6, background: t.color + '33', border: `1px solid ${t.color}66`, cursor: 'pointer', overflow: 'hidden' }}
-                      onClick={() => setEditando(t)}>
+                    {t.es_hito ? (
+                      // Hito: rombo, no ocupa tiempo
+                      <div title={`${t.nombre} — hito ${fmtFechaLarga(t.fecha_inicio)}`}
+                        onClick={() => modoVincular ? clickVincular(t) : setEditando(t)}
+                        style={{ position: 'absolute', left: left + PX_DIA / 2 - 8, top: ROW_H / 2 - 8, width: 16, height: 16,
+                          background: t.critica && verCritico ? '#f87171' : t.color, transform: 'rotate(45deg)',
+                          cursor: 'pointer', zIndex: 4, border: predSel?.id === t.id ? '2px solid #fff' : 'none' }} />
+                    ) : (
+                    <div title={`${t.nombre}\n${fmtFechaLarga(t.fecha_inicio)} → ${fmtFechaLarga(t.fecha_fin)}${t.holgura != null ? `\nHolgura: ${t.holgura} día(s)` : ''}${t.critica ? '\n⚠ Camino crítico' : ''}${t.no_antes_de ? `\n📌 Fijada al ${fmtFecha(t.no_antes_de)}` : ''}`}
+                      style={{ position: 'absolute', left, top: 6, width, height: ROW_H - 12, borderRadius: 6,
+                        background: (t.critica && verCritico ? '#f87171' : t.color) + '33',
+                        border: predSel?.id === t.id ? '2px solid #fff'
+                              : `1px solid ${(t.critica && verCritico ? '#f87171' : t.color)}${t.critica && verCritico ? 'cc' : '66'}`,
+                        cursor: 'pointer', overflow: 'hidden', zIndex: 4,
+                        boxShadow: modoVincular ? '0 0 0 1px rgba(255,255,255,.15)' : 'none' }}
+                      onMouseDown={e => iniciarArrastre(e, t)}
+                      onClick={() => modoVincular ? clickVincular(t) : setEditando(t)}>
                       {/* Progreso */}
                       <div style={{ width: `${pct}%`, height: '100%', background: t.color + '55', transition: 'width .3s' }} />
                       {/* Label */}
@@ -286,9 +527,58 @@ export default function Gantt() {
                         </span>
                       </div>
                     </div>
+                    )}
                   </div>
                 );
               })}
+
+              {/* Flechas de dependencia — se dibujan encima de las barras */}
+              <svg style={{ position: 'absolute', left: 0, top: 50, width: totalDias * PX_DIA, height: filas.length * ROW_H, pointerEvents: 'none', zIndex: 6, overflow: 'visible' }}>
+                <defs>
+                  <marker id="flecha" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+                    <polygon points="0 0, 7 3.5, 0 7" fill="var(--muted)" />
+                  </marker>
+                  <marker id="flechaCrit" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+                    <polygon points="0 0, 7 3.5, 0 7" fill="#f87171" />
+                  </marker>
+                </defs>
+                {vinculos.map(v => {
+                  const a = porId[v.predecesora_id], b = porId[v.sucesora_id];
+                  if (!a || !b) return null;
+                  const critico = verCritico && a.critica && b.critica;
+                  const col = critico ? '#f87171' : 'var(--muted)';
+                  // Punto de salida y de llegada según el tipo de vínculo
+                  const finA = (diasEntre(fechaMin, a.fecha_fin) + 1) * PX_DIA;
+                  const iniA = diasEntre(fechaMin, a.fecha_inicio) * PX_DIA;
+                  const finB = (diasEntre(fechaMin, b.fecha_fin) + 1) * PX_DIA;
+                  const iniB = diasEntre(fechaMin, b.fecha_inicio) * PX_DIA;
+                  const x1 = (v.tipo === 'SS' || v.tipo === 'SF') ? iniA : finA;
+                  const x2 = (v.tipo === 'FF' || v.tipo === 'SF') ? finB : iniB;
+                  const y1 = a.fila * ROW_H + ROW_H / 2;
+                  const y2 = b.fila * ROW_H + ROW_H / 2;
+                  // Ruta en L: sale, baja y entra. El codo se separa un poco para
+                  // que dos flechas a la misma tarea no se pisen.
+                  const sale = x1 + 10;
+                  const entra = x2 - 10;
+                  const codo = Math.max(sale, entra);
+                  const d = `M ${x1} ${y1} H ${codo} V ${y2} H ${x2}`;
+                  return (
+                    <g key={v.id}>
+                      <path d={d} fill="none" stroke={col} strokeWidth={critico ? 2 : 1.4}
+                        strokeDasharray={v.tipo === 'FS' ? '' : '4 3'}
+                        markerEnd={`url(#${critico ? 'flechaCrit' : 'flecha'})`} opacity={critico ? 0.95 : 0.55} />
+                      {v.tipo !== 'FS' && (
+                        <text x={codo + 3} y={(y1 + y2) / 2} fontSize="9" fill={col} opacity="0.9">{v.tipo}</text>
+                      )}
+                      {v.lag !== 0 && (
+                        <text x={codo + 3} y={(y1 + y2) / 2 + 10} fontSize="9" fill={col} opacity="0.9">
+                          {v.lag > 0 ? `+${v.lag}d` : `${v.lag}d`}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </svg>
 
               {/* Línea de hoy */}
               {hoy >= fechaMin && hoy <= fechaMax && (
