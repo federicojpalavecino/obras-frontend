@@ -701,6 +701,15 @@ la respuesta es esa — y esa conversación en comentarios vale más que el post
 **Si un dato cambia, actualizalo acá y en `placas.html`.** Publicar un número
 viejo con seguridad es peor que no publicarlo.
 
+**⚠️ Nunca uses datos de un tenant real.** Ni nombres de obra, ni de clientes, ni
+importes de un presupuesto cargado en el sistema. Aunque parezcan inofensivos, son
+datos privados del estudio que confió en la plataforma, y publicarlos rompe esa
+confianza. Para los ejemplos usá nombres genéricos —«Vivienda unifamiliar»,
+«Cobro certificado nº 3»— e importes inventados pero verosímiles.
+
+Los **rendimientos y precios del catálogo global sí se pueden publicar**: son del
+sistema, no de un tenant. La línea es esa: catálogo sí, obras de clientes no.
+
 **Cómo se ataca a Excel sin que se ofendan.** Tu audiencia usa Excel todos los
 días y lo eligió con buen criterio. Si el mensaje es «Excel es malo», se ponen
 a la defensiva y perdés al que querías convencer. El que funciona es

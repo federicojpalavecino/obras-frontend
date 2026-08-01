@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAIM OBRAS — Reel largo: recorrido completo del sistema</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
+  align-items:flex-start;justify-content:center;flex-wrap:wrap}
+.panel{background:#fff;border-radius:15px;padding:22px 24px;width:400px;flex-shrink:0}
+.panel h1{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.panel p{font-size:13.5px;color:var(--mut);line-height:1.6;margin-bottom:13px}
+.panel code{font-family:var(--m);font-size:12px;background:var(--sup2);padding:1px 5px;border-radius:4px}
+.btn{width:100%;background:var(--ac);color:#fff;border:none;border-radius:10px;padding:14px;
+  font-family:var(--s);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:9px}
+.btn:hover{background:#047857}
+.btn.sec{background:var(--sup2);color:var(--ink)}
+.aviso{background:#fef3c7;border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
+  padding:12px 14px;font-size:12.5px;color:#78350f;line-height:1.55}
+.guion{background:var(--sup2);border-radius:9px;padding:13px 15px;font-size:12px;
+  line-height:1.55;color:var(--ink);margin-top:13px;max-height:250px;overflow-y:auto}
+.guion b{display:block;margin-bottom:7px;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mut)}
+.guion table{width:100%;border-collapse:collapse;font-size:11.5px}
+.guion td{padding:3px 0;vertical-align:top}
+.guion td:first-child{font-family:var(--m);color:var(--ac);width:52px;font-weight:600}
+.txt{background:var(--sup2);border-radius:9px;padding:13px 15px;font-size:12.5px;
+  line-height:1.6;margin-top:13px}
+.txt b{display:block;margin-bottom:6px;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mut)}
+
+.marco{background:#000;border-radius:20px;padding:10px;flex-shrink:0;
+  width:calc(1080px * .33 + 20px);height:calc(1920px * .33 + 20px)}
+#reel{width:1080px;height:1920px;position:relative;overflow:hidden;
+  transform:scale(.33);transform-origin:top left;background:var(--bg);color:var(--ink)}
+#reel::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);background-size:60px 60px}
+.esc{position:absolute;inset:0;padding:150px 82px 210px;display:flex;flex-direction:column;
+  opacity:0;z-index:2}
+.esc.on{opacity:1}
+.esc.oscura{background:var(--ink);color:var(--bg)}
+.esc.oscura::before{content:'';position:absolute;inset:0;opacity:1;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);background-size:60px 60px}
+.esc.verde{background:var(--ac);color:#fff}
+.esc.verde::before,.esc.violeta::before{content:'';position:absolute;inset:0;opacity:1;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);background-size:60px 60px}
+.esc.violeta{background:var(--ac2);color:#fff}
+
+.r-logo{font-size:30px;font-weight:800;letter-spacing:-.02em;color:var(--ac);position:relative}
+.r-logo span{color:var(--ink);font-weight:700}
+.oscura .r-logo{color:var(--ac-cl)} .oscura .r-logo span{color:var(--bg)}
+.verde .r-logo,.violeta .r-logo{color:#fff}
+.verde .r-logo span,.violeta .r-logo span{color:rgba(255,255,255,.72)}
+
+/* Numerito de capítulo: le dice al espectador que hay un recorrido */
+.cap{position:absolute;top:150px;right:82px;font-family:var(--m);font-size:26px;
+  font-weight:600;color:var(--mut);z-index:6}
+.oscura .cap{color:#8b93a5} .verde .cap,.violeta .cap{color:rgba(255,255,255,.75)}
+
+.r-et{font-family:var(--m);font-size:24px;font-weight:600;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--ac);margin-top:54px;display:flex;align-items:center;gap:16px;
+  position:relative}
+.r-et::before{content:'';width:48px;height:5px;background:var(--ac);border-radius:3px}
+.oscura .r-et{color:var(--ac-cl)} .oscura .r-et::before{background:var(--ac-cl)}
+.verde .r-et,.violeta .r-et{color:#fff}
+.verde .r-et::before,.violeta .r-et::before{background:rgba(255,255,255,.8)}
+
+.r-tit{font-size:82px;font-weight:800;line-height:1.03;letter-spacing:-.035em;
+  margin-top:24px;position:relative;text-wrap:balance}
+.r-tit.gr{font-size:96px} .r-tit.ch{font-size:62px}
+.r-tit em{font-style:normal;color:var(--ac)}
+.oscura .r-tit em{color:var(--ac-cl)} .verde .r-tit em,.violeta .r-tit em{color:rgba(255,255,255,.75)}
+.r-baj{font-size:36px;color:var(--mut);line-height:1.4;margin-top:26px;position:relative}
+.oscura .r-baj{color:#98a0b2} .verde .r-baj,.violeta .r-baj{color:rgba(255,255,255,.92)}
+.r-med{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative}
+.r-pie{padding-top:28px;border-top:5px solid var(--ink);font-size:28px;font-weight:700;position:relative}
+.oscura .r-pie{border-color:var(--ac-cl)} .verde .r-pie,.violeta .r-pie{border-color:rgba(255,255,255,.6)}
+
+/* Progreso del recorrido, abajo de todo */
+.prog{position:absolute;left:82px;right:82px;bottom:112px;height:8px;background:var(--sup2);
+  border-radius:5px;overflow:hidden;z-index:7}
+.prog i{display:block;height:100%;background:var(--ac);width:0;transition:width .4s linear}
+
+.fila{display:flex;align-items:baseline;gap:18px;padding:16px 0;border-bottom:2px solid var(--bord);
+  opacity:0;transform:translateY(10px);transition:opacity .3s,transform .3s}
+.fila.on{opacity:1;transform:none}
+.oscura .fila{border-color:#31344a} .verde .fila,.violeta .fila{border-color:rgba(255,255,255,.3)}
+.fila .q{flex:1;font-size:30px;font-weight:600;line-height:1.2}
+.fila .c{font-family:var(--m);font-size:34px;font-weight:600;color:var(--ac);white-space:nowrap}
+.oscura .fila .c{color:var(--ac-cl)} .verde .fila .c,.violeta .fila .c{color:#fff}
+.fila .u{font-family:var(--m);font-size:20px;color:var(--mut)}
+.oscura .fila .u{color:#8b93a5} .verde .fila .u,.violeta .fila .u{color:rgba(255,255,255,.75)}
+
+.tot{margin-top:26px;padding-top:22px;border-top:5px solid var(--ink)}
+.oscura .tot{border-color:var(--ac-cl)} .verde .tot,.violeta .tot{border-color:rgba(255,255,255,.6)}
+.tot .l{font-family:var(--m);font-size:23px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.oscura .tot .l{color:#8b93a5} .verde .tot .l,.violeta .tot .l{color:rgba(255,255,255,.8)}
+.tot .v{font-family:var(--m);font-size:72px;font-weight:600;color:var(--ac);margin-top:6px;
+  font-variant-numeric:tabular-nums}
+.oscura .tot .v{color:var(--ac-cl)} .verde .tot .v,.violeta .tot .v{color:#fff}
+
+/* Gantt */
+.tarea{margin-bottom:26px}
+.tarea .nm{font-size:29px;font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between}
+.tarea .dd{font-family:var(--m);font-size:25px;color:var(--ac)}
+.oscura .tarea .dd{color:var(--ac-cl)}
+.pista{height:46px;background:var(--sup2);border-radius:9px;position:relative;overflow:hidden}
+.oscura .pista{background:rgba(255,255,255,.08)}
+.bg{position:absolute;top:0;height:100%;border-radius:9px;width:0;left:0;
+  transition:width .9s cubic-bezier(.4,0,.2,1),left .9s cubic-bezier(.4,0,.2,1)}
+.bg.crit{background:var(--red)} .bg.norm{background:var(--ac)} .bg.alt{background:var(--ac2)}
+
+/* Análisis desglosado */
+.desg{display:flex;flex-direction:column;gap:18px}
+.desg .d{display:flex;align-items:center;gap:20px;opacity:0;transform:translateX(-14px);
+  transition:opacity .3s,transform .3s}
+.desg .d.on{opacity:1;transform:none}
+.desg .d .k{font-family:var(--m);font-size:24px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--mut);width:190px}
+.oscura .desg .d .k{color:#8b93a5}
+.desg .d .bar{flex:1;height:44px;border-radius:8px;background:var(--sup2);overflow:hidden}
+.oscura .desg .d .bar{background:rgba(255,255,255,.08)}
+.desg .d .bar i{display:block;height:100%;width:0;transition:width .8s ease}
+.desg .d .vv{font-family:var(--m);font-size:28px;font-weight:600;width:230px;text-align:right}
+
+/* Certificado / avance */
+.cert{margin-bottom:24px;opacity:0;transition:opacity .3s}
+.cert.on{opacity:1}
+.cert .t{display:flex;justify-content:space-between;font-size:28px;font-weight:600;margin-bottom:9px}
+.cert .p{height:36px;background:var(--sup2);border-radius:8px;overflow:hidden}
+.oscura .cert .p{background:rgba(255,255,255,.09)}
+.cert .p i{display:block;height:100%;background:var(--ac);width:0;transition:width .9s ease}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.mini{background:var(--sup2);border-radius:16px;padding:26px;opacity:0;transform:scale(.95);
+  transition:opacity .3s,transform .3s}
+.mini.on{opacity:1;transform:none}
+.oscura .mini{background:rgba(255,255,255,.08)}
+.verde .mini,.violeta .mini{background:rgba(255,255,255,.16)}
+.mini .e{font-size:52px;margin-bottom:12px}
+.mini .t{font-size:29px;font-weight:700;line-height:1.2;margin-bottom:7px}
+.mini .d{font-size:23px;color:var(--mut);line-height:1.35}
+.oscura .mini .d{color:#98a0b2} .verde .mini .d,.violeta .mini .d{color:rgba(255,255,255,.88)}
+
+.safe{position:absolute;left:0;right:0;height:250px;z-index:9;pointer-events:none;
+  border:2px dashed rgba(239,68,68,.4);background:rgba(239,68,68,.05)}
+.safe.t{top:0} .safe.b{bottom:0} .safe.off{display:none}
+@media (prefers-reduced-motion:reduce){ .fila,.mini,.desg .d{transition:none} }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <h1>Reel largo — recorrido completo</h1>
+  <p><b>75 segundos</b> a 1080×1920. Es el reel «de fondo»: el que alguien mira entero
+     cuando ya está interesado, y el que fijás en el perfil.</p>
+  <button class="btn" onclick="play()">▶ Reproducir</button>
+  <button class="btn sec" onclick="toggleSafe()">Mostrar / ocultar zonas seguras</button>
+  <div class="aviso"><b>Ojo:</b> todos los datos son de ejemplo, inventados. Nunca uses
+    nombres de obra ni importes de un cliente real del sistema.</div>
+  <div class="guion"><b>Guion</b>
+    <table>
+      <tr><td>0:00</td><td>Gancho: todo lo que hace falta para una obra</td></tr>
+      <tr><td>0:06</td><td>1 · Presupuesto — se cargan ítems, sube el total</td></tr>
+      <tr><td>0:18</td><td>2 · Análisis de costos — el desglose de un m²</td></tr>
+      <tr><td>0:28</td><td>3 · Cómputo — medís y se calcula solo</td></tr>
+      <tr><td>0:35</td><td>4 · Planificación — Gantt y camino crítico</td></tr>
+      <tr><td>0:46</td><td>5 · Certificados — el avance del mes</td></tr>
+      <tr><td>0:54</td><td>6 · Control financiero — si la obra deja</td></tr>
+      <tr><td>1:01</td><td>7 · Portal del cliente y celular</td></tr>
+      <tr><td>1:08</td><td>Cierre — todo del mismo dato</td></tr>
+    </table>
+  </div>
+  <div class="txt"><b>Texto del posteo</b>
+    Un recorrido completo por el sistema, en un minuto y cuarto.<br><br>
+    Presupuesto, análisis de costos, cómputo, planificación, certificados,
+    control financiero y portal de clientes. Todo sale del mismo dato: lo cargás
+    una vez y te sirve para toda la obra.<br><br>
+    Los datos del video son de ejemplo.<br><br>
+    👉 ¿Querés verlo con una obra tuya? Escribinos y coordinamos 30 minutos.
+  </div>
+</div>
+
+<div class="marco">
+<div id="reel">
+  <div class="safe t" id="s1"></div>
+  <div class="safe b" id="s2"></div>
+  <div class="prog"><i id="prog"></i></div>
+
+  <!-- 0:00 · gancho -->
+  <div class="esc oscura" id="e1">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit gr" style="margin-top:64px">Todo lo que una obra necesita,<br>en <em>un solo lugar</em></div>
+    <div class="r-med"><div class="r-baj">Del presupuesto a la cobranza. Recorrido completo.</div></div>
+    <div class="r-pie">Quedate hasta el final 👇</div>
+  </div>
+
+  <!-- 0:06 · presupuesto -->
+  <div class="esc" id="e2">
+    <div class="cap">1 / 7</div>
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-et">Presupuesto</div>
+    <div class="r-tit ch">Elegís del <em>catálogo</em></div>
+    <div class="r-med">
+      <div id="items">
+        <div class="fila" id="p1"><div class="q">Mampostería 0,18</div><div><span class="c">$ 2.393.000</span></div></div>
+        <div class="fila" id="p2"><div class="q">Contrapiso</div><div><span class="c">$ 942.000</span></div></div>
+        <div class="fila" id="p3"><div class="q">Revoque fino</div><div><span class="c">$ 1.580.000</span></div></div>
+        <div class="fila" id="p4"><div class="q">Carpeta</div><div><span class="c">$ 1.074.000</span></div></div>
+        <div class="fila" id="p5"><div class="q">Piso cerámico</div><div><span class="c">$ 1.656.000</span></div></div>
+      </div>
+      <div class="tot"><div class="l">Costo directo</div><div class="v" id="totP">$ 0</div></div>
+    </div>
+    <div class="r-pie">436 ítems, cada uno con su análisis armado</div>
+  </div>
+
+  <!-- 0:18 · análisis de costos -->
+  <div class="esc violeta" id="e3">
+    <div class="cap">2 / 7</div>
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-et">Análisis de costos</div>
+    <div class="r-tit ch">Cada ítem, <em>desglosado</em></div>
+    <div class="r-med">
+      <div class="r-baj" style="margin-top:0;margin-bottom:34px">1 m² de pared de ladrillo hueco 0,18</div>
+      <div class="desg">
+        <div class="d" id="d1"><div class="k" style="color:rgba(255,255,255,.8)">Materiales</div>
+          <div class="bar"><i style="background:#fff" id="b1"></i></div><div class="vv">$ 8.640</div></div>
+        <div class="d" id="d2"><div class="k" style="color:rgba(255,255,255,.8)">Mano de obra</div>
+          <div class="bar"><i style="background:#fff" id="b2"></i></div><div class="vv">$ 15.290</div></div>
+        <div class="d" id="d3"><div class="k" style="color:rgba(255,255,255,.8)">Equipos</div>
+          <div class="bar"><i style="background:#fff" id="b3"></i></div><div class="vv">$ 0</div></div>
+      </div>
+      <div class="tot"><div class="l">Costo por m²</div><div class="v">$ 23.930</div></div>
+    </div>
+    <div class="r-pie">Editable por obra. Tu forma de trabajar.</div>
+  </div>
+
+  <!-- 0:28 · cómputo -->
+  <div class="esc" id="e4">
+    <div class="cap">3 / 7</div>
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-et">Cómputo</div>
+    <div class="r-tit ch">Medís y <em>se calcula solo</em></div>
+    <div class="r-med">
+      <div class="fila on"><div class="q">Frente · 12,00 × 2,80</div><div><span class="c">33,60</span> <span class="u">m²</span></div></div>
+      <div class="fila on"><div class="q">Contrafrente · 12,00 × 2,80</div><div><span class="c">33,60</span> <span class="u">m²</span></div></div>
+      <div class="fila on"><div class="q">Laterales · 8,50 × 2,80 × 2</div><div><span class="c">47,60</span> <span class="u">m²</span></div></div>
+      <div class="fila on"><div class="q">Descuento aberturas</div><div><span class="c">− 14,80</span> <span class="u">m²</span></div></div>
+      <div class="tot"><div class="l">Total a computar</div><div class="v">100,00 m²</div></div>
+    </div>
+    <div class="r-pie">m², m³ y metro lineal, sin calculadora aparte</div>
+  </div>
+
+  <!-- 0:35 · planificación -->
+  <div class="esc oscura" id="e5">
+    <div class="cap">4 / 7</div>
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-et">Planificación</div>
+    <div class="r-tit ch">El plazo <em>sale solo</em></div>
+    <div class="r-med">
+      <div class="tarea"><div class="nm"><span>Mampostería</span><span class="dd" id="g1d">13 días</span></div>
+        <div class="pista"><div class="bg crit" id="g1"></div></div></div>
+      <div class="tarea"><div class="nm"><span>Revoque</span><span class="dd">7 días</span></div>
+        <div class="pista"><div class="bg crit" id="g2"></div></div></div>
+      <div class="tarea"><div class="nm"><span>Instalaciones</span><span class="dd">5 días</span></div>
+        <div class="pista"><div class="bg alt" id="g3"></div></div></div>
+      <div class="tarea"><div class="nm"><span>Pisos</span><span class="dd">6 días</span></div>
+        <div class="pista"><div class="bg crit" id="g4"></div></div></div>
+      <div class="r-baj" style="font-size:31px" id="ganttTxt">En rojo, el camino crítico: lo que no se puede atrasar.</div>
+    </div>
+    <div class="r-pie">Con las horas de tu análisis y la gente que pongas</div>
+  </div>
+
+  <!-- 0:46 · certificados -->
+  <div class="esc" id="e6">
+    <div class="cap">5 / 7</div>
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-et">Certificados</div>
+    <div class="r-tit ch">El avance del mes,<br>sin <em>recargar nada</em></div>
+    <div class="r-med">
+      <div class="cert" id="c1"><div class="t"><span>Mampostería</span><span>100%</span></div>
+        <div class="p"><i id="cp1"></i></div></div>
+      <div class="cert" id="c2"><div class="t"><span>Revoque</span><span>60%</span></div>
+        <div class="p"><i id="cp2"></i></div></div>
+      <div class="cert" id="c3"><div class="t"><span>Instalaciones</span><span>25%</span></div>
+        <div class="p"><i id="cp3"></i></div></div>
+      <div class="tot"><div class="l">Certificado del mes</div><div class="v">$ 4.180.000</div></div>
+    </div>
+    <div class="r-pie">Sale del presupuesto, con sus egresos</div>
+  </div>
+
+  <!-- 0:54 · control financiero -->
+  <div class="esc verde" id="e7">
+    <div class="cap">6 / 7</div>
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-et">Control financiero</div>
+    <div class="r-tit ch">¿La obra <em>deja</em>?</div>
+    <div class="r-med">
+      <div class="fila on"><div class="q">Cobrado</div><div><span class="c">$ 11.600.000</span></div></div>
+      <div class="fila on"><div class="q">Materiales y subcontratos</div><div><span class="c">$ 5.140.000</span></div></div>
+      <div class="fila on"><div class="q">Personal</div><div><span class="c">$ 3.980.000</span></div></div>
+      <div class="tot"><div class="l">Resultado</div><div class="v">$ 2.480.000</div></div>
+    </div>
+    <div class="r-pie">Por semana, quincena o mes</div>
+  </div>
+
+  <!-- 1:01 · portal y móvil -->
+  <div class="esc" id="e8">
+    <div class="cap">7 / 7</div>
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-et">Cliente y movilidad</div>
+    <div class="r-tit ch">Tu cliente mira.<br>Vos <em>desde donde estés</em>.</div>
+    <div class="r-med">
+      <div class="grid2">
+        <div class="mini" id="m1"><div class="e">👥</div><div class="t">Portal del cliente</div>
+          <div class="d">Ve avance, contrato y cuenta corriente. Vos elegís qué.</div></div>
+        <div class="mini" id="m2"><div class="e">📱</div><div class="t">Celular y tablet</div>
+          <div class="d">Cotizás en la obra, sin volver al escritorio.</div></div>
+        <div class="mini" id="m3"><div class="e">🖨️</div><div class="t">Impresión propia</div>
+          <div class="d">Con tu logo y tus colores. Cliente o interna.</div></div>
+        <div class="mini" id="m4"><div class="e">➕</div><div class="t">Adicionales</div>
+          <div class="d">Vinculados al presupuesto base, con sus coeficientes.</div></div>
+      </div>
+    </div>
+    <div class="r-pie">Sin instalar nada</div>
+  </div>
+
+  <!-- 1:08 · cierre -->
+  <div class="esc oscura" id="e9">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit gr" style="margin-top:60px">Lo cargás <em>una vez</em>.<br>Te sirve toda la obra.</div>
+    <div class="r-med"><div class="r-baj" style="font-size:40px">
+      Traé un presupuesto tuyo y lo vemos juntos en 30 minutos.</div></div>
+    <div class="r-pie">faimobras.com/presentacion<br>WhatsApp +54 9 3482 30-5155</div>
+  </div>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const ESC = ['e1','e2','e3','e4','e5','e6','e7','e8','e9'];
+// Presupuesto de ejemplo: 2.393.000 + 942.000 + 1.580.000 + 1.074.000 + 1.656.000
+const ITEMS = [2393000, 942000, 1580000, 1074000, 1656000];
+const DURACION = 75000;
+const fmt = n => '$ ' + Math.round(n).toLocaleString('es-AR');
+let timers = [], raf = null, rafP = null;
+
+function limpiar(){
+  timers.forEach(clearTimeout); timers = [];
+  if (raf) cancelAnimationFrame(raf);
+  if (rafP) cancelAnimationFrame(rafP);
+  ESC.forEach(e => $(e).classList.remove('on'));
+  [1,2,3,4,5].forEach(i => $('p'+i).classList.remove('on'));
+  [1,2,3].forEach(i => { $('d'+i).classList.remove('on'); $('b'+i).style.width='0';
+                         $('c'+i).classList.remove('on'); $('cp'+i).style.width='0'; });
+  [1,2,3,4].forEach(i => { $('g'+i).style.width='0'; $('g'+i).style.left='0';
+                           $('m'+i).classList.remove('on'); });
+  $('totP').textContent = '$ 0';
+  $('prog').style.width = '0';
+  $('ganttTxt').textContent = 'En rojo, el camino crítico: lo que no se puede atrasar.';
+}
+const t = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+function subir(el, desde, hasta, ms){
+  const t0 = performance.now();
+  const paso = () => {
+    const p = Math.min(1, (performance.now() - t0) / ms);
+    $(el).textContent = fmt(desde + (hasta - desde) * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) raf = requestAnimationFrame(paso);
+  };
+  raf = requestAnimationFrame(paso);
+}
+
+function play(){
+  limpiar();
+  const ver = e => { ESC.forEach(x => $(x).classList.remove('on')); $(e).classList.add('on'); };
+
+  // Barra de progreso del recorrido completo
+  const t0 = performance.now();
+  const avanzar = () => {
+    const p = Math.min(1, (performance.now() - t0) / DURACION);
+    $('prog').style.width = (p * 100) + '%';
+    if (p < 1) rafP = requestAnimationFrame(avanzar);
+  };
+  rafP = requestAnimationFrame(avanzar);
+
+  ver('e1');
+
+  // ── 1 · Presupuesto ──
+  t(6000, () => ver('e2'));
+  let acum = 0;
+  [6600, 7700, 8800, 9900, 11000].forEach((ms, k) => {
+    t(ms, () => { $('p'+(k+1)).classList.add('on');
+                  const a = acum; acum += ITEMS[k]; subir('totP', a, acum, 700); });
+  });
+
+  // ── 2 · Análisis ──
+  t(18000, () => ver('e3'));
+  t(18600, () => { $('d1').classList.add('on'); $('b1').style.width = '36%'; });
+  t(19400, () => { $('d2').classList.add('on'); $('b2').style.width = '64%'; });
+  t(20200, () => { $('d3').classList.add('on'); $('b3').style.width = '2%'; });
+
+  // ── 3 · Cómputo ──
+  t(28000, () => ver('e4'));
+
+  // ── 4 · Planificación ──
+  t(35000, () => ver('e5'));
+  t(35600, () => { $('g1').style.width = '34%'; });
+  t(36400, () => { $('g2').style.left = '34%'; $('g2').style.width = '18%'; });
+  t(37200, () => { $('g3').style.left = '34%'; $('g3').style.width = '13%'; });
+  t(38000, () => { $('g4').style.left = '52%'; $('g4').style.width = '16%'; });
+  // Se suma gente y el crítico se acorta: muestra que el plazo es calculado
+  t(41000, () => {
+    $('g1').style.width = '22%'; $('g1d').textContent = '8 días';
+    $('g2').style.left = '22%'; $('g3').style.left = '22%';
+    $('g4').style.left = '40%';
+    $('ganttTxt').textContent = 'Sumás gente y todo se reacomoda solo.';
+  });
+
+  // ── 5 · Certificados ──
+  t(46000, () => ver('e6'));
+  t(46500, () => { $('c1').classList.add('on'); $('cp1').style.width = '100%'; });
+  t(47300, () => { $('c2').classList.add('on'); $('cp2').style.width = '60%'; });
+  t(48100, () => { $('c3').classList.add('on'); $('cp3').style.width = '25%'; });
+
+  // ── 6 · Control financiero ──
+  t(54000, () => ver('e7'));
+
+  // ── 7 · Portal y móvil ──
+  t(61000, () => ver('e8'));
+  [61400, 61800, 62200, 62600].forEach((ms, k) => t(ms, () => $('m'+(k+1)).classList.add('on')));
+
+  // ── Cierre ──
+  t(68000, () => ver('e9'));
+  t(75000, () => {});
+}
+function toggleSafe(){ ['s1','s2'].forEach(s => $(s).classList.toggle('off')); }
+</script>
+</body>
+</html>
