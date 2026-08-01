@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAIM OBRAS — Carrusel · Rendimientos de obra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--red:#ef4444;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e6e8ea;font-family:var(--s);padding:26px 18px 80px}
+.barra{position:sticky;top:0;z-index:60;background:#fff;border:1px solid var(--bord);
+  border-radius:14px;padding:17px 22px;margin:0 auto 26px;max-width:1150px;box-shadow:0 3px 14px rgba(0,0,0,.08)}
+.barra h1{font-size:19px;font-weight:800;letter-spacing:-.02em;margin-bottom:5px}
+.barra p{font-size:13.5px;color:var(--mut);line-height:1.55}
+.barra code{font-family:var(--m);font-size:12.5px;background:var(--sup2);padding:1px 6px;border-radius:4px}
+.lista{max-width:1150px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+.bloque{background:#fff;border:1px solid var(--bord);border-radius:16px;overflow:hidden}
+.meta{padding:11px 19px;border-bottom:1px solid var(--bord);background:var(--sup2);
+  display:flex;align-items:center;gap:12px}
+.meta .n{font-family:var(--m);font-size:12px;font-weight:600;color:var(--ac)}
+.meta .t{font-weight:700;font-size:14px;flex:1}
+.meta .r{font-size:11.5px;color:var(--mut)}
+.esc{padding:20px;display:flex;justify-content:center;background:#eef0f2}
+
+/* ══ LÁMINA 1080×1080 ═════════════════════════════════════════════════════ */
+.l{width:1080px;height:1080px;flex-shrink:0;position:relative;overflow:hidden;
+  transform:scale(.44);transform-origin:top center;margin-bottom:-605px;
+  background:var(--bg);color:var(--ink);display:flex;flex-direction:column;padding:76px 76px 68px}
+.l::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);background-size:54px 54px}
+.l.osc{background:var(--ink);color:var(--bg)}
+.l.osc::before{background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);opacity:1}
+.l.ver{background:var(--ac);color:#fff}
+.l.ver::before{background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);opacity:1}
+.l>*{position:relative;z-index:1}
+
+.cab{display:flex;justify-content:space-between;align-items:center;padding-bottom:24px;border-bottom:5px solid var(--ink)}
+.osc .cab{border-color:var(--ac-cl)} .ver .cab{border-color:rgba(255,255,255,.6)}
+.logo{font-size:29px;font-weight:800;letter-spacing:-.02em;color:var(--ac)}
+.logo span{color:var(--ink);font-weight:700}
+.osc .logo{color:var(--ac-cl)} .osc .logo span{color:var(--bg)}
+.ver .logo{color:#fff} .ver .logo span{color:rgba(255,255,255,.75)}
+/* Contador de láminas: le dice al lector cuánto falta, y eso sostiene el swipe */
+.cont{font-family:var(--m);font-size:19px;font-weight:600;letter-spacing:.12em;color:var(--mut)}
+.osc .cont{color:#8b93a5} .ver .cont{color:rgba(255,255,255,.8)}
+
+.tit{font-size:84px;font-weight:800;line-height:1.02;letter-spacing:-.035em;margin-top:42px;text-wrap:balance}
+.tit.ch{font-size:60px} .tit em{font-style:normal;color:var(--ac)}
+.osc .tit em{color:var(--ac-cl)} .ver .tit em{color:rgba(255,255,255,.72)}
+.baj{font-size:32px;color:var(--mut);line-height:1.42;margin-top:26px;max-width:25ch}
+.osc .baj{color:#98a0b2} .ver .baj{color:rgba(255,255,255,.9)}
+.cuerpo{flex:1;display:flex;flex-direction:column;justify-content:center;margin:28px 0}
+
+/* Dato protagonista de cada lámina */
+.dato{display:flex;flex-direction:column;gap:8px}
+.dato .n{font-family:var(--m);font-size:172px;font-weight:600;color:var(--ac);line-height:.9;letter-spacing:-.04em}
+.osc .dato .n{color:var(--ac-cl)} .ver .dato .n{color:#fff}
+.dato .u{font-family:var(--m);font-size:44px;color:var(--mut);margin-top:-6px}
+.osc .dato .u{color:#8b93a5} .ver .dato .u{color:rgba(255,255,255,.82)}
+.dato .q{font-size:44px;font-weight:700;line-height:1.2;margin-top:22px}
+.dato .d{font-size:29px;color:var(--mut);line-height:1.4;margin-top:14px;max-width:26ch}
+.osc .dato .d{color:#98a0b2} .ver .dato .d{color:rgba(255,255,255,.88)}
+
+.fila{display:flex;align-items:baseline;gap:20px;padding:16px 0;border-bottom:2px solid var(--bord)}
+.osc .fila{border-color:#31344a} .ver .fila{border-color:rgba(255,255,255,.28)}
+.fila:last-child{border-bottom:none}
+.fila .q{flex:1;font-size:30px;font-weight:600}
+.fila .c{font-family:var(--m);font-size:38px;font-weight:600;color:var(--ac)}
+.osc .fila .c{color:var(--ac-cl)} .ver .fila .c{color:#fff}
+.fila .u{font-family:var(--m);font-size:20px;color:var(--mut)}
+.osc .fila .u{color:#8b93a5} .ver .fila .u{color:rgba(255,255,255,.75)}
+
+.cuenta{background:var(--sup2);border-left:6px solid var(--ac);border-radius:0 18px 18px 0;padding:30px 34px;margin-top:8px}
+.osc .cuenta{background:rgba(255,255,255,.07);border-color:var(--ac-cl)}
+.ver .cuenta{background:rgba(255,255,255,.14);border-color:#fff}
+.cuenta .op{font-family:var(--m);font-size:34px;line-height:1.6;font-weight:500}
+.cuenta .res{font-family:var(--m);font-size:44px;font-weight:600;color:var(--ac);margin-top:12px}
+.osc .cuenta .res{color:var(--ac-cl)} .ver .cuenta .res{color:#fff}
+
+.pie{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;padding-top:26px;border-top:5px solid var(--ink)}
+.osc .pie{border-color:var(--ac-cl)} .ver .pie{border-color:rgba(255,255,255,.6)}
+.pie .iz{font-size:25px;font-weight:700;line-height:1.28;max-width:22ch}
+.pie .de{font-family:var(--m);font-size:19px;color:var(--mut);text-align:right;line-height:1.5}
+.osc .pie .de{color:#8b93a5} .ver .pie .de{color:rgba(255,255,255,.8)}
+.swipe{position:absolute;right:76px;bottom:148px;font-family:var(--m);font-size:23px;font-weight:600;color:var(--ac);z-index:2}
+.osc .swipe{color:var(--ac-cl)} .ver .swipe{color:#fff}
+
+@media print{
+  body{background:#fff;padding:0}
+  .barra,.meta{display:none}
+  .esc{padding:0;background:#fff}
+  .bloque{border:none;border-radius:0;break-after:page}
+  .l{transform:none;margin-bottom:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:1080px 1080px;margin:0}
+}
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <h1>Carrusel — «Cuánto rinde un oficial por jornada» · 9 láminas</h1>
+  <p>Exportá en orden: la <b>01 es la portada</b> (la única que se ve en el feed, define si deslizan o no)
+     y la <b>09 es el cierre</b>. Subilas a Instagram en este orden exacto.
+     El texto del pie va en <code>textos.md</code>, posteo 02.
+     Exportar: Chrome → <code>Ctrl+P</code> → Guardar como PDF.</p>
+</div>
+
+<div class="lista" id="salida"></div>
+
+<script>
+// Un carrusel es una historia con principio y final, no placas sueltas:
+// portada que engancha → un dato por lámina → la cuenta que lo vuelve útil → cierre.
+const TOT = 9;
+const L = [
+{n:1,rol:'Portada — es la que decide si deslizan',fondo:'osc',
+ tit:'Cuánto rinde <em>un oficial</em> por jornada',
+ baj:'6 tareas de obra, con los rendimientos que usamos para calcular plazos.',
+ pie:['Guardalo para cuando cotices.','faimobras.com'],swipe:'deslizá →'},
+
+{n:2,rol:'Dato 1 — arranca con el más usado',
+ tit:'Mampostería',
+ dato:['8,0','m² por jornada','Ladrillo hueco 0,18','1,0 h/m² de oficial · 0,9 h/m² de ayudante'],
+ pie:['El ítem que más se computa en obra.','FAIM OBRAS'],swipe:'→'},
+
+{n:3,rol:'Dato 2',
+ tit:'Contrapiso',
+ dato:['8,9','m² por jornada','Sobre terreno natural','0,7 h/m² de oficial · 0,9 h/m² de ayudante'],
+ pie:['Rinde más de lo que se cree.','FAIM OBRAS'],swipe:'→'},
+
+{n:4,rol:'Dato 3',
+ tit:'Revoque fino',
+ dato:['7,3','m² por jornada','A la cal','1,1 h/m² de oficial · 0,65 h/m² de ayudante'],
+ pie:['Acá el oficial es el cuello de botella.','FAIM OBRAS'],swipe:'→'},
+
+{n:5,rol:'Dato 4 — el que sorprende',fondo:'ver',
+ tit:'Piso cerámico',
+ dato:['5,0','m² por jornada','Colocación','1,6 h/m² de oficial · 1,2 h/m² de ayudante'],
+ pie:['El más lento de la lista. Se subestima siempre.','FAIM OBRAS'],swipe:'→'},
+
+{n:6,rol:'Dato 5',
+ tit:'Carpeta',
+ dato:['5,9','m² por jornada','De nivelación, 3 cm','1,35 h/m² de oficial · 0,9 h/m² de ayudante'],
+ pie:['Poca superficie por día, mucho impacto en el plazo.','FAIM OBRAS'],swipe:'→'},
+
+{n:7,rol:'Dato 6 — cierra con el más rápido',
+ tit:'Piso de ladrillo',
+ dato:['10,0','m² por jornada','Común, asentado sobre arena','0,8 h/m² de oficial · 0,5 h/m² de ayudante'],
+ pie:['El que más rinde de los seis.','FAIM OBRAS'],swipe:'→'},
+
+{n:8,rol:'La cuenta — convierte el dato en herramienta',fondo:'osc',
+ tit:'Para qué <em>sirve</em> esto',
+ baj:'Con el rendimiento calculás el plazo de cualquier tarea en 10 segundos:',
+ cuenta:['200 m² de pared ÷ 8 m² por jornada','= 25 jornadas de oficial<br>= 13 días con 2 oficiales'],
+ pie:['Y si sumás gente, dividís los días.','FAIM OBRAS'],swipe:'→'},
+
+{n:9,rol:'Cierre — pedí la acción, una sola',fondo:'ver',
+ tit:'¿De dónde salen estos números?',titCh:1,
+ baj:'Del catálogo de análisis de costos de FAIM OBRAS: 436 ítems con sus materiales, horas de mano de obra y equipos.',
+ filas:[['Ítems con análisis','436',''],['Materiales','829',''],['Gremios','14','']],
+ pie:['📌 Guardalo · Compartilo con quien cotiza','faimobras.com/presentacion']},
+];
+
+function r(x){
+  let c='';
+  if(x.dato) c=`<div class="dato"><div class="n">${x.dato[0]}</div><div class="u">${x.dato[1]}</div>
+    <div class="q">${x.dato[2]}</div><div class="d">${x.dato[3]}</div></div>`;
+  else if(x.cuenta) c=`<div class="cuenta"><div class="op">${x.cuenta[0]}</div><div class="res">${x.cuenta[1]}</div></div>`;
+  else if(x.filas) c=x.filas.map(([q,v,u])=>
+    `<div class="fila"><div class="q">${q}</div><div><span class="c">${v}</span> <span class="u">${u}</span></div></div>`).join('');
+  const baj=x.baj?`<div class="baj">${x.baj}</div>`:'';
+  const hay=x.dato||x.cuenta||x.filas;
+  return `<div class="bloque">
+    <div class="meta"><span class="n">${String(x.n).padStart(2,'0')} / ${TOT}</span>
+      <span class="t">${x.rol}</span></div>
+    <div class="esc"><div class="l ${x.fondo||''}">
+      <div class="cab"><div class="logo">FAIM <span>OBRAS</span></div>
+        <div class="cont">${String(x.n).padStart(2,'0')} / ${TOT}</div></div>
+      <div class="tit ${x.titCh?'ch':''}">${x.tit}</div>
+      ${hay?'':baj}
+      <div class="cuerpo">${c}</div>
+      ${hay?baj:''}
+      <div class="pie"><div class="iz">${x.pie[0]}</div><div class="de">${x.pie[1]}</div></div>
+      ${x.swipe?`<div class="swipe">${x.swipe}</div>`:''}
+    </div></div></div>`;
+}
+document.getElementById('salida').innerHTML = L.map(r).join('');
+</script>
+</body>
+</html>

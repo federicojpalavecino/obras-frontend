@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAIM OBRAS — Reel animado (grabá la pantalla)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
+  align-items:flex-start;justify-content:center;flex-wrap:wrap}
+
+.panel{background:#fff;border-radius:15px;padding:22px 24px;width:390px;flex-shrink:0}
+.panel h1{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.panel p{font-size:13.5px;color:var(--mut);line-height:1.6;margin-bottom:14px}
+.panel code{font-family:var(--m);font-size:12px;background:var(--sup2);padding:1px 5px;border-radius:4px}
+.panel ol{margin:0 0 16px 18px;font-size:13.5px;color:var(--mut);line-height:1.75}
+.panel li b{color:var(--ink)}
+.btn{width:100%;background:var(--ac);color:#fff;border:none;border-radius:10px;padding:14px;
+  font-family:var(--s);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:9px}
+.btn:hover{background:#047857}
+.btn.sec{background:var(--sup2);color:var(--ink)}
+.aviso{background:#fef3c7;border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
+  padding:12px 14px;font-size:12.5px;color:#78350f;line-height:1.55}
+
+/* ══ LIENZO 1080×1920 — esto es lo que se graba ═══════════════════════════ */
+.marco{background:#000;border-radius:20px;padding:10px;flex-shrink:0}
+#reel{width:1080px;height:1920px;position:relative;overflow:hidden;
+  transform:scale(.33);transform-origin:top left;
+  background:var(--bg);color:var(--ink);font-family:var(--s)}
+.marco{width:calc(1080px * .33 + 20px);height:calc(1920px * .33 + 20px)}
+#reel::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);background-size:60px 60px}
+
+.esc{position:absolute;inset:0;padding:150px 82px 190px;display:flex;flex-direction:column;
+  opacity:0;z-index:2}
+.esc.on{opacity:1}
+.esc.oscura{background:var(--ink);color:var(--bg)}
+.esc.oscura::before{content:'';position:absolute;inset:0;opacity:1;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);background-size:60px 60px}
+.esc.verde{background:var(--ac);color:#fff}
+.esc.verde::before{content:'';position:absolute;inset:0;opacity:1;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);background-size:60px 60px}
+
+.r-logo{font-size:32px;font-weight:800;letter-spacing:-.02em;color:var(--ac);position:relative}
+.r-logo span{color:var(--ink);font-weight:700}
+.oscura .r-logo{color:var(--ac-cl)} .oscura .r-logo span{color:var(--bg)}
+.verde .r-logo{color:#fff} .verde .r-logo span{color:rgba(255,255,255,.72)}
+.r-tit{font-size:96px;font-weight:800;line-height:1.02;letter-spacing:-.035em;margin-top:60px;position:relative}
+.r-tit.ch{font-size:72px}
+.r-tit em{font-style:normal;color:var(--ac)}
+.oscura .r-tit em{color:var(--ac-cl)} .verde .r-tit em{color:rgba(255,255,255,.75)}
+.r-baj{font-size:38px;color:var(--mut);line-height:1.4;margin-top:30px;position:relative}
+.oscura .r-baj{color:#98a0b2} .verde .r-baj{color:rgba(255,255,255,.9)}
+.r-med{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative}
+.r-pie{padding-top:30px;border-top:5px solid var(--ink);font-size:30px;font-weight:700;position:relative}
+.oscura .r-pie{border-color:var(--ac-cl)} .verde .r-pie{border-color:rgba(255,255,255,.6)}
+
+/* Gantt simulado: es el corazón del reel */
+.tarea{margin-bottom:34px;position:relative}
+.tarea .nom{font-size:33px;font-weight:600;margin-bottom:12px;display:flex;
+  justify-content:space-between;align-items:baseline}
+.tarea .dias{font-family:var(--m);font-size:29px;color:var(--ac)}
+.oscura .tarea .dias{color:var(--ac-cl)}
+.pista{height:56px;background:var(--sup2);border-radius:10px;position:relative;overflow:hidden}
+.oscura .pista{background:rgba(255,255,255,.08)}
+.barra-g{position:absolute;top:0;left:0;height:100%;border-radius:10px;
+  transition:width 1.1s cubic-bezier(.4,0,.2,1),left 1.1s cubic-bezier(.4,0,.2,1)}
+.b1{background:var(--ac)} .b2{background:var(--ac2)} .b3{background:var(--warn)}
+
+.cuadrilla{display:flex;align-items:center;gap:20px;margin:30px 0 14px;position:relative}
+.cuadrilla .lbl{font-family:var(--m);font-size:26px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.oscura .cuadrilla .lbl{color:#8b93a5}
+.gente{display:flex;gap:12px}
+.gente .p{font-size:52px;opacity:.18;transition:opacity .5s}
+.gente .p.act{opacity:1}
+.fin{font-family:var(--m);font-size:40px;font-weight:600;margin-top:26px;position:relative}
+.fin .v{color:var(--ac)} .oscura .fin .v{color:var(--ac-cl)}
+.fin .old{text-decoration:line-through;opacity:.42;margin-right:18px}
+
+.r-gr{font-family:var(--m);font-size:260px;font-weight:600;color:var(--ac);line-height:.9;letter-spacing:-.04em;position:relative}
+.oscura .r-gr{color:var(--ac-cl)} .verde .r-gr{color:#fff}
+.r-gr-l{font-size:38px;color:var(--mut);margin-top:20px;line-height:1.35;position:relative}
+.oscura .r-gr-l{color:#98a0b2} .verde .r-gr-l{color:rgba(255,255,255,.9)}
+
+.safe{position:absolute;left:0;right:0;height:250px;z-index:9;pointer-events:none;
+  border:2px dashed rgba(239,68,68,.4);background:rgba(239,68,68,.05)}
+.safe.t{top:0} .safe.b{bottom:0}
+.safe.off{display:none}
+
+@media (prefers-reduced-motion:reduce){
+  .barra-g,.gente .p{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <h1>Reel — «Más gente, menos días»</h1>
+  <p>No es un video: es una animación que <b>grabás con la pantalla</b> y queda listo para subir.
+     Dura <b>18 segundos</b>, que es lo que rinde en Instagram.</p>
+  <ol>
+    <li>Tocá <b>Reproducir</b> una vez para verlo.</li>
+    <li>Abrí la grabadora: en Windows <code>Win+Alt+R</code> (barra de juego), o cualquier
+        grabador de pantalla.</li>
+    <li>Encuadrá <b>solo el rectángulo negro</b>.</li>
+    <li>Empezá a grabar y tocá <b>Reproducir</b>.</li>
+    <li>Cortá al terminar. El video ya sale vertical.</li>
+  </ol>
+  <button class="btn" onclick="play()">▶ Reproducir</button>
+  <button class="btn sec" onclick="toggleSafe()">Mostrar / ocultar zonas seguras</button>
+  <div class="aviso"><b>Antes de grabar:</b> ocultá las zonas seguras (las líneas rojas son
+     solo guía). Y en Instagram subilo como Reel, no como historia, para que quede en el perfil.</div>
+</div>
+
+<div class="marco">
+<div id="reel">
+  <div class="safe t" id="s1"></div>
+  <div class="safe b" id="s2"></div>
+
+  <!-- 0-3 s · gancho -->
+  <div class="esc oscura" id="e1">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit">¿Cuánto <em>tarda</em> tu obra?</div>
+    <div class="r-med"><div class="r-baj">Depende de cuánta gente pongas. Y eso se puede calcular.</div></div>
+    <div class="r-pie">Mirá lo que pasa 👇</div>
+  </div>
+
+  <!-- 3-12 s · el Gantt reaccionando -->
+  <div class="esc" id="e2">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch">Mampostería<br>de <em>200 m²</em></div>
+    <div class="r-med">
+      <div class="tarea">
+        <div class="nom"><span>Mampostería</span><span class="dias" id="d1">25 días</span></div>
+        <div class="pista"><div class="barra-g b1" id="g1" style="width:0%"></div></div>
+      </div>
+      <div class="tarea">
+        <div class="nom"><span>Revoque</span><span class="dias" id="d2">10 días</span></div>
+        <div class="pista"><div class="barra-g b2" id="g2" style="width:0%;left:0%"></div></div>
+      </div>
+      <div class="tarea">
+        <div class="nom"><span>Pintura</span><span class="dias" id="d3">6 días</span></div>
+        <div class="pista"><div class="barra-g b3" id="g3" style="width:0%;left:0%"></div></div>
+      </div>
+      <div class="cuadrilla">
+        <span class="lbl">Cuadrilla</span>
+        <span class="gente"><span class="p act">👷</span><span class="p" id="p2">👷</span><span class="p" id="p3">👷</span></span>
+      </div>
+      <div class="fin" id="fin">Fin de obra: <span class="v">15 de octubre</span></div>
+    </div>
+    <div class="r-pie" id="pie2">1 persona por tarea</div>
+  </div>
+
+  <!-- 12-15 s · el número -->
+  <div class="esc verde" id="e3">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch">La obra termina</div>
+    <div class="r-med">
+      <div class="r-gr">24</div>
+      <div class="r-gr-l">días antes, solo cambiando la cuadrilla</div>
+    </div>
+    <div class="r-pie">Y lo calcula solo.</div>
+  </div>
+
+  <!-- 15-18 s · cierre -->
+  <div class="esc oscura" id="e4">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch">Las horas salen de <em>tu</em> análisis de costos</div>
+    <div class="r-med"><div class="r-baj">No de una estimación. De los rendimientos que ya tenés cargados.</div></div>
+    <div class="r-pie">faimobras.com/presentacion</div>
+  </div>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const escenas = ['e1','e2','e3','e4'];
+let timers = [];
+
+function limpiar(){
+  timers.forEach(clearTimeout); timers = [];
+  escenas.forEach(e => $(e).classList.remove('on'));
+  // volver al estado inicial
+  ['g1','g2','g3'].forEach(g => { $(g).style.width='0%'; $(g).style.left='0%'; });
+  $('d1').textContent='25 días'; $('d2').textContent='10 días'; $('d3').textContent='6 días';
+  $('p2').classList.remove('act'); $('p3').classList.remove('act');
+  $('fin').innerHTML='Fin de obra: <span class="v">15 de octubre</span>';
+  $('pie2').textContent='1 persona por tarea';
+}
+const t = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+function play(){
+  limpiar();
+  const ver = e => { escenas.forEach(x => $(x).classList.remove('on')); $(e).classList.add('on'); };
+
+  ver('e1');                                    // 0 s
+  t(3000, () => ver('e2'));                     // 3 s — entra el Gantt
+
+  // Las barras se dibujan encadenadas: mampostería, después revoque, después pintura
+  t(3400, () => { $('g1').style.width='58%'; });
+  t(4300, () => { $('g2').style.left='58%'; $('g2').style.width='23%'; });
+  t(5100, () => { $('g3').style.left='81%'; $('g3').style.width='14%'; });
+
+  // Se suma gente y todo se reacomoda
+  t(6800, () => { $('p2').classList.add('act'); $('pie2').textContent='2 personas…'; });
+  t(7400, () => {
+    $('g1').style.width='29%';
+    $('g2').style.left='29%';
+    $('g3').style.left='52%';
+    $('d1').textContent='13 días';
+  });
+  t(8600, () => { $('p3').classList.add('act'); $('pie2').textContent='3 personas por tarea'; });
+  t(9200, () => {
+    $('g1').style.width='20%';
+    $('g2').style.left='20%'; $('g2').style.width='8%';
+    $('g3').style.left='28%'; $('g3').style.width='5%';
+    $('d1').textContent='9 días'; $('d2').textContent='4 días'; $('d3').textContent='2 días';
+  });
+  t(10400, () => {
+    $('fin').innerHTML='Fin de obra: <span class="old">15 oct</span><span class="v">21 de septiembre</span>';
+  });
+
+  t(12000, () => ver('e3'));                    // 12 s — el número
+  t(15000, () => ver('e4'));                    // 15 s — cierre
+  t(18000, () => {});                           // 18 s — fin
+}
+
+function toggleSafe(){
+  ['s1','s2'].forEach(s => $(s).classList.toggle('off'));
+}
+</script>
+</body>
+</html>
