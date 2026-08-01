@@ -156,7 +156,7 @@ body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
   <!-- 0-3 s · gancho -->
   <div class="esc oscura" id="e1">
     <div class="r-logo">FAIM <span>OBRAS</span></div>
-    <div class="r-tit" style="margin-top:40px">Armar un presupuesto te lleva</div>
+    <div class="r-tit" style="margin-top:40px">Un presupuesto <em>en Excel</em> te lleva</div>
     <div class="r-med">
       <div class="r-gr" id="golpe" style="color:var(--red);font-size:300px">2 días</div>
       <div class="r-gr-l" id="golpeTxt" style="font-size:42px">Buscar precios. Computar. Revisar fórmulas.</div>
@@ -206,10 +206,10 @@ body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
   <!-- 17-20 s · cierre -->
   <div class="esc verde" id="e4">
     <div class="r-logo">FAIM <span>OBRAS</span></div>
-    <div class="r-tit ch">Mismo presupuesto.</div>
+    <div class="r-tit ch">El mismo presupuesto</div>
     <div class="r-med">
       <div class="vs2">
-        <div class="a"><div class="k">En planilla</div><div class="v">2 días</div></div>
+        <div class="a"><div class="k">En Excel</div><div class="v">2 días</div></div>
         <div class="b"><div class="k">En FAIM</div><div class="v">14 min</div></div>
       </div>
       <div class="r-gr-l" style="color:rgba(255,255,255,.94);margin-top:36px;font-size:40px;font-weight:600">
@@ -272,7 +272,7 @@ function play(){
   t(2100, () => {
     $('golpe').style.color = 'var(--ac-cl)';
     $('golpe').textContent = '14 min';
-    $('golpeTxt').textContent = 'con el análisis de costos ya cargado';
+    $('golpeTxt').textContent = 'en FAIM OBRAS, con el análisis ya cargado';
   });
   t(3600, () => { ver('e2'); tipear('mamposteria', 600); });
 

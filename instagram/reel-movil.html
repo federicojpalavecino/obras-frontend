@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAIM OBRAS — Reel: desde el celular, donde estés</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
+  align-items:flex-start;justify-content:center;flex-wrap:wrap}
+.panel{background:#fff;border-radius:15px;padding:22px 24px;width:390px;flex-shrink:0}
+.panel h1{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.panel p{font-size:13.5px;color:var(--mut);line-height:1.6;margin-bottom:14px}
+.panel code{font-family:var(--m);font-size:12px;background:var(--sup2);padding:1px 5px;border-radius:4px}
+.btn{width:100%;background:var(--ac);color:#fff;border:none;border-radius:10px;padding:14px;
+  font-family:var(--s);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:9px}
+.btn:hover{background:#047857}
+.btn.sec{background:var(--sup2);color:var(--ink)}
+.aviso{background:#fef3c7;border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
+  padding:12px 14px;font-size:12.5px;color:#78350f;line-height:1.55}
+.txt{background:var(--sup2);border-radius:9px;padding:13px 15px;font-size:12.5px;
+  line-height:1.6;color:var(--ink);margin-top:14px}
+.txt b{display:block;margin-bottom:6px;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mut)}
+
+.marco{background:#000;border-radius:20px;padding:10px;flex-shrink:0;
+  width:calc(1080px * .33 + 20px);height:calc(1920px * .33 + 20px)}
+#reel{width:1080px;height:1920px;position:relative;overflow:hidden;
+  transform:scale(.33);transform-origin:top left;background:var(--bg);color:var(--ink)}
+#reel::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);background-size:60px 60px}
+.esc{position:absolute;inset:0;padding:150px 82px 190px;display:flex;flex-direction:column;
+  opacity:0;z-index:2}
+.esc.on{opacity:1}
+.esc.oscura{background:var(--ink);color:var(--bg)}
+.esc.oscura::before{content:'';position:absolute;inset:0;opacity:1;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);background-size:60px 60px}
+.esc.verde{background:var(--ac);color:#fff}
+.esc.verde::before{content:'';position:absolute;inset:0;opacity:1;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);background-size:60px 60px}
+.r-logo{font-size:32px;font-weight:800;letter-spacing:-.02em;color:var(--ac);position:relative}
+.r-logo span{color:var(--ink);font-weight:700}
+.oscura .r-logo{color:var(--ac-cl)} .oscura .r-logo span{color:var(--bg)}
+.verde .r-logo{color:#fff} .verde .r-logo span{color:rgba(255,255,255,.72)}
+.r-tit{font-size:92px;font-weight:800;line-height:1.02;letter-spacing:-.035em;margin-top:50px;position:relative}
+.r-tit.ch{font-size:66px}
+.r-tit em{font-style:normal;color:var(--ac)}
+.oscura .r-tit em{color:var(--ac-cl)} .verde .r-tit em{color:rgba(255,255,255,.75)}
+.r-baj{font-size:38px;color:var(--mut);line-height:1.4;margin-top:28px;position:relative}
+.oscura .r-baj{color:#98a0b2} .verde .r-baj{color:rgba(255,255,255,.92)}
+.r-med{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative}
+.r-pie{padding-top:30px;border-top:5px solid var(--ink);font-size:30px;font-weight:700;position:relative}
+.oscura .r-pie{border-color:var(--ac-cl)} .verde .r-pie{border-color:rgba(255,255,255,.6)}
+
+/* ── El celular: es el protagonista del reel ── */
+.tel{width:430px;height:850px;margin:0 auto;border-radius:52px;background:var(--ink);
+  padding:16px;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.22)}
+.oscura .tel{background:#000;box-shadow:0 30px 70px rgba(0,0,0,.5)}
+.tel .pant{width:100%;height:100%;border-radius:38px;background:#fff;overflow:hidden;
+  display:flex;flex-direction:column;position:relative}
+.tel .muesca{position:absolute;top:18px;left:50%;transform:translateX(-50%);
+  width:120px;height:9px;background:#000;border-radius:6px;z-index:4;opacity:.55}
+.app-cab{background:var(--ac);color:#fff;padding:44px 26px 20px;font-size:26px;font-weight:800;
+  letter-spacing:-.01em;flex-shrink:0}
+.app-cab small{display:block;font-family:var(--m);font-size:15px;font-weight:400;
+  opacity:.82;margin-top:4px;letter-spacing:.04em}
+.app-cuerpo{flex:1;padding:20px 22px;overflow:hidden}
+.app-fila{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:15px 0;border-bottom:1px solid var(--bord);opacity:0;transform:translateY(9px);
+  transition:opacity .28s,transform .28s}
+.app-fila.on{opacity:1;transform:none}
+.app-fila .n{font-size:21px;font-weight:600;color:var(--ink);flex:1;line-height:1.25}
+.app-fila .v{font-family:var(--m);font-size:21px;font-weight:600;color:var(--ac);white-space:nowrap}
+.app-tot{margin-top:18px;padding-top:16px;border-top:3px solid var(--ink)}
+.app-tot .l{font-family:var(--m);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.app-tot .v{font-family:var(--m);font-size:38px;font-weight:600;color:var(--ac);margin-top:4px}
+.app-barra{height:22px;background:var(--sup2);border-radius:11px;overflow:hidden;margin-top:10px}
+.app-barra i{display:block;height:100%;background:var(--ac);width:0;transition:width 1s ease}
+
+/* Contexto: dónde estás cuando lo usás */
+.lugar{position:absolute;top:150px;right:82px;font-family:var(--m);font-size:30px;
+  font-weight:600;color:var(--ac);z-index:6;text-align:right;line-height:1.35;
+  transition:opacity .3s}
+.oscura .lugar{color:var(--ac-cl)}
+.lugares{display:flex;flex-direction:column;gap:26px;position:relative}
+.lug{display:flex;align-items:center;gap:26px;font-size:44px;font-weight:700;
+  opacity:0;transform:translateX(-18px);transition:opacity .35s,transform .35s}
+.lug.on{opacity:1;transform:none}
+.lug .e{font-size:64px;width:86px;text-align:center}
+.safe{position:absolute;left:0;right:0;height:250px;z-index:9;pointer-events:none;
+  border:2px dashed rgba(239,68,68,.4);background:rgba(239,68,68,.05)}
+.safe.t{top:0} .safe.b{bottom:0} .safe.off{display:none}
+@media (prefers-reduced-motion:reduce){ .app-fila,.lug{transition:none} }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <h1>Reel — «Desde el celular, donde estés»</h1>
+  <p>Animación de <b>20 segundos</b> a 1080×1920. Se graba con la pantalla.</p>
+  <button class="btn" onclick="play()">▶ Reproducir</button>
+  <button class="btn sec" onclick="toggleSafe()">Mostrar / ocultar zonas seguras</button>
+  <div class="aviso"><b>Antes de grabar:</b> ocultá las zonas seguras. Grabadora:
+    <code>Win+Alt+R</code>. Encuadrá solo el rectángulo negro.</div>
+  <div class="txt"><b>Texto del posteo</b>
+    El cliente te pregunta el precio y estás en la obra.<br><br>
+    No hace falta volver al estudio ni abrir la computadora. Entrás desde el
+    celular y cotizás ahí mismo, con el catálogo y tus precios.<br><br>
+    Ver un presupuesto, cargar un avance, revisar cobranzas: todo desde el
+    navegador del teléfono o la tablet. Sin instalar nada.<br><br>
+    En la obra, en el corralón o de vacaciones.<br><br>
+    👉 ¿Cuántas veces tuviste que decir «te confirmo cuando llegue»?
+  </div>
+</div>
+
+<div class="marco">
+<div id="reel">
+  <div class="safe t" id="s1"></div>
+  <div class="safe b" id="s2"></div>
+
+  <!-- 0-4 s · la situación -->
+  <div class="esc oscura" id="e1">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit">«Te confirmo cuando <em>llegue</em> al estudio»</div>
+    <div class="r-med"><div class="r-baj">La frase que te hace perder la obra.</div></div>
+    <div class="r-pie">Estás en la obra. El cliente pregunta el precio.</div>
+  </div>
+
+  <!-- 4-14 s · el celular cotizando -->
+  <div class="esc" id="e2">
+    <div class="lugar" id="lugar">📍 En la obra</div>
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch" style="margin-top:30px;font-size:56px">Cotizás <em>ahí mismo</em></div>
+    <div class="r-med">
+      <div class="tel">
+        <div class="pant">
+          <div class="muesca"></div>
+          <div class="app-cab">Ampliación Gómez<small id="appSub">Presupuesto · borrador</small></div>
+          <div class="app-cuerpo">
+            <div class="app-fila" id="f1"><div class="n">Mampostería 0,18</div><div class="v">$ 2.393.000</div></div>
+            <div class="app-fila" id="f2"><div class="n">Contrapiso</div><div class="v">$ 942.000</div></div>
+            <div class="app-fila" id="f3"><div class="n">Revoque fino</div><div class="v">$ 1.580.000</div></div>
+            <div class="app-fila" id="f4"><div class="n">Piso cerámico</div><div class="v">$ 1.656.000</div></div>
+            <div class="app-tot"><div class="l">Total con IVA</div><div class="v" id="tot">$ 0</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="r-pie" id="pie2">Sin instalar nada. Desde el navegador.</div>
+  </div>
+
+  <!-- 14-17 s · dónde -->
+  <div class="esc oscura" id="e3">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch">Donde <em>estés</em></div>
+    <div class="r-med">
+      <div class="lugares">
+        <div class="lug" id="l1"><span class="e">🏗️</span><span>En la obra</span></div>
+        <div class="lug" id="l2"><span class="e">🧱</span><span>En el corralón</span></div>
+        <div class="lug" id="l3"><span class="e">🚗</span><span>Arriba de la camioneta</span></div>
+        <div class="lug" id="l4"><span class="e">🌴</span><span>De vacaciones</span></div>
+      </div>
+    </div>
+    <div class="r-pie">Celular o tablet. La compu queda en el estudio.</div>
+  </div>
+
+  <!-- 17-20 s · cierre -->
+  <div class="esc verde" id="e4">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch">Cotizar, ver avances,<br>revisar cobranzas</div>
+    <div class="r-med"><div class="r-baj" style="font-size:40px">
+      Todo desde el teléfono. Sin instalar nada, sin volver al escritorio.</div></div>
+    <div class="r-pie">faimobras.com/presentacion</div>
+  </div>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const escenas = ['e1','e2','e3','e4'];
+// 2.393.000 + 942.000 + 1.580.000 + 1.656.000 = 6.571.000
+const ITEMS = [2393000, 942000, 1580000, 1656000];
+const fmt = n => '$ ' + Math.round(n).toLocaleString('es-AR');
+let timers = [], raf = null;
+
+function limpiar(){
+  timers.forEach(clearTimeout); timers = [];
+  if (raf) cancelAnimationFrame(raf);
+  escenas.forEach(e => $(e).classList.remove('on'));
+  [1,2,3,4].forEach(i => { $('f'+i).classList.remove('on'); $('l'+i).classList.remove('on'); });
+  $('tot').textContent = '$ 0';
+  $('lugar').textContent = '📍 En la obra';
+  $('appSub').textContent = 'Presupuesto · borrador';
+  $('pie2').textContent = 'Sin instalar nada. Desde el navegador.';
+}
+const t = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+function subir(desde, hasta, ms){
+  const t0 = performance.now();
+  const paso = () => {
+    const p = Math.min(1, (performance.now() - t0) / ms);
+    $('tot').textContent = fmt(desde + (hasta - desde) * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) raf = requestAnimationFrame(paso);
+  };
+  raf = requestAnimationFrame(paso);
+}
+
+function play(){
+  limpiar();
+  const ver = e => { escenas.forEach(x => $(x).classList.remove('on')); $(e).classList.add('on'); };
+  ver('e1');
+  t(4000, () => ver('e2'));
+
+  // Los ítems entran en el teléfono y el total sube
+  let acum = 0;
+  [4500, 5500, 6500, 7500].forEach((ms, k) => {
+    t(ms, () => { $('f'+(k+1)).classList.add('on');
+                  const a = acum; acum += ITEMS[k]; subir(a, acum, 620); });
+  });
+  // Con IVA sobre el total, para cerrar el número que se ve en pantalla
+  t(8900, () => { subir(acum, acum * 1.21, 800);
+                  $('appSub').textContent = 'Presupuesto · con IVA'; });
+  t(10200, () => { $('lugar').textContent = '📍 Sin la compu';
+                   $('pie2').textContent = 'El mismo sistema, en el teléfono'; });
+
+  t(14000, () => {
+    ver('e3');
+    [0, 500, 1000, 1500].forEach((d, k) => t(14000 + d + 200, () => $('l'+(k+1)).classList.add('on')));
+  });
+  t(17000, () => ver('e4'));
+  t(20000, () => {});
+}
+function toggleSafe(){ ['s1','s2'].forEach(s => $(s).classList.toggle('off')); }
+</script>
+</body>
+</html>

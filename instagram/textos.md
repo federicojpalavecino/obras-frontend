@@ -1,4 +1,4 @@
-# Textos para Instagram — 1 mes
+# Textos para Instagram — 2 meses (32 publicaciones)
 
 Cada bloque es un copiar y pegar. El número corresponde a la placa en `placas.html`.
 
@@ -11,7 +11,7 @@ comentarios, y los comentarios son lo que hace que Instagram muestre el posteo.
 ## SEMANA 1
 
 ### 01 · Lunes — Dolor
-> ¿Cuántos sábados perdiste cotizando?
+> ¿Cuántos sábados perdiste cotizando en Excel?
 >
 > Un presupuesto mediano son dos días de trabajo. Buscar precios, armar el cómputo,
 > revisar que las fórmulas no se hayan pisado.
@@ -99,9 +99,9 @@ comentarios, y los comentarios son lo que hace que Instagram muestre el posteo.
 ### 05 · Lunes — Dolor
 > El presupuesto ya está aprobado. Ahora viene la parte que nadie cuenta.
 >
-> Certificar el avance del mes. Y para eso: abrir otra planilla, volver a cargar
-> los mismos ítems, con los mismos precios, y calcular a mano qué porcentaje
-> lleva cada uno.
+> Certificar el avance del mes. Y para eso: abrir otra hoja de Excel, volver a
+> cargar los mismos ítems, con los mismos precios, y calcular a mano qué
+> porcentaje lleva cada uno.
 >
 > Todos los meses. Durante toda la obra.
 >
@@ -240,15 +240,18 @@ comentarios, y los comentarios son lo que hace que Instagram muestre el posteo.
 ---
 
 ### 12 · Domingo — Dolor (REEL)
-**Guion (15 segundos):** pantalla de Excel con un cómputo largo → se cierra sin guardar
-→ pantalla en negro → texto.
+**Guion (15 s):** planilla de Excel con un cómputo largo → se pisa una fórmula →
+el total cambia sin que nadie lo note.
 
-> «Se me cerró y no lo guardé.»
+> Excel no te avisa cuando rompés algo.
 >
-> Cuatro horas de cómputo. Una fórmula pisada. Un archivo que quedó
-> en la computadora del estudio.
+> Una fórmula pisada. Un rango que quedó corto. Una fila insertada
+> en el lugar equivocado.
 >
-> La obra no puede depender de un archivo.
+> Y el error aparece recién cuando el cliente pregunta por qué
+> el número no cierra.
+>
+> Excel es buenísimo para muchas cosas. Para sostener una obra, no.
 >
 > 👉 ¿Te pasó? Contá tu peor historia de Excel 👇
 
@@ -368,7 +371,7 @@ ver el precio calculándose → ajustar coeficientes → imprimir el PDF.
 ### 18 · Sem 5, Miércoles — Dolor
 > «El cliente pidió un cambio. ¿Cuánto sale?»
 >
-> Y ahí volvés a abrir la planilla original. Con miedo de romper algo que
+> Y ahí volvés a abrir el Excel original. Con miedo de romper algo que
 > ya estaba cerrado y aprobado.
 >
 > Un adicional no debería obligarte a rehacer nada. Debería ser un
@@ -467,7 +470,7 @@ mover la primera → la segunda se corre sola.
 ### 23 · Sem 6, Viernes — Dolor
 > Cotizaste con precios de hace tres meses. Y no fue a propósito.
 >
-> La planilla no te avisa. Ese número quedó ahí desde la obra anterior,
+> Excel no te avisa. Ese número quedó ahí desde la obra anterior,
 > y vos ya ni te acordás de cuándo lo cargaste.
 >
 > Un precio sin fecha no es un precio: es un recuerdo.
@@ -560,7 +563,7 @@ mover la primera → la segunda se corre sola.
 **Guion (12 s):** carpeta con archivos: `presupuesto_final.xlsx`,
 `presupuesto_final_2.xlsx`, `presupuesto_final_ESTE.xlsx`, `presupuesto_final_ESTE_ok.xlsx`.
 
-> «¿Cuál era la última versión?»
+> Excel no sabe cuál es la última versión.
 >
 > Si tenés que preguntar, ya perdiste tiempo. Y si el que pregunta es
 > alguien de tu equipo, perdieron los dos.
@@ -697,6 +700,20 @@ la respuesta es esa — y esa conversación en comentarios vale más que el post
 
 **Si un dato cambia, actualizalo acá y en `placas.html`.** Publicar un número
 viejo con seguridad es peor que no publicarlo.
+
+**Cómo se ataca a Excel sin que se ofendan.** Tu audiencia usa Excel todos los
+días y lo eligió con buen criterio. Si el mensaje es «Excel es malo», se ponen
+a la defensiva y perdés al que querías convencer. El que funciona es
+**«a Excel le estás pidiendo algo para lo que no fue hecho»**: le validás la
+elección y le mostrás el límite. Concretamente:
+
+- ✅ «Excel no te avisa cuando rompés una fórmula» — es un hecho, no un juicio
+- ✅ «Excel es buenísimo para muchas cosas. Para sostener una obra, no.»
+- ✅ «Una planilla suma y multiplica. No sabe que el revoque va después de la pared.»
+- ❌ «Dejá de usar Excel como un amateur»
+- ❌ «Si todavía usás Excel, estás atrasado»
+
+La diferencia es si el que lee se siente identificado o acusado.
 
 **Lo que falta y sale gratis:** fotos de obras reales de tus clientes (con permiso).
 Una foto de obra con el dato de cuánto se tardó supera a cualquier placa de diseño.
