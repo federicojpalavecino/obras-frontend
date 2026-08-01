@@ -196,6 +196,37 @@ export default function Gantt() {
     } catch (e) { showToast('⚠ ' + (e.response?.data?.detail || 'Error')); }
   };
 
+  // ── Jerarquía: indentar y desindentar ─────────────────────────────────────
+  // Indentar cuelga la tarea de la de arriba, que pasa a ser tarea resumen y
+  // toma sus fechas de las hijas. Desindentar la vuelve a dejar suelta.
+  const cambiarPadre = async (tarea, padreId) => {
+    try {
+      await api.put(`/presupuestos/${id}/gantt/tareas/${tarea.id}`, {
+        nombre: tarea.nombre,
+        fecha_inicio: tarea.fecha_inicio,
+        duracion_dias: tarea.duracion_dias,
+        color: tarea.color,
+        orden: tarea.orden,
+        progreso: tarea.progreso || 0,
+        padre_id: padreId,
+      });
+      await cargar();
+      showToast(padreId ? '✓ Subtarea' : '✓ Tarea suelta');
+    } catch (e) {
+      showToast('⚠ ' + (e.response?.data?.detail || 'No se pudo mover'));
+    }
+  };
+
+  // La tarea de arriba es la candidata a padre. No se puede colgar de una
+  // subtarea (un solo nivel) ni de sí misma.
+  const padreCandidato = (t, lista) => {
+    const i = lista.findIndex(x => x.id === t.id);
+    for (let j = i - 1; j >= 0; j--) {
+      if (!lista[j].padre_id) return lista[j];
+    }
+    return null;
+  };
+
   // Vincular con dos clicks: primero la predecesora, después la sucesora.
   const clickVincular = (t) => {
     if (!predSel) { setPredSel(t); showToast('Ahora tocá la tarea que va DESPUÉS'); return; }
@@ -436,7 +467,20 @@ export default function Gantt() {
             {filas.map(t => (
               <div key={t.id} style={{ height: ROW_H, borderBottom: '1px solid var(--border2)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, cursor: 'pointer' }}
                 onClick={() => setEditando(t)}>
-                {t.padre_id && <span style={{ width: 12, flexShrink: 0 }} />}
+                {/* Indentar / desindentar: arma la jerarquía sin salir de la pantalla */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0, marginRight: 1 }}>
+                    <button
+                      title={t.padre_id ? 'Sacar de la tarea resumen' : 'Colgar de la tarea de arriba'}
+                      disabled={!t.padre_id && !padreCandidato(t, filas)}
+                      onClick={e => { e.stopPropagation();
+                        cambiarPadre(t, t.padre_id ? null : padreCandidato(t, filas)?.id); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                        fontSize: 11, lineHeight: 1, color: 'var(--muted)',
+                        opacity: (!t.padre_id && !padreCandidato(t, filas)) ? 0.25 : 1 }}>
+                      {t.padre_id ? '⇤' : '⇥'}
+                  </button>
+                </div>
+                {t.padre_id && <span style={{ width: 14, flexShrink: 0 }} />}
                 <div style={{ width: 10, height: 10, borderRadius: t.es_resumen ? 0 : 2, background: t.critica && verCritico ? '#f87171' : t.color, flexShrink: 0 }} />
                 <div style={{ flex: 1, overflow: 'hidden' }} onClick={() => modoVincular ? clickVincular(t) : setEditando(t)}>
                   <div style={{ fontSize: 12, fontWeight: t.es_resumen ? 800 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textTransform: t.es_resumen ? 'uppercase' : 'none', letterSpacing: t.es_resumen ? 0.4 : 0 }}>
