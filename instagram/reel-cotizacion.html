@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAIM OBRAS — Reel: cotizar en minutos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
+  align-items:flex-start;justify-content:center;flex-wrap:wrap}
+
+.panel{background:#fff;border-radius:15px;padding:22px 24px;width:390px;flex-shrink:0}
+.panel h1{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.panel p{font-size:13.5px;color:var(--mut);line-height:1.6;margin-bottom:14px}
+.panel code{font-family:var(--m);font-size:12px;background:var(--sup2);padding:1px 5px;border-radius:4px}
+.panel ol{margin:0 0 16px 18px;font-size:13.5px;color:var(--mut);line-height:1.75}
+.panel li b{color:var(--ink)}
+.btn{width:100%;background:var(--ac);color:#fff;border:none;border-radius:10px;padding:14px;
+  font-family:var(--s);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:9px}
+.btn:hover{background:#047857}
+.btn.sec{background:var(--sup2);color:var(--ink)}
+.aviso{background:#fef3c7;border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
+  padding:12px 14px;font-size:12.5px;color:#78350f;line-height:1.55}
+.txt{background:var(--sup2);border-radius:9px;padding:13px 15px;font-size:12.5px;
+  line-height:1.6;color:var(--ink);margin-top:14px}
+.txt b{display:block;margin-bottom:6px;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mut)}
+
+/* ══ LIENZO 1080×1920 ═════════════════════════════════════════════════════ */
+.marco{background:#000;border-radius:20px;padding:10px;flex-shrink:0;
+  width:calc(1080px * .33 + 20px);height:calc(1920px * .33 + 20px)}
+#reel{width:1080px;height:1920px;position:relative;overflow:hidden;
+  transform:scale(.33);transform-origin:top left;background:var(--bg);color:var(--ink)}
+#reel::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);background-size:60px 60px}
+
+.esc{position:absolute;inset:0;padding:150px 82px 190px;display:flex;flex-direction:column;
+  opacity:0;z-index:2}
+.esc.on{opacity:1}
+.esc.oscura{background:var(--ink);color:var(--bg)}
+.esc.oscura::before{content:'';position:absolute;inset:0;opacity:1;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);background-size:60px 60px}
+.esc.verde{background:var(--ac);color:#fff}
+.esc.verde::before{content:'';position:absolute;inset:0;opacity:1;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);background-size:60px 60px}
+
+.r-logo{font-size:32px;font-weight:800;letter-spacing:-.02em;color:var(--ac);position:relative}
+.r-logo span{color:var(--ink);font-weight:700}
+.oscura .r-logo{color:var(--ac-cl)} .oscura .r-logo span{color:var(--bg)}
+.verde .r-logo{color:#fff} .verde .r-logo span{color:rgba(255,255,255,.72)}
+.r-tit{font-size:94px;font-weight:800;line-height:1.02;letter-spacing:-.035em;margin-top:56px;position:relative}
+.r-tit.ch{font-size:70px}
+.r-tit em{font-style:normal;color:var(--ac)}
+.oscura .r-tit em{color:var(--ac-cl)} .verde .r-tit em{color:rgba(255,255,255,.75)}
+.r-baj{font-size:38px;color:var(--mut);line-height:1.4;margin-top:30px;position:relative}
+.oscura .r-baj{color:#98a0b2} .verde .r-baj{color:rgba(255,255,255,.9)}
+.r-med{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative}
+.r-pie{padding-top:30px;border-top:5px solid var(--ink);font-size:30px;font-weight:700;position:relative}
+.oscura .r-pie{border-color:var(--ac-cl)} .verde .r-pie{border-color:rgba(255,255,255,.6)}
+
+/* Buscador del catálogo */
+.busca{background:#fff;border:4px solid var(--bord);border-radius:16px;padding:24px 28px;
+  font-size:34px;color:var(--mut);display:flex;align-items:center;gap:18px;position:relative;
+  margin-bottom:30px}
+.busca .cur{display:inline-block;width:4px;height:38px;background:var(--ac);
+  animation:parp 1s steps(2) infinite}
+@keyframes parp{0%,100%{opacity:1}50%{opacity:0}}
+.busca .q{color:var(--ink);font-weight:600}
+
+/* Ítems que se van agregando */
+.item{display:flex;align-items:baseline;gap:18px;padding:20px 0;
+  border-bottom:2px solid var(--bord);opacity:0;transform:translateY(14px);
+  transition:opacity .35s ease,transform .35s ease}
+.item.on{opacity:1;transform:none}
+.item .nm{flex:1;font-size:31px;font-weight:600;line-height:1.2}
+.item .ct{font-family:var(--m);font-size:29px;color:var(--mut);white-space:nowrap}
+.item .im{font-family:var(--m);font-size:31px;font-weight:600;color:var(--ac);
+  white-space:nowrap;min-width:230px;text-align:right}
+
+/* Total que sube */
+.total{margin-top:34px;padding-top:28px;border-top:5px solid var(--ink);position:relative}
+.total .lb{font-family:var(--m);font-size:26px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.total .vl{font-family:var(--m);font-size:88px;font-weight:600;color:var(--ac);
+  line-height:1.05;margin-top:8px;font-variant-numeric:tabular-nums}
+.oscura .total{border-color:var(--ac-cl)} .oscura .total .vl{color:var(--ac-cl)}
+
+/* Cronómetro */
+.crono{position:absolute;top:150px;right:82px;font-family:var(--m);font-size:40px;
+  font-weight:600;color:var(--ac);z-index:5;font-variant-numeric:tabular-nums}
+.oscura .crono{color:var(--ac-cl)}
+
+.coef{display:flex;gap:16px;margin-top:26px;flex-wrap:wrap;position:relative}
+.coef div{background:var(--sup2);border-radius:12px;padding:16px 22px;font-family:var(--m);font-size:26px}
+.oscura .coef div{background:rgba(255,255,255,.09)}
+.coef b{color:var(--ac);font-weight:600} .oscura .coef b{color:var(--ac-cl)}
+
+.r-gr{font-family:var(--m);font-size:230px;font-weight:600;color:var(--ac);
+  line-height:.9;letter-spacing:-.04em;position:relative}
+.oscura .r-gr{color:var(--ac-cl)} .verde .r-gr{color:#fff}
+.r-gr-l{font-size:38px;color:var(--mut);margin-top:20px;line-height:1.35;position:relative}
+.oscura .r-gr-l{color:#98a0b2} .verde .r-gr-l{color:rgba(255,255,255,.9)}
+
+.vs2{display:flex;gap:24px;position:relative}
+.vs2>div{flex:1;border-radius:20px;padding:34px;text-align:center}
+.vs2 .a{background:rgba(239,68,68,.12);border:4px solid rgba(239,68,68,.35)}
+.vs2 .b{background:rgba(255,255,255,.16);border:4px solid rgba(255,255,255,.5)}
+.vs2 .k{font-family:var(--m);font-size:24px;letter-spacing:.1em;text-transform:uppercase;
+  opacity:.8;margin-bottom:14px}
+.vs2 .v{font-family:var(--m);font-size:76px;font-weight:600;line-height:1}
+.vs2 .a .v{color:var(--red)}
+
+.safe{position:absolute;left:0;right:0;height:250px;z-index:9;pointer-events:none;
+  border:2px dashed rgba(239,68,68,.4);background:rgba(239,68,68,.05)}
+.safe.t{top:0} .safe.b{bottom:0} .safe.off{display:none}
+@media (prefers-reduced-motion:reduce){ .item{transition:none} }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <h1>Reel — «Cotizar en minutos»</h1>
+  <p>Animación de <b>19 segundos</b> a 1080×1920. Se graba con la pantalla y queda lista para subir.</p>
+  <ol>
+    <li>Tocá <b>Reproducir</b> para verlo.</li>
+    <li>Grabadora: <code>Win+Alt+R</code> en Windows.</li>
+    <li>Encuadrá <b>solo el rectángulo negro</b>.</li>
+    <li>Grabá y tocá <b>Reproducir</b>.</li>
+  </ol>
+  <button class="btn" onclick="play()">▶ Reproducir</button>
+  <button class="btn sec" onclick="toggleSafe()">Mostrar / ocultar zonas seguras</button>
+  <div class="aviso"><b>Antes de grabar:</b> ocultá las zonas seguras. Subilo como Reel,
+    no como historia.</div>
+  <div class="txt"><b>Texto del posteo</b>
+    Un presupuesto de 200 m², de cero a total.<br><br>
+    Los ítems ya vienen con su análisis de costos: materiales, horas de mano de obra
+    y equipos. Vos cargás la cantidad y el precio sale solo, con tus coeficientes.<br><br>
+    Lo que antes era un sábado, ahora es un rato.<br><br>
+    👉 ¿Cuánto tardás vos en armar un presupuesto?
+  </div>
+</div>
+
+<div class="marco">
+<div id="reel">
+  <div class="safe t" id="s1"></div>
+  <div class="safe b" id="s2"></div>
+
+  <!-- 0-3 s · gancho -->
+  <div class="esc oscura" id="e1">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit" style="margin-top:40px">Armar un presupuesto te lleva</div>
+    <div class="r-med">
+      <div class="r-gr" id="golpe" style="color:var(--red);font-size:300px">2 días</div>
+      <div class="r-gr-l" id="golpeTxt" style="font-size:42px">Buscar precios. Computar. Revisar fórmulas.</div>
+    </div>
+    <div class="r-pie">Mirá esto 👇</div>
+  </div>
+
+  <!-- 3-14 s · cotizando -->
+  <div class="esc" id="e2">
+    <div class="crono" id="crono">0:00</div>
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch" style="margin-top:34px;font-size:62px">Elegís del <em>catálogo</em></div>
+    <div class="r-med">
+      <div class="busca"><span>🔍</span><span class="q" id="q"></span><span class="cur"></span></div>
+      <div id="items">
+        <div class="item" id="i1"><div class="nm">Mampostería hueco 0,18</div>
+          <div class="ct">200 m²</div><div class="im">$ 4.786.000</div></div>
+        <div class="item" id="i2"><div class="nm">Contrapiso s/ terreno</div>
+          <div class="ct">120 m²</div><div class="im">$ 1.884.000</div></div>
+        <div class="item" id="i3"><div class="nm">Revoque fino a la cal</div>
+          <div class="ct">400 m²</div><div class="im">$ 6.320.000</div></div>
+        <div class="item" id="i4"><div class="nm">Carpeta de nivelación</div>
+          <div class="ct">120 m²</div><div class="im">$ 2.148.000</div></div>
+        <div class="item" id="i5"><div class="nm">Piso cerámico</div>
+          <div class="ct">120 m²</div><div class="im">$ 3.312.000</div></div>
+      </div>
+      <div class="total"><div class="lb">Costo directo</div><div class="vl" id="tot">$ 0</div></div>
+    </div>
+    <div class="r-pie" id="pie2">Cada ítem ya trae su análisis de costos</div>
+  </div>
+
+  <!-- 14-17 s · coeficientes y total -->
+  <div class="esc oscura" id="e3">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch">Tus <em>coeficientes</em>, y listo</div>
+    <div class="r-med">
+      <div class="coef"><div>GG <b>15%</b></div><div>Beneficio <b>15%</b></div><div>IVA <b>21%</b></div></div>
+      <div class="total" style="border-top:none;padding-top:36px">
+        <div class="lb">Total con IVA</div>
+        <div class="vl" id="tot2">$ 31.892.000</div>
+      </div>
+      <div class="r-baj" style="margin-top:24px;font-size:34px">Listo para imprimir con tu logo.</div>
+    </div>
+    <div class="r-pie">Versión para el cliente o interna.</div>
+  </div>
+
+  <!-- 17-20 s · cierre -->
+  <div class="esc verde" id="e4">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch">Mismo presupuesto.</div>
+    <div class="r-med">
+      <div class="vs2">
+        <div class="a"><div class="k">En planilla</div><div class="v">2 días</div></div>
+        <div class="b"><div class="k">En FAIM</div><div class="v">14 min</div></div>
+      </div>
+      <div class="r-gr-l" style="color:rgba(255,255,255,.94);margin-top:36px;font-size:40px;font-weight:600">
+        Porque el análisis de costos ya está armado.</div>
+    </div>
+    <div class="r-pie">faimobras.com/presentacion</div>
+  </div>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const escenas = ['e1','e2','e3','e4'];
+// Los importes son los de las lineas del presupuesto de ejemplo; el total es su suma.
+const IMPORTES = [4786000, 1884000, 6320000, 2148000, 3312000];
+const fmt = n => '$ ' + Math.round(n).toLocaleString('es-AR');
+let timers = [], raf = null;
+
+function limpiar(){
+  timers.forEach(clearTimeout); timers = [];
+  if (raf) cancelAnimationFrame(raf);
+  escenas.forEach(e => $(e).classList.remove('on'));
+  [1,2,3,4,5].forEach(i => $('i'+i).classList.remove('on'));
+  $('tot').textContent = '$ 0';
+  $('q').textContent = '';
+  $('crono').textContent = '0:00';
+  $('pie2').textContent = 'Cada ítem trae su análisis de costos';
+}
+const t = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+// Sube el total de a poco: el número creciendo es lo que sostiene la mirada
+function subirTotal(desde, hasta, ms){
+  const t0 = performance.now();
+  const paso = () => {
+    const p = Math.min(1, (performance.now() - t0) / ms);
+    const suave = 1 - Math.pow(1 - p, 3);
+    $('tot').textContent = fmt(desde + (hasta - desde) * suave);
+    if (p < 1) raf = requestAnimationFrame(paso);
+  };
+  raf = requestAnimationFrame(paso);
+}
+
+// Escribe el nombre del ítem letra por letra, como si lo buscaran
+function tipear(texto, ms){
+  let i = 0;
+  const cada = ms / texto.length;
+  const paso = () => {
+    $('q').textContent = texto.slice(0, ++i);
+    if (i < texto.length) timers.push(setTimeout(paso, cada));
+  };
+  paso();
+}
+
+function play(){
+  limpiar();
+  const ver = e => { escenas.forEach(x => $(x).classList.remove('on')); $(e).classList.add('on'); };
+
+  ver('e1');                                   // 0 s — el golpe
+  // A los 2 s el numero se da vuelta: de la queja a la promesa. Ese giro es el gancho.
+  t(2100, () => {
+    $('golpe').style.color = 'var(--ac-cl)';
+    $('golpe').textContent = '14 min';
+    $('golpeTxt').textContent = 'con el análisis de costos ya cargado';
+  });
+  t(3600, () => { ver('e2'); tipear('mamposteria', 600); });
+
+  // Cronómetro de la escena de carga
+  t(3600, () => {
+    const t0 = Date.now();
+    const tic = () => {
+      const s = Math.floor((Date.now() - t0) / 1000);
+      $('crono').textContent = '0:' + String(s).padStart(2,'0');
+      if (s < 10) timers.push(setTimeout(tic, 250));
+    };
+    tic();
+  });
+
+  // Los ítems entran de a uno y el total acompaña
+  let acum = 0;
+  const MOMENTOS = [4300, 5500, 6700, 7900, 9100];
+  const BUSQUEDAS = ['contrapiso','revoque fino','carpeta','ceramico'];
+  MOMENTOS.forEach((ms, k) => {
+    t(ms, () => {
+      $('i' + (k+1)).classList.add('on');
+      const antes = acum; acum += IMPORTES[k];
+      subirTotal(antes, acum, 750);
+      if (BUSQUEDAS[k]) { $('q').textContent=''; tipear(BUSQUEDAS[k], 550); }
+    });
+  });
+  t(9900, () => { $('q').textContent = ''; $('pie2').textContent = '5 ítems · 18.450.000 de costo directo'; });
+
+  t(12600, () => ver('e3'));                   // 12,6 s — coeficientes
+  t(15600, () => ver('e4'));                   // 15,6 s — cierre
+  t(19000, () => {});                          // 19 s — fin
+}
+function toggleSafe(){ ['s1','s2'].forEach(s => $(s).classList.toggle('off')); }
+</script>
+</body>
+</html>

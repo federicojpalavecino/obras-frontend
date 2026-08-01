@@ -82,6 +82,9 @@ body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
 .gente{display:flex;gap:12px}
 .gente .p{font-size:52px;opacity:.18;transition:opacity .5s}
 .gente .p.act{opacity:1}
+.sem{font-family:var(--m);font-size:48px;font-weight:600;color:var(--ac);
+  min-width:44px;transition:color .3s}
+.oscura .sem{color:var(--ac-cl)}
 .fin{font-family:var(--m);font-size:40px;font-weight:600;margin-top:26px;position:relative}
 .fin .v{color:var(--ac)} .oscura .fin .v{color:var(--ac-cl)}
 .fin .old{text-decoration:line-through;opacity:.42;margin-right:18px}
@@ -129,8 +132,8 @@ body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
   <!-- 0-3 s · gancho -->
   <div class="esc oscura" id="e1">
     <div class="r-logo">FAIM <span>OBRAS</span></div>
-    <div class="r-tit">¿Cuánto <em>tarda</em> tu obra?</div>
-    <div class="r-med"><div class="r-baj">Depende de cuánta gente pongas. Y eso se puede calcular.</div></div>
+    <div class="r-tit">¿El plazo de obra lo estimás <em>a ojo</em>?</div>
+    <div class="r-med"><div class="r-baj">No hace falta. Se calcula solo, con la gente y los días que trabajás.</div></div>
     <div class="r-pie">Mirá lo que pasa 👇</div>
   </div>
 
@@ -155,6 +158,11 @@ body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
         <span class="lbl">Cuadrilla</span>
         <span class="gente"><span class="p act">👷</span><span class="p" id="p2">👷</span><span class="p" id="p3">👷</span></span>
       </div>
+      <div class="cuadrilla" style="margin-top:6px">
+        <span class="lbl">Días / semana</span>
+        <span class="sem" id="sem">5</span>
+        <span class="lbl" style="font-size:23px" id="semTxt">lunes a viernes</span>
+      </div>
       <div class="fin" id="fin">Fin de obra: <span class="v">15 de octubre</span></div>
     </div>
     <div class="r-pie" id="pie2">1 persona por tarea</div>
@@ -163,19 +171,19 @@ body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
   <!-- 12-15 s · el número -->
   <div class="esc verde" id="e3">
     <div class="r-logo">FAIM <span>OBRAS</span></div>
-    <div class="r-tit ch">La obra termina</div>
+    <div class="r-tit ch">Y te dice la <em>fecha</em></div>
     <div class="r-med">
-      <div class="r-gr">24</div>
-      <div class="r-gr-l">días antes, solo cambiando la cuadrilla</div>
+      <div class="r-gr">31</div>
+      <div class="r-gr-l">días antes, con 3 personas y sábados incluidos</div>
     </div>
-    <div class="r-pie">Y lo calcula solo.</div>
+    <div class="r-pie">Vos movés la gente. La fecha la pone el sistema.</div>
   </div>
 
   <!-- 15-18 s · cierre -->
   <div class="esc oscura" id="e4">
     <div class="r-logo">FAIM <span>OBRAS</span></div>
-    <div class="r-tit ch">Las horas salen de <em>tu</em> análisis de costos</div>
-    <div class="r-med"><div class="r-baj">No de una estimación. De los rendimientos que ya tenés cargados.</div></div>
+    <div class="r-tit ch">No lo calculás vos.<br>Lo calcula el <em>sistema</em>.</div>
+    <div class="r-med"><div class="r-baj">Toma las horas de mano de obra de tu propio análisis, las divide por la cuadrilla y las reparte en los días que trabajás.</div></div>
     <div class="r-pie">faimobras.com/presentacion</div>
   </div>
 </div>
@@ -194,7 +202,8 @@ function limpiar(){
   $('d1').textContent='25 días'; $('d2').textContent='10 días'; $('d3').textContent='6 días';
   $('p2').classList.remove('act'); $('p3').classList.remove('act');
   $('fin').innerHTML='Fin de obra: <span class="v">15 de octubre</span>';
-  $('pie2').textContent='1 persona por tarea';
+  $('pie2').textContent='1 persona · lunes a viernes';
+  $('sem').textContent='5'; $('semTxt').textContent='lunes a viernes';
 }
 const t = (ms, fn) => timers.push(setTimeout(fn, ms));
 
@@ -210,28 +219,41 @@ function play(){
   t(4300, () => { $('g2').style.left='58%'; $('g2').style.width='23%'; });
   t(5100, () => { $('g3').style.left='81%'; $('g3').style.width='14%'; });
 
-  // Se suma gente y todo se reacomoda
-  t(6800, () => { $('p2').classList.add('act'); $('pie2').textContent='2 personas…'; });
-  t(7400, () => {
+  // 1) Se suma gente: las barras se acortan y las que dependen se corren
+  t(6600, () => { $('p2').classList.add('act'); $('pie2').textContent='2 personas · lunes a viernes'; });
+  t(7100, () => {
     $('g1').style.width='29%';
     $('g2').style.left='29%';
     $('g3').style.left='52%';
     $('d1').textContent='13 días';
   });
-  t(8600, () => { $('p3').classList.add('act'); $('pie2').textContent='3 personas por tarea'; });
-  t(9200, () => {
+  t(8300, () => { $('p3').classList.add('act'); $('pie2').textContent='3 personas · lunes a viernes'; });
+  t(8800, () => {
     $('g1').style.width='20%';
     $('g2').style.left='20%'; $('g2').style.width='8%';
     $('g3').style.left='28%'; $('g3').style.width='5%';
     $('d1').textContent='9 días'; $('d2').textContent='4 días'; $('d3').textContent='2 días';
   });
-  t(10400, () => {
+  t(9900, () => {
     $('fin').innerHTML='Fin de obra: <span class="old">15 oct</span><span class="v">21 de septiembre</span>';
   });
 
-  t(12000, () => ver('e3'));                    // 12 s — el número
-  t(15000, () => ver('e4'));                    // 15 s — cierre
-  t(18000, () => {});                           // 18 s — fin
+  // 2) Se suman los sábados: el calendario laboral también mueve la fecha
+  t(11200, () => { $('sem').textContent='6'; $('semTxt').textContent='se trabaja el sábado';
+                   $('pie2').textContent='3 personas · lunes a sábado'; });
+  t(11800, () => {
+    $('g1').style.width='17%';
+    $('g2').style.left='17%'; $('g2').style.width='7%';
+    $('g3').style.left='24%'; $('g3').style.width='4%';
+    $('d1').textContent='8 días'; $('d2').textContent='3 días'; $('d3').textContent='2 días';
+  });
+  t(12900, () => {
+    $('fin').innerHTML='Fin de obra: <span class="old">15 oct</span><span class="v">14 de septiembre</span>';
+  });
+
+  t(14500, () => ver('e3'));                    // 14,5 s — el número
+  t(17500, () => ver('e4'));                    // 17,5 s — cierre
+  t(21000, () => {});                           // 21 s — fin
 }
 
 function toggleSafe(){
