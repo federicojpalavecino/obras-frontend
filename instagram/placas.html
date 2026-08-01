@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAIM OBRAS — Placas para Instagram (1080×1080)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ac:#059669;--ac2:#7c3aed;--warn:#d97706;--red:#ef4444;
+    --ink:#141916;--bg:#fbfcfb;--soft:#5d6b64;--line:#dde3df;
+    --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#e9ecea;font-family:var(--s);padding:28px 20px 70px}
+  .barra{
+    position:sticky;top:0;z-index:50;background:#fff;border:1px solid var(--line);
+    border-radius:13px;padding:16px 20px;margin:0 auto 28px;max-width:1120px;
+    box-shadow:0 2px 10px rgba(0,0,0,.06);
+  }
+  .barra h1{font-size:19px;font-weight:800;letter-spacing:-.02em;margin-bottom:5px}
+  .barra p{font-size:13.5px;color:var(--soft);line-height:1.55}
+  .barra code{font-family:var(--m);font-size:12.5px;background:#f2f5f3;padding:1px 6px;border-radius:4px}
+  .lista{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:34px}
+  .bloque{background:#fff;border:1px solid var(--line);border-radius:15px;overflow:hidden}
+  .meta{
+    padding:13px 19px;border-bottom:1px solid var(--line);display:flex;
+    align-items:center;gap:11px;flex-wrap:wrap;background:#f7f9f8;
+  }
+  .meta .num{font-family:var(--m);font-size:12px;font-weight:600;color:var(--ac)}
+  .meta .tit{font-weight:700;font-size:14px;flex:1;min-width:180px}
+  .meta .pil{font-family:var(--m);font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600}
+  .escenario{padding:22px;display:flex;justify-content:center;background:#eef1ef}
+
+  /* ── La placa: 1080×1080 exactos, escalada para ver ── */
+  .placa{
+    width:1080px;height:1080px;flex-shrink:0;position:relative;overflow:hidden;
+    transform:scale(.46);transform-origin:top center;margin-bottom:-583px;
+    background:var(--bg);color:var(--ink);display:flex;flex-direction:column;
+    padding:88px 84px;
+  }
+  .placa.oscura{background:var(--ink);color:var(--bg)}
+  .placa.verde{background:var(--ac);color:#fff}
+
+  .ph-marca{
+    font-family:var(--m);font-size:23px;font-weight:600;letter-spacing:.3em;
+    text-transform:uppercase;color:var(--soft);
+  }
+  .oscura .ph-marca,.verde .ph-marca{color:rgba(255,255,255,.62)}
+  .ph-tag{
+    font-family:var(--m);font-size:22px;font-weight:600;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ac);margin-top:52px;
+    display:flex;align-items:center;gap:16px;
+  }
+  .ph-tag::before{content:'';width:46px;height:4px;background:var(--ac);border-radius:3px}
+  .oscura .ph-tag{color:#34d399} .oscura .ph-tag::before{background:#34d399}
+  .verde .ph-tag{color:#fff} .verde .ph-tag::before{background:#fff}
+
+  .ph-tit{
+    font-size:86px;font-weight:800;line-height:1.03;letter-spacing:-.035em;
+    margin-top:26px;text-wrap:balance;
+  }
+  .ph-tit.chico{font-size:66px}
+  .ph-tit em{font-style:normal;color:var(--ac)}
+  .oscura .ph-tit em{color:#34d399}
+  .ph-sub{font-size:34px;color:var(--soft);line-height:1.42;margin-top:28px;max-width:24ch}
+  .oscura .ph-sub{color:#9aa8a1} .verde .ph-sub{color:rgba(255,255,255,.88)}
+
+  .ph-cuerpo{flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;margin:34px 0}
+  .fila{
+    display:flex;align-items:baseline;gap:22px;padding:19px 0;
+    border-bottom:2px solid var(--line);
+  }
+  .oscura .fila{border-color:#2a332e}
+  .fila:last-child{border-bottom:none}
+  .fila .qué{flex:1;font-size:33px;font-weight:600;line-height:1.25}
+  .fila .cuánto{font-family:var(--m);font-size:41px;font-weight:600;color:var(--ac);white-space:nowrap}
+  .oscura .fila .cuánto{color:#34d399}
+  .fila .unidad{font-family:var(--m);font-size:23px;color:var(--soft)}
+  .oscura .fila .unidad{color:#9aa8a1}
+
+  .grande{font-family:var(--m);font-size:190px;font-weight:600;color:var(--ac);line-height:.95;letter-spacing:-.03em}
+  .oscura .grande{color:#34d399} .verde .grande{color:#fff}
+  .grande-l{font-size:32px;color:var(--soft);margin-top:12px;line-height:1.4}
+  .oscura .grande-l{color:#9aa8a1} .verde .grande-l{color:rgba(255,255,255,.85)}
+
+  .ph-pie{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;
+    padding-top:30px;border-top:4px solid var(--ink);
+  }
+  .oscura .ph-pie{border-color:#34d399} .verde .ph-pie{border-color:rgba(255,255,255,.55)}
+  .ph-pie .izq{font-size:27px;font-weight:700;line-height:1.3;max-width:20ch}
+  .ph-pie .der{font-family:var(--m);font-size:21px;color:var(--soft);text-align:right;line-height:1.5}
+  .oscura .ph-pie .der,.verde .ph-pie .der{color:rgba(255,255,255,.72)}
+
+  .swipe{
+    position:absolute;right:84px;bottom:88px;font-family:var(--m);font-size:22px;
+    color:var(--ac);font-weight:600;
+  }
+  .oscura .swipe{color:#34d399}
+
+  @media print{
+    body{background:#fff;padding:0}
+    .barra,.meta{display:none}
+    .escenario{padding:0;background:#fff}
+    .bloque{border:none;border-radius:0;break-after:page}
+    .placa{transform:none;margin-bottom:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @page{size:1080px 1080px;margin:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <h1>Placas para Instagram — 16 publicaciones</h1>
+  <p>Cada placa está construida a <b>1080×1080 px</b> reales y se muestra escalada al 46 % para poder revisarla.
+     Para exportarlas a JPG: abrí este archivo en Chrome, <code>Ctrl+P</code> → destino <b>Guardar como PDF</b>,
+     y de ahí a imagen; o hacé captura de cada placa con la herramienta de recorte.
+     Los textos de cada publicación están en <code>textos.md</code>.</p>
+</div>
+
+<div class="lista" id="lista"></div>
+
+<script>
+const PILARES = {
+  dolor:    ['Dolor','#fee2e2','#b91c1c'],
+  datos:    ['Datos de obra','#dcfce7','#15803d'],
+  producto: ['Producto','#ede9fe','#6d28d9'],
+  criterio: ['Criterio','#fef3c7','#b45309'],
+  invita:   ['Invitación','#e0f2fe','#0369a1'],
+};
+
+// Los rendimientos y costos salen del catálogo real del sistema y de la
+// escala UOCRA Zona A vigente. Si cambian, se actualizan acá.
+const PLACAS = [
+{n:1,pilar:'dolor',tema:'¿Cuántos sábados perdiste cotizando?',tipo:'oscura',
+ tag:'Hablemos claro',tit:'¿Cuántos <em>sábados</em> perdiste cotizando?',
+ sub:'Un presupuesto mediano son dos días de trabajo. Y cuando lo terminás, todavía falta todo lo demás.',
+ pie:['El tiempo de cotizar no se factura.','faimobras.com']},
+
+{n:2,pilar:'datos',tema:'Cuánto rinde un oficial por jornada',tipo:'clara',
+ tag:'Dato de obra',tit:'Cuánto rinde <em>un oficial</em> por jornada',
+ filas:[['Mampostería ladrillo hueco 0,18','8,0','m²'],
+        ['Revoque fino a la cal','7,3','m²'],
+        ['Contrapiso sobre terreno natural','8,9','m²'],
+        ['Piso cerámico','5,0','m²'],
+        ['Carpeta de nivelación 3 cm','5,9','m²'],
+        ['Piso ladrillo común sobre arena','10,0','m²']],
+ pie:['Jornada de 8 h, cuadrilla oficial + ayudante.','Guardalo para cuando cotices'],swipe:true},
+
+{n:3,pilar:'criterio',tema:'Las 3 partes de un análisis',tipo:'clara',
+ tag:'Cómo se arma',tit:'Un precio unitario<br>son <em>tres cosas</em>',
+ filas:[['Materiales por unidad, con desperdicio','1',''],
+        ['Horas de mano de obra por gremio','2',''],
+        ['Equipos y herramientas','3','']],
+ sub:'La suma es el costo directo. Recién ahí se aplican gastos generales, beneficio e IVA.',
+ pie:['Si te falta una, el precio está mal.','faimobras.com'],swipe:true},
+
+{n:4,pilar:'datos',tema:'Escala UOCRA vigente',tipo:'oscura',
+ tag:'Mano de obra · Zona A',tit:'Lo que vale <em>la hora</em> hoy',
+ filas:[['Oficial especializado','7.420','$/h'],
+        ['Oficial','6.348','$/h'],
+        ['Medio oficial','5.866','$/h'],
+        ['Ayudante','5.399','$/h']],
+ pie:['Básico sin cargas sociales.','Escala UOCRA CCT 76/75']},
+
+{n:5,pilar:'dolor',tema:'El presupuesto ya está. ¿Y el certificado?',tipo:'clara',
+ tag:'La parte que nadie cuenta',tit:'El presupuesto ya está.<br>¿Y el <em>certificado</em>?',
+ sub:'Volver a cargar los mismos ítems, con los mismos precios, en otra planilla. Todos los meses.',
+ pie:['Cargar dos veces el mismo dato es trabajo que nadie paga.','faimobras.com']},
+
+{n:6,pilar:'datos',tema:'Qué lleva 1 m² de mampostería',tipo:'clara',
+ tag:'Dato de obra',tit:'Qué lleva <em>1 m²</em> de pared de ladrillo hueco 0,18',
+ filas:[['Ladrillos','12,5','u'],['Cemento','8,0','kg'],
+        ['Cal','12,0','kg'],['Arena','0,03','m³'],
+        ['Oficial','1,0','h'],['Ayudante','0,9','h']],
+ pie:['Valores del catálogo, editables por obra.','Guardalo'],swipe:true},
+
+{n:7,pilar:'producto',tema:'Más gente, menos días',tipo:'verde',
+ tag:'Planificación',tit:'De 1 a 3 personas:<br>la obra termina antes',
+ sub:'Cambiás la cuadrilla de una tarea y el sistema recalcula la duración con las horas de tu propio análisis, corre las tareas que dependen y te da la nueva fecha de fin.',
+ pie:['Sin tocar una planilla.','faimobras.com']},
+
+{n:8,pilar:'criterio',tema:'Cargas sociales',tipo:'clara',
+ tag:'Costos',tit:'Por qué la mano de obra sale <em>más</em> que el jornal',
+ gran:'+65%',granL:'es lo que suman las cargas sociales sobre el básico',
+ sub:'Una hora de oficial a $6.348 entra al costo a $10.474. Si cotizás con el básico pelado, estás perdiendo plata en cada ítem.',
+ pie:['El factor se configura por presupuesto.','faimobras.com'],swipe:true},
+
+{n:9,pilar:'datos',tema:'200 m² de pared',tipo:'oscura',
+ tag:'Planificación',tit:'¿Cuántos días son<br><em>200 m²</em> de pared?',
+ gran:'13',granL:'días hábiles con 2 oficiales y 2 ayudantes',
+ sub:'200 m² × 1 h/m² de oficial = 200 h. Con 2 oficiales, 100 jornadas de 8 h cada uno: 13 días.',
+ pie:['La cuenta que casi nadie hace antes de firmar.','faimobras.com']},
+
+{n:10,pilar:'producto',tema:'Portal de clientes',tipo:'clara',
+ tag:'Portal de clientes',tit:'«¿Cómo viene<br>la obra?»',
+ sub:'La pregunta que te llega un viernes a las 8 de la noche. Tu cliente entra a su portal y ve avance, contrato y cuenta corriente. Vos elegís qué mostrarle.',
+ pie:['Menos llamadas. Mejor relación.','faimobras.com']},
+
+{n:11,pilar:'criterio',tema:'Qué mirar antes de firmar',tipo:'clara',
+ tag:'Antes de firmar',tit:'5 cosas para revisar en <em>un presupuesto</em>',
+ filas:[['¿Los precios tienen fecha?','1',''],
+        ['¿La mano de obra está con cargas?','2',''],
+        ['¿El cómputo se puede verificar?','3',''],
+        ['¿Qué pasa si hay un adicional?','4',''],
+        ['¿El plazo sale de algún cálculo?','5','']],
+ pie:['Si alguna respuesta es «no», preguntá.','Guardalo'],swipe:true},
+
+{n:12,pilar:'dolor',tema:'Se cayó el Excel',tipo:'oscura',
+ tag:'Todos lo vivimos',tit:'«Se me cerró<br>y no lo <em>guardé</em>»',
+ sub:'Cuatro horas de cómputo. Una fórmula pisada. Un archivo que quedó en la otra computadora.',
+ pie:['La obra no puede depender de un archivo.','faimobras.com']},
+
+{n:13,pilar:'datos',tema:'Qué aumentó este mes',tipo:'clara',
+ tag:'Actualización de precios',tit:'Qué se llevó <em>el aumento</em> este mes',
+ filas:[['Hierro del 6','+19,3','%'],['Hierro del 12','+17,9','%'],
+        ['Hierro del 8','+16,5','%'],['Malla Q-188','+11,9','%'],
+        ['Cemento','0','%'],['Arena','0','%']],
+ pie:['Relevamiento propio, con fuente y fecha.','Actualizado este mes'],swipe:true},
+
+{n:14,pilar:'producto',tema:'De cero a PDF',tipo:'verde',
+ tag:'En vivo',tit:'Un presupuesto completo,<br>de cero a PDF',
+ sub:'Elegís los ítems del catálogo, cargás cantidades, ajustás coeficientes e imprimís. El análisis de costos ya está armado.',
+ pie:['Mirá el reel completo.','faimobras.com']},
+
+{n:15,pilar:'criterio',tema:'Camino crítico',tipo:'clara',
+ tag:'Planificación',tit:'¿Qué tarea <em>no</em> se puede atrasar?',
+ sub:'Las que están en el camino crítico. Si una se corre un día, toda la obra se corre un día. El resto tiene holgura y podés acomodarlas.',
+ pie:['El sistema te las marca en rojo.','faimobras.com'],swipe:true},
+
+{n:16,pilar:'invita',tema:'Traé tu presupuesto',tipo:'oscura',
+ tag:'Demo',tit:'Traé <em>un presupuesto tuyo</em>',
+ sub:'30 minutos. Lo cargamos juntos y ves el flujo completo, de la cotización al certificado. Si no te sirve, te lo decimos nosotros.',
+ pie:['WhatsApp +54 9 3482 30-5155','faimobras.com/presentacion']},
+];
+
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+function render(p){
+  const [nom,bg,fg] = PILARES[p.pilar];
+  let cuerpo = '';
+  if (p.filas){
+    cuerpo = p.filas.map(([q,c,u]) =>
+      `<div class="fila"><div class="qué">${q}</div>
+       <div><span class="cuánto">${c}</span> <span class="unidad">${u}</span></div></div>`).join('');
+  } else if (p.gran){
+    cuerpo = `<div><div class="grande">${p.gran}</div><div class="grande-l">${p.granL||''}</div></div>`;
+  }
+  const sub = p.sub ? `<div class="ph-sub">${p.sub}</div>` : '';
+  const subArriba = (p.filas && p.sub) ? '' : sub;
+  const subAbajo  = (p.filas && p.sub) ? sub : '';
+
+  return `<div class="bloque">
+    <div class="meta">
+      <span class="num">${String(p.n).padStart(2,'0')}</span>
+      <span class="tit">${esc(p.tema)}</span>
+      <span class="pil" style="background:${bg};color:${fg}">${nom}</span>
+    </div>
+    <div class="escenario">
+      <div class="placa ${p.tipo}">
+        <div class="ph-marca">FAIM OBRAS</div>
+        <div class="ph-tag">${p.tag}</div>
+        <div class="ph-tit ${(p.tit.length>46?'chico':'')}">${p.tit}</div>
+        ${subArriba}
+        <div class="ph-cuerpo">${cuerpo}</div>
+        ${subAbajo}
+        <div class="ph-pie">
+          <div class="izq">${p.pie[0]}</div>
+          <div class="der">${p.pie[1]}</div>
+        </div>
+        ${p.swipe ? '<div class="swipe">→</div>' : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+document.getElementById('lista').innerHTML = PLACAS.map(render).join('');
+</script>
+
+</body>
+</html>
