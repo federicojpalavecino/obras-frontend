@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAIM OBRAS — Reel: ranking de rendimientos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
+  align-items:flex-start;justify-content:center;flex-wrap:wrap}
+.panel{background:#fff;border-radius:15px;padding:22px 24px;width:400px;flex-shrink:0}
+.panel h1{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.panel p{font-size:13.5px;color:var(--mut);line-height:1.6;margin-bottom:13px}
+.panel code{font-family:var(--m);font-size:12px;background:var(--sup2);padding:1px 5px;border-radius:4px}
+.btn{width:100%;background:var(--ac);color:#fff;border:none;border-radius:10px;padding:14px;
+  font-family:var(--s);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:9px}
+.btn:hover{background:#047857}
+.btn.sec{background:var(--sup2);color:var(--ink)}
+.aviso{background:#dcfce7;border-left:3px solid var(--ac);border-radius:0 8px 8px 0;
+  padding:12px 14px;font-size:12.5px;color:#14532d;line-height:1.55}
+.txt{background:var(--sup2);border-radius:9px;padding:13px 15px;font-size:12.5px;
+  line-height:1.6;margin-top:13px}
+.txt b{display:block;margin-bottom:6px;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mut)}
+.marco{background:#000;border-radius:20px;padding:10px;flex-shrink:0;
+  width:calc(1080px * .33 + 20px);height:calc(1920px * .33 + 20px)}
+#reel{width:1080px;height:1920px;position:relative;overflow:hidden;
+  transform:scale(.33);transform-origin:top left;background:var(--bg);color:var(--ink)}
+#reel::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);background-size:60px 60px}
+.esc{position:absolute;inset:0;padding:150px 82px 190px;display:flex;flex-direction:column;
+  opacity:0;z-index:2}
+.esc.on{opacity:1}
+.esc.oscura{background:var(--ink);color:var(--bg)}
+.esc.oscura::before{content:'';position:absolute;inset:0;opacity:1;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);background-size:60px 60px}
+.esc.verde{background:var(--ac);color:#fff}
+.esc.verde::before{content:'';position:absolute;inset:0;opacity:1;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);background-size:60px 60px}
+.r-logo{font-size:32px;font-weight:800;letter-spacing:-.02em;color:var(--ac);position:relative}
+.r-logo span{color:var(--ink);font-weight:700}
+.oscura .r-logo{color:var(--ac-cl)} .oscura .r-logo span{color:var(--bg)}
+.verde .r-logo{color:#fff} .verde .r-logo span{color:rgba(255,255,255,.72)}
+.r-tit{font-size:88px;font-weight:800;line-height:1.02;letter-spacing:-.035em;
+  margin-top:48px;position:relative;text-wrap:balance}
+.r-tit.ch{font-size:64px}
+.r-tit em{font-style:normal;color:var(--ac)}
+.oscura .r-tit em{color:var(--ac-cl)} .verde .r-tit em{color:rgba(255,255,255,.75)}
+.r-baj{font-size:36px;color:var(--mut);line-height:1.4;margin-top:26px;position:relative}
+.oscura .r-baj{color:#98a0b2} .verde .r-baj{color:rgba(255,255,255,.92)}
+.r-med{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative}
+.r-pie{padding-top:28px;border-top:5px solid var(--ink);font-size:29px;font-weight:700;position:relative}
+.oscura .r-pie{border-color:var(--ac-cl)} .verde .r-pie{border-color:rgba(255,255,255,.6)}
+
+/* Ranking: barra proporcional al rendimiento. El largo comunica antes que el número. */
+.rk{display:flex;flex-direction:column;gap:15px}
+.rk .r{display:flex;align-items:center;gap:18px;opacity:0;transform:translateX(-18px);
+  transition:opacity .3s,transform .3s}
+.rk .r.on{opacity:1;transform:none}
+.rk .pos{font-family:var(--m);font-size:24px;font-weight:600;color:var(--mut);width:38px}
+.oscura .rk .pos{color:#8b93a5}
+.rk .nm{font-size:28px;font-weight:600;width:330px;line-height:1.16}
+.rk .bar{flex:1;height:40px;background:var(--sup2);border-radius:8px;overflow:hidden}
+.oscura .rk .bar{background:rgba(255,255,255,.08)}
+.rk .bar i{display:block;height:100%;width:0;background:var(--ac);transition:width .75s cubic-bezier(.3,0,.2,1)}
+.oscura .rk .bar i{background:var(--ac-cl)}
+.rk .r.lento .bar i{background:var(--red)}
+.rk .vl{font-family:var(--m);font-size:31px;font-weight:600;width:132px;text-align:right;color:var(--ac)}
+.oscura .rk .vl{color:var(--ac-cl)}
+.rk .r.lento .vl{color:var(--red)}
+
+.r-gr{font-family:var(--m);font-size:230px;font-weight:600;color:var(--ac);
+  line-height:.9;letter-spacing:-.04em;position:relative}
+.oscura .r-gr{color:var(--ac-cl)} .verde .r-gr{color:#fff}
+.r-gr-l{font-size:36px;color:var(--mut);margin-top:20px;line-height:1.35;position:relative}
+.oscura .r-gr-l{color:#98a0b2} .verde .r-gr-l{color:rgba(255,255,255,.92)}
+.cuenta{background:rgba(255,255,255,.18);border-radius:18px;padding:30px 34px;margin-top:8px;
+  font-family:var(--m);font-size:34px;line-height:1.6;position:relative}
+.cuenta b{font-size:44px;display:block;margin-top:12px}
+.safe{position:absolute;left:0;right:0;height:250px;z-index:9;pointer-events:none;
+  border:2px dashed rgba(239,68,68,.4);background:rgba(239,68,68,.05)}
+.safe.t{top:0} .safe.b{bottom:0} .safe.off{display:none}
+@media (prefers-reduced-motion:reduce){ .rk .r,.rk .bar i{transition:none} }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <h1>Reel — «Ranking de rendimientos»</h1>
+  <p><b>28 segundos.</b> Este es el reel de <b>datos puros</b>: no vende el sistema,
+     regala información. Es el que la gente guarda y manda al grupo de obra.</p>
+  <button class="btn" onclick="play()">▶ Reproducir</button>
+  <button class="btn sec" onclick="toggleSafe()">Mostrar / ocultar zonas seguras</button>
+  <div class="aviso"><b>Este es el que hay que promocionar.</b> Si vas a poner plata
+    en publicidad, ponela acá: el contenido de datos es el que trae gente que
+    todavía no te conoce.</div>
+  <div class="txt"><b>Texto del posteo</b>
+    Cuánto rinde cada tarea en una jornada. De la que más avanza a la que menos.<br><br>
+    ▪️ Azotado impermeable — 26,7 m²<br>
+    ▪️ Membrana hidráulica — 13,3 m²<br>
+    ▪️ Carpeta de cemento alisado — 11,4 m²<br>
+    ▪️ Tabique de placa de yeso — 10,0 m²<br>
+    ▪️ Cielorraso aplicado — 9,4 m²<br>
+    ▪️ Contrapiso sobre terreno — 8,9 m²<br>
+    ▪️ Mampostería hueco 0,18 — 8,0 m²<br>
+    ▪️ Revoque fino a la cal — 7,3 m²<br>
+    ▪️ Piso cerámico — 5,0 m²<br>
+    ▪️ Excavación de suelo — 1,4 m³<br><br>
+    Con esto sacás el plazo de una tarea en 10 segundos: dividís la cantidad
+    por el rendimiento y te da las jornadas.<br><br>
+    Ojo con el último: la excavación manual rinde casi 20 veces menos que el
+    azotado. Es la que más se subestima al armar un plazo.<br><br>
+    📌 Guardalo para cuando cotices.<br><br>
+    👉 ¿Te dan parecido en tus obras?
+  </div>
+</div>
+
+<div class="marco">
+<div id="reel">
+  <div class="safe t" id="s1"></div>
+  <div class="safe b" id="s2"></div>
+
+  <!-- 0-3 s · gancho -->
+  <div class="esc oscura" id="e1">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit">¿Cuánto avanza <em>una jornada</em> de obra?</div>
+    <div class="r-med"><div class="r-baj">Diez tareas, de la que más rinde a la que menos.</div></div>
+    <div class="r-pie">Guardalo antes de que lo pierdas 👇</div>
+  </div>
+
+  <!-- 3-19 s · el ranking -->
+  <div class="esc" id="e2">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch" style="margin-top:26px;font-size:56px">Rendimiento por jornada</div>
+    <div class="r-med"><div class="rk" id="rk"></div></div>
+    <div class="r-pie" id="pie2">Cuadrilla de oficial + ayudante · jornada de 8 h</div>
+  </div>
+
+  <!-- 19-24 s · el contraste que sorprende -->
+  <div class="esc oscura" id="e3">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch">La que <em>siempre</em> se subestima</div>
+    <div class="r-med">
+      <div class="r-gr" style="color:var(--red)">19×</div>
+      <div class="r-gr-l">más lenta la excavación manual que el azotado.<br>
+        1,4 m³ por jornada contra 26,7 m².</div>
+    </div>
+    <div class="r-pie">Si el plazo no cierra, empezá mirando ahí.</div>
+  </div>
+
+  <!-- 24-28 s · para qué sirve -->
+  <div class="esc verde" id="e4">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch">Para qué <em>sirve</em></div>
+    <div class="r-med">
+      <div class="cuenta">200 m² ÷ 8 m² por jornada<b>= 25 jornadas de oficial</b></div>
+      <div class="r-baj" style="font-size:34px">Y si ponés 2 oficiales, 13 días.</div>
+    </div>
+    <div class="r-pie">📌 Guardalo · faimobras.com</div>
+  </div>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const ESC = ['e1','e2','e3','e4'];
+// Rendimientos del catálogo del sistema. m² por jornada salvo donde dice m³.
+const R = [
+  ['Azotado impermeable', 26.7, 'm²'],
+  ['Membrana hidráulica', 13.3, 'm²'],
+  ['Carpeta alisada', 11.4, 'm²'],
+  ['Tabique placa de yeso', 10.0, 'm²'],
+  ['Cielorraso aplicado', 9.4, 'm²'],
+  ['Contrapiso s/ terreno', 8.9, 'm²'],
+  ['Mampostería 0,18', 8.0, 'm²'],
+  ['Revoque fino a la cal', 7.3, 'm²'],
+  ['Piso cerámico', 5.0, 'm²'],
+  ['Excavación de suelo', 1.4, 'm³'],
+];
+const MAX = 26.7;
+let timers = [];
+
+// Se arma el ranking desde los datos: cambiar un número no rompe el diseño.
+$('rk').innerHTML = R.map(([n, v, u], i) =>
+  `<div class="r ${v < 2 ? 'lento' : ''}" id="r${i}">
+     <div class="pos">${String(i+1).padStart(2,'0')}</div>
+     <div class="nm">${n}</div>
+     <div class="bar"><i id="bi${i}"></i></div>
+     <div class="vl">${v.toLocaleString('es-AR')} <span style="font-size:22px">${u}</span></div>
+   </div>`).join('');
+
+function limpiar(){
+  timers.forEach(clearTimeout); timers = [];
+  ESC.forEach(e => $(e).classList.remove('on'));
+  R.forEach((_, i) => { $('r'+i).classList.remove('on'); $('bi'+i).style.width = '0'; });
+  $('pie2').textContent = 'Cuadrilla de oficial + ayudante · jornada de 8 h';
+}
+const t = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+function play(){
+  limpiar();
+  const ver = e => { ESC.forEach(x => $(x).classList.remove('on')); $(e).classList.add('on'); };
+  ver('e1');
+  t(3000, () => ver('e2'));
+
+  // Las barras entran de arriba hacia abajo: se lee como un ranking real
+  R.forEach(([, v], i) => {
+    t(3500 + i * 1100, () => {
+      $('r'+i).classList.add('on');
+      $('bi'+i).style.width = Math.max(3, (v / MAX) * 100) + '%';
+    });
+  });
+  t(14000, () => { $('pie2').textContent = '📌 Guardalo para cuando cotices'; });
+
+  t(19000, () => ver('e3'));
+  t(24000, () => ver('e4'));
+  t(28000, () => {});
+}
+function toggleSafe(){ ['s1','s2'].forEach(s => $(s).classList.toggle('off')); }
+</script>
+</body>
+</html>
