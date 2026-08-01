@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAIM OBRAS — Logo y biografía para Instagram</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:var(--s);color:var(--ink);padding:0 0 80px;line-height:1.6}
+.w{max-width:1000px;margin:0 auto;padding:0 24px}
+header{padding:54px 0 26px;border-bottom:2px solid var(--ink);margin-bottom:38px}
+.marca{font-family:var(--m);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--mut)}
+h1{font-size:clamp(28px,4.5vw,42px);font-weight:800;letter-spacing:-.03em;margin:12px 0 8px;line-height:1.05}
+.lead{color:var(--mut);max-width:62ch}
+h2{font-size:25px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+section{margin-bottom:52px}
+.tag{font-family:var(--m);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ac);display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.tag::before{content:'';width:20px;height:2px;background:var(--ac)}
+.sub{color:var(--mut);margin-bottom:24px;max-width:70ch}
+.nota{background:#fef3c7;border-left:3px solid var(--warn);border-radius:0 10px 10px 0;
+  padding:15px 19px;font-size:14px;color:#78350f;margin-bottom:24px;line-height:1.55}
+.ok{background:#dcfce7;border-left-color:var(--ac);color:#14532d}
+.cod{font-family:var(--m);font-size:13px;background:var(--sup2);padding:1px 6px;border-radius:4px}
+
+/* ── Logos ── */
+.logos{display:flex;gap:26px;flex-wrap:wrap}
+.lcard{background:#fff;border:1px solid var(--bord);border-radius:15px;overflow:hidden;width:308px}
+.lcard .cab{padding:11px 16px;background:var(--sup2);border-bottom:1px solid var(--bord)}
+.lcard .cab .t{font-weight:700;font-size:14px}
+.lcard .cab .d{font-size:11.5px;color:var(--mut);line-height:1.45}
+.lcard .cuerpo{padding:20px;display:flex;flex-direction:column;align-items:center;gap:16px}
+
+/* El lienzo real: 320×320. Se muestra recortado en círculo, como lo hace Instagram. */
+.logo{width:320px;height:320px;flex-shrink:0;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  transform:scale(.56);transform-origin:top center;margin-bottom:-141px}
+.logo.circ{border-radius:50%}
+.logo .txt{font-weight:800;letter-spacing:-.045em;line-height:.86;text-align:center}
+
+/* Vista a tamaños reales de Instagram */
+.tam{display:flex;align-items:flex-end;gap:16px;padding-top:6px}
+.tam .u{display:flex;flex-direction:column;align-items:center;gap:5px}
+.tam .u span{font-family:var(--m);font-size:9.5px;color:var(--mut)}
+.mini{border-radius:50%;overflow:hidden;flex-shrink:0;position:relative}
+.mini .logo{transform-origin:top left;margin:0}
+.m110{width:110px;height:110px} .m110 .logo{transform:scale(.34375)}
+.m56{width:56px;height:56px}   .m56 .logo{transform:scale(.175)}
+.m32{width:32px;height:32px}   .m32 .logo{transform:scale(.1)}
+
+/* ── Bio ── */
+.bios{display:flex;flex-direction:column;gap:16px}
+.bio{background:#fff;border:1px solid var(--bord);border-radius:14px;padding:20px 22px}
+.bio.rec{border-color:var(--ac);background:#f0fdf4}
+.bio .et{font-family:var(--m);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--mut);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.bio.rec .et{color:var(--ac);font-weight:600}
+.bio pre{font-family:var(--s);font-size:15px;line-height:1.55;white-space:pre-wrap;margin:0}
+.cnt{font-family:var(--m);font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600}
+.cnt.bien{background:#dcfce7;color:#15803d} .cnt.mal{background:#fee2e2;color:#b91c1c}
+.bio .por{font-size:13px;color:var(--mut);margin-top:11px;padding-top:11px;border-top:1px solid var(--bord)}
+
+table{width:100%;border-collapse:collapse;font-size:14px}
+.scroll{overflow-x:auto;border:1px solid var(--bord);border-radius:13px;background:#fff}
+th{background:var(--ink);color:#fff;padding:11px 14px;text-align:left;font-size:11px;
+  letter-spacing:.09em;text-transform:uppercase;font-weight:700;white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--bord);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.cam{display:flex;flex-direction:column;gap:14px}
+.campo{background:#fff;border:1px solid var(--bord);border-radius:13px;padding:17px 20px}
+.campo .k{font-family:var(--m);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--mut);margin-bottom:7px}
+.campo .v{font-size:16px;font-weight:600}
+.campo .h{font-size:13px;color:var(--mut);margin-top:6px;line-height:1.5}
+
+/* Portadas de destacadas */
+.dest{display:flex;gap:16px;flex-wrap:wrap}
+.dcard{text-align:center}
+.dc{width:170px;height:170px;border-radius:50%;background:var(--ink);color:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+  transform:scale(.62);transform-origin:top center;margin-bottom:-65px}
+.dc .e{font-size:52px} .dc .t{font-family:var(--m);font-size:17px;letter-spacing:.1em;text-transform:uppercase}
+.dcard .n{font-size:12px;color:var(--mut);margin-top:4px}
+@media print{ body{background:#fff} .nota{-webkit-print-color-adjust:exact;print-color-adjust:exact} }
+</style>
+</head>
+<body>
+
+<header class="w">
+  <div class="marca">FAIM OBRAS · Instagram</div>
+  <h1>Logo de perfil y biografía</h1>
+  <p class="lead">Los dos tienen límites duros: la foto se muestra <b>recortada en círculo</b>
+    y en los comentarios baja a 32 px, y la bio corta a los <b>150 caracteres</b>.
+    Todo lo de acá está hecho dentro de esos límites.</p>
+</header>
+
+<section class="w">
+  <div class="tag">Foto de perfil</div>
+  <h2>Cuatro variantes, a tamaño real</h2>
+  <p class="sub">Debajo de cada una está cómo se ve en el perfil (110 px), en las historias
+    y sugeridos (56 px) y en los comentarios (32 px). Ese último tamaño es el que decide:
+    si ahí no se lee, no sirve.</p>
+
+  <div class="nota">
+    <b>Por qué no va «FAIM OBRAS» completo.</b> Dos palabras en un círculo de 32 px se
+    convierten en una mancha. El nombre completo ya va en el campo «Nombre» del perfil,
+    que sí se lee. La foto tiene que resolver el reconocimiento, no la lectura.
+  </div>
+
+  <div class="logos" id="logos"></div>
+</section>
+
+<section class="w">
+  <div class="tag">Biografía</div>
+  <h2>Opciones, con el contador</h2>
+  <p class="sub">Instagram corta a los 150 caracteres. Las tres primeras líneas son las que
+    se ven sin tocar «más», así que lo importante va arriba.</p>
+  <div class="bios" id="bios"></div>
+</section>
+
+<section class="w">
+  <div class="tag">Los otros campos</div>
+  <h2>Lo que casi nadie completa bien</h2>
+  <div class="cam">
+    <div class="campo">
+      <div class="k">Nombre (30 caracteres) — se busca</div>
+      <div class="v">FAIM OBRAS · Presupuestos</div>
+      <div class="h">Este campo <b>sí entra en el buscador de Instagram</b>, el usuario no.
+        Por eso conviene que tenga la palabra que alguien tipearía: «presupuestos».
+        <span class="cod" id="cNom"></span></div>
+    </div>
+    <div class="campo">
+      <div class="k">Usuario</div>
+      <div class="v">@faimobras</div>
+      <div class="h">Corto, igual que el dominio. Si estuviera tomado: @faim.obras o @faimobras.ar</div>
+    </div>
+    <div class="campo">
+      <div class="k">Categoría</div>
+      <div class="v">Software</div>
+      <div class="h">O «Servicio empresarial». Hay que pasar la cuenta a <b>Cuenta de empresa</b>
+        para tener estadísticas y el botón de contacto.</div>
+    </div>
+    <div class="campo">
+      <div class="k">Enlace</div>
+      <div class="v">faimobras.com/presentacion</div>
+      <div class="h">No al inicio: el que llega de Instagram todavía no quiere loguearse,
+        quiere entender. La presentación explica y ofrece la demo.</div>
+    </div>
+    <div class="campo">
+      <div class="k">Botones de contacto</div>
+      <div class="v">WhatsApp +54 9 3482 30-5155 · faimobras@gmail.com</div>
+      <div class="h">Con cuenta de empresa aparecen como botones arriba, separados del enlace.</div>
+    </div>
+  </div>
+</section>
+
+<section class="w">
+  <div class="tag">Destacadas</div>
+  <h2>Portadas de las historias fijadas</h2>
+  <p class="sub">Cinco, en el orden en que un prospecto necesita la información.
+    Fondo tinta con el ícono en blanco: se ven parejas en la fila del perfil.</p>
+  <div class="dest" id="dest"></div>
+</section>
+
+<script>
+// ── Logos ────────────────────────────────────────────────────────────────────
+// Se prueban cuatro caminos: monograma de una letra, marca corta de cuatro,
+// marca corta en negativo, y una con la unidad de obra como guiño.
+const LOGOS = [
+  {id:'a', t:'Marca corta, fondo verde', d:'La recomendada. Cuatro letras es el máximo que sobrevive a 32 px.',
+   bg:'#059669', fg:'#ffffff', txt:'FAIM', size:112, sub:null},
+  {id:'b', t:'Marca corta, fondo tinta', d:'Más sobria. Contrasta bien sobre el feed claro de Instagram.',
+   bg:'#1a1a2e', fg:'#10b981', txt:'FAIM', size:112, sub:null},
+  {id:'c', t:'Monograma', d:'Máxima legibilidad en chico, pero pierde el nombre. Sirve si la cuenta ya es conocida.',
+   bg:'#059669', fg:'#ffffff', txt:'F', size:190, sub:null},
+  {id:'d', t:'Con bajada', d:'Se lee bien a 110 px, pero a 32 px la bajada desaparece. Sirve si no vas a comentar mucho.',
+   bg:'#ffffff', fg:'#059669', txt:'FAIM', size:96, sub:'OBRAS'},
+];
+
+const cuerpoLogo = (L, cls='') => `
+  <div class="logo ${cls}" style="background:${L.bg};color:${L.fg}">
+    <div class="txt" style="font-size:${L.size}px">${L.txt}</div>
+    ${L.sub ? `<div style="font-family:'IBM Plex Mono',monospace;font-size:30px;letter-spacing:.22em;
+        margin-top:10px;opacity:.85">${L.sub}</div>` : ''}
+  </div>`;
+
+document.getElementById('logos').innerHTML = LOGOS.map(L => `
+  <div class="lcard">
+    <div class="cab"><div class="t">${L.t}</div><div class="d">${L.d}</div></div>
+    <div class="cuerpo">
+      ${cuerpoLogo(L, 'circ')}
+      <div class="tam">
+        <div class="u"><div class="mini m110">${cuerpoLogo(L)}</div><span>110 px</span></div>
+        <div class="u"><div class="mini m56">${cuerpoLogo(L)}</div><span>56 px</span></div>
+        <div class="u"><div class="mini m32">${cuerpoLogo(L)}</div><span>32 px</span></div>
+      </div>
+    </div>
+  </div>`).join('');
+
+// ── Biografías ───────────────────────────────────────────────────────────────
+// El contador se calcula acá: contar a mano una bio es la forma segura de
+// pasarse de 150 y que Instagram la corte en el peor lugar.
+const BIOS = [
+  {rec:true, et:'Recomendada',
+   txt:`Cotizá una obra en minutos, no en días 📐
+Presupuestos, planificación y certificados para estudios de arquitectura
+📲 Demo sin cargo 👇`,
+   por:'Abre con el beneficio y el tiempo, que es lo que más duele. La segunda línea dice qué es y para quién, con las palabras que ese público usa. Cierra con una acción clara.'},
+  {et:'Más directa, contra Excel',
+   txt:`Dejá el Excel para otra cosa 📊
+Presupuestos, análisis de costos y planificación de obra en un solo lugar
+📲 Coordiná tu demo 👇`,
+   por:'Nombra al rival de entrada. Funciona si querés que el posicionamiento sea evidente desde el perfil, pero es un poco más agresiva.'},
+  {et:'Enfocada en el dato',
+   txt:`Rendimientos, costos y plazos de obra reales 🏗️
+El sistema de gestión para estudios de arquitectura e ingeniería
+📲 Demo 👇`,
+   por:'Coherente con el contenido de datos. Es la que mejor le cierra a alguien que llegó por una placa de rendimientos.'},
+  {et:'Corta',
+   txt:`Cotizá en minutos. Planificá con datos. Cobrá a tiempo.
+Gestión integral para estudios de arquitectura 📐
+📲 Demo 👇`,
+   por:'Tres verbos, tres beneficios. Fácil de leer en el celular, aunque dice menos de qué es el producto.'},
+];
+
+document.getElementById('bios').innerHTML = BIOS.map((b, i) => {
+  const n = [...b.txt].length;                 // cuenta emojis como 1, igual que Instagram
+  const ok = n <= 150;
+  return `<div class="bio ${b.rec ? 'rec' : ''}">
+    <div class="et"><span>${b.et}</span>
+      <span class="cnt ${ok ? 'bien' : 'mal'}">${n} / 150</span></div>
+    <pre>${b.txt}</pre>
+    <div class="por">${b.por}</div>
+  </div>`;
+}).join('');
+
+document.getElementById('cNom').textContent =
+  [...'FAIM OBRAS · Presupuestos'].length + ' / 30 caracteres';
+
+// ── Destacadas ───────────────────────────────────────────────────────────────
+const DEST = [
+  ['📐','Cotizar','Cómo se arma un presupuesto'],
+  ['📊','Datos','Rendimientos y costos'],
+  ['🏗️','Obra','Planificación y certificados'],
+  ['💰','Números','Control financiero'],
+  ['❓','Dudas','Preguntas frecuentes'],
+];
+document.getElementById('dest').innerHTML = DEST.map(([e,t,n]) => `
+  <div class="dcard">
+    <div class="dc"><div class="e">${e}</div><div class="t">${t}</div></div>
+    <div class="n">${n}</div>
+  </div>`).join('');
+</script>
+</body>
+</html>
