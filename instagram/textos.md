@@ -341,6 +341,350 @@ ver el precio calculándose → ajustar coeficientes → imprimir el PDF.
 
 ---
 
+## MES 2
+
+### 17 · Sem 5, Lunes — Datos ⭐
+> Las tareas que más rinden por jornada.
+>
+> Si tenés que estimar un plazo rápido, estas son las que más avanzan:
+>
+> ▪️ Azotado impermeable — 26,7 m²
+> ▪️ Membrana hidráulica — 13,3 m²
+> ▪️ Carpeta de cemento alisado — 11,4 m²
+> ▪️ Tabique de placa de yeso — 10,0 m²
+> ▪️ Cielorraso aplicado — 9,4 m²
+>
+> Ojo con el contraste: el azotado rinde 26 m² por jornada y la excavación
+> de suelo apenas 1,4 m³. Las tareas «chicas» del presupuesto son las que
+> más días se comen.
+>
+> 👉 ¿Cuál te sorprendió?
+
+`#rendimientos #construccion #obra #arquitectura #planificacion #analisisdeprecios
+#direcciondeobra #ingenieriacivil`
+
+---
+
+### 18 · Sem 5, Miércoles — Dolor
+> «El cliente pidió un cambio. ¿Cuánto sale?»
+>
+> Y ahí volvés a abrir la planilla original. Con miedo de romper algo que
+> ya estaba cerrado y aprobado.
+>
+> Un adicional no debería obligarte a rehacer nada. Debería ser un
+> presupuesto aparte, vinculado al original, con sus propios coeficientes.
+>
+> 👉 ¿Cómo manejás los adicionales hoy?
+
+`#adicionales #presupuestodeobra #gestiondeobra #construccion #arquitectura
+#direcciondeobra #obra`
+
+---
+
+### 19 · Sem 5, Viernes — Criterio
+> El desperdicio no es opcional.
+>
+> Cerámicos que se cortan. Mortero que se cae. Barras que sobran de cada tira.
+>
+> Si computás la medida teórica y no cargás el desperdicio, la diferencia
+> la ponés vos. En cerámicos puede ser un 10%. En hierro, según el despiece,
+> bastante más.
+>
+> Y no se arregla «poniendo un 10% al final»: va cargado en el análisis
+> de cada ítem, porque no todos desperdician igual.
+>
+> 👉 ¿Qué porcentaje usás vos?
+
+`#analisisdeprecios #computoypresupuesto #construccion #costosdeconstruccion
+#arquitectura #obra #materialesdeconstruccion`
+
+---
+
+### 20 · Sem 5, Domingo — Datos ⭐
+> Lo que de verdad te cuesta la hora de mano de obra.
+>
+> No es el básico. Es el básico más las cargas sociales:
+>
+> ▪️ Oficial especializado — $12.243
+> ▪️ Oficial — $10.474
+> ▪️ Medio oficial — $9.679
+> ▪️ Ayudante — $8.908
+>
+> (Escala UOCRA Zona A vigente + 65% de cargas.)
+>
+> Este es el número que tiene que ir al presupuesto. Si usás el básico,
+> te faltan casi $4.000 por hora de oficial.
+>
+> 📌 Guardalo.
+>
+> 👉 ¿Ya lo tenías así de claro?
+
+`#uocra #manodeobra #costosdeconstruccion #presupuestodeobra #construccion
+#arquitectura #cargassociales #obra`
+
+---
+
+### 21 · Sem 6, Lunes — Producto (REEL)
+**Guion (20 s):** mostrar dos tareas sin vincular → hacer el vínculo →
+mover la primera → la segunda se corre sola.
+
+> Las tareas de una obra no son independientes.
+>
+> No podés revocar antes de levantar la pared. No podés colocar el piso
+> antes de la carpeta.
+>
+> Si vinculás las tareas, cuando una se atrasa todas las que dependen de
+> ella se corren solas. Y ves de una cuánto se movió la fecha de fin.
+>
+> 👉 ¿Planificás con dependencias o con fechas sueltas?
+
+`#planificacion #gantt #gestiondeobra #construccion #arquitectura
+#direcciondeobra #ingenieriacivil #obra`
+
+---
+
+### 22 · Sem 6, Miércoles — Criterio ⭐
+> La diferencia entre costo y precio. La que hace que una obra deje o no deje.
+>
+> 1️⃣ **Costo directo** — materiales + mano de obra + equipos
+> 2️⃣ **Gastos generales** — lo que cuesta tener el estudio abierto: alquiler,
+>     seguros, la camioneta, el que atiende el teléfono
+> 3️⃣ **Beneficio** — la razón por la que trabajás
+> 4️⃣ **IVA** — no es tuyo, es del fisco. No lo cuentes como ingreso.
+>
+> El error clásico es cotizar el costo directo con «un porcentaje arriba»
+> sin saber cuánto necesitás para cubrir la estructura.
+>
+> 📌 Guardalo.
+>
+> 👉 ¿Con qué GG y beneficio trabajás?
+
+`#costosdeconstruccion #presupuestodeobra #arquitectura #construccion
+#gestiondeobra #obra #analisisdeprecios`
+
+---
+
+### 23 · Sem 6, Viernes — Dolor
+> Cotizaste con precios de hace tres meses. Y no fue a propósito.
+>
+> La planilla no te avisa. Ese número quedó ahí desde la obra anterior,
+> y vos ya ni te acordás de cuándo lo cargaste.
+>
+> Un precio sin fecha no es un precio: es un recuerdo.
+>
+> 👉 ¿Cuándo actualizaste tu lista por última vez?
+
+`#costosdeconstruccion #materialesdeconstruccion #presupuestodeobra
+#construccion #arquitectura #obra`
+
+---
+
+### 24 · Sem 6, Domingo — Datos ⭐
+> Cuánto sale 1 m² de pared de ladrillo hueco 0,18, desglosado.
+>
+> ▪️ Materiales — $8.640
+> ▪️ Mano de obra — $15.290
+> ▪️ **Costo directo — $23.930**
+>
+> (Mano de obra con cargas sociales incluidas.)
+>
+> Dato que sorprende: **la mano de obra es casi el doble que el material.**
+> Por eso cuando sube el jornal duele más que cuando sube el ladrillo.
+>
+> Ese es el costo. Todavía falta GG, beneficio e IVA.
+>
+> 👉 ¿Te dio parecido en tu última obra?
+
+`#costosdeconstruccion #mamposteria #presupuestodeobra #construccion
+#arquitectura #analisisdeprecios #obra #manodeobra`
+
+---
+
+### 25 · Sem 7, Lunes — Producto
+> Tu forma de trabajar no es la del catálogo. Y está bien.
+>
+> Capaz tu cuadrilla rinde distinto. Capaz usás otra marca de material.
+> Capaz conseguís mejor precio en un corralón.
+>
+> Podés modificar el análisis de un ítem solo para esa obra: las horas,
+> los materiales, los precios. El catálogo global queda intacto para
+> los demás presupuestos.
+>
+> 👉 ¿Qué ítem cotizás siempre distinto al estándar?
+
+`#analisisdeprecios #softwareparaarquitectos #construccion #arquitectura
+#gestiondeobra #presupuestodeobra`
+
+---
+
+### 26 · Sem 7, Miércoles — Criterio ⭐
+> Certificar no es estimar a ojo.
+>
+> 1️⃣ Medí lo ejecutado **por ítem**, no la obra entera
+> 2️⃣ Aplicá el porcentaje sobre el precio del presupuesto
+> 3️⃣ Acumulá contra lo que ya certificaste antes
+> 4️⃣ Contrastá con lo que gastaste de verdad ese mes
+>
+> El paso 4 es el que casi nadie hace. Y es el que te dice si la obra
+> está dando o si estás poniendo plata sin darte cuenta.
+>
+> 📌 Guardalo.
+>
+> 👉 ¿Comparás lo certificado contra lo gastado?
+
+`#certificacion #gestiondeobra #construccion #arquitectura #direcciondeobra
+#costosdeconstruccion #obra`
+
+---
+
+### 27 · Sem 7, Viernes — Datos
+> Lo que más tiempo lleva por m³. Y casi siempre se subestima.
+>
+> ▪️ Excavación de suelo — 1,4 m³ por jornada
+> ▪️ Excavación de vigas de fundación — 2,4 m³ por jornada
+> ▪️ Columnas de H°A° — 0,3 m³ por jornada
+>
+> Comparalo con el azotado, que rinde 26 m² por jornada.
+>
+> Si el plazo de tu obra no cierra, empezá mirando acá: los movimientos
+> de suelo y la estructura son los que se comen los días.
+>
+> 👉 ¿Te pasó de subestimar la excavación?
+
+`#excavacion #planificacion #construccion #obra #ingenieriacivil
+#direcciondeobra #arquitectura #rendimientos`
+
+---
+
+### 28 · Sem 7, Domingo — Dolor (REEL)
+**Guion (12 s):** carpeta con archivos: `presupuesto_final.xlsx`,
+`presupuesto_final_2.xlsx`, `presupuesto_final_ESTE.xlsx`, `presupuesto_final_ESTE_ok.xlsx`.
+
+> «¿Cuál era la última versión?»
+>
+> Si tenés que preguntar, ya perdiste tiempo. Y si el que pregunta es
+> alguien de tu equipo, perdieron los dos.
+>
+> 👉 Mostrá tu carpeta de presupuestos. Sin vergüenza 👇
+
+`#construccion #arquitectura #obra #gestiondeobra #humor #excel
+#direcciondeobra`
+
+---
+
+### 29 · Sem 8, Lunes — Producto
+> ¿Cuándo vas a necesitar plata?
+>
+> No es lo mismo que «cuánto sale la obra». Una obra de 100 millones
+> no se gasta pareja: hay meses de estructura que se llevan todo y meses
+> de terminaciones que son livianos.
+>
+> La curva de inversión te muestra cómo se distribuye el gasto en el tiempo.
+> Sale sola cruzando el presupuesto con el Gantt.
+>
+> Sirve sobre todo para una cosa: **negociar bien los anticipos.**
+>
+> 👉 ¿Armás curva de inversión en tus obras?
+
+`#curvadeinversion #gestiondeobra #planificacion #construccion #arquitectura
+#finanzas #direcciondeobra #obra`
+
+---
+
+### 30 · Sem 8, Miércoles — Criterio ⭐
+> Cotizar por m²: cuándo sirve y cuándo no.
+>
+> ✅ **Sirve para:** dar un número rápido por teléfono, comparar contra
+> el mercado, presentar un anteproyecto.
+>
+> ❌ **No sirve para:** firmar un contrato, comprar materiales, planificar
+> la obra, saber si vas a ganar o a perder.
+>
+> El valor por m² es una **consecuencia** del presupuesto, no un método
+> para armarlo. Cuando lo usás al revés, el que absorbe la diferencia sos vos.
+>
+> 👉 ¿En qué momento pasás del m² al análisis detallado?
+
+`#presupuestodeobra #costosdeconstruccion #arquitectura #construccion
+#analisisdeprecios #obra #direcciondeobra`
+
+---
+
+### 31 · Sem 8, Viernes — Datos ⭐
+> Subió el hierro 18%. ¿Cuánto sube tu obra?
+>
+> Respuesta: alrededor de **2,1%** en una vivienda tipo.
+>
+> Porque el hierro pesa cerca del 12% del costo directo. El 18% de ese 12%
+> es 2,1% del total.
+>
+> Parece poco hasta que lo llevás a pesos: en una obra de 100 millones
+> son 2,1 millones que alguien tiene que poner.
+>
+> Y esta cuenta solo se puede hacer si tenés el análisis desglosado.
+> Con un precio «por m²», no hay forma de saberlo.
+>
+> 👉 ¿Cómo manejás los aumentos en obras ya cotizadas?
+
+`#costosdeconstruccion #hierro #materialesdeconstruccion #presupuestodeobra
+#construccion #arquitectura #analisisdeprecios #obra`
+
+---
+
+### 32 · Sem 8, Domingo — Invitación
+> Media hora. Un presupuesto tuyo.
+>
+> Dos meses publicando rendimientos, costos y criterios. Si algo de esto
+> te sirvió, la herramienta de donde salen los datos también te va a servir.
+>
+> Videollamada de 30 minutos: cargamos juntos un presupuesto real de tu
+> estudio y ves el flujo completo, de la cotización al certificado.
+>
+> Si no te sirve, te lo decimos nosotros.
+>
+> 📲 WhatsApp +54 9 3482 30-5155
+> 🔗 faimobras.com/presentacion
+>
+> 👉 Escribinos y coordinamos.
+
+`#softwareparaarquitectos #gestiondeobra #arquitectura #construccion
+#presupuestodeobra #estudiodearquitectura #arquitectoschaco #nea`
+
+---
+
+## HISTORIAS
+
+Las plantillas visuales están en `historias.html`, con las zonas seguras marcadas
+y el lugar exacto donde va cada sticker.
+
+**Rutina semanal** — se repite las 8 semanas cambiando solo el dato:
+
+| Día | Qué | Sticker de Instagram |
+|---|---|---|
+| Lunes | Encuesta de rendimiento | Encuesta, 2 opciones |
+| Martes | La respuesta + el dato | — |
+| Miércoles | Repost del posteo del día | Link + «guardalo» |
+| Jueves | Caja de preguntas | Caja de preguntas |
+| Viernes | Antes y después | — |
+| Sábado | Obra real de un cliente | — |
+| Domingo | Invitación suave a la demo | Link |
+
+**Por qué esta rutina funciona:** el lunes preguntás y el martes respondés.
+Eso arma un ciclo — el que votó vuelve a mirar si acertó. Y el jueves te da
+el contenido del mes siguiente, escrito por tus propios clientes.
+
+**Las 6 plantillas para rotar** (dato duro, mini tabla, quiz, detrás del sistema,
+cuenta regresiva, testimonio) sirven para cortar la rutina cuando tengas algo
+puntual que contar.
+
+**Reglas de las historias:**
+- Un solo mensaje por historia. Si tenés dos ideas, son dos historias.
+- Máximo tres datos por placa: más no se lee en 5 segundos.
+- El sticker va **siempre** en el recuadro punteado: ahí no tapa nada.
+- Nada importante en las franjas rojas de arriba y abajo.
+
+---
+
 ## Notas de uso
 
 **Los ⭐ son los que hay que promocionar.** Son contenido de datos, que es el que

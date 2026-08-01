@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAIM OBRAS — Historias (1080×1920)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--warn:#d97706;--red:#ef4444;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e6e8ea;font-family:var(--s);padding:26px 18px 80px}
+.barra{position:sticky;top:0;z-index:60;background:#fff;border:1px solid var(--bord);
+  border-radius:14px;padding:17px 22px;margin:0 auto 26px;max-width:1180px;
+  box-shadow:0 3px 14px rgba(0,0,0,.08)}
+.barra h1{font-size:19px;font-weight:800;letter-spacing:-.02em;margin-bottom:5px}
+.barra p{font-size:13.5px;color:var(--mut);line-height:1.55}
+.barra code{font-family:var(--m);font-size:12.5px;background:var(--sup2);padding:1px 6px;border-radius:4px}
+.sem{max-width:1180px;margin:26px auto 14px;padding:16px 4px 8px;font-size:15px;font-weight:800;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--mut);border-bottom:2px solid var(--ink)}
+.fila-h{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;gap:22px}
+.card{background:#fff;border:1px solid var(--bord);border-radius:15px;overflow:hidden;width:365px}
+.meta{padding:11px 16px;border-bottom:1px solid var(--bord);background:var(--sup2)}
+.meta .d{font-family:var(--m);font-size:10.5px;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ac)}
+.meta .t{font-weight:700;font-size:13.5px;margin-top:3px}
+.meta .u{font-size:11.5px;color:var(--mut);margin-top:3px;line-height:1.45}
+.esc{padding:14px;display:flex;justify-content:center;background:#eef0f2}
+
+/* ══ HISTORIA 1080×1920 ══════════════════════════════════════════════════ */
+.h{width:1080px;height:1920px;flex-shrink:0;position:relative;overflow:hidden;
+  transform:scale(.312);transform-origin:top center;margin-bottom:-1320px;
+  background:var(--bg);color:var(--ink);display:flex;flex-direction:column;
+  padding:150px 82px 190px}
+.h::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);
+  background-size:60px 60px}
+.h.osc{background:var(--ink);color:var(--bg)}
+.h.osc::before{background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);opacity:1}
+.h.ver{background:var(--ac);color:#fff}
+.h.ver::before,.h.vio::before{background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);opacity:1}
+.h.vio{background:var(--ac2);color:#fff}
+.h>*{position:relative;z-index:1}
+
+.h-logo{font-size:34px;font-weight:800;letter-spacing:-.02em;color:var(--ac)}
+.h-logo span{color:var(--ink);font-weight:700}
+.osc .h-logo{color:var(--ac-cl)} .osc .h-logo span{color:var(--bg)}
+.ver .h-logo,.vio .h-logo{color:#fff} .ver .h-logo span,.vio .h-logo span{color:rgba(255,255,255,.72)}
+
+.h-et{font-family:var(--m);font-size:24px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ac);margin-top:76px;display:flex;align-items:center;gap:18px}
+.h-et::before{content:'';width:54px;height:5px;background:var(--ac);border-radius:3px}
+.osc .h-et{color:var(--ac-cl)} .osc .h-et::before{background:var(--ac-cl)}
+.ver .h-et,.vio .h-et{color:#fff} .ver .h-et::before,.vio .h-et::before{background:rgba(255,255,255,.8)}
+
+.h-tit{font-size:92px;font-weight:800;line-height:1.02;letter-spacing:-.035em;
+  margin-top:34px;text-wrap:balance}
+.h-tit.ch{font-size:70px}
+.h-tit em{font-style:normal;color:var(--ac)}
+.osc .h-tit em{color:var(--ac-cl)} .ver .h-tit em,.vio .h-tit em{color:rgba(255,255,255,.72)}
+.h-baj{font-size:36px;color:var(--mut);line-height:1.42;margin-top:32px}
+.osc .h-baj{color:#98a0b2} .ver .h-baj,.vio .h-baj{color:rgba(255,255,255,.9)}
+
+.h-cuerpo{flex:1;display:flex;flex-direction:column;justify-content:center;gap:26px;margin:44px 0}
+.h-fila{display:flex;align-items:baseline;gap:22px;padding:22px 0;border-bottom:3px solid var(--bord)}
+.osc .h-fila{border-color:#31344a} .ver .h-fila,.vio .h-fila{border-color:rgba(255,255,255,.3)}
+.h-fila:last-child{border-bottom:none}
+.h-fila .q{flex:1;font-size:36px;font-weight:600;line-height:1.24}
+.h-fila .c{font-family:var(--m);font-size:46px;font-weight:600;color:var(--ac);white-space:nowrap}
+.osc .h-fila .c{color:var(--ac-cl)} .ver .h-fila .c,.vio .h-fila .c{color:#fff}
+.h-gr{font-family:var(--m);font-size:250px;font-weight:600;color:var(--ac);line-height:.9;letter-spacing:-.04em}
+.osc .h-gr{color:var(--ac-cl)} .ver .h-gr,.vio .h-gr{color:#fff}
+.h-gr-l{font-size:36px;color:var(--mut);margin-top:20px;line-height:1.38}
+.osc .h-gr-l{color:#98a0b2} .ver .h-gr-l,.vio .h-gr-l{color:rgba(255,255,255,.9)}
+
+/* Marcas de interacción: dónde va el sticker nativo de Instagram */
+.zona{border:4px dashed var(--ac);border-radius:26px;padding:32px 34px;margin-top:20px}
+.osc .zona{border-color:var(--ac-cl)} .ver .zona,.vio .zona{border-color:rgba(255,255,255,.75)}
+.zona .z-t{font-family:var(--m);font-size:21px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ac);margin-bottom:14px}
+.osc .zona .z-t{color:var(--ac-cl)} .ver .zona .z-t,.vio .zona .z-t{color:rgba(255,255,255,.9)}
+.zona .z-d{font-size:33px;font-weight:600;line-height:1.32}
+
+.h-pie{padding-top:32px;border-top:5px solid var(--ink);display:flex;
+  justify-content:space-between;align-items:flex-end;gap:20px}
+.osc .h-pie{border-color:var(--ac-cl)} .ver .h-pie,.vio .h-pie{border-color:rgba(255,255,255,.6)}
+.h-pie .iz{font-size:30px;font-weight:700;line-height:1.28;max-width:19ch}
+.h-pie .de{font-family:var(--m);font-size:23px;color:var(--mut);text-align:right}
+.osc .h-pie .de{color:#8b93a5} .ver .h-pie .de,.vio .h-pie .de{color:rgba(255,255,255,.82)}
+
+/* Franjas seguras: Instagram tapa arriba y abajo */
+.safe{position:absolute;left:0;right:0;background:rgba(239,68,68,.07);
+  border-top:2px dashed rgba(239,68,68,.35);border-bottom:2px dashed rgba(239,68,68,.35);
+  font-family:var(--m);font-size:19px;color:rgba(239,68,68,.75);
+  display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none}
+.safe.top{top:0;height:250px} .safe.bot{bottom:0;height:250px}
+
+@media print{
+  body{background:#fff;padding:0}
+  .barra,.meta,.sem{display:none}
+  .esc{padding:0;background:#fff}
+  .card{border:none;border-radius:0;width:auto;break-after:page}
+  .fila-h{display:block}
+  .safe{display:none}
+  .h{transform:none;margin-bottom:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:1080px 1920px;margin:0}
+}
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <h1>Historias — 1080×1920 · rutina semanal + plantillas</h1>
+  <p>Las franjas rojas marcan las zonas que <b>Instagram tapa</b> con el avatar arriba y la caja de
+     respuesta abajo: no pongas nada importante ahí (no se imprimen).
+     Los recuadros punteados indican dónde va el <b>sticker nativo</b> —encuesta, quiz, caja de preguntas—
+     que se agrega desde la app, no en la imagen.
+     Exportar: <code>Ctrl+P</code> → Guardar como PDF, o captura.</p>
+</div>
+
+<div id="salida"></div>
+
+<script>
+// La rutina semanal se repite las 8 semanas cambiando el dato. Producís una vez
+// y rotás contenido: es lo que hace sostenible publicar historias todos los días.
+const H=[
+{g:'Rutina semanal — se repite las 8 semanas',
+ items:[
+  {dia:'Lunes',tema:'Encuesta de rendimiento',uso:'El sticker de encuesta con 2 opciones. Al día siguiente publicás la respuesta.',
+   fondo:'',et:'Adiviná',tit:'¿Cuánto rinde un oficial en <em>revoque fino</em>?',titCh:1,
+   zona:['Encuesta','7 m² por jornada  ·  12 m² por jornada'],
+   pie:['Respuesta mañana.','faimobras.com']},
+
+  {dia:'Martes',tema:'La respuesta + dato',uso:'Cierra el ciclo del lunes. El que participó vuelve a mirar.',
+   fondo:'osc',et:'La respuesta',tit:'<em>7,3 m²</em><br>por jornada',
+   baj:'Revoque fino a la cal: 1,1 h/m² de oficial. En una jornada de 8 h, 7,3 m².',
+   pie:['Dato del catálogo del sistema.','Guardalo']},
+
+  {dia:'Miércoles',tema:'Repost del feed',uso:'Compartís la publicación del día con el sticker «guardalo».',
+   fondo:'ver',et:'Nuevo en el feed',tit:'Publicamos<br>los <em>rendimientos</em>',
+   baj:'La tabla completa para calcular plazos, en el posteo de hoy.',
+   zona:['Sticker de link','Mirá el posteo'],
+   pie:['Guardalo para cuando cotices.','faimobras.com']},
+
+  {dia:'Jueves',tema:'Caja de preguntas',uso:'Las respuestas son el contenido del mes siguiente, escrito por tus clientes.',
+   fondo:'',et:'Te leemos',tit:'¿Qué ítem te cuesta <em>más</em> cotizar?',titCh:1,
+   zona:['Caja de preguntas','Escribí el que se te complica'],
+   pie:['Lo desglosamos en un posteo.','faimobras.com']},
+
+  {dia:'Viernes',tema:'Antes y después',uso:'Captura real: planilla desordenada vs. la misma obra en el sistema.',
+   fondo:'osc',et:'Antes / después',tit:'La misma obra,<br>dos <em>maneras</em>',
+   baj:'Arriba, la planilla. Abajo, el presupuesto con su análisis, su Gantt y su certificado.',
+   pie:['Es el mismo trabajo, ordenado.','faimobras.com']},
+
+  {dia:'Sábado',tema:'Obra real',uso:'Foto de obra de un cliente, con permiso, y el dato de cuánto se tardó.',
+   fondo:'',et:'Obra en marcha',tit:'De <em>presupuesto</em><br>a obra',
+   baj:'Poné acá la foto de la obra y el plazo real contra el planificado.',
+   pie:['Gracias por la confianza.','faimobras.com']},
+
+  {dia:'Domingo',tema:'Invitación suave',uso:'Cierre de semana. Sin insistir: una sola vez.',
+   fondo:'vio',et:'Demo',tit:'¿Lo vemos con <em>una obra tuya</em>?',titCh:1,
+   baj:'Media hora por videollamada. Cargamos un presupuesto real y ves el flujo completo.',
+   zona:['Sticker de link','Escribinos'],
+   pie:['WhatsApp +54 9 3482 30-5155','faimobras.com/presentacion']},
+ ]},
+
+{g:'Plantillas para rotar — usalas cuando quieras cortar la rutina',
+ items:[
+  {dia:'Plantilla',tema:'Dato duro',uso:'Un solo número grande. Es el formato que más se comparte.',
+   fondo:'osc',et:'Dato de obra',tit:'La hora de oficial<br>te cuesta',
+   gr:'$10.474',grL:'básico UOCRA + 65% de cargas sociales',
+   pie:['Este es el número que va al presupuesto.','Guardalo']},
+
+  {dia:'Plantilla',tema:'Mini tabla',uso:'Tres datos como máximo. Más no se lee en una historia.',
+   fondo:'',et:'Rendimientos',tit:'Los que <em>más rinden</em>',
+   filas:[['Azotado impermeable','26,7'],['Membrana hidráulica','13,3'],['Carpeta alisada','11,4']],
+   baj:'m² por jornada de cuadrilla.',
+   pie:['La tabla completa está en el feed.','faimobras.com']},
+
+  {dia:'Plantilla',tema:'Quiz',uso:'El sticker de quiz da respuesta correcta al instante. Engancha más que la encuesta.',
+   fondo:'ver',et:'Quiz',tit:'¿Cuántos <em>días</em> son 200 m² de pared?',titCh:1,
+   zona:['Quiz','8 días · 13 días · 20 días'],
+   pie:['Con 2 oficiales y 2 ayudantes.','faimobras.com']},
+
+  {dia:'Plantilla',tema:'Detrás del sistema',uso:'Grabación de pantalla de 15 s, sin música ni edición. Se percibe real.',
+   fondo:'',et:'Detrás del sistema',tit:'Cambiamos la <em>cuadrilla</em> y mirá qué pasa',titCh:1,
+   baj:'Poné acá la captura de pantalla del Gantt recalculándose.',
+   pie:['De 20 días a 7, sin tocar nada más.','faimobras.com']},
+
+  {dia:'Plantilla',tema:'Cuenta regresiva',uso:'Para un anuncio: nueva función, webinar, cierre de promoción.',
+   fondo:'vio',et:'Se viene',tit:'Algo nuevo<br>en el <em>cotizador</em>',
+   zona:['Cuenta regresiva','Activá el recordatorio'],
+   pie:['Te avisamos cuando esté.','faimobras.com']},
+
+  {dia:'Plantilla',tema:'Testimonio',uso:'Captura del mensaje real de un cliente (con permiso), sin retocar.',
+   fondo:'osc',et:'Nos escribieron',tit:'«Cotizamos en <em>una tarde</em> lo que antes nos llevaba una semana»',titCh:1,
+   baj:'Poné acá la captura del mensaje, tapando el nombre si hace falta.',
+   pie:['Gracias por contarlo.','faimobras.com']},
+ ]},
+];
+
+function rh(x){
+  let c='';
+  if(x.filas) c=x.filas.map(([q,v])=>
+    `<div class="h-fila"><div class="q">${q}</div><div class="c">${v}</div></div>`).join('');
+  else if(x.gr) c=`<div><div class="h-gr">${x.gr}</div><div class="h-gr-l">${x.grL||''}</div></div>`;
+  const baj=x.baj?`<div class="h-baj">${x.baj}</div>`:'';
+  const zona=x.zona?`<div class="zona"><div class="z-t">${x.zona[0]}</div><div class="z-d">${x.zona[1]}</div></div>`:'';
+  const cls=x.titCh?'h-tit ch':(x.tit.length>44?'h-tit ch':'h-tit');
+  return `<div class="card">
+    <div class="meta"><div class="d">${x.dia}</div><div class="t">${x.tema}</div><div class="u">${x.uso}</div></div>
+    <div class="esc"><div class="h ${x.fondo||''}">
+      <div class="safe top">zona que tapa Instagram</div>
+      <div class="h-logo">FAIM <span>OBRAS</span></div>
+      <div class="h-et">${x.et}</div>
+      <div class="${cls}">${x.tit}</div>
+      ${(x.filas||x.gr)?'':baj}
+      <div class="h-cuerpo">${c}${(x.filas||x.gr)?baj:''}${zona}</div>
+      <div class="h-pie"><div class="iz">${x.pie[0]}</div><div class="de">${x.pie[1]}</div></div>
+      <div class="safe bot">zona de respuesta</div>
+    </div></div>
+  </div>`;
+}
+
+document.getElementById('salida').innerHTML = H.map(g=>
+  `<div class="sem">${g.g}</div><div class="fila-h">${g.items.map(rh).join('')}</div>`).join('');
+</script>
+</body>
+</html>
