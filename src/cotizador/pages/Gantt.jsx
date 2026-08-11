@@ -58,6 +58,8 @@ export default function Gantt() {
   const [modoVincular, setModoVincular] = useState(false);
   const [predSel, setPredSel] = useState(null);    // tarea elegida como predecesora
   const [verCritico, setVerCritico] = useState(true);
+  const [panelVinculos, setPanelVinculos] = useState(false);
+  const [vinculoSel, setVinculoSel] = useState(null);   // el resaltado al tocar la flecha
   const [arrastre, setArrastre] = useState(null);   // {id, dx} mientras se arrastra
   const scrollRef = useRef(null);
 
@@ -133,12 +135,52 @@ export default function Gantt() {
   };
 
   const borrarVinculo = async (vid) => {
+    const prev = vinculos.find(v => v.id === vid);
     try {
       await api.delete(`/presupuestos/${id}/gantt/vinculos/${vid}`);
       setVinculos(vs => vs.filter(v => v.id !== vid));
       await refrescarPlan();
-      showToast('✓ Vínculo eliminado');
+      if (prev) {
+        registrar({
+          etiqueta: 'Vínculo eliminado',
+          deshacer: async () => {
+            await api.post(`/presupuestos/${id}/gantt/vinculos`, {
+              predecesora_id: prev.predecesora_id, sucesora_id: prev.sucesora_id,
+              tipo: prev.tipo || 'FS', lag: prev.lag || 0,
+            });
+            const v = await api.get(`/presupuestos/${id}/gantt/vinculos`);
+            setVinculos(v.data || []);
+            await refrescarPlan();
+          },
+        });
+      }
+      avisar('Vínculo eliminado');
     } catch (e) { showToast('⚠ No se pudo eliminar'); }
+  };
+
+  const borrarTodosLosVinculos = async () => {
+    if (!window.confirm(`Se van a soltar los ${vinculos.length} vínculos de este Gantt. ¿Seguir?`)) return;
+    const previos = [...vinculos];
+    try {
+      for (const v of previos) await api.delete(`/presupuestos/${id}/gantt/vinculos/${v.id}`);
+      setVinculos([]);
+      await refrescarPlan();
+      registrar({
+        etiqueta: `${previos.length} vínculos eliminados`,
+        deshacer: async () => {
+          for (const v of previos) {
+            await api.post(`/presupuestos/${id}/gantt/vinculos`, {
+              predecesora_id: v.predecesora_id, sucesora_id: v.sucesora_id,
+              tipo: v.tipo || 'FS', lag: v.lag || 0,
+            });
+          }
+          const nv = await api.get(`/presupuestos/${id}/gantt/vinculos`);
+          setVinculos(nv.data || []);
+          await refrescarPlan();
+        },
+      });
+      avisar(`${previos.length} vínculos eliminados`);
+    } catch (e) { showToast('⚠ No se pudieron eliminar todos'); }
   };
 
   const cambiarVinculo = async (vid, campos) => {
@@ -660,7 +702,49 @@ export default function Gantt() {
           <span style={{ color: 'var(--muted)' }}>Fin <b style={{ color: 'var(--text)' }}>{fmtFechaLarga(plan.fin)}</b></span>
           <span style={{ color: 'var(--muted)' }}>Duración <b style={{ color: 'var(--text)' }}>{plan.duracion_dias} días hábiles</b></span>
           <span style={{ color: '#f87171' }}>▲ {plan.criticas?.length || 0} tarea(s) en camino crítico</span>
-          <span style={{ color: 'var(--muted)' }}>🔗 {vinculos.length} vínculo(s)</span>
+          {/* Los vínculos se dibujaban como flechas y no había forma de sacarlos:
+              borrarVinculo existía en el código pero sin nada que lo llamara. */}
+          <button onClick={() => setPanelVinculos(v => !v)}
+            title="Ver los vínculos y desvincular tareas"
+            style={{ background: 'none', border: '1px solid var(--border2)', borderRadius: 12, color: 'var(--text)', cursor: 'pointer', fontSize: 11, padding: '2px 10px', fontFamily: 'inherit' }}>
+            🔗 {vinculos.length} vínculo(s) {panelVinculos ? '▴' : '▾'}
+          </button>
+        </div>
+      )}
+
+      {/* Panel de vínculos: cambiar el tipo, el desfasaje o desvincular */}
+      {panelVinculos && vinculos.length > 0 && (
+        <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '10px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Vínculos entre tareas</span>
+            <button className="btn btn-secondary btn-sm" onClick={borrarTodosLosVinculos}
+              style={{ fontSize: 10 }}>Desvincular todo</button>
+            <span style={{ fontSize: 10, color: 'var(--muted)' }}>FS: una empieza al terminar la otra · el desfasaje son días de espera (+) o de solape (−)</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 190, overflowY: 'auto' }}>
+            {vinculos.map(v => {
+              const a = porId[v.predecesora_id], b = porId[v.sucesora_id];
+              return (
+                <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, background: vinculoSel === v.id ? 'rgba(110,231,183,.10)' : 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px' }}>
+                  <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {a?.nombre || '—'} <span style={{ color: 'var(--muted)' }}>→</span> {b?.nombre || '—'}
+                  </span>
+                  <select value={v.tipo || 'FS'} onChange={e => cambiarVinculo(v.id, { tipo: e.target.value })}
+                    title="Tipo de dependencia"
+                    style={{ background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 5, color: 'var(--text)', fontSize: 10, padding: '2px 4px', fontFamily: 'var(--mono)' }}>
+                    {['FS', 'SS', 'FF', 'SF'].map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <input type="number" value={v.lag ?? 0} title="Días de espera (+) o de solape (−)"
+                    onChange={e => cambiarVinculo(v.id, { lag: parseInt(e.target.value) || 0 })}
+                    style={{ width: 48, background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 5, color: 'var(--text)', fontSize: 10, padding: '2px 4px', fontFamily: 'var(--mono)', textAlign: 'right' }} />
+                  <button onClick={() => borrarVinculo(v.id)} title="Desvincular estas dos tareas"
+                    style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '0 3px' }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}>×</button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -881,11 +965,21 @@ export default function Gantt() {
                   const entra = x2 - 10;
                   const codo = Math.max(sale, entra);
                   const d = `M ${x1} ${y1} H ${codo} V ${y2} H ${x2}`;
+                  const sel = vinculoSel === v.id;
                   return (
                     <g key={v.id}>
-                      <path d={d} fill="none" stroke={col} strokeWidth={critico ? 2 : 1.4}
+                      {/* Franja invisible y ancha para poder acertarle a la flecha:
+                          el trazo real es de 1,4 px y es imposible de tocar. */}
+                      <path d={d} fill="none" stroke="transparent" strokeWidth={12}
+                        style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                        onClick={() => { setVinculoSel(v.id); setPanelVinculos(true); }}>
+                        <title>{`${a.nombre} → ${b.nombre} — tocá para ver o desvincular`}</title>
+                      </path>
+                      <path d={d} fill="none" stroke={sel ? '#6ee7b7' : col} strokeWidth={sel ? 2.6 : (critico ? 2 : 1.4)}
                         strokeDasharray={v.tipo === 'FS' ? '' : '4 3'}
-                        markerEnd={`url(#${critico ? 'flechaCrit' : 'flecha'})`} opacity={critico ? 0.95 : 0.55} />
+                        markerEnd={`url(#${critico ? 'flechaCrit' : 'flecha'})`}
+                        opacity={sel ? 1 : (critico ? 0.95 : 0.55)}
+                        style={{ pointerEvents: 'none' }} />
                       {v.tipo !== 'FS' && (
                         <text x={codo + 3} y={(y1 + y2) / 2} fontSize="9" fill={col} opacity="0.9">{v.tipo}</text>
                       )}
