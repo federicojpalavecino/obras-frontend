@@ -4,6 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, BarChart2 } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import { tenantNombre, localidadYFecha } from '../tenant';
+import BarraDeshacer from '../BarraDeshacer';
+import { registrar, limpiar, deshacerUltima, useAtajoDeshacer } from '../deshacer';
 
 import api from '../api';
 
@@ -60,6 +62,21 @@ export default function Gantt() {
   const scrollRef = useRef(null);
 
   const showToast = msg => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+
+  // ── Deshacer (Ctrl+Z) ──────────────────────────────────────────────────────
+  const [avisoUndo, setAvisoUndo] = useState('');
+  const avisar = (msg) => setAvisoUndo(msg);
+  // La pila es de esta pantalla y de este presupuesto: no tiene sentido
+  // deshacer algo de otra obra.
+  useEffect(() => { limpiar(); return limpiar; }, [id]);
+  const hacerDeshacer = async () => {
+    const r = await deshacerUltima();
+    setAvisoUndo('');
+    if (r.ok) return showToast(`↶ Deshecho: ${r.etiqueta}`);
+    if (r.motivo === 'cambio') return showToast('⚠ Eso cambió desde entonces — no se deshizo para no pisar el cambio');
+    if (r.motivo === 'error') return showToast('⚠ No se pudo deshacer');
+  };
+  useAtajoDeshacer(hacerDeshacer);
 
   const PX_DIA = 28;
   const ROW_H = 40;
@@ -189,12 +206,24 @@ export default function Gantt() {
     document.addEventListener('mouseup', soltar);
   };
 
-  const cambiarCuadrilla = async (tareaId, personas, horas = 0) => {
+  const cambiarCuadrilla = async (tareaId, personas, horas = 0, esDeshacer = false) => {
+    const antes = (tareas.find(t => t.id === tareaId) || {}).personas ?? 1;
     try {
       const r = await api.patch(`/presupuestos/${id}/gantt/tareas/${tareaId}/cuadrilla`, { personas });
       setPlan(r.data); setErrorPlan('');
       const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
       setTareas(t.data || []);
+      if (!esDeshacer && antes !== personas) {
+        registrar({
+          etiqueta: `Cuadrilla ${antes} → ${personas}`,
+          verificar: async () => {
+            const act = ((await api.get(`/presupuestos/${id}/gantt/tareas`)).data || [])
+              .find(x => x.id === tareaId);
+            return !!act && (act.personas ?? 1) === personas;
+          },
+          deshacer: async () => { await cambiarCuadrilla(tareaId, antes, horas, true); },
+        });
+      }
       // Sin horas la duración es fija, así que sumar gente no acorta nada. Se
       // avisa en vez de dejar al usuario tocando un botón que no hace nada.
       if (!(horas > 0)) showToast(`👷 ${personas} — para que el plazo se recalcule, tocá “⏱ Horas”`);
@@ -213,7 +242,9 @@ export default function Gantt() {
   // ── Jerarquía: indentar y desindentar ─────────────────────────────────────
   // Indentar cuelga la tarea de la de arriba, que pasa a ser tarea resumen y
   // toma sus fechas de las hijas. Desindentar la vuelve a dejar suelta.
-  const cambiarPadre = async (tarea, padreId) => {
+  // esDeshacer evita que la propia reversión registre otra entrada y se arme un
+  // ida y vuelta infinito en la pila.
+  const cambiarPadre = async (tarea, padreId, esDeshacer = false) => {
     try {
       await api.put(`/presupuestos/${id}/gantt/tareas/${tarea.id}`, {
         nombre: tarea.nombre,
@@ -224,8 +255,20 @@ export default function Gantt() {
         progreso: tarea.progreso || 0,
         padre_id: padreId,
       });
+      const antes = tarea.padre_id ?? null;
+      if (!esDeshacer) {
+        registrar({
+          etiqueta: padreId ? `«${tarea.nombre}» pasó a subtarea` : `«${tarea.nombre}» quedó suelta`,
+          verificar: async () => {
+            const t = (await api.get(`/presupuestos/${id}/gantt/tareas`)).data || [];
+            const act = t.find(x => x.id === tarea.id);
+            return !!act && (act.padre_id ?? null) === (padreId ?? null);
+          },
+          deshacer: async () => { await cambiarPadre({ ...tarea, padre_id: padreId }, antes, true); },
+        });
+      }
       await cargar();
-      showToast(padreId ? '✓ Subtarea' : '✓ Tarea suelta');
+      avisar(padreId ? 'Ahora es subtarea' : 'Tarea suelta');
     } catch (e) {
       showToast('⚠ ' + (e.response?.data?.detail || 'No se pudo mover'));
     }
@@ -312,8 +355,28 @@ export default function Gantt() {
   };
 
   const eliminarTarea = async (tid) => {
+    // Se guarda la tarea entera antes de borrarla: deshacer la vuelve a crear.
+    // El id cambia (lo asigna el servidor), así que los vínculos que tuviera se
+    // pierden — se avisa para no prometer más de lo que se devuelve.
+    const prev = tareas.find(t => t.id === tid);
+    const tenia = vinculos.some(v => v.predecesora_id === tid || v.sucesora_id === tid);
     await api.delete(`/presupuestos/${id}/gantt/tareas/${tid}`);
-    showToast('✓ Eliminado');
+    if (prev) {
+      registrar({
+        etiqueta: `Tarea «${prev.nombre}» eliminada`,
+        deshacer: async () => {
+          await api.post(`/presupuestos/${id}/gantt/tareas`, {
+            presupuesto_id: parseInt(id), linea_id: prev.linea_id,
+            nombre: prev.nombre, fecha_inicio: prev.fecha_inicio,
+            duracion_dias: prev.duracion_dias, color: prev.color, orden: prev.orden,
+            progreso: prev.progreso || 0, padre_id: prev.padre_id,
+            horas_totales: prev.horas_totales, personas: prev.personas,
+          });
+          await cargar();
+        },
+      });
+    }
+    avisar(`Tarea eliminada${tenia ? ' (sus vínculos no se recuperan)' : ''}`);
     cargar();
   };
 
@@ -859,6 +922,8 @@ export default function Gantt() {
       )}
 
       {toast && <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: '#222228', border: '1px solid #3a3a48', borderRadius: 20, padding: '10px 20px', fontSize: 13, color: 'var(--text)', zIndex: 400 }}>{toast}</div>}
+
+      <BarraDeshacer mensaje={avisoUndo} onDeshacer={hacerDeshacer} onCerrar={() => setAvisoUndo('')} />
     </div>
   );
 }

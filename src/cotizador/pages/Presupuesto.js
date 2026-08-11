@@ -15,6 +15,8 @@ import MobileMenu from './MobileMenu';
 import { coincide } from '../buscar';
 import { parseNum } from '../num';
 import { localidadYFecha } from '../tenant';
+import BarraDeshacer from '../BarraDeshacer';
+import { registrar, limpiar, deshacerUltima, useAtajoDeshacer } from '../deshacer';
 import '../print.css';
 
 const fmt = (n) => {
@@ -43,6 +45,20 @@ export default function Presupuesto() {
   const [nuevoRubroNombre, setNuevoRubroNombre] = useState('');
   const [coefs, setCoefs] = useState(null);
   const [guardando, setGuardando] = useState(false);
+
+  // ── Deshacer (Ctrl+Z) ──────────────────────────────────────────────────────
+  const [avisoUndo, setAvisoUndo] = useState('');
+  const avisar = (msg) => setAvisoUndo(msg);
+  // La pila es de este presupuesto: al cambiar de obra se vacía.
+  useEffect(() => { limpiar(); return limpiar; }, [id]);
+  const hacerDeshacer = async () => {
+    const r = await deshacerUltima();
+    setAvisoUndo('');
+    if (r.ok) return setAvisoUndo(`↶ Deshecho: ${r.etiqueta}`);
+    if (r.motivo === 'cambio') return setAvisoUndo('⚠ Eso cambió desde entonces — no se deshizo para no pisar el cambio');
+    if (r.motivo === 'error') return setAvisoUndo('⚠ No se pudo deshacer');
+  };
+  useAtajoDeshacer(hacerDeshacer);
   const [printMode, setPrintMode] = useState('comercial');
   const [lineaSeleccionada, setLineaSeleccionada] = useState(null);
   const [computoLinea, setComputoLinea] = useState(null); // ítem con panel de cómputo abierto
@@ -248,10 +264,27 @@ export default function Presupuesto() {
     } catch(e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
   };
 
-  const guardarCoefs = async () => {
+  const guardarCoefs = async (esDeshacer = false) => {
     if (!coefs) return;
     setGuardando(true);
-    try { await actualizarPresupuesto(id, { ...coefs, dias_vigencia: coefs.dias_vigencia, observaciones: observaciones || null }); await cargar(true); }
+    // Los coeficientes que estaban guardados ANTES de este guardado: es lo que
+    // hay que restaurar, no lo que quedó en pantalla.
+    const antes = data?.coeficientes ? { ...data.coeficientes } : null;
+    try {
+      await actualizarPresupuesto(id, { ...coefs, dias_vigencia: coefs.dias_vigencia, observaciones: observaciones || null });
+      await cargar(true);
+      if (!esDeshacer && antes) {
+        registrar({
+          etiqueta: 'Coeficientes cambiados',
+          deshacer: async () => {
+            await actualizarPresupuesto(id, antes);
+            setCoefs(antes);
+            await cargar(true);
+          },
+        });
+        avisar('Coeficientes guardados');
+      }
+    }
     catch (e) { console.error(e); }
     setGuardando(false);
   };
@@ -463,15 +496,65 @@ export default function Presupuesto() {
     win.print();
   };
 
-    const handleCantidad = async (linea_id, cant) => {
+    const handleCantidad = async (linea_id, cant, esDeshacer = false) => {
     if (!cant || cant <= 0) return;
-    await actualizarLinea(id, linea_id, { cantidad: parseNum(cant) });
+    const prev = buscarLinea(linea_id);
+    const antes = prev ? parseNum(prev.cantidad) : null;
+    const nueva = parseNum(cant);
+    await actualizarLinea(id, linea_id, { cantidad: nueva });
+    if (!esDeshacer && antes != null && Math.abs(antes - nueva) > 1e-9) {
+      registrar({
+        etiqueta: `Cantidad ${antes} → ${nueva}`,
+        // Si alguien más la tocó mientras tanto, no se pisa.
+        verificar: async () => {
+          const d = (await getPresupuesto(id)).data;
+          const l = ((d?.rubros) || []).flatMap(r => r.lineas || []).find(x => x.id === linea_id);
+          return !!l && Math.abs(parseNum(l.cantidad) - nueva) < 1e-9;
+        },
+        deshacer: async () => { await handleCantidad(linea_id, antes, true); },
+      });
+      avisar(`Cantidad cambiada a ${nueva}`);
+    }
     cargar(true);
   };
 
+  // Todas las líneas del presupuesto, sin importar el rubro.
+  const buscarLinea = (lid) => (data?.rubros || []).flatMap(r => r.lineas || []).find(l => l.id === lid);
+
   const handleEliminar = async (linea_id) => {
     if (lineaSeleccionada?.id === linea_id) setLineaSeleccionada(null);
+    // Se guarda la línea entera antes de borrarla. Al recrearla el id cambia,
+    // así que el cómputo guardado en el servidor no viaja; se recupera del
+    // localStorage, que es donde el panel lo escribe primero.
+    const prev = buscarLinea(linea_id);
+    let computo = null;
+    try { computo = localStorage.getItem(`computo_${id}_${linea_id}`); } catch {}
     await eliminarLinea(id, linea_id);
+    if (prev) {
+      registrar({
+        etiqueta: `Ítem «${prev.nombre_override || prev.nombre_item || prev.nombre_libre}» eliminado`,
+        deshacer: async () => {
+          const r = await agregarLinea(id, {
+            tipo: prev.tipo,
+            item_obra_id: prev.item_global_id || null,
+            nombre_libre: prev.nombre_libre || null,
+            unidad_libre: prev.unidad_libre || null,
+            costo_directo_libre: prev.costo_directo_libre || 0,
+            cantidad: prev.cantidad,
+            nombre_override: prev.nombre_override || null,
+            categoria_numero: prev.categoria_numero,
+            categoria_nombre: prev.categoria_nombre,
+          });
+          const nuevoId = r?.data?.id;
+          if (nuevoId && computo) {
+            try { localStorage.setItem(`computo_${id}_${nuevoId}`, computo); } catch {}
+            try { await actualizarLinea(id, nuevoId, { computo_detalle: computo }); } catch {}
+          }
+          await cargar(true);
+        },
+      });
+      avisar('Ítem eliminado');
+    }
     cargar(true);
   };
 
@@ -1674,6 +1757,8 @@ ${firma}
           </div>
         )}
       </div>
+
+      <BarraDeshacer mensaje={avisoUndo} onDeshacer={hacerDeshacer} onCerrar={() => setAvisoUndo('')} />
 
       <PrintPresupuesto data={data} modo={printMode} />
     </>
