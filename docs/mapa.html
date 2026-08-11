@@ -1,0 +1,460 @@
+<title>FAIM OBRAS — Mapa del sistema</title>
+<style>
+/* ── Tokens ──────────────────────────────────────────────────────────
+   Se respeta la paleta del producto (acento #059669, tinta #141916).
+   Los neutros están sesgados al verde para que no lean a gris de plantilla. */
+:root{
+  --ground:#f4f6f4;  --sheet:#ffffff;  --sheet2:#eef1ee;
+  --ink:#141916;     --ink2:#3d4742;   --mut:#6f7a74;
+  --line:#d9ded9;    --line2:#c3cbc4;
+  --ac:#059669;      --ac-soft:#e2f2ea; --ac2:#6d4bd6;
+  --red:#d63c3c;     --warn:#b8760a;
+  --grid:rgba(20,25,22,.055);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0e1310; --sheet:#151b17; --sheet2:#1b221d;
+    --ink:#e6ebe7;    --ink2:#b4bfb8;  --mut:#8b968f;
+    --line:#28312b;   --line2:#374139;
+    --ac:#2fbe86;     --ac-soft:#12281f; --ac2:#a189ee;
+    --red:#f0736f;    --warn:#e0a138;
+    --grid:rgba(255,255,255,.05);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0e1310; --sheet:#151b17; --sheet2:#1b221d;
+  --ink:#e6ebe7;    --ink2:#b4bfb8;  --mut:#8b968f;
+  --line:#28312b;   --line2:#374139;
+  --ac:#2fbe86;     --ac-soft:#12281f; --ac2:#a189ee;
+  --red:#f0736f;    --warn:#e0a138;
+  --grid:rgba(255,255,255,.05);
+}
+
+/* Bahnschrift es la DIN de Windows: la letra con la que se rotula un plano.
+   Es la elección del oficio, no una tipografía de póster. */
+:root{
+  --disp:"Bahnschrift","DIN Alternate","Roboto Condensed",ui-sans-serif,system-ui,sans-serif;
+  --body:"Segoe UI Variable Text","Segoe UI",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","Segoe UI Mono",Consolas,"SF Mono",monospace;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground);
+  /* Papel cuadriculado: la trama que ya usa el material de marca. */
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:34px 34px;
+  color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.6;
+  margin:0; padding:0 20px 96px; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1000px; margin:0 auto}
+
+/* ── Tipografía ──────────────────────────────────────────────────── */
+h1,h2,h3{font-family:var(--disp); font-weight:700; text-wrap:balance; margin:0}
+h1{font-size:clamp(42px,7vw,76px); line-height:.94; letter-spacing:-.02em}
+h2{font-size:clamp(25px,3.4vw,34px); letter-spacing:-.01em; line-height:1.1}
+h3{font-size:19px; letter-spacing:.005em}
+p{margin:0; max-width:66ch}
+a{color:var(--ac); text-underline-offset:3px}
+.eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--mut)}
+.lead{font-size:19px; color:var(--ink2); max-width:60ch}
+strong{font-weight:650; color:var(--ink)}
+code,.mono{font-family:var(--mono); font-size:.88em}
+.num{font-variant-numeric:tabular-nums}
+
+/* ── Ritmo ───────────────────────────────────────────────────────── */
+header{padding:72px 0 40px; display:flex; flex-direction:column; gap:18px}
+section{padding-top:60px; display:flex; flex-direction:column; gap:22px}
+.shead{display:flex; flex-direction:column; gap:9px;
+  border-top:2px solid var(--ink); padding-top:14px}
+hr{border:0; border-top:1px solid var(--line); margin:0}
+
+/* ── Números de cabecera ─────────────────────────────────────────── */
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr));
+  gap:1px; background:var(--line); border:1px solid var(--line); margin-top:14px}
+.stat{background:var(--sheet); padding:18px 20px; display:flex; flex-direction:column; gap:3px}
+.stat b{font-family:var(--disp); font-size:34px; font-weight:700; line-height:1;
+  letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.stat span{font-family:var(--mono); font-size:10.5px; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--mut)}
+.stat.viv b{color:var(--ac)}
+
+/* ── Diagrama de la columna vertebral ────────────────────────────── */
+.spine{display:flex; flex-direction:column; align-items:center; gap:0;
+  background:var(--sheet); border:1px solid var(--line); padding:34px 22px 30px;
+  overflow-x:auto}
+.node{border:1px solid var(--line2); background:var(--sheet); padding:11px 20px;
+  text-align:center; min-width:150px}
+.node .t{font-family:var(--disp); font-size:17px; font-weight:700; letter-spacing:.01em}
+.node .s{font-family:var(--mono); font-size:10.5px; color:var(--mut); letter-spacing:.06em}
+.node.src{border-style:dashed; background:var(--sheet2)}
+.node.core{background:var(--ac); border-color:var(--ac); color:#fff; padding:17px 46px}
+.node.core .t{font-size:27px; letter-spacing:.03em}
+.node.core .s{color:rgba(255,255,255,.82)}
+.drop{width:1px; height:24px; background:var(--line2); flex:none}
+.fan{display:flex; align-items:stretch; gap:16px; flex-wrap:nowrap; padding-top:0}
+.branch{display:flex; flex-direction:column; align-items:center; flex:1; min-width:132px}
+.rail{height:1px; background:var(--line2); align-self:stretch; margin:0 66px}
+.cap{font-family:var(--mono); font-size:10px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--mut); padding:14px 0 4px}
+
+/* ── Módulos ─────────────────────────────────────────────────────── */
+.mods{display:grid; grid-template-columns:repeat(auto-fill,minmax(288px,1fr)); gap:1px;
+  background:var(--line); border:1px solid var(--line)}
+.mod{background:var(--sheet); padding:20px 21px 21px; display:flex; flex-direction:column; gap:9px}
+.mod .top{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+.mod p{font-size:14.5px; color:var(--ink2); line-height:1.5}
+.mod .loc{font-family:var(--mono); font-size:11.5px; color:var(--mut);
+  word-break:break-word; line-height:1.5}
+.mod .sale{border-left:2px solid var(--ac); padding:2px 0 2px 12px; margin-top:auto;
+  font-size:14.5px; color:var(--ink); font-style:italic}
+.mod.int{background:var(--sheet2)}
+.tag{font-family:var(--mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
+  padding:3px 7px; border:1px solid var(--line2); color:var(--mut); white-space:nowrap; flex:none}
+.tag.v{border-color:var(--ac); color:var(--ac); background:var(--ac-soft)}
+
+/* ── Tablas ──────────────────────────────────────────────────────── */
+.tw{overflow-x:auto; border:1px solid var(--line); background:var(--sheet)}
+table{border-collapse:collapse; width:100%; min-width:520px; font-size:14.5px}
+th,td{text-align:left; padding:12px 16px; border-bottom:1px solid var(--line); vertical-align:top}
+th{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--mut); font-weight:400; background:var(--sheet2)}
+tbody tr:last-child td{border-bottom:0}
+td.k{font-family:var(--mono); font-size:12.5px; color:var(--ac); white-space:nowrap}
+
+/* ── Bloques de nota ─────────────────────────────────────────────── */
+.note{border:1px solid var(--line); border-left:3px solid var(--warn);
+  background:var(--sheet); padding:22px 24px; display:flex; flex-direction:column; gap:12px}
+.note.rule{border-left-color:var(--ac)}
+.note h3{font-size:17px}
+.cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(232px,1fr)); gap:1px;
+  background:var(--line); border:1px solid var(--line)}
+.col{background:var(--sheet); padding:19px 20px; display:flex; flex-direction:column; gap:7px}
+.col p{font-size:14.5px; color:var(--ink2)}
+ol.ang{margin:0; padding-left:0; list-style:none; counter-reset:a;
+  display:flex; flex-direction:column; gap:11px}
+ol.ang li{counter-increment:a; padding-left:38px; position:relative; font-size:15px; color:var(--ink2)}
+ol.ang li::before{content:counter(a,decimal-leading-zero); position:absolute; left:0; top:1px;
+  font-family:var(--mono); font-size:12px; color:var(--ac)}
+ul.pend{margin:0; padding:0; list-style:none; display:flex; flex-direction:column;
+  gap:1px; background:var(--line); border:1px solid var(--line)}
+ul.pend li{background:var(--sheet); padding:15px 19px; font-size:14.5px; color:var(--ink2);
+  display:flex; gap:13px; align-items:baseline}
+ul.pend li::before{content:"□"; color:var(--mut); font-size:13px; flex:none}
+footer{padding-top:64px; color:var(--mut); font-size:13.5px;
+  display:flex; flex-direction:column; gap:7px}
+
+@media (max-width:760px){
+  .fan{flex-wrap:wrap; gap:12px}
+  .rail{display:none}
+  .branch{min-width:118px}
+}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Mapa del sistema · verificado contra producción 11/08/2026</div>
+  <h1>FAIM<br>OBRAS</h1>
+  <p class="lead">Un estudio carga un presupuesto y de ese mismo presupuesto salen el plazo
+  de obra, los certificados, la curva de inversión, el listado de materiales, el control
+  financiero y lo que ve el cliente. <strong>Se carga una vez y se usa siete veces.</strong>
+  Eso es el producto; todo lo demás es consecuencia.</p>
+
+  <div class="stats">
+    <div class="stat viv"><b class="num">5</b><span>estudios activos</span></div>
+    <div class="stat"><b class="num">436</b><span>ítems de obra</span></div>
+    <div class="stat"><b class="num">829</b><span>materiales</span></div>
+    <div class="stat"><b class="num">215</b><span>endpoints</span></div>
+    <div class="stat"><b class="num">42</b><span>tablas</span></div>
+  </div>
+</header>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">01 · La columna vertebral</div>
+    <h2>Todo cuelga del presupuesto</h2>
+  </div>
+  <p>Es la razón por la que esto no es «un Excel más lindo». En un Excel cada una de estas
+  cosas es una planilla aparte que hay que volver a cargar y que se desincroniza sola.</p>
+
+  <div class="spine">
+    <div class="node src"><div class="t">Catálogo global</div><div class="s">436 ítems con análisis de costo</div></div>
+    <div class="drop"></div>
+    <div class="node src"><div class="t">Override por tenant</div><div class="s">los precios propios del estudio</div></div>
+    <div class="drop"></div>
+    <div class="node core"><div class="t">PRESUPUESTO</div><div class="s">se carga una sola vez</div></div>
+    <div class="drop"></div>
+    <div class="rail"></div>
+    <div class="fan">
+      <div class="branch"><div class="drop"></div>
+        <div class="node"><div class="t">Certificados</div><div class="s">avance + egresos</div></div></div>
+      <div class="branch"><div class="drop"></div>
+        <div class="node"><div class="t">Gantt</div><div class="s">plazo automático</div></div></div>
+      <div class="branch"><div class="drop"></div>
+        <div class="node"><div class="t">Curva</div><div class="s">de inversión</div></div></div>
+      <div class="branch"><div class="drop"></div>
+        <div class="node"><div class="t">Materiales</div><div class="s">qué comprar</div></div></div>
+    </div>
+    <div class="cap">y de los certificados hacia abajo</div>
+    <div class="node"><div class="t">Gestión de obra</div><div class="s">contrato · cobros · compras · subcontratos</div></div>
+    <div class="drop"></div>
+    <div class="node"><div class="t">Control financiero</div><div class="s">ingresos y egresos por semana, quincena o mes</div></div>
+    <div class="drop"></div>
+    <div class="node"><div class="t">Portal del cliente</div><div class="s">el cliente entra y ve solo</div></div>
+  </div>
+
+  <div class="note rule">
+    <h3>El dato del que sale todo lo demás</h3>
+    <p>El análisis de costo <strong>ya viene cargado</strong>. El estudio no compone el precio
+    del ítem: elige el ítem. De ahí sale que subir el precio del hierro una vez recalcule
+    todos los presupuestos a la vez.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">02 · Los módulos</div>
+    <h2>Qué resuelve cada uno, y qué vende</h2>
+  </div>
+  <p>La línea en verde de cada tarjeta es el ángulo comercial: no lo que el módulo hace,
+  sino lo que le saca de encima al estudio.</p>
+
+  <div class="mods">
+    <div class="mod">
+      <div class="top"><h3>Cotizador</h3><span class="tag v">venta</span></div>
+      <p>Presupuestar con análisis de costo real, no con precio a ojo.</p>
+      <div class="loc">cotizador/pages/Presupuesto.js · API /presupuestos (71)</div>
+      <div class="sale">«Cotizás en minutos, no en tres días.»</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Análisis de costos</h3><span class="tag v">venta</span></div>
+      <p>436 ítems con composición real: materiales, mano de obra y maquinaria. Cada estudio
+      puede pisar el análisis global sin tocar el de los demás.</p>
+      <div class="loc">AnalisisCostos.js · API /analisis, /maestros</div>
+      <div class="sale">«No inventás el precio: sabés de dónde sale cada peso.»</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Materiales · MO · Maquinaria</h3><span class="tag v">venta</span></div>
+      <p>Los precios que alimentan todos los análisis, en un solo lugar.</p>
+      <div class="loc">Materiales.js · ManoObra.js · Maquinaria.js</div>
+      <div class="sale">«Subió el hierro: lo cambiás una vez y se recalcula todo.»</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Gantt y Planner</h3><span class="tag v">venta</span></div>
+      <p>Plazo automático desde el presupuesto: horas de mano de obra ÷ (horas-día × personas).
+      Con vínculos entre tareas y fines de semana configurables.</p>
+      <div class="loc">Gantt.jsx · Planner.jsx · planificador.py · API /planner (10)</div>
+      <div class="sale">«El plazo no lo estimás a ojo: sumás gente y te da la fecha.»</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Control financiero</h3><span class="tag v">venta</span></div>
+      <p>Ingresos, egresos y personal por semana, quincena o mes. Importa los cobros y pagos
+      que ya están cargados en la obra.</p>
+      <div class="loc">pages/ControlFinanciero.jsx · API /cf (9)</div>
+      <div class="sale">«¿Cuánto ganaste en tu última obra?» — el hook del reel.</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Portal del cliente</h3><span class="tag v">venta</span></div>
+      <p>El cliente ve avance, contrato (lo puede aceptar), cuenta corriente, planificación y
+      consultas. El estudio elige qué secciones y qué presupuestos le habilita.</p>
+      <div class="loc">ClientePortal.jsx · AccesosClientes.jsx · API /portal (12)</div>
+      <div class="sale">«Tu cliente entra y ve el avance solo, en vez de llamarte.»</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Certificados</h3><span class="tag v">venta</span></div>
+      <p>Avance de obra medido sobre el presupuesto, con sus egresos.</p>
+      <div class="loc">Certificado.js · API /certificados</div>
+      <div class="sale">«Certificás sin rehacer el presupuesto.»</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Curva de inversión</h3><span class="tag v">venta</span></div>
+      <p>Cuánta plata hace falta y en qué momento.</p>
+      <div class="loc">CurvaInversion.jsx</div>
+      <div class="sale">«Sabés cuándo te va a faltar plata, antes de que falte.»</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Gestión de obra</h3><span class="tag v">venta</span></div>
+      <p>Contrato, cobros, subcontratos, compras y certificados de una obra, en pestañas.</p>
+      <div class="loc">pages/Obra.jsx · /cotizador/presupuesto/:id/obra</div>
+      <div class="sale">«La obra entera en una pantalla.»</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Cómputo y listado</h3><span class="tag">producto</span></div>
+      <p>Cantidades parciales y totales por ítem, y de ahí el listado de qué comprar y cuánto.</p>
+      <div class="loc">PanelComputo.js · ListadoMateriales.jsx</div>
+      <div class="sale">Comprás contra un listado, no contra la memoria.</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Fiscal (ARCA)</h3><span class="tag">producto</span></div>
+      <p>Facturación electrónica, perfiles fiscales y movimientos.</p>
+      <div class="loc">pages/Fiscal.jsx · arca.py · API /fiscal (11)</div>
+      <div class="sale">Facturás desde donde ya está cargada la obra.</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Adicionales</h3><span class="tag">producto</span></div>
+      <p>Presupuestos adicionales colgados del base, con coeficientes propios.</p>
+      <div class="loc">dentro del cotizador</div>
+      <div class="sale">El adicional no te rompe el presupuesto original.</div>
+    </div>
+    <div class="mod">
+      <div class="top"><h3>Asistente</h3><span class="tag">producto</span></div>
+      <p>Chatbot que explica cómo hacer cada cosa del sistema.</p>
+      <div class="loc">components/Asistente.jsx</div>
+      <div class="sale">Baja el costo de aprender a usarlo.</div>
+    </div>
+    <div class="mod int">
+      <div class="top"><h3>Presentación</h3><span class="tag">material</span></div>
+      <p>La página de venta animada, en <span class="mono">/presentacion</span>. Es material
+      comercial, no una sección del producto.</p>
+      <div class="loc">pages/Presentacion.jsx</div>
+    </div>
+    <div class="mod int">
+      <div class="top"><h3>Admin de plataforma</h3><span class="tag">interno</span></div>
+      <p>Alta de tenants, catálogo global y pagos.</p>
+      <div class="loc">AdminSuperPanel.jsx · API /admin (29)</div>
+    </div>
+    <div class="mod int">
+      <div class="top"><h3>Suscripción</h3><span class="tag">interno</span></div>
+      <p>Cobro mensual por MercadoPago, con plan de preaprobación por tenant.</p>
+      <div class="loc">API /suscripcion (5)</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">03 · Permisos y datos</div>
+    <h2>Quién ve qué</h2>
+  </div>
+  <div class="cols">
+    <div class="col"><h3>Estudio</h3>
+      <p>Roles <span class="mono">admin</span> y <span class="mono">personal</span>. Todo el
+      sistema. Login con email y clave.</p></div>
+    <div class="col"><h3>Cliente</h3>
+      <p>Solo el portal, y solo lo que el estudio le habilitó. De lectura, salvo aceptar el
+      contrato y dejar consultas.</p></div>
+    <div class="col"><h3>Plataforma</h3>
+      <p>Nosotros. Catálogo global, tenants y pagos.</p></div>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Prefijo</th><th>Qué guarda</th></tr></thead>
+      <tbody>
+        <tr><td class="k">g_*</td><td>Catálogo global compartido: ítems de obra, materiales, unidades de mano de obra, maquinaria y las líneas de composición de cada análisis.</td></tr>
+        <tr><td class="k">t_*</td><td>Del estudio: presupuestos, líneas, certificados, clientes, semanas financieras, perfiles fiscales, tareas de Gantt y planner, cargas sociales.</td></tr>
+        <tr><td class="k">t_override_*</td><td>El puente. Un estudio pisa el análisis global de un ítem sin tocar el catálogo de los demás.</td></tr>
+        <tr><td class="k">admin_* · anuncios · t_actividad</td><td>Plataforma.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note rule">
+    <h3>La regla que manda sobre todas</h3>
+    <p>Hay cinco estudios trabajando con esto todos los días. <strong>Ningún cambio puede tocar
+    los datos que ya cargaron.</strong> Todo filtra por <span class="mono">tenant_id</span>,
+    siempre: un endpoint que no filtre es una fuga de datos entre estudios, no un bug de
+    conveniencia.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">04 · La trampa recurrente</div>
+    <h2>Lo que existe pero nadie usa</h2>
+  </div>
+  <div class="note">
+    <p>El patrón que más se repite en este código: <strong>funciones completas en el backend
+    sin ninguna UI que las llame.</strong> Los vínculos entre tareas del Gantt, soltar una
+    tarea anclada y cambiar el tipo de vínculo estuvieron meses deployados y muertos.</p>
+    <p>Al 11/08/2026 producción tenía <strong>0 vínculos entre tareas y 0 horas de mano de obra
+    cargadas</strong> en todos los estudios. Es decir: el planificador automático — de lo mejor
+    que tiene el producto, y lo que se vende en el reel — no lo usaba nadie porque no había
+    dónde cargarlo. La UI ya está; falta que cada estudio regenere su Gantt, porque
+    deliberadamente no se hizo backfill sobre datos de nadie.</p>
+    <p><strong>Antes de dar algo por faltante, buscá el endpoint.</strong> Suele estar.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">05 · Marketing</div>
+    <h2>El material que ya está hecho</h2>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Dónde</th><th>Qué hay</th></tr></thead>
+      <tbody>
+        <tr><td class="k">instagram/textos.md</td><td>32 publicaciones para dos meses, con el eje de cada una: Dolor · Datos · Producto · Criterio. Más las historias.</td></tr>
+        <tr><td class="k">instagram/orden-de-publicacion.md</td><td>En qué orden publicarlas arrancando sin contenido educativo.</td></tr>
+        <tr><td class="k">instagram/*.html</td><td>Carrusel, perfil, estrategia, historias, placas y siete guiones de reel.</td></tr>
+        <tr><td class="k">whatsapp/README.md</td><td>Cómo se produce todo: el pipeline de placas, reels y locución, y cómo correrlo en otra PC.</td></tr>
+        <tr><td class="k">whatsapp/reel-venta.html</td><td>El reel de venta de Instagram, 66,7 s, con locución narrada.</td></tr>
+        <tr><td class="k">src/pages/Presentacion.jsx</td><td>La página de venta, animada.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Los cuatro ángulos ya probados</h3>
+  <p>Son los del guion del reel. Si hay que escribir algo nuevo que suene igual, sale de acá.</p>
+  <ol class="ang">
+    <li><strong>No sabés cuánto ganaste.</strong> El dolor de entrada, y el más honesto.</li>
+    <li><strong>El Excel se rompe.</strong> El <span class="mono">#¡REF!</span>, el fin de semana perdido.</li>
+    <li><strong>Cotizás con precios de hace seis meses.</strong> En Argentina esto duele solo.</li>
+    <li><strong>El cliente te llama para preguntar cómo va.</strong> El portal se vende solo acá.</li>
+  </ol>
+
+  <div class="note">
+    <h3>Qué se puede publicar y qué no</h3>
+    <p>Los números del catálogo global sí: <strong>436 ítems, 829 materiales</strong>. Son del
+    sistema, no de ningún estudio. Lo que nunca sale en material público es un dato de tenant:
+    nombres de obras, de clientes, o montos reales.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">06 · Abierto</div>
+    <h2>Pendientes</h2>
+  </div>
+  <ul class="pend">
+    <li><span><strong>Ctrl+Z, segunda tanda.</strong> Ya anda en el Gantt, vínculos incluidos. Falta arrastre de tareas, edición en el modal, agregar ítem y renombrar en el presupuesto.</span></li>
+    <li><span><strong>Cargas sociales.</strong> Se siembra un default de UOCRA que suma exactamente 65,00 %. Hay que compararlo contra los valores reales de fimaestudio.</span></li>
+    <li><span><strong>Ajuste cuatrimestral del precio.</strong> Sin verificar si MercadoPago deja subir el monto de una suscripción viva sin que el usuario vuelva a autorizar. Confirmarlo antes de prometerlo.</span></li>
+    <li><span><strong>Gantts existentes.</strong> Necesitan «↺ Regenerar» para tomar el arreglo de horas. Sin backfill, a propósito.</span></li>
+    <li><span><strong>55 scripts <span class="mono">fix_*.py</span> sueltos</strong> en la raíz del backend. Parches de una vez, ya aplicados, que ensucian la lectura del repo.</span></li>
+  </ul>
+</section>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">07 · Operación</div>
+    <h2>Cómo se toca cada cosa</h2>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Qué</th><th>Cómo</th></tr></thead>
+      <tbody>
+        <tr><td class="k">frontend</td><td><span class="mono">npm run build</span> (tiene que pasar) → <span class="mono">git push</span>. Vercel deploya solo desde <span class="mono">main</span>.</td></tr>
+        <tr><td class="k">backend</td><td><span class="mono">C:\obras-backend</span> — <strong>no es repo git</strong>. Se deploya con <span class="mono">railway up --detach</span>.</td></tr>
+        <tr><td class="k">consultar producción</td><td><span class="mono">railway ssh "python -c ..."</span>. <span class="mono">railway run</span> no sirve: <span class="mono">DATABASE_URL</span> apunta a <span class="mono">postgres.railway.internal</span>.</td></tr>
+        <tr><td class="k">migraciones</td><td>Inline en el <span class="mono">lifespan</span> de FastAPI. Las de datos van marcadas en <span class="mono">_migraciones_datos</span> para correr una sola vez.</td></tr>
+        <tr><td class="k">contenido</td><td><span class="mono">node whatsapp/render.mjs venta</span> · <span class="mono">py -3.12 whatsapp/locucion-venta.py</span></td></tr>
+        <tr><td class="k">FIMA</td><td>Otro producto, otro deploy: frontend <span class="mono">vercel --prod</span> (el git está muerto), backend <span class="mono">railway up</span> en <span class="mono">spirited-vision</span>. Data crítica: solo migraciones aditivas.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <hr>
+  <p style="padding-top:18px">La fuente de verdad es <span class="mono">docs/MAPA.md</span> en el
+  repo — esta página es su versión visual. Si algo acá no coincide con el código, gana el código,
+  y hay que corregir el archivo en el mismo commit.</p>
+  <p>Verificado contra producción el 11/08/2026.</p>
+</footer>
+
+</div>
