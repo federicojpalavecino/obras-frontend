@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, BarChart2 } from 'lucide-react';
 import MobileMenu from './MobileMenu';
+import { tenantNombre, localidadYFecha } from '../tenant';
 
 import api from '../api';
 
@@ -27,13 +28,23 @@ const diasEntre = (a, b) => {
 const fmtFecha = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '—';
 const fmtFechaLarga = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
+// getDay() de JS es domingo=0..sábado=6; el motor usa weekday() de Python,
+// lunes=0..domingo=6. Esta tabla traduce, y de paso da la inicial del día.
+const A_WEEKDAY = [6, 0, 1, 2, 3, 4, 5];
+const DIA_LETRA = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+
 export default function Gantt() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [presupuesto, setPresupuesto] = useState(null);
   const [lineas, setLineas] = useState([]);
   const [tareas, setTareas] = useState([]);
-  const [config, setConfig] = useState({ horas_dia: 8, dias_semana: 5, fecha_inicio_obra: new Date().toISOString().split('T')[0] });
+  // laborables: días de la semana que se trabajan, en índices de getDay() de JS
+  // corridos a lunes=0 (igual que weekday() de Python, que es lo que usa el motor).
+  const [config, setConfig] = useState({
+    horas_dia: 8, fecha_inicio_obra: new Date().toISOString().split('T')[0],
+    sabado: false, domingo: false, laborables: [0, 1, 2, 3, 4],
+  });
   const [loading, setLoading] = useState(true);
   const [editando, setEditando] = useState(null);
   const [toast, setToast] = useState('');
@@ -237,9 +248,26 @@ export default function Gantt() {
 
   const guardarConfig = async (cfg) => {
     const data = { ...cfg, presupuesto_id: parseInt(id) };
-    await api.put(`/presupuestos/${id}/gantt/config`, data);
-    setConfig(cfg);
+    const r = await api.put(`/presupuestos/${id}/gantt/config`, data);
+    // El backend devuelve los días laborables que quedaron: se usan tal cual
+    // para pintar la grilla, así la pantalla nunca discrepa de la planificación.
+    setConfig({ ...cfg, laborables: r.data?.laborables || cfg.laborables });
+    await refrescarPlan();
     showToast('✓ Configuración guardada');
+  };
+
+  // Cambiar sábado o domingo se guarda solo: es un interruptor, no un formulario.
+  const cambiarFinDeSemana = async (campo, valor) => {
+    const cfg = { ...config, [campo]: valor };
+    setConfig(cfg);
+    try {
+      await guardarConfig(cfg);
+      const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
+      setTareas(t.data || []);
+    } catch (e) {
+      setConfig(config);   // vuelve atrás si no se pudo guardar
+      showToast('⚠ ' + (e.response?.data?.detail || 'No se pudo guardar'));
+    }
   };
 
   const exportarAlPlanner = async () => {
@@ -286,6 +314,12 @@ export default function Gantt() {
     cargar();
   };
 
+  // ¿Se trabaja ese día? Misma regla que usa el motor para planificar.
+  const esLaborable = (fecha) => {
+    const lab = config.laborables || [0, 1, 2, 3, 4];
+    return lab.includes(A_WEEKDAY[new Date(fecha + 'T12:00:00').getDay()]);
+  };
+
   // ── CÁLCULOS DEL GANTT ──
   if (loading) return <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontFamily: 'var(--sans)' }}>Cargando...</div>;
 
@@ -327,6 +361,135 @@ export default function Gantt() {
   }
 
   const hoy = new Date().toISOString().split('T')[0];
+
+  // ── IMPRIMIR ───────────────────────────────────────────────────────────────
+  // Se arma un HTML propio en vez de imprimir la pantalla: el Gantt vive dentro
+  // de un contenedor con scroll horizontal y al imprimirlo salía cortado en el
+  // ancho de la ventana. Acá la escala se calcula para que la obra entera entre
+  // en el ancho de una hoja apaisada.
+  const imprimirGantt = () => {
+    const esc = (s) => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const dias = diasEntre(fechaMin, fechaMax) + 1;
+    // Presupuesto de ancho de una A4 apaisada a 96 dpi (277 mm útiles ≈ 1045 px)
+    // menos las columnas fijas de la izquierda. Si la obra es muy larga el día
+    // baja hasta 3 px: sigue entrando en la hoja, sin números pero con las barras.
+    const W_NOMBRE = 200, W_DATO = 40, W_FIJO = W_NOMBRE + 4 * W_DATO;
+    const anchoDia = Math.max(3, Math.min(22, Math.floor((1045 - W_FIJO) / dias)));
+    const anchoTabla = W_FIJO + dias * anchoDia;
+    // Con table-layout:fixed manda la PRIMERA fila, y la primera es la de los
+    // meses (toda colspan). Sin colgroup las columnas se encogen solas y las
+    // barras, que van en px, terminan desbordando la tabla.
+    const colgroup = `<colgroup><col style="width:${W_NOMBRE}px">`
+      + `<col style="width:${W_DATO}px">`.repeat(4)
+      + `<col style="width:${anchoDia}px">`.repeat(dias) + `</colgroup>`
+
+    // Cabecera: los meses arriba, los días abajo (los días solo si entran).
+    const meses = [];
+    let mesActual = null;
+    for (let i = 0; i < dias; i++) {
+      const f = addDias(fechaMin, i);
+      const d = new Date(f + 'T12:00:00');
+      const clave = d.getFullYear() + '-' + d.getMonth();
+      if (!mesActual || mesActual.clave !== clave) {
+        // Solo la inicial en mayúscula: con text-transform:capitalize salía
+        // "Septiembre De 2026".
+        const l = d.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+        mesActual = { clave, n: 0, label: l.charAt(0).toUpperCase() + l.slice(1) };
+        meses.push(mesActual);
+      }
+      mesActual.n++;
+    }
+    const thMeses = meses.map(m =>
+      `<th colspan="${m.n}" class="mes">${esc(m.label)}</th>`).join('');
+    const thDias = Array.from({ length: dias }, (_, i) => {
+      const f = addDias(fechaMin, i);
+      const d = new Date(f + 'T12:00:00');
+      const cls = !esLaborable(f) ? ' franco' : (f === hoy ? ' hoy' : '');
+      return `<th class="dia${cls}">${anchoDia >= 11 ? d.getDate() : ''}</th>`;
+    }).join('');
+
+    const filasHTML = filas.map(t => {
+      const ini = diasEntre(fechaMin, t.fecha_inicio);
+      const largo = Math.max(1, diasEntre(t.fecha_inicio, t.fecha_fin) + 1);
+      const celdas = Array.from({ length: dias }, (_, i) => {
+        const f = addDias(fechaMin, i);
+        const cls = !esLaborable(f) ? ' franco' : '';
+        if (i !== ini) return `<td class="c${cls}"></td>`;
+        const barra = t.es_hito
+          ? `<div class="hito"></div>`
+          : `<div class="barra${t.critica ? ' crit' : ''}" style="width:${largo * anchoDia - 2}px">`
+            + (t.progreso > 0 ? `<div class="prog" style="width:${Math.min(100, t.progreso)}%"></div>` : '')
+            + `</div>`;
+        return `<td class="c${cls}" style="position:relative">${barra}</td>`;
+      }).join('');
+      return `<tr>
+        <td class="nm${t.es_resumen ? ' res' : ''}${t.padre_id ? ' hija' : ''}">${esc(t.nombre)}</td>
+        <td class="d">${fmtFecha(t.fecha_inicio)}</td>
+        <td class="d">${fmtFecha(t.fecha_fin)}</td>
+        <td class="d">${t.dur_calc ?? t.duracion_dias}</td>
+        <td class="d">${t.horas_totales > 0 ? (t.personas || 1) : '—'}</td>
+        ${celdas}</tr>`;
+    }).join('');
+
+    const trabaja = ['lunes a viernes'];
+    if (config.sabado) trabaja.push('sábados');
+    if (config.domingo) trabaja.push('domingos');
+
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Gantt — ${esc(presupuesto?.nombre_obra || '')}</title>
+<style>
+  @page{size:A4 landscape;margin:10mm}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#111;margin:0}
+  h1{font-size:13pt;margin:0 0 2px}
+  .sub{font-size:9pt;color:#555;margin-bottom:3px}
+  .cal{font-size:8.5pt;color:#555;margin-bottom:10px}
+  .cal b{color:#111}
+  table{border-collapse:collapse;table-layout:fixed;width:${anchoTabla}px}
+  /* Ojo: nada de overflow:hidden en td.c — las barras van en position:absolute
+     y se recortarían al ancho de un solo día. */
+  th,td{border:1px solid #d8d8d8;padding:0}
+  th.mes{font-size:8pt;background:#efefef;padding:2px 4px;text-align:left;white-space:nowrap;overflow:hidden}
+  th.dia{font-size:6.5pt;font-weight:400;color:#666;background:#fafafa;padding:1px 0;text-align:center}
+  th.franco,td.franco{background:#ececec}
+  th.hoy{background:#d1fae5;color:#065f46;font-weight:700}
+  th.hd{background:#efefef;font-size:8pt;padding:3px 5px;text-align:left;white-space:nowrap}
+  td.nm{font-size:8.5pt;padding:2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  td.nm.res{font-weight:700;text-transform:uppercase}
+  td.nm.hija{padding-left:18px}
+  td.d{font-size:7.5pt;text-align:center;color:#555;font-family:monospace}
+  td.c{height:17px}
+  .barra{position:absolute;left:1px;top:3px;height:11px;border-radius:2px;background:#059669;overflow:hidden}
+  .barra.crit{background:#dc2626}
+  .prog{height:100%;background:rgba(0,0,0,.28)}
+  .hito{position:absolute;left:2px;top:4px;width:9px;height:9px;background:#111;transform:rotate(45deg)}
+  .ref{margin-top:10px;font-size:8pt;color:#555;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .sw{display:inline-block;width:16px;height:8px;border-radius:2px;vertical-align:middle;margin-right:4px}
+  footer{margin-top:12px;border-top:1px solid #ccc;padding-top:5px;font-size:7.5pt;color:#888;display:flex;justify-content:space-between}
+</style></head><body>
+<h1>${esc(presupuesto?.nombre_obra || 'Obra')}</h1>
+<div class="sub">Plan de trabajos${plan ? ` — ${fmtFechaLarga(plan.inicio)} al ${fmtFechaLarga(plan.fin)} · ${plan.duracion_dias} días hábiles` : ''}</div>
+<div class="cal">Calendario: se trabaja <b>${trabaja.join(', ')}</b> · <b>${config.horas_dia} h</b> por día${vinculos.length ? ` · <b>${vinculos.length}</b> vínculos entre tareas` : ''}</div>
+<table>
+  ${colgroup}
+  <thead>
+    <tr><th class="hd" colspan="5">Tarea</th>${thMeses}</tr>
+    <tr><th class="hd">Nombre</th><th class="hd">Inicio</th><th class="hd">Fin</th><th class="hd">Días</th><th class="hd">Pers.</th>${thDias}</tr>
+  </thead>
+  <tbody>${filasHTML}</tbody>
+</table>
+<div class="ref">
+  <span><span class="sw" style="background:#059669"></span>Tarea</span>
+  <span><span class="sw" style="background:#dc2626"></span>Camino crítico</span>
+  <span><span class="sw" style="background:#ececec;border:1px solid #d8d8d8"></span>No se trabaja</span>
+  <span><span class="sw" style="background:rgba(0,0,0,.28)"></span>Avance</span>
+</div>
+<footer><span>${esc(tenantNombre())}</span><span>${localidadYFecha(new Date().toLocaleDateString('es-AR'))}</span></footer>
+</body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--text)', fontFamily: 'var(--sans)' }}>
@@ -396,6 +559,7 @@ export default function Gantt() {
               { label: 'Recalcular fechas', icon: '↻', onClick: aplicarPlan },
             ] : []),
             ...(tareas.length > 0 ? [
+              { label: 'Imprimir el Gantt', icon: '🖨', onClick: imprimirGantt },
               { label: 'Exportar al Planner', icon: <Calendar size={16} strokeWidth={1.5} />, onClick: exportarAlPlanner },
             ] : []),
             tareas.length === 0
@@ -436,12 +600,25 @@ export default function Gantt() {
           <input type="number" value={config.horas_dia} onChange={e => setConfig(c => ({ ...c, horas_dia: e.target.value }))}
             style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 6, color: 'var(--text)', padding: '4px 8px', fontSize: 12, width: 60, fontFamily: 'inherit' }} />
         </div>
+        {/* Fin de semana: de lunes a viernes siempre se trabaja; el sábado y el
+            domingo se definen por obra. Cambia la duración de todo el plan. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Días/semana</label>
-          <input type="number" value={config.dias_semana} min={1} max={7} onChange={e => setConfig(c => ({ ...c, dias_semana: e.target.value }))}
-            style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 6, color: 'var(--text)', padding: '4px 8px', fontSize: 12, width: 50, fontFamily: 'inherit' }} />
+          <label style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Se trabaja</label>
+          {[['sabado', 'Sáb'], ['domingo', 'Dom']].map(([campo, label]) => (
+            <button key={campo} onClick={() => cambiarFinDeSemana(campo, !config[campo])}
+              title={config[campo] ? `Se trabaja el ${campo}. Tocá para dejar de contarlo.` : `No se trabaja el ${campo}. Tocá para sumarlo al plan.`}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 14, cursor: 'pointer',
+                border: `1px solid ${config[campo] ? 'var(--accent)' : 'var(--border2)'}`,
+                background: config[campo] ? 'rgba(110,231,183,.14)' : 'var(--surface2)',
+                color: config[campo] ? 'var(--accent)' : 'var(--muted)', fontSize: 11, fontFamily: 'inherit' }}>
+              {config[campo] ? '✓' : '—'} {label}
+            </button>
+          ))}
         </div>
         <button className="btn btn-secondary btn-sm" onClick={() => guardarConfig(config)}>Guardar config</button>
+        {tareas.length > 0 && (
+          <button className="btn btn-secondary btn-sm" onClick={imprimirGantt} title="Imprimir el diagrama con su calendario">🖨 Imprimir</button>
+        )}
         <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted)' }}>
           {tareas.length} tareas · {fmtFechaLarga(fechaMin)} → {fmtFechaLarga(fechaMax)}
         </div>
@@ -521,15 +698,15 @@ export default function Gantt() {
             <div style={{ width: totalDias * PX_DIA, position: 'relative' }}>
               {/* Header fechas */}
               <div style={{ height: 50, borderBottom: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex', alignItems: 'flex-end', position: 'sticky', top: 0, zIndex: 10 }}>
-                {diasHeader.map((dia, i) => {
+                {diasHeader.map((dia) => {
                   const d = new Date(dia + 'T12:00:00');
                   const esLunes = d.getDay() === 1;
-                  const esDomingo = d.getDay() === 0;
+                  const franco = !esLaborable(dia);
                   const esHoyDia = dia === hoy;
                   return (
-                    <div key={dia} style={{ width: PX_DIA, flexShrink: 0, height: '100%', borderLeft: esLunes ? '1px solid #3a3a48' : '1px solid #2e2e3822', background: esHoyDia ? 'rgba(110,231,183,.08)' : esDomingo ? 'rgba(74,74,88,.3)' : 'transparent', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 2px 4px' }}>
+                    <div key={dia} style={{ width: PX_DIA, flexShrink: 0, height: '100%', borderLeft: esLunes ? '1px solid #3a3a48' : '1px solid #2e2e3822', background: esHoyDia ? 'rgba(110,231,183,.08)' : franco ? 'rgba(74,74,88,.3)' : 'transparent', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 2px 4px' }}>
                       {esLunes && <div style={{ fontSize: 9, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</div>}
-                      <div style={{ fontSize: 9, color: esHoyDia ? '#6ee7b7' : esDomingo ? '#4a4a58' : 'var(--muted2, #4a4a58)' }}>{d.getDate()}</div>
+                      <div style={{ fontSize: 9, color: esHoyDia ? '#6ee7b7' : franco ? '#4a4a58' : 'var(--muted2, #4a4a58)' }}>{DIA_LETRA[d.getDay()]}{d.getDate()}</div>
                     </div>
                   );
                 })}
@@ -550,9 +727,12 @@ export default function Gantt() {
                     {/* Columnas de fondo */}
                     {diasHeader.map(dia => {
                       const d = new Date(dia + 'T12:00:00');
-                      const esDomingo = d.getDay() === 0 || d.getDay() === 6;
+                      // Se sombrea lo que NO se trabaja según la configuración,
+                      // no el fin de semana fijo: si la obra trabaja los sábados,
+                      // el sábado tiene que verse como día de trabajo.
+                      const franco = !esLaborable(dia);
                       const esHoyDia = dia === hoy;
-                      return <div key={dia} style={{ width: PX_DIA, height: '100%', flexShrink: 0, background: esHoyDia ? 'rgba(110,231,183,.04)' : esDomingo ? 'rgba(74,74,88,.15)' : 'transparent', borderLeft: d.getDay() === 1 ? '1px solid #3a3a4844' : '1px solid transparent' }} />;
+                      return <div key={dia} style={{ width: PX_DIA, height: '100%', flexShrink: 0, background: esHoyDia ? 'rgba(110,231,183,.04)' : franco ? 'rgba(74,74,88,.15)' : 'transparent', borderLeft: d.getDay() === 1 ? '1px solid #3a3a4844' : '1px solid transparent' }} />;
                     })}
                     {/* Barra de tarea */}
                     {t.es_hito ? (
