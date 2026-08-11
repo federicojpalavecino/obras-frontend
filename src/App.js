@@ -43,6 +43,9 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
       const res = await api.post('/suscripcion/crear');
       const data = res.data;
       if (data.init_point) window.location.href = data.init_point;
+      // El backend ya encontró una suscripción autorizada en MercadoPago: no hay
+      // nada que pagar, solo hace falta recargar para entrar con el plan activo.
+      else if (data.ya_suscripto) { alert("Tu suscripción ya está activa en MercadoPago. Recargamos la página."); window.location.reload(); }
       else alert("Error al crear la suscripción. Contactá a soporte.");
     } catch (e) { alert(e.response?.data?.detail || "Error de conexión. Probá de nuevo o contactá a soporte."); }
     setLoading(false);
