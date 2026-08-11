@@ -189,12 +189,15 @@ export default function Gantt() {
     document.addEventListener('mouseup', soltar);
   };
 
-  const cambiarCuadrilla = async (tareaId, personas) => {
+  const cambiarCuadrilla = async (tareaId, personas, horas = 0) => {
     try {
       const r = await api.patch(`/presupuestos/${id}/gantt/tareas/${tareaId}/cuadrilla`, { personas });
       setPlan(r.data); setErrorPlan('');
       const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
       setTareas(t.data || []);
+      // Sin horas la duración es fija, así que sumar gente no acorta nada. Se
+      // avisa en vez de dejar al usuario tocando un botón que no hace nada.
+      if (!(horas > 0)) showToast(`👷 ${personas} — para que el plazo se recalcule, tocá “⏱ Horas”`);
     } catch (e) { showToast('⚠ ' + (e.response?.data?.detail || 'Error')); }
   };
 
@@ -569,6 +572,16 @@ export default function Gantt() {
         </div>
       </div>
 
+      {/* Las horas hay que traerlas a mano y nadie lo sabía: sin ellas el plazo
+          es fijo y sumar gente a la cuadrilla no cambia nada. Se avisa una vez,
+          con el botón al lado. */}
+      {tareas.length > 0 && !tareas.some(t => (t.horas_totales || 0) > 0) && (
+        <div style={{ background: 'rgba(251,191,36,.10)', borderBottom: '1px solid rgba(251,191,36,.3)', padding: '8px 20px', fontSize: 12, color: 'var(--warn)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span>⏱ Todavía no trajiste las horas de mano de obra. Sin ellas el plazo es fijo y sumar gente no lo acorta.</span>
+          <button className="btn btn-secondary btn-sm" onClick={cargarHoras}>Traer horas del análisis</button>
+        </div>
+      )}
+
       {/* Aviso si la planificación no cierra (p. ej. dependencia circular) */}
       {errorPlan && (
         <div style={{ background: 'rgba(248,113,113,.12)', borderBottom: '1px solid rgba(248,113,113,.35)', padding: '8px 20px', fontSize: 12, color: '#f87171', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -678,13 +691,21 @@ export default function Gantt() {
                       : (t.holgura ? `holgura ${t.holgura}d` : '')}
                   </div>
                 </div>
-                {/* Cuadrilla: cuántas personas trabajan. Cambia la duración. */}
-                {!t.es_resumen && t.horas_totales > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }} title="Personas trabajando en esta tarea">
-                    <button onClick={e => { e.stopPropagation(); cambiarCuadrilla(t.id, Math.max(1, (t.personas || 1) - 1)); }}
+                {/* Cuadrilla: cuántas personas trabajan.
+                    Antes solo aparecía si la tarea tenía horas cargadas, y como
+                    las horas hay que traerlas a mano con "⏱ Horas", en la
+                    práctica no lo veía nadie. Ahora se muestra siempre: con
+                    horas, mover la cuadrilla recalcula la duración; sin horas,
+                    el número igual queda guardado. */}
+                {!t.es_resumen && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0, opacity: t.horas_totales > 0 ? 1 : 0.55 }}
+                    title={t.horas_totales > 0
+                      ? `${t.personas || 1} persona(s) · ${Math.round(t.horas_totales)} h — cambiar la cuadrilla recalcula la duración`
+                      : 'Personas en esta tarea. Para que el plazo se recalcule solo, traé las horas con “⏱ Horas”.'}>
+                    <button onClick={e => { e.stopPropagation(); cambiarCuadrilla(t.id, Math.max(1, (t.personas || 1) - 1), t.horas_totales); }}
                       style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--muted)', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1, padding: 0 }}>−</button>
                     <span style={{ fontSize: 10, fontFamily: 'var(--mono)', minWidth: 14, textAlign: 'center' }}>👷{t.personas || 1}</span>
-                    <button onClick={e => { e.stopPropagation(); cambiarCuadrilla(t.id, (t.personas || 1) + 1); }}
+                    <button onClick={e => { e.stopPropagation(); cambiarCuadrilla(t.id, (t.personas || 1) + 1, t.horas_totales); }}
                       style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--muted)', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1, padding: 0 }}>+</button>
                   </div>
                 )}
