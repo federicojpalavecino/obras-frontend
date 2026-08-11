@@ -282,9 +282,10 @@ const BASE = [
   {
     id: "cargas-sociales", sec: "costos",
     titulo: "Cargar o cambiar las cargas sociales",
-    kw: "cargas sociales carga porcentaje jubilacion aportes leyes sociales mano obra recalcular sindicato",
+    kw: "cargas sociales carga porcentaje jubilacion aportes leyes sociales mano obra recalcular sindicato defecto default vienen aparecen lista desglose",
     pasos: [
       "En “Mano de obra”, panel izquierdo “Cargas sociales”.",
+      "La primera vez que entrás ya vienen cargadas las del convenio (aportes patronales, ART, fondo de cese, SAC, vacaciones e improductivos), que suman 65%.",
       "Para una nueva, tocá “＋ Carga social” y cargá Concepto y Porcentaje.",
       "Para editar una existente, tocá el lápiz, cambiá el % y confirmá.",
       "El total de cargas se aplica al costo/hora de TODAS las funciones automáticamente.",
@@ -344,13 +345,182 @@ const BASE = [
   {
     id: "gantt", sec: "presupuesto",
     titulo: "Ver y ajustar el Gantt",
-    kw: "gantt planificacion cronograma planning tiempos plazos diagrama barras planificar duracion",
+    kw: "gantt planificacion cronograma planning tiempos plazos diagrama barras planificar duracion plan trabajos",
     pasos: [
       "Se arma automáticamente desde los rubros del presupuesto.",
       "Abrí el presupuesto y tocá “Gantt” en la barra superior.",
-      "Ajustá las duraciones y el orden de cada tarea según el plan de obra.",
+      "Si todavía no hay tareas, tocá “⚡ Generar desde presupuesto”.",
+      "Tocá una tarea para editarle el nombre, las fechas, la duración, el avance o el color.",
+      "Arriba configurás el inicio de obra, las horas por día y qué días del fin de semana se trabajan.",
     ],
   },
+  {
+    id: "gantt-fin-de-semana", sec: "presupuesto",
+    titulo: "Definir si se trabaja sábado o domingo",
+    kw: "sabado sabados domingo domingos fin de semana finde feriado calendario laboral dias habiles trabaja trabajan semana septimo dia jornada",
+    pasos: [
+      "De lunes a viernes se trabaja siempre; el fin de semana se define obra por obra.",
+      "Abrí el Gantt del presupuesto.",
+      "En la barra de configuración, al lado de “SE TRABAJA”, tocá “Sáb” o “Dom”.",
+      "Se guarda solo y replanifica en el momento: la fecha de fin de obra se corre sin cambiar los días hábiles de trabajo.",
+      "En la grilla, los días que NO se trabajan quedan sombreados. Si activás el sábado, deja de verse gris.",
+    ],
+  },
+  {
+    id: "gantt-imprimir", sec: "presupuesto",
+    titulo: "Imprimir el Gantt",
+    kw: "imprimir impresion imprimo papel pdf gantt cronograma plan trabajos hoja a4 exportar llevar obra mostrar cliente",
+    pasos: [
+      "Abrí el Gantt del presupuesto.",
+      "En la barra de configuración tocá “🖨 Imprimir” (en celular está en el menú ⋮).",
+      "Sale una hoja A4 apaisada con la tabla de tareas (inicio, fin, días, personas), los meses arriba y las barras.",
+      "Los días que no se trabajan salen sombreados y el camino crítico en rojo.",
+      "La escala se ajusta sola para que la obra entera entre en el ancho de la hoja.",
+    ],
+  },
+  {
+    id: "gantt-vincular", sec: "presupuesto",
+    titulo: "Vincular tareas entre sí (dependencias)",
+    kw: "vincular vinculo vinculos dependencia dependencias enlazar unir encadenar relacionar tareas predecesora sucesora despues antes flecha camino critico critica holgura",
+    pasos: [
+      "Abrí el Gantt y tocá “🔗 Vincular” en la barra superior.",
+      "Tocá primero la tarea que va ANTES y después la que va DESPUÉS. Queda una flecha entre las dos.",
+      "Para encadenar todo de una, usá “⛓ Encadenar”: pone cada tarea después de la anterior (reemplaza los vínculos que haya).",
+      "Con vínculos cargados aparece “↻ Recalcular”, que recalcula y guarda las fechas según las dependencias.",
+      "“▲ Crítico” resalta en rojo el camino crítico: las tareas sin holgura, las que si se atrasan atrasan toda la obra.",
+    ],
+  },
+  {
+    id: "gantt-cuadrilla", sec: "presupuesto",
+    titulo: "Cuánta gente trabaja en cada tarea (el plazo se calcula solo)",
+    kw: "cuadrilla gente personas operarios oficiales personal cuantos sumar poner mas gente plazo duracion calcula automatico acortar tarea rendimiento horas",
+    pasos: [
+      "Primero traé las horas: en el Gantt tocá “⏱ Horas”. Toma las horas de mano de obra del análisis de costos de cada ítem.",
+      "Con las horas cargadas, cada tarea muestra 👷 y los botones − / + al lado del nombre.",
+      "Sumá o sacá gente con esos botones.",
+      "La duración se recalcula sola: horas totales ÷ (horas por día × personas), repartido en los días que se trabajan.",
+      "Si las tareas están vinculadas, toda la cadena se corre y cambia la fecha de fin de obra.",
+    ],
+  },
+  {
+    id: "gantt-jerarquia", sec: "presupuesto",
+    titulo: "Indentar una tarea: tareas resumen y subtareas",
+    kw: "jerarquia indentar indento indenta indentada sangria subtarea subtareas tarea resumen agrupar anidar colgar padre hija nivel etapa",
+    pasos: [
+      "Cada fila del Gantt tiene una flecha ⇥ a la izquierda del nombre.",
+      "Tocá ⇥ para colgar la tarea de la de arriba: esa pasa a ser tarea resumen.",
+      "La tarea resumen toma sus fechas de las hijas, suma sus horas y promedia el avance. Se muestra en MAYÚSCULAS.",
+      "Para sacarla del grupo, tocá ⇤ en la subtarea.",
+      "Hay un solo nivel de jerarquía, así que no se puede armar un enredo sin salida.",
+    ],
+  },
+  {
+    id: "gantt-mover-soltar", sec: "presupuesto",
+    titulo: "Mover una tarea de fecha y soltarla si quedó fijada",
+    kw: "mover arrastrar correr fecha tarea fijar fijada fijado chinche pin soltar suelto suelta solto liberar desfijar despegar no comenzar antes restriccion",
+    pasos: [
+      "Arrastrá la barra de una tarea para moverla de fecha. Las tareas que dependen de esa se reacomodan solas.",
+      "La tarea arrastrada queda FIJADA con un “no comenzar antes de” y aparece un 📌 al lado del nombre.",
+      "Una tarea fijada ya no se mueve sola cuando cambian sus dependencias.",
+      "Para soltarla, tocá el 📌: vuelve a regirse por sus dependencias.",
+    ],
+  },
+  {
+    id: "gantt-avance", sec: "presupuesto",
+    titulo: "Cargar el avance de una tarea del Gantt",
+    kw: "avance completado porcentaje progreso ejecutado cuanto va tarea barra pintada",
+    pasos: [
+      "Tocá la tarea en el Gantt para abrir el modal de edición.",
+      "Cargá el “% completado” y guardá.",
+      "La barra se pinta con ese porcentaje.",
+      "En las tareas resumen el avance es el promedio de sus subtareas: no se carga a mano.",
+    ],
+  },
+  {
+    id: "computo-cargar", sec: "presupuesto",
+    titulo: "Cargar el cómputo de un ítem (medir cantidades)",
+    kw: "computo computar medir medicion cantidad cantidades metros m2 m3 ml largo ancho alto perimetro pared losa descontar aberturas parcial sumar restar",
+    pasos: [
+      "Abrí el presupuesto y, en la línea del ítem, tocá “cómputo” (a la derecha del nombre).",
+      "Se abre un panel a la derecha. Arriba elegís el tipo: m², m³, ml, m²/ml o u/Gl.",
+      "Cargá una fila por sector: descripción, medidas y cantidad. El parcial se calcula solo.",
+      "Para DESCONTAR (una abertura, un hueco), tocá el parcial de esa fila y pasa a “−”.",
+      "Abajo tenés el total. Tocá “Aplicar” para que esa cantidad pase al ítem del presupuesto.",
+      "Se guarda solo mientras cargás, así que no se pierde si cerrás el panel.",
+    ],
+  },
+  {
+    id: "computo-imprimir", sec: "presupuesto",
+    titulo: "Imprimir el cómputo de cantidades",
+    kw: "imprimir computo cantidades planilla papel memoria calculo justificar cliente comitente parciales totales",
+    pasos: [
+      "En la barra superior del presupuesto tocá “∑ Cómputo”.",
+      "Sale una planilla con TODOS los ítems que tengan cómputo cargado, agrupados por rubro.",
+      "De cada ítem salen las filas con su descripción, la fórmula, el signo (+/−) y el parcial, más el total.",
+      "Si el total del cómputo no coincide con la cantidad cargada en el presupuesto, sale un aviso: te faltó tocar “Aplicar”.",
+      "Para imprimir el cómputo de un solo ítem, usá “∑ Imprimir” dentro del panel de cómputo.",
+    ],
+  },
+  {
+    id: "computo-copiar", sec: "presupuesto",
+    titulo: "Copiar el cómputo de otro ítem",
+    kw: "copiar computo otro item repetir mismo igual duplicar medidas reutilizar",
+    pasos: [
+      "Abrí el panel de cómputo del ítem donde lo querés pegar.",
+      "Tocá “Copiar cómputo de otro ítem” y elegí de cuál.",
+      "Se copian las filas y el tipo. El ítem de origen NO se modifica.",
+      "Ajustá lo que haga falta y tocá “Aplicar”.",
+    ],
+  },
+  {
+    id: "margen", sec: "presupuesto",
+    titulo: "Qué es el margen y cómo se calcula",
+    kw: "margen ganancia utilidad beneficio porcentaje rentabilidad cuanto gano da mal raro calcula formula costo ejecucion",
+    pasos: [
+      "El margen sale de: (precio sin IVA − costo de ejecución) ÷ precio sin IVA.",
+      "Se calcula sobre el precio SIN IVA porque el IVA no es tuyo, lo depositás.",
+      "El costo de ejecución son materiales + mano de obra (con cargas) + maquinaria.",
+      "Si no tocaste nada más, el margen te va a dar justo lo que armás con GG y Beneficio: con coeficiente 1,429 el margen es 30%.",
+      "Los materiales cuentan como costo solo si los estás cobrando (K Mat mayor que 0). Con K Mat en 0 el cliente los compra y no son costo tuyo.",
+    ],
+  },
+  {
+    id: "gestion-materiales", sec: "presupuesto",
+    titulo: "Gestión de materiales (el cliente provee los materiales)",
+    kw: "gestion materiales cliente provee compra honorario porcentaje administracion k mat coeficiente modo",
+    pasos: [
+      "Abrí los coeficientes del presupuesto y activá “Gestión de materiales”.",
+      "Cargá el “% Gestión sobre materiales”: es tu honorario por administrar la compra.",
+      "Si el cliente compra los materiales y vos NO se los facturás, poné K Mat en 0. El precio pasa a ser mano de obra + maquinaria + tu honorario.",
+      "Si los materiales sí van dentro del presupuesto, dejá K Mat en 1 (o el coeficiente que uses) y además cobrás el % de gestión.",
+      "El margen se ajusta solo a cada caso.",
+    ],
+  },
+  {
+    id: "ver-mis-presupuestos", sec: "cotizador",
+    titulo: "Ver mis obras y presupuestos",
+    kw: "ver mis obras presupuestos tengo abiertas abiertos cerrados listado lista donde estan encontrar buscar todas todos",
+    pasos: [
+      "Entrá a “Presupuestos y obras” desde el inicio.",
+      "Los presupuestos salen agrupados por cliente, con su estado: ABIERTO (se puede editar) o CERRADO (con candado).",
+      "Tocá uno para abrirlo. Con la carpeta entrás directo a la Gestión de obra.",
+      "Si tenés muchos, agrupalos por proyecto desde “Clientes y Proyectos”.",
+    ],
+    route: "/cotizador", routeLabel: "Ver mis presupuestos",
+  },
+  {
+    id: "reabrir-presupuesto", sec: "cotizador",
+    titulo: "Reabrir un presupuesto cerrado",
+    kw: "reabrir abrir cerrado cerro cerre cerraron candado error equivoque equivoco sin querer desbloquear editar modificar volver atras",
+    pasos: [
+      "Un presupuesto cerrado no se puede editar: por eso los precios y cantidades quedan congelados.",
+      "Abrí el presupuesto y tocá “Reabrir” (el candado) en la barra superior.",
+      "Ya podés volver a editar rubros, ítems y coeficientes.",
+      "OJO: los certificados que hayas emitido quedan con su monto fijo, no se recalculan.",
+      "Cuando termines, cerralo de nuevo para poder sacar el listado de materiales.",
+    ],
+  },
+
   {
     id: "curva", sec: "presupuesto",
     titulo: "Curva de inversión",
@@ -398,11 +568,11 @@ const BASE = [
   },
   {
     id: "cobros", sec: "obra",
-    titulo: "Registrar un cobro de la obra",
-    kw: "cobros cobro cobrar pago recibido ingreso plata cliente cuota anticipo cuenta corriente registrar",
+    titulo: "Cargar un cobro o anticipo del cliente",
+    kw: "cobros cobro cobrar pago recibido ingreso plata cliente cuota anticipo adelanto seña cuenta corriente registrar",
     pasos: [
       "Entrá a la “Obra” y andá a la pestaña “Cobros”.",
-      "Cargá el cobro: monto, fecha, forma de pago y referencia/nota.",
+      "Cargá el cobro: monto, fecha, forma de pago y referencia/nota. Un anticipo se carga igual que cualquier cobro.",
       "Se refleja en el Resumen y lo podés importar al Control Financiero como ingreso.",
     ],
   },
@@ -505,6 +675,19 @@ const BASE = [
       "Entrá al módulo “Configuración” desde el inicio.",
       "Subí tu logo (o eliminá el actual), elegí tu color principal y editá nombre y datos del estudio (CUIT, dirección, etc.).",
       "Se aplica en todo el sistema, en los PDF y en el portal de tus clientes.",
+    ],
+    route: "/config", routeLabel: "Ir a Configuración",
+  },
+  {
+    id: "ubicacion-estudio", sec: "config",
+    titulo: "Poner la ciudad de mi estudio en presupuestos y certificados",
+    kw: "ciudad localidad provincia ubicacion lugar resistencia chaco sale arriba encabezado esquina fecha imprime mi ciudad donde estoy domicilio",
+    pasos: [
+      "Ese “Ciudad, fecha” de los presupuestos y certificados sale de los datos de tu estudio, no está fijo.",
+      "Entrá a “Configuración” y cargá Ciudad y Provincia.",
+      "Guardá y volvé a imprimir: ya sale tu localidad.",
+      "Si no cargás nada, se imprime solo la fecha.",
+      "Ojo: esta es la ciudad de TU estudio. La ubicación de cada obra se carga aparte, en los datos del presupuesto.",
     ],
     route: "/config", routeLabel: "Ir a Configuración",
   },
@@ -913,7 +1096,7 @@ const BASE = [
     route: "/cotizador", routeLabel: "Ir a Presupuestos",
   },
   {
-    id: "cargas-sociales", sec: "costos",
+    id: "cargas-sociales-factor", sec: "costos",
     titulo: "Cargas sociales: por qué la mano de obra sale más que el jornal",
     kw: "cargas sociales jornal basico uocra aportes contribuciones porcentaje factor mano obra costo real encarece",
     pasos: [
@@ -960,7 +1143,7 @@ function seccionActual(pathname) {
 function sugerencias(sec) {
   const m = {
     cotizador: ["¿Cómo creo un presupuesto?", "¿Cómo cargo un cliente?", "¿Cómo exporto un presupuesto a PDF?"],
-    presupuesto: ["¿Cómo agrego rubros e ítems?", "¿Cómo cambio los coeficientes?", "¿Cómo exporto el presupuesto?"],
+    presupuesto: ["¿Cómo agrego rubros e ítems?", "¿Cómo cargo el cómputo de un ítem?", "¿Cómo vinculo tareas del Gantt?", "¿Cómo pongo que se trabaja el sábado?", "¿Cómo cambio los coeficientes?"],
     certificado: ["¿Cómo hago un certificado de avance?", "¿Cómo cargo los egresos?"],
     obra: ["¿Cómo genero el contrato?", "¿Cómo registro un cobro?", "¿Cómo cargo un subcontrato?"],
     costos: ["¿Cómo creo mi propio análisis de costo?", "¿Cómo agrego un material?", "¿Cómo cambio el precio de la mano de obra?"],
@@ -1015,6 +1198,20 @@ function rankear(consulta, sec) {
     return { e, score, hits };
   }).filter((r) => r.score > 0).sort((a, b) => b.score - a.score);
 }
+
+// ¿La pregunta es "cómo hago X" (ayuda de uso) y no "cuánto/cuál es X" (dato)?
+// Sin esto, la capa de datos secuestraba las preguntas de uso: "quiero vincular
+// dos tareas del gantt" veía la palabra "tarea", se iba a buscar en la base y
+// contestaba "¿de qué tarea?" en vez de explicar cómo se vinculan.
+const RE_COMO_HAGO = new RegExp(
+  "\\b(como|donde|puedo|puedes|podes|se puede|quiero|queria|necesito|hago|hacer|haces|" +
+  "agrego|agregar|creo|crear|cargo|cargar|pongo|poner|saco|sacar|borro|borrar|elimino|eliminar|" +
+  "cambio|cambiar|edito|editar|configuro|configurar|activo|activar|desactivar|habilitar|" +
+  "imprimo|imprimir|exporto|exportar|mando|mandar|envio|enviar|vinculo|vincular|" +
+  "sirve|significa|que es|que pasa|pasa si|para que|por que|porque|ayuda|explica|explicame|" +
+  "no me aparece|no aparece|no funciona|no anda|no sale|no puedo|da mal|esta mal|error|falla)\\b"
+);
+const esComoHago = (texto) => RE_COMO_HAGO.test(normalizar(texto));
 
 const SALUDOS = ["hola", "buenas", "buen dia", "buenos dias", "buenas tardes", "que tal", "hey", "holaa"];
 const GRACIAS = ["gracias", "muchas gracias", "genial", "perfecto", "joya", "buenisimo", "ok gracias"];
@@ -1233,7 +1430,11 @@ export default function Asistente() {
 
     const top = ranked[0];
     const segundo = ranked[1];
-    const confiado = top.score >= 999 || (top.score >= 4 && (!segundo || top.score >= segundo.score * 1.22));
+    // Umbral bajo y sin comparar contra el segundo: cuando hay varios temas
+    // parecidos (todo el Gantt comparte palabras), pedir ventaja sobre el
+    // segundo devolvía un menú. Es mejor contestar el mejor y dejar los otros
+    // como sugerencias abajo, que hacerlo tocar dos veces para leer algo.
+    const confiado = top.score >= 999 || top.score >= 3.2;
 
     // Confiado → respuesta directa + alternativas cercanas
     if (confiado) {
@@ -1495,7 +1696,18 @@ export default function Asistente() {
     setInput("");
     setMsgs((m) => [...m, { from: "user", texto }]);
     await ensureData();
-    const intent = clasificar(texto);
+    // Si es una pregunta de USO y la base de conocimiento tiene una respuesta
+    // firme, contesta la base. La capa de datos queda para las preguntas de
+    // dato ("cuánto sale…", "cuánto me deben en…"), que es para lo que está.
+    const kb = rankear(texto, sec);
+    const kbFirme = kb.length > 0 && kb[0].score >= 3.2;
+    // Umbral alto: varias palabras fuertes del tema, título incluido. A esa
+    // altura la pregunta es de uso aunque no tenga un "cómo" adelante.
+    const kbMuyFirme = kb.length > 0 && kb[0].score >= 6;
+    let intent = ((esComoHago(texto) && kbFirme) || kbMuyFirme) ? null : clasificar(texto);
+    // "ambiguo" es la capa de datos diciendo "algo de datos me suena, pero no
+    // sé qué". Si la base de conocimiento sí sabe, gana la base.
+    if (intent && intent.tipo === "ambiguo" && kbFirme) intent = null;
     if (intent) {
       setMsgs((m) => [...m, { from: "bot", texto: "Un segundo, busco eso… ⏳", loading: true }]);
       const res = await resolverDatos(intent, texto);
