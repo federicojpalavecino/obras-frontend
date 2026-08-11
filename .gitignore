@@ -24,3 +24,7 @@ yarn-error.log*
 
 .vercel
 .env*.local
+
+# contenido: los videos y audios se regeneran, no se versionan
+/whatsapp/out
+__pycache__/

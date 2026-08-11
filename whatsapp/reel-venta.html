@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>FAIM OBRAS — Reel de venta (Instagram)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--acl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#141916;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#111;overflow:hidden}
+
+/* Lienzo fijo 1080x1920. --z solo escala la previsualización. */
+#reel{width:1080px;height:1920px;position:relative;overflow:hidden;
+  background:var(--bg);color:var(--ink);font-family:var(--s);
+  transform:scale(var(--z,1));transform-origin:top left}
+
+.esc{position:absolute;inset:0;padding:150px 84px 170px;display:flex;flex-direction:column;opacity:0}
+/* Trama de papel de obra: la marca de la casa. */
+.esc::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);
+  background-size:60px 60px;opacity:.5}
+.esc>*{position:relative;z-index:1}
+.osc{background:var(--ink);color:var(--bg)}
+.osc::after{background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);opacity:1}
+.vrd{background:var(--ac);color:#fff}
+.vrd::after{background-image:linear-gradient(rgba(255,255,255,.10) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.10) 1px,transparent 1px);opacity:1}
+
+.kick{font-family:var(--m);font-size:27px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
+.osc .kick{color:var(--acl)} .vrd .kick{color:rgba(255,255,255,.85)}
+.tit{font-size:96px;font-weight:800;line-height:1.02;letter-spacing:-.04em}
+.tit.ch{font-size:70px} .tit.xch{font-size:58px}
+.tit em{font-style:normal;color:var(--ac)}
+.osc .tit em{color:var(--acl)} .vrd .tit em{color:#fff;text-decoration:underline;text-underline-offset:12px}
+.med{flex:1;display:flex;flex-direction:column;justify-content:center}
+.sub{font-size:38px;line-height:1.35;color:var(--mut);margin-top:34px;max-width:20ch}
+.osc .sub{color:rgba(255,255,255,.62)} .vrd .sub{color:rgba(255,255,255,.9)}
+
+/* Palabra por palabra (tipografía cinética) */
+.pal{display:inline-block;white-space:pre}
+
+/* Marca de agua constante: que se sepa de quién es aunque lo reposteen */
+#marca{position:absolute;left:84px;bottom:74px;z-index:5;font-family:var(--m);
+  font-size:26px;letter-spacing:.24em;color:var(--mut);opacity:.9}
+#barra{position:absolute;left:0;bottom:0;height:8px;background:var(--ac);z-index:6}
+
+/* Alerta de fórmula rota: el error de Excel como cartel, no como celda.
+   Es el momento en el que el espectador se reconoce; tiene que pegar. */
+#alerta{position:absolute;left:50%;top:52%;z-index:9;transform-origin:center;
+  background:var(--red);color:#fff;border-radius:22px;padding:44px 72px;
+  box-shadow:0 40px 90px rgba(239,68,68,.45);text-align:center;opacity:0}
+#alerta .ax{font-family:var(--m);font-size:130px;font-weight:600;letter-spacing:-.03em;line-height:1}
+#alerta .an{font-size:32px;font-weight:700;margin-top:14px;letter-spacing:.02em}
+
+/* ── Excel roto ──────────────────────────────────────────────────── */
+.hoja{background:#fff;border:2px solid var(--bord);border-radius:10px;overflow:hidden;
+  box-shadow:0 30px 70px rgba(0,0,0,.14)}
+.hfila{display:grid;grid-template-columns:1fr 150px 200px;border-bottom:1px solid var(--bord)}
+.hfila>div{padding:20px 22px;font-size:29px;font-family:var(--m)}
+.hfila.hd>div{background:var(--sup2);font-size:23px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.hfila .n{text-align:right}
+.err{color:var(--red);font-weight:600}
+.reloj{font-family:var(--m);font-size:34px;color:var(--mut);letter-spacing:.08em}
+
+/* ── Tarjeta de precio ───────────────────────────────────────────── */
+.pcard{background:#fff;border:2px solid var(--bord);border-radius:16px;padding:38px 40px;
+  box-shadow:0 26px 60px rgba(0,0,0,.13)}
+.pnom{font-size:34px;font-weight:700}
+.pfec{font-family:var(--m);font-size:26px;color:var(--red);margin-top:10px;letter-spacing:.05em}
+.pfec.ok{color:var(--ac)}
+.pval{font-family:var(--m);font-size:70px;font-weight:600;letter-spacing:-.02em;margin-top:16px}
+
+/* ── App / cotizador ─────────────────────────────────────────────── */
+.app{background:#fff;border-radius:14px;border:2px solid var(--bord);overflow:hidden;
+  box-shadow:0 30px 70px rgba(0,0,0,.16)}
+.abar{display:flex;align-items:center;gap:12px;padding:20px 26px;border-bottom:2px solid var(--bord)}
+.alogo{font-family:var(--m);font-size:22px;font-weight:700;letter-spacing:.14em;color:var(--ac)}
+.acrumb{font-size:22px;color:var(--mut)}
+.afila{display:grid;grid-template-columns:1fr 120px 230px;gap:14px;padding:19px 26px;
+  border-bottom:1px solid var(--sup2);align-items:baseline}
+.afila .nm{font-size:27px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.afila .un{font-family:var(--m);font-size:23px;color:var(--mut);text-align:center}
+.afila .tt{font-family:var(--m);font-size:27px;font-weight:600;text-align:right}
+.atot{display:flex;justify-content:space-between;align-items:flex-end;padding:26px;
+  border-top:4px solid var(--ink);background:var(--sup2)}
+.atot .k{font-family:var(--m);font-size:22px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.atot .v{font-family:var(--m);font-size:56px;font-weight:600;color:var(--ac);letter-spacing:-.025em}
+
+/* ── Gantt ───────────────────────────────────────────────────────── */
+.gf{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:center;margin-bottom:18px}
+.gn{font-size:27px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gt{position:relative;height:36px;background:var(--sup2);border-radius:8px;overflow:hidden}
+.gb{position:absolute;top:0;height:100%;border-radius:8px;background:var(--ac)}
+.gb.cr{background:var(--red)}
+.osc .gt{background:rgba(255,255,255,.1)}
+
+/* ── Celular ─────────────────────────────────────────────────────── */
+.tel{width:430px;margin:0 auto;background:#0b100d;border:3px solid #2b3a33;border-radius:44px;
+  padding:20px 16px 30px;box-shadow:0 34px 80px rgba(0,0,0,.42)}
+.tnotch{width:36%;height:9px;border-radius:9px;background:#2b3a33;margin:0 auto 18px}
+.tin{background:#fff;border-radius:24px;overflow:hidden}
+.thead{padding:24px 24px 18px;border-bottom:2px solid var(--bord)}
+.tt1{font-size:30px;font-weight:800} .tt2{font-family:var(--m);font-size:20px;color:var(--mut);margin-top:6px}
+.trow{padding:20px 24px;border-bottom:1px solid var(--sup2)}
+.trow .a{display:flex;justify-content:space-between;font-size:25px;font-weight:600}
+.trow .b{height:12px;background:var(--sup2);border-radius:6px;margin-top:12px;overflow:hidden}
+.trow .b i{display:block;height:100%;background:var(--ac);border-radius:6px}
+
+/* ── Cierre ──────────────────────────────────────────────────────── */
+.cta{display:inline-block;background:#fff;color:var(--ac);font-size:40px;font-weight:800;
+  padding:30px 52px;border-radius:18px;letter-spacing:-.01em}
+.dato{font-family:var(--m);font-size:31px;line-height:1.95;color:rgba(255,255,255,.95)}
+.dato b{font-weight:600}
+</style>
+</head>
+<body>
+<div id="reel">
+
+  <!-- 1 · HOOK -->
+  <div class="esc osc" id="e1">
+    <div class="med">
+      <div class="kick" id="e1k">Pregunta incómoda</div>
+      <div class="tit" style="margin-top:26px" id="e1t"></div>
+      <div class="tit ch" style="margin-top:40px;color:var(--acl)" id="e1t2"></div>
+    </div>
+  </div>
+
+  <!-- 2 · DOMINGO / EXCEL -->
+  <div class="esc" id="e2">
+    <div class="reloj" id="e2r">domingo · 23:47</div>
+    <div class="tit ch" style="margin-top:18px" id="e2t">Tercer fin de semana<br>con el mismo Excel.</div>
+    <div class="med">
+      <div class="hoja" id="e2h">
+        <div class="hfila hd"><div>Ítem</div><div class="n">Cant.</div><div class="n">Total</div></div>
+        <div class="hfila"><div>Mampostería 15</div><div class="n">184</div><div class="n">3.312.000</div></div>
+        <div class="hfila"><div>Contrapiso</div><div class="n">96</div><div class="n">1.248.000</div></div>
+        <div class="hfila"><div>Revoques</div><div class="n">310</div><div class="n err" id="e2e">#¡REF!</div></div>
+        <div class="hfila"><div>Cubierta</div><div class="n">112</div><div class="n err" id="e2e2">#¡REF!</div></div>
+      </div>
+      <div class="sub" id="e2s">Tocaste una fila y se rompió una fórmula.<br>Otra vez.</div>
+    </div>
+    <div id="alerta"><div class="ax">#¡REF!</div><div class="an">SE ROMPIÓ UNA FÓRMULA</div></div>
+  </div>
+
+  <!-- 3 · PRECIOS VIEJOS -->
+  <div class="esc" id="e3">
+    <div class="kick" id="e3k">Y lo peor</div>
+    <div class="tit ch" style="margin-top:18px" id="e3t">Cotizás con precios<br>que ya no existen.</div>
+    <div class="med">
+      <div class="pcard" id="e3c">
+        <div class="pnom">HIERRO ALETADO Ø8</div>
+        <div class="pfec" id="e3f">último precio · hace 4 meses</div>
+        <div class="pval" id="e3v">$ 612</div>
+      </div>
+      <div class="sub" id="e3s">Cada obra que arrancás con un precio viejo,<br>la arrancás perdiendo.</div>
+    </div>
+  </div>
+
+  <!-- 4 · GIRO -->
+  <div class="esc vrd" id="e4">
+    <div class="med" style="align-items:flex-start">
+      <div class="tit" id="e4t"></div>
+      <div class="sub" id="e4s" style="max-width:22ch">No hace falta trabajar más.<br>Hace falta dejar de rehacer.</div>
+    </div>
+  </div>
+
+  <!-- 5 · COTIZADOR -->
+  <div class="esc" id="e5">
+    <div class="kick" id="e5k">Cotizás</div>
+    <div class="tit ch" style="margin-top:16px" id="e5t">436 ítems con el<br>análisis ya cargado.</div>
+    <div class="med">
+      <div class="app" id="e5a">
+        <div class="abar"><span class="alogo">TU ESTUDIO</span><span class="acrumb">· Vivienda unifamiliar</span></div>
+        <div id="e5rows"></div>
+        <div class="atot"><div><div class="k">Total del presupuesto</div></div><div class="v" id="e5v">$ 0</div></div>
+      </div>
+    </div>
+    <div class="tit xch" id="e5f" style="text-align:right">14 min<span style="color:var(--mut);font-size:34px"> · no 3 días</span></div>
+  </div>
+
+  <!-- 6 · PRECIOS EN CASCADA -->
+  <div class="esc" id="e6">
+    <div class="kick" id="e6k">Actualizás</div>
+    <div class="tit ch" style="margin-top:16px" id="e6t">Cambiás un precio.<br>Se recalcula todo.</div>
+    <div class="med">
+      <div class="pcard" id="e6c" style="margin-bottom:42px">
+        <div class="pnom">HIERRO ALETADO Ø8</div>
+        <div class="pfec ok" id="e6f">actualizado hoy</div>
+        <div class="pval" id="e6v">$ 612</div>
+      </div>
+      <div id="e6l"></div>
+    </div>
+  </div>
+
+  <!-- 7 · GANTT -->
+  <div class="esc osc" id="e7">
+    <div class="kick" id="e7k">Planificás</div>
+    <div class="tit ch" style="margin-top:16px" id="e7t">¿El plazo lo<br>estimás a ojo?</div>
+    <div class="med">
+      <div id="e7g"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:40px">
+        <div><div class="kick" style="font-size:24px">Cuadrilla</div>
+             <div class="tit ch" id="e7p" style="margin-top:8px">3</div></div>
+        <div style="text-align:right"><div class="kick" style="font-size:24px">Fin de obra</div>
+             <div class="tit ch" id="e7d" style="margin-top:8px">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 · PORTAL DEL CLIENTE -->
+  <div class="esc" id="e8">
+    <div class="kick" id="e8k">Y tu cliente</div>
+    <div class="tit ch" style="margin-top:16px" id="e8t">Deja de llamarte<br>para preguntar.</div>
+    <div class="med">
+      <div class="tel" id="e8tel">
+        <div class="tnotch"></div>
+        <div class="tin">
+          <div class="thead"><div class="tt1">Vivienda unifamiliar</div><div class="tt2">AVANCE DE OBRA</div></div>
+          <div id="e8rows"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9 · CIERRE -->
+  <div class="esc vrd" id="e9">
+    <div class="med" style="align-items:flex-start">
+      <div class="tit" id="e9t">Cotizá tu próxima<br>obra en <em>minutos</em>.</div>
+      <div style="margin-top:56px" id="e9b"><span class="cta">Escribinos y lo vemos con una obra tuya</span></div>
+      <div class="dato" style="margin-top:52px" id="e9d">
+        WhatsApp <b>+54 9 3482 30-5155</b><br>
+        <b>faimobras.com</b>
+      </div>
+    </div>
+  </div>
+
+  <div id="marca">FAIM OBRAS</div>
+  <div id="barra"></div>
+</div>
+
+<div id="ui" style="position:fixed;left:12px;top:12px;z-index:99;font-family:system-ui;color:#fff">
+  <button id="play" style="padding:10px 18px;border-radius:8px;border:none;cursor:pointer;font-weight:700">▶ Reproducir</button>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   Todo se pinta en función de t (segundos). El render llama setT(t)
+   cuadro por cuadro, así que nada puede depender del reloj real.
+   ═══════════════════════════════════════════════════════════════════ */
+/* La duración la manda la locución, no al revés: con 33 s el guion entraba a
+   presión y catorce de quince frases se pisaban con la siguiente.
+   `py whatsapp/locucion-venta.py plan` mide los mp3 e imprime este número.
+   Cada placa además queda un rato DESPUÉS de que la voz terminó: sin ese aire
+   el texto de pantalla no se llega a leer, que era el problema de la versión
+   de 43 s. */
+const DURACION = 55.8;
+window.DURACION = DURACION;
+const $ = id => document.getElementById(id);
+
+const cl  = (v,a=0,b=1) => Math.min(b, Math.max(a, v));
+const win = (t,a,b) => cl((t - a) / (b - a));
+const out = p => 1 - Math.pow(1 - p, 3);
+const io  = p => p < .5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2;
+const money = n => '$ ' + Math.round(n).toLocaleString('es-AR');
+
+/* Entrada estándar: sube y aparece. */
+function entra(el, t, desde, dur = .45, dy = 30){
+  const p = out(win(t, desde, desde + dur));
+  el.style.opacity = p;
+  el.style.transform = `translateY(${(1 - p) * dy}px)`;
+  return p;
+}
+/* Texto palabra por palabra: es lo que le da ritmo al reel. */
+function kinetico(el, texto, t, desde, paso = .13){
+  if (el.dataset.txt !== texto){
+    el.dataset.txt = texto;
+    el.innerHTML = texto.split(' ')
+      .map(w => `<span class="pal">${w}</span>`).join(' ');
+  }
+  [...el.children].forEach((sp, i) => {
+    const p = out(win(t, desde + i * paso, desde + i * paso + .34));
+    sp.style.opacity = p;
+    sp.style.transform = `translateY(${(1 - p) * 34}px)`;
+  });
+}
+/* Golpe de escala al aparecer: da sensación de impacto. */
+function golpe(el, t, desde, dur = .5){
+  const p = out(win(t, desde, desde + dur));
+  el.style.opacity = p;
+  const s = 0.86 + 0.14 * p;
+  el.style.transform = `scale(${s})`;
+  return p;
+}
+
+/* ── ESCENA 1 · hook ─────────────────────────────────────────────── */
+const P1 = t => {
+  entra($('e1k'), t, .25);
+  kinetico($('e1t'),  '¿Cuánto ganaste en tu última obra?', t, .55, .105);
+  kinetico($('e1t2'), '¿Seguro?', t, 4.4, .16);
+};
+
+/* ── ESCENA 2 · domingo / Excel ──────────────────────────────────── */
+const P2 = t => {
+  entra($('e2r'), t, .1);
+  entra($('e2t'), t, .3);
+  entra($('e2h'), t, .7, .5, 40);
+  // Las celdas se rompen primero, chiquito, y recién después entra el cartel:
+  // primero se ve QUÉ pasó y después el golpe.
+  $('e2e').style.opacity  = win(t, 2.0, 2.25);
+  $('e2e2').style.opacity = win(t, 2.5, 2.75);
+  const tmb = t > 2.0 && t < 3.0 ? Math.sin(t * 46) * 5 * (1 - win(t, 2.0, 3.0)) : 0;
+  $('e2h').style.transform = `translateX(${tmb}px)`;
+
+  // El cartel entra de golpe (escala grande a chica) y se sacude como alerta
+  const al = $('alerta');
+  const p  = win(t, 3.0, 3.28);
+  const salida = 1 - win(t, 5.4, 5.8);
+  al.style.opacity = Math.min(out(p), salida);
+  const s = p < 1 ? 1.9 - 0.9 * out(p) : 1;
+  const sac = (t > 3.28 && t < 4.0) ? Math.sin((t - 3.28) * 40) * 9 * (1 - win(t, 3.28, 4.0)) : 0;
+  const gir = -3 + (p < 1 ? (1 - out(p)) * 8 : 0);
+  al.style.transform = `translate(-50%,-50%) translateX(${sac}px) scale(${s}) rotate(${gir}deg)`;
+  entra($('e2s'), t, 4.3);
+};
+
+/* ── ESCENA 3 · precios viejos ───────────────────────────────────── */
+const P3 = t => {
+  entra($('e3k'), t, .1);
+  entra($('e3t'), t, .3);
+  golpe($('e3c'), t, .8, .55);
+  // El precio viejo late en rojo: es el que te está comiendo el margen
+  const late = 1 + Math.sin(Math.max(0, t - 1.4) * 5.5) * .035;
+  $('e3v').style.transform = `scale(${t > 1.4 ? late : 1})`;
+  $('e3v').style.color = t > 1.4 ? 'var(--red)' : 'var(--ink)';
+  entra($('e3s'), t, 2.2);
+};
+
+/* ── ESCENA 4 · giro ─────────────────────────────────────────────── */
+const P4 = t => {
+  kinetico($('e4t'), 'Hay otra forma de hacerlo.', t, .3, .14);
+  entra($('e4s'), t, 1.5);
+};
+
+/* ── ESCENA 5 · cotizador ────────────────────────────────────────── */
+const ITEMS = [
+  ['EXCAVACIÓN PARA CIMIENTOS','m³',1104000],
+  ['HORMIGÓN ARMADO EN PLATEA','m³',4914000],
+  ['MAMPOSTERÍA LADRILLO 15','m²',3312000],
+  ['LOSA CERÁMICA CON VIGUETAS','m²',3264000],
+  ['REVOQUE GRUESO Y FINO','m²',2635000],
+  ['CUBIERTA DE CHAPA C-25','m²',3696000],
+];
+(function(){
+  $('e5rows').innerHTML = ITEMS.map(([n,u]) => `
+    <div class="afila"><div class="nm">${n}</div><div class="un">${u}</div><div class="tt"></div></div>`).join('');
+})();
+const P5 = t => {
+  entra($('e5k'), t, .1);
+  entra($('e5t'), t, .25);
+  entra($('e5a'), t, .6, .5, 40);
+  const filas = [...$('e5rows').children];
+  let total = 0;
+  filas.forEach((f, i) => {
+    const a = 1.15 + i * .34;
+    const p = out(win(t, a, a + .3));
+    f.style.opacity = p;
+    f.style.transform = `translateX(${(1 - p) * 40}px)`;
+    if (p > .5) total += ITEMS[i][2];
+    f.querySelector('.tt').textContent = p > .5 ? money(ITEMS[i][2]) : '';
+  });
+  // El total sube acompañando: es el número que engancha
+  $('e5v').textContent = money(total);
+  entra($('e5f'), t, 3.5);
+};
+
+/* ── ESCENA 6 · precios en cascada ───────────────────────────────── */
+const OBRAS = [
+  ['Vivienda unifamiliar', 23295000, 24810000],
+  ['Ampliación en planta alta', 8940000, 9520000],
+  ['Local comercial', 15200000, 16180000],
+  ['Galpón industrial', 41300000, 43990000],
+];
+(function(){
+  $('e6l').innerHTML = OBRAS.map(([n]) => `
+    <div class="afila" style="grid-template-columns:1fr 300px;background:#fff;border:2px solid var(--bord);
+      border-radius:12px;margin-bottom:16px;padding:24px 28px">
+      <div class="nm">${n}</div><div class="tt"></div></div>`).join('');
+})();
+const P6 = t => {
+  entra($('e6k'), t, .1);
+  entra($('e6t'), t, .25);
+  golpe($('e6c'), t, .6, .5);
+  // El precio sube de 612 a 820 y recién ahí se recalculan las obras
+  const sube = io(win(t, 1.1, 1.9));
+  $('e6v').textContent = money(612 + (820 - 612) * sube);
+  $('e6v').style.color = sube > 0 ? 'var(--ac)' : 'var(--ink)';
+  [...$('e6l').children].forEach((f, i) => {
+    const a = 2.0 + i * .22;
+    const p = out(win(t, a, a + .3));
+    f.style.opacity = p;
+    f.style.transform = `translateX(${(1 - p) * 34}px)`;
+    const q = io(win(t, a + .1, a + .75));
+    const [, v0, v1] = OBRAS[i];
+    const el = f.querySelector('.tt');
+    el.textContent = money(v0 + (v1 - v0) * q);
+    el.style.color = q > .05 ? 'var(--ac)' : 'var(--ink)';
+  });
+};
+
+/* ── ESCENA 7 · gantt ────────────────────────────────────────────── */
+const TAREAS = [['Cimientos',280,1],['Mampostería',460,1],['Losa',240,1],
+                ['Cubierta',180,0],['Instalaciones',320,0],['Terminaciones',440,1]];
+(function(){
+  $('e7g').innerHTML = TAREAS.map(([n,,c]) => `
+    <div class="gf"><div class="gn">${n}</div>
+      <div class="gt"><div class="gb${c ? ' cr' : ''}"></div></div></div>`).join('');
+})();
+const P7 = t => {
+  entra($('e7k'), t, .1);
+  entra($('e7t'), t, .25);
+  // La cuadrilla pasa de 3 a 6 y las barras se acortan a la vista
+  const q = io(win(t, 1.6, 3.2));
+  const personas = 3 + 3 * q;
+  $('e7p').textContent = Math.round(personas);
+  const HD = 8, ESCALA = TAREAS.reduce((a, [, h]) => a + Math.ceil(h / (HD * 3)), 0);
+  let cursor = 0, totalDias = 0;
+  [...$('e7g').children].forEach((f, i) => {
+    const p = out(win(t, .8 + i * .1, 1.2 + i * .1));
+    f.style.opacity = p;
+    const dias = Math.max(1, Math.ceil(TAREAS[i][1] / (HD * personas)));
+    const b = f.querySelector('.gb');
+    b.style.left  = (cursor / ESCALA * 100) + '%';
+    b.style.width = Math.max(1.5, dias / ESCALA * 100) + '%';
+    cursor += dias; totalDias += dias;
+  });
+  // Fecha de fin real, contando solo días hábiles
+  const d = new Date(2026, 8, 1); let h = 0;
+  while (h < totalDias){ d.setDate(d.getDate() + 1); const w = d.getDay(); if (w !== 0 && w !== 6) h++; }
+  $('e7d').textContent = d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+  $('e7d').style.color = q > .1 ? 'var(--acl)' : '';
+};
+
+/* ── ESCENA 8 · portal del cliente ───────────────────────────────── */
+const AVANCE = [['Movimiento de suelos',100],['Estructura',100],['Mampostería',62],['Instalaciones',24]];
+(function(){
+  $('e8rows').innerHTML = AVANCE.map(([n]) => `
+    <div class="trow"><div class="a"><span>${n}</span><span class="pc"></span></div>
+      <div class="b"><i></i></div></div>`).join('');
+})();
+const P8 = t => {
+  entra($('e8k'), t, .1);
+  entra($('e8t'), t, .25);
+  entra($('e8tel'), t, .6, .55, 46);
+  [...$('e8rows').children].forEach((f, i) => {
+    const a = 1.2 + i * .18;
+    const p = io(win(t, a, a + .7));
+    const v = Math.round(AVANCE[i][1] * p);
+    f.querySelector('.pc').textContent = v + '%';
+    f.querySelector('.b i').style.width = v + '%';
+    f.style.opacity = out(win(t, a - .1, a + .2));
+  });
+};
+
+/* ── ESCENA 9 · cierre ───────────────────────────────────────────── */
+const P9 = t => {
+  kinetico($('e9t'), 'Cotizá tu próxima obra en minutos.', t, .2, .11);
+  golpe($('e9b'), t, 1.5, .5);
+  entra($('e9d'), t, 2.1);
+};
+
+/* ── línea de tiempo ─────────────────────────────────────────────── */
+/* Cada placa contiene entera a su frase de la locución (ver GUION en
+   locucion-venta.py): entra medio segundo antes de que arranque la voz y se va
+   cuando la voz ya terminó. */
+const ESC = [
+  ['e1',  0.0,  7.4],   // ¿Cuánto ganaste...?  ·  ¿Seguro?
+  ['e2',  7.4, 14.0],   // Tercer fin de semana con el mismo Excel  + alerta #¡REF!
+  ['e3', 14.0, 20.0],   // Y cotizás con precios que ya no existen
+  ['e4', 20.0, 24.4],   // Hay otra forma
+  ['e5', 24.4, 31.8],   // 436 ítems ya analizados
+  ['e6', 31.8, 38.4],   // Cambiás un precio y se recalcula todo
+  ['e7', 38.4, 44.8],   // Sumás gente y te da la fecha nueva
+  ['e8', 44.8, 49.8],   // Tu cliente ve el avance solo
+  ['e9', 49.8, 55.8],   // Cotizá tu próxima obra en minutos
+];
+const PINTA = { e1:P1, e2:P2, e3:P3, e4:P4, e5:P5, e6:P6, e7:P7, e8:P8, e9:P9 };
+const FADE = 0.22;
+
+function setT(t){
+  ESC.forEach(([id, a, b]) => {
+    const el = $(id);
+    const op = Math.min(cl((t - a) / FADE), cl((b - t) / FADE));
+    el.style.opacity = op;
+    if (op > 0) PINTA[id](t - a);
+  });
+  // La barra de progreso da sensación de "falta poco": sube la retención
+  $('barra').style.width = (t / DURACION * 100) + '%';
+  // La marca se atenúa sobre los fondos oscuros para no competir
+  const osc = (t < 7.4) || (t >= 38.4 && t < 44.8);
+  const vrd = (t >= 20.0 && t < 24.4) || (t >= 49.8);
+  $('marca').style.color = osc ? 'rgba(255,255,255,.55)' : (vrd ? 'rgba(255,255,255,.8)' : 'var(--mut)');
+  $('barra').style.background = vrd ? '#fff' : 'var(--ac)';
+}
+window.setT = setT;
+setT(0);
+
+/* ── previsualización ────────────────────────────────────────────── */
+(function preview(){
+  const ajusta = () => {
+    const z = Math.min((window.innerHeight - 40) / 1920, window.innerWidth / 1080);
+    $('reel').style.setProperty('--z', z);
+    document.body.style.height = '100vh';
+  };
+  window.addEventListener('resize', ajusta); ajusta();
+  let raf = null;
+  $('play').addEventListener('click', () => {
+    cancelAnimationFrame(raf);
+    const t0 = performance.now();
+    const paso = () => {
+      const t = (performance.now() - t0) / 1000;
+      setT(Math.min(t, DURACION));
+      if (t < DURACION) raf = requestAnimationFrame(paso);
+    };
+    raf = requestAnimationFrame(paso);
+  });
+})();
+</script>
+</body>
+</html>

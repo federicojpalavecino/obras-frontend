@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>FAIM OBRAS — Reel para WhatsApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--acl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#111;overflow:hidden}
+
+/* El lienzo se renderiza siempre a 1080x1920. En pantalla se escala con --z
+   para poder previsualizar; el render lo pone en 1 y captura el nodo entero. */
+#reel{width:1080px;height:1920px;position:relative;overflow:hidden;
+  background:var(--bg);color:var(--ink);font-family:var(--s);
+  transform:scale(var(--z,1));transform-origin:top left}
+
+.esc{position:absolute;inset:0;padding:130px 88px 150px;display:flex;flex-direction:column;opacity:0}
+.esc::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);
+  background-size:60px 60px;opacity:.55}
+.esc>*{position:relative;z-index:1}
+.osc{background:var(--ink);color:var(--bg)}
+.osc::after{background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);opacity:1}
+.vrd{background:var(--ac);color:#fff}
+.vrd::after{background-image:linear-gradient(rgba(255,255,255,.09) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.09) 1px,transparent 1px);opacity:1}
+
+/* ── tipografía base ─────────────────────────────────────────────── */
+.logo{font-size:34px;font-weight:800;letter-spacing:-.02em;color:var(--ac)}
+.logo span{color:var(--ink);font-weight:700}
+.osc .logo{color:var(--acl)} .osc .logo span{color:var(--bg)}
+.vrd .logo{color:#fff} .vrd .logo span{color:rgba(255,255,255,.7)}
+.kick{font-family:var(--m);font-size:26px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--mut);margin-top:46px}
+.osc .kick{color:var(--acl)} .vrd .kick{color:rgba(255,255,255,.8)}
+.tit{font-size:88px;font-weight:800;line-height:1.03;letter-spacing:-.035em;margin-top:16px}
+.tit.ch{font-size:64px}
+.tit em{font-style:normal;color:var(--ac)}
+.osc .tit em{color:var(--acl)} .vrd .tit em{color:rgba(255,255,255,.75)}
+.med{flex:1;display:flex;flex-direction:column;justify-content:center}
+.pie{padding-top:28px;border-top:5px solid var(--ink);font-size:29px;font-weight:700}
+.osc .pie{border-color:var(--acl)} .vrd .pie{border-color:rgba(255,255,255,.55)}
+
+/* ── E1 · golpe de apertura ──────────────────────────────────────── */
+#e1 .grande{font-size:98px;font-weight:800;letter-spacing:-.045em;line-height:1.04}
+#e1 .tach{position:relative;display:inline-block}
+#e1 .tach i{position:absolute;left:-8px;right:-8px;top:53%;height:9px;background:var(--red);
+  border-radius:5px;transform:scaleX(0);transform-origin:left center}
+#e1 .cambio{font-family:var(--m);font-size:172px;font-weight:600;color:var(--acl);
+  letter-spacing:-.05em;line-height:1}
+#e1 .sub{font-size:40px;color:#98a0b2;margin-top:26px;line-height:1.35}
+
+/* ── E2 · cotización ─────────────────────────────────────────────── */
+.crono{position:absolute;top:130px;right:88px;font-family:var(--m);font-size:42px;
+  font-weight:600;color:var(--ac);z-index:3;font-variant-numeric:tabular-nums}
+.busca{background:#fff;border:4px solid var(--bord);border-radius:16px;padding:22px 26px;
+  font-size:33px;color:var(--mut);display:flex;align-items:center;gap:16px;margin-bottom:12px}
+.busca .q{color:var(--ink);font-weight:600;font-family:var(--m)}
+.busca .cur{display:inline-block;width:4px;height:36px;background:var(--ac)}
+.item{display:flex;align-items:baseline;gap:16px;padding:19px 2px;
+  border-bottom:2px solid var(--bord)}
+.item .nm{flex:1;font-size:25px;font-weight:600;line-height:1.2;white-space:nowrap}
+.item .ct{font-family:var(--m);font-size:23px;color:var(--mut);white-space:nowrap}
+.item .im{font-family:var(--m);font-size:27px;font-weight:600;color:var(--ac);
+  white-space:nowrap;min-width:206px;text-align:right}
+.total{margin-top:26px;padding-top:24px;border-top:5px solid var(--ink)}
+.total .lb{font-family:var(--m);font-size:25px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.total .vl{font-family:var(--m);font-size:84px;font-weight:600;color:var(--ac);
+  line-height:1.05;margin-top:6px;font-variant-numeric:tabular-nums}
+.coef{display:flex;gap:14px;margin-top:22px}
+.coef div{background:var(--sup2);border-radius:12px;padding:14px 20px;font-family:var(--m);font-size:25px}
+.coef b{color:var(--ac);font-weight:600}
+
+/* ── E3 · vinculaciones ──────────────────────────────────────────── */
+.nodo{background:var(--acl);color:#0b1220;border-radius:18px;padding:26px 34px;text-align:center;
+  font-size:40px;font-weight:800;letter-spacing:-.02em;align-self:center;min-width:520px}
+.spine{width:6px;background:var(--acl);align-self:center;margin:0;border-radius:3px}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:34px}
+.chip{background:rgba(255,255,255,.07);border:3px solid rgba(255,255,255,.16);border-radius:16px;
+  padding:26px 24px}
+.chip .t{font-size:33px;font-weight:700;letter-spacing:-.01em}
+.chip .d{font-size:24px;color:#98a0b2;margin-top:8px;line-height:1.35}
+
+/* ── E4 · planificación ─────────────────────────────────────────── */
+.gan{margin-top:6px}
+.fila{display:flex;align-items:center;gap:18px;height:74px}
+.fila .lb{width:352px;font-size:26px;font-weight:600;line-height:1.15;text-align:right;flex-shrink:0}
+.pista{flex:1;height:38px;background:var(--sup2);border-radius:8px;position:relative;overflow:hidden}
+.barra{position:absolute;top:0;bottom:0;background:var(--ac);border-radius:8px}
+.barra.cri{background:#f87171}
+.resu{margin-top:22px;padding-top:24px;border-top:5px solid var(--ink);display:flex;
+  align-items:flex-end;justify-content:space-between;gap:20px}
+.resu .lb{font-family:var(--m);font-size:25px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.resu .vl{font-family:var(--m);font-size:82px;font-weight:600;color:var(--ac);line-height:1;margin-top:6px}
+.resu .nota{font-size:26px;color:var(--mut);text-align:right;line-height:1.35;max-width:400px}
+
+/* ── E5 · chat ───────────────────────────────────────────────────── */
+.burb{border-radius:20px;padding:26px 30px;font-size:31px;line-height:1.4;max-width:78%;margin-bottom:20px}
+.burb.yo{background:var(--acl);color:#0b1220;margin-left:auto;border-bottom-right-radius:6px;font-weight:600}
+.burb.bot{background:rgba(255,255,255,.09);border:3px solid rgba(255,255,255,.14);
+  border-bottom-left-radius:6px}
+.burb.bot b{color:var(--acl);font-family:var(--m);font-weight:600}
+.burb.bot .fila2{margin-top:12px;font-family:var(--m);font-size:28px;color:#c7cedb}
+
+/* ── E6 · comparativa ────────────────────────────────────────────── */
+.tabla{width:100%}
+.tr{display:flex;align-items:center;gap:16px;padding:26px 0;border-bottom:3px solid rgba(255,255,255,.18)}
+.tr .k{flex:1;font-size:32px;font-weight:600}
+.tr .a{font-family:var(--m);font-size:34px;width:250px;text-align:right;color:rgba(255,255,255,.55);
+  text-decoration:line-through}
+.tr .b{font-family:var(--m);font-size:38px;width:250px;text-align:right;font-weight:600;color:#fff}
+.enc{display:flex;gap:16px;padding-bottom:14px}
+.enc .k{flex:1}
+.enc span{width:250px;text-align:right;font-family:var(--m);font-size:24px;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(255,255,255,.72)}
+
+/* ── E7 · cierre ─────────────────────────────────────────────────── */
+.mods{display:flex;flex-wrap:wrap;gap:14px;margin-top:30px}
+.mods span{background:rgba(255,255,255,.16);border-radius:100px;padding:14px 24px;font-size:27px;font-weight:600}
+.cta{background:#fff;color:var(--ink);border-radius:18px;padding:32px 34px;margin-top:40px}
+.cta .t{font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.cta .d{font-size:28px;color:var(--mut);margin-top:12px;line-height:1.4}
+.cta .w{font-family:var(--m);font-size:32px;color:var(--ac);font-weight:600;margin-top:18px}
+
+/* Barra de previsualización (no se captura) */
+#ui{position:fixed;left:0;bottom:0;width:100%;background:#000;color:#fff;padding:10px 16px;
+  font:13px system-ui;display:flex;gap:12px;align-items:center;z-index:99}
+#ui button{background:#059669;color:#fff;border:0;border-radius:7px;padding:8px 16px;font-weight:700;cursor:pointer}
+#ui input{flex:1}
+</style>
+</head>
+<body>
+
+<div id="reel">
+
+<!-- ══ E1 · 0,0 – 4,6 s · el golpe ══════════════════════════════════ -->
+<div class="esc osc" id="e1">
+  <div class="logo">FAIM <span>OBRAS</span></div>
+  <div class="med">
+    <div class="grande" id="e1l1">El presupuesto<br>que te lleva<br><span class="tach">dos días<i id="e1tach"></i></span></div>
+    <div id="e1box" style="margin-top:44px">
+      <div class="cambio" id="e1n">14 min</div>
+      <div class="sub" id="e1s">El mismo cómputo. El mismo detalle.<br>Con el análisis de costos ya cargado.</div>
+    </div>
+  </div>
+  <div class="pie">FAIM OBRAS · gestión integral de obra</div>
+</div>
+
+<!-- ══ E2 · 4,3 – 14,2 s · cotización ═══════════════════════════════ -->
+<div class="esc" id="e2">
+  <div class="crono" id="e2crono">0:00</div>
+  <div class="logo">FAIM <span>OBRAS</span></div>
+  <div class="kick">Cotizador</div>
+  <div class="tit ch">Buscás el ítem.<br><em>El precio ya está.</em></div>
+  <div class="med">
+    <div class="busca"><span style="opacity:.55">⌕</span><span class="q" id="e2q"></span><span class="cur" id="e2cur"></span></div>
+    <div id="e2items"></div>
+    <div class="total">
+      <div class="lb" id="e2lb">Costo directo</div>
+      <div class="vl" id="e2tot">$ 0</div>
+    </div>
+    <div class="coef" id="e2coef">
+      <div>GG <b>15%</b></div><div>Beneficio <b>10%</b></div><div>IVA <b>21%</b></div>
+    </div>
+  </div>
+  <div class="pie" id="e2pie">Cada ítem trae materiales, mano de obra y equipos</div>
+</div>
+
+<!-- ══ E3 · 13,9 – 20,4 s · vinculaciones ═══════════════════════════ -->
+<div class="esc osc" id="e3">
+  <div class="logo">FAIM <span>OBRAS</span></div>
+  <div class="kick">Todo vinculado</div>
+  <div class="tit ch">Lo cargás una vez.<br><em>Vive en todo el sistema.</em></div>
+  <div class="med">
+    <div class="nodo" id="e3nodo">PRESUPUESTO</div>
+    <div class="spine" id="e3spine"></div>
+    <div class="chips" id="e3chips">
+      <div class="chip"><div class="t">Cómputo</div><div class="d">m², m³ y ml por ítem</div></div>
+      <div class="chip"><div class="t">Gantt</div><div class="d">plazo desde los rendimientos</div></div>
+      <div class="chip"><div class="t">Certificados</div><div class="d">avance sobre el mismo ítem</div></div>
+      <div class="chip"><div class="t">Curva de inversión</div><div class="d">cuánto entra y sale por mes</div></div>
+      <div class="chip"><div class="t">Control financiero</div><div class="d">cobros, pagos y personal</div></div>
+      <div class="chip"><div class="t">Portal del cliente</div><div class="d">el comitente mira solo</div></div>
+    </div>
+  </div>
+  <div class="pie">Ningún dato se carga dos veces</div>
+</div>
+
+<!-- ══ E4 · 20,1 – 27,0 s · planificación ═══════════════════════════ -->
+<div class="esc" id="e4">
+  <div class="logo">FAIM <span>OBRAS</span></div>
+  <div class="kick">Planificación automática</div>
+  <div class="tit ch">El plazo no se estima.<br><em>Se calcula.</em></div>
+  <div class="med">
+    <div class="gan" id="e4gan"></div>
+    <div class="resu">
+      <div>
+        <div class="lb">Plazo de obra</div>
+        <div class="vl" id="e4dias">0 días</div>
+      </div>
+      <div class="nota">Camino crítico en rojo.<br>Sale del presupuesto, solo.</div>
+    </div>
+  </div>
+  <div class="pie">Cambiás una cantidad y el Gantt se recalcula</div>
+</div>
+
+<!-- ══ E5 · 26,7 – 33,6 s · asistente ═══════════════════════════════ -->
+<div class="esc osc" id="e5">
+  <div class="logo">FAIM <span>OBRAS</span></div>
+  <div class="kick">Asistente</div>
+  <div class="tit ch">Preguntale al sistema.<br><em>Sabe de tu obra.</em></div>
+  <div class="med" id="e5chat">
+    <div class="burb yo" id="e5b1">¿Cuánto rinde un oficial en mampostería de 18?</div>
+    <div class="burb bot" id="e5b2"><b>8,00 m²</b> por jornada, cuadrilla oficial + ayudante.
+      <div class="fila2">186 m² → 23 jornadas</div></div>
+    <div class="burb yo" id="e5b3">¿Cuánto me falta cobrar de la obra Rivadavia?</div>
+    <div class="burb bot" id="e5b4">Certificado 4 aprobado, avance <b>62%</b>.
+      <div class="fila2">Saldo a cobrar: $ 18.240.000</div></div>
+  </div>
+  <div class="pie">Responde con tus números, no con generalidades</div>
+</div>
+
+<!-- ══ E6 · 33,3 – 38,6 s · comparativa ═════════════════════════════ -->
+<div class="esc vrd" id="e6">
+  <div class="logo">FAIM <span>OBRAS</span></div>
+  <div class="kick">La cuenta del mes</div>
+  <div class="tit ch">Lo mismo,<br>en una décima parte.</div>
+  <div class="med">
+    <div class="tabla">
+      <div class="enc"><div class="k"></div><span>Excel</span><span>FAIM</span></div>
+      <div class="tr" id="e6r0"><div class="k">Armar el presupuesto</div><div class="a">2 días</div><div class="b">14 min</div></div>
+      <div class="tr" id="e6r1"><div class="k">Certificar el mes</div><div class="a">3 horas</div><div class="b">4 min</div></div>
+      <div class="tr" id="e6r2"><div class="k">Calcular el plazo</div><div class="a">a ojo</div><div class="b">solo</div></div>
+      <div class="tr" id="e6r3"><div class="k">Informar al cliente</div><div class="a">llamadas</div><div class="b">portal</div></div>
+    </div>
+  </div>
+  <div class="pie">Ese tiempo vuelve a proyecto</div>
+</div>
+
+<!-- ══ E7 · 38,3 – 44,0 s · cierre ══════════════════════════════════ -->
+<div class="esc vrd" id="e7">
+  <div class="logo">FAIM <span>OBRAS</span></div>
+  <div class="med">
+    <div class="tit" id="e7t" style="margin-top:0;font-size:76px">Gestión integral<br>para estudios.</div>
+    <div class="mods" id="e7mods">
+      <span>Cotizador</span><span>Análisis de costos</span><span>Cómputo</span>
+      <span>Gantt</span><span>Certificados</span><span>Curva de inversión</span>
+      <span>Control financiero</span><span>Portal del cliente</span>
+    </div>
+    <div class="cta" id="e7cta">
+      <div class="t">Cargamos tu próxima obra juntos.</div>
+      <div class="d">Te la muestro andando, con tus precios y tu logo.</div>
+      <div class="w">faimobras.com/presentacion</div>
+    </div>
+  </div>
+  <div class="pie">+54 9 3482 30-5155</div>
+</div>
+
+</div>
+
+<div id="ui">
+  <button id="btn">▶ Reproducir</button>
+  <input type="range" id="rng" min="0" max="4400" value="0">
+  <span id="lbl" style="font-family:monospace">0.00 s</span>
+  <span style="opacity:.6">1080×1920 · 30 fps</span>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   Todo el reel es una función pura del tiempo: setT(t) deja la pantalla
+   exactamente igual siempre que se la llame con el mismo t. Eso es lo
+   que permite renderizarlo cuadro por cuadro a MP4 sin depender de
+   cuánto tarde el navegador en dibujar.
+   ═══════════════════════════════════════════════════════════════════ */
+const DURACION = 44.0;
+window.DURACION = DURACION;
+const $ = id => document.getElementById(id);
+
+const cl  = (v,a=0,b=1) => Math.min(b, Math.max(a, v));
+const win = (t,a,b) => cl((t - a) / (b - a));          // progreso dentro de una ventana
+const out = p => 1 - Math.pow(1 - p, 3);               // desaceleración
+const io  = p => p < .5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2;
+const fmt = n => '$ ' + Math.round(n).toLocaleString('es-AR');
+
+/* Entrada estándar de un bloque: sube 26px y aparece. */
+function entra(el, t, desde, dur = .45, dy = 26){
+  const p = out(win(t, desde, desde + dur));
+  el.style.opacity = p;
+  el.style.transform = 'translateY(' + ((1 - p) * dy).toFixed(2) + 'px)';
+}
+
+/* ── escenas y sus ventanas (con solape para el fundido) ─────────── */
+const FADE = .35;
+const ESC = [
+  ['e1',  0.0,  4.6], ['e2',  4.3, 14.2], ['e3', 13.9, 20.4], ['e4', 20.1, 27.0],
+  ['e5', 26.7, 33.6], ['e6', 33.3, 38.6], ['e7', 38.3, 44.0]
+];
+ESC.forEach((e,i) => $(e[0]).style.zIndex = i + 1);
+
+/* ── datos del presupuesto de ejemplo ────────────────────────────── */
+const ITEMS = [
+  ['MAMPOSTERÍA LADRILLO HUECO 0,18', 'm² 186,00', 4786000],
+  ['CONTRAPISO SOBRE TERRENO NATURAL', 'm² 142,00', 1884000],
+  ['REVOQUE GRUESO Y FINO A LA CAL',  'm² 310,00', 6320000],
+  ['CARPETA DE NIVELACIÓN 3 CM',      'm² 142,00', 2148000],
+  ['PISO CERÁMICO 60×60 COLOCADO',    'm² 128,00', 3312000]
+];
+const DIRECTO = ITEMS.reduce((a, i) => a + i[2], 0);   // 18.450.000
+const FINAL   = DIRECTO * 1.15 * 1.10 * 1.21;          // con GG, beneficio e IVA
+const BUSQ    = ['mamposteria', 'contrapiso', 'revoque fino', 'carpeta', 'ceramico'];
+const T_ITEM  = [1.5, 2.6, 3.7, 4.8, 5.9];             // relativo al inicio de E2
+
+$('e2items').innerHTML = ITEMS.map((it, i) =>
+  '<div class="item" id="it' + i + '"><div class="nm">' + it[0] +
+  '</div><div class="ct">' + it[1] + '</div><div class="im">' + fmt(it[2]) + '</div></div>').join('');
+
+/* ── tareas del Gantt (día de inicio, duración, crítica) ─────────── */
+const TAREAS = [
+  ['Replanteo y excavación',   0,   8, true],
+  ['Fundaciones',              8,  14, true],
+  ['Estructura de H°A°',      22,  36, true],
+  ['Mampostería',             58,  26, true],
+  ['Techos y aislaciones',    78,  18, false],
+  ['Instalaciones',           84,  26, true],
+  ['Revoques y contrapisos', 110,  24, true],
+  ['Pisos y terminaciones',  134,  53, true]
+];
+const PLAZO = 187;
+$('e4gan').innerHTML = TAREAS.map((t, i) =>
+  '<div class="fila"><div class="lb">' + t[0] + '</div><div class="pista">' +
+  '<div class="barra' + (t[3] ? ' cri' : '') + '" id="bar' + i + '"></div></div></div>').join('');
+
+/* ═══ actualización por escena ════════════════════════════════════ */
+
+function E1(t){
+  entra($('e1l1'), t, .15, .5, 30);
+  // A los 1,9 s se tacha "dos días" y aparece el número que da vuelta la promesa.
+  $('e1tach').style.transform = 'scaleX(' + out(win(t, 1.9, 2.35)).toFixed(3) + ')';
+  const p = out(win(t, 2.45, 2.95));
+  $('e1box').style.opacity = p;
+  $('e1box').style.transform = 'translateY(' + ((1 - p) * 34).toFixed(2) + 'px)';
+  $('e1n').style.transform = 'scale(' + (0.92 + p * 0.08).toFixed(3) + ')';
+  $('e1n').style.transformOrigin = 'left center';
+  entra($('e1s'), t, 3.15, .45, 18);
+}
+
+function E2(t){
+  // Cronómetro: 0:00 → 0:14, la prueba de que el presupuesto entero entra en un rato.
+  const seg = Math.floor(win(t, .8, 8.6) * 14);
+  $('e2crono').textContent = '0:' + String(seg).padStart(2, '0');
+  $('e2crono').style.opacity = cl(win(t, .6, 1.0));
+
+  // Buscador: escribe el ítem que se está por agregar
+  let idx = 0;
+  for (let i = 0; i < T_ITEM.length; i++) if (t >= T_ITEM[i] - 1.0) idx = i;
+  const t0 = T_ITEM[idx] - 1.0, txt = BUSQ[idx];
+  const letras = Math.round(cl((t - t0) / .55) * txt.length);
+  $('e2q').textContent = t < .6 ? '' : txt.slice(0, letras);
+  $('e2cur').style.opacity = Math.floor(t * 2) % 2 ? .25 : 1;
+
+  // Ítems y total acumulado
+  let acum = 0;
+  ITEMS.forEach((it, i) => {
+    entra($('it' + i), t, T_ITEM[i], .4, 16);
+    acum += it[2] * out(win(t, T_ITEM[i], T_ITEM[i] + .75));
+  });
+  const conCoef = win(t, 7.0, 8.2);
+  const bruto = acum + (FINAL - DIRECTO) * out(conCoef);
+  $('e2tot').textContent = fmt(bruto);
+  $('e2lb').textContent = conCoef > .5 ? 'Total del presupuesto' : 'Costo directo';
+  $('e2coef').style.opacity = cl(win(t, 6.6, 7.1));
+  $('e2pie').textContent = t > 7.6
+    ? '5 ítems · con gastos generales, beneficio e IVA'
+    : 'Cada ítem trae materiales, mano de obra y equipos';
+}
+
+function E3(t){
+  entra($('e3nodo'), t, .35, .45, 20);
+  $('e3spine').style.height = (out(win(t, .8, 1.25)) * 60) + 'px';
+  [...$('e3chips').children].forEach((c, i) => entra(c, t, 1.25 + i * .22, .42, 22));
+}
+
+function E4(t){
+  TAREAS.forEach((tk, i) => {
+    const p = out(win(t, .7 + i * .28, 1.35 + i * .28));
+    const b = $('bar' + i);
+    b.style.left  = (tk[1] / PLAZO * 100) + '%';
+    b.style.width = (tk[2] / PLAZO * 100 * p) + '%';
+    b.style.opacity = p > 0 ? 1 : 0;
+  });
+  const p = out(win(t, 2.6, 4.4));
+  $('e4dias').textContent = Math.round(PLAZO * p) + ' días';
+}
+
+function E5(t){
+  [['e5b1', .35], ['e5b2', 1.35], ['e5b3', 3.0], ['e5b4', 4.0]]
+    .forEach(([id, d]) => entra($(id), t, d, .4, 20));
+}
+
+function E6(t){
+  for (let i = 0; i < 4; i++) entra($('e6r' + i), t, .5 + i * .45, .45, 20);
+}
+
+function E7(t){
+  entra($('e7t'), t, .2, .5, 26);
+  [...$('e7mods').children].forEach((c, i) => entra(c, t, .6 + i * .07, .35, 14));
+  entra($('e7cta'), t, 1.5, .55, 30);
+}
+
+const PINTA = { e1: E1, e2: E2, e3: E3, e4: E4, e5: E5, e6: E6, e7: E7 };
+
+function setT(t){
+  ESC.forEach(([id, a, b]) => {
+    const el = $(id);
+    const op = Math.min(cl((t - a) / FADE), cl((b - t) / FADE));
+    el.style.opacity = op;
+    if (op > 0) PINTA[id](t - a);
+  });
+}
+window.setT = setT;
+setT(0);
+
+/* ── previsualización en el navegador ────────────────────────────── */
+(function preview(){
+  const ajusta = () => {
+    const z = Math.min((window.innerHeight - 60) / 1920, window.innerWidth / 1080);
+    document.getElementById('reel').style.setProperty('--z', z);
+    document.body.style.height = '100vh';
+  };
+  window.addEventListener('resize', ajusta); ajusta();
+
+  let t0 = null, raf = null;
+  const rng = $('rng'), lbl = $('lbl');
+  const pinta = t => { setT(t); rng.value = Math.round(t * 100); lbl.textContent = t.toFixed(2) + ' s'; };
+  rng.addEventListener('input', () => { cancelAnimationFrame(raf); t0 = null; pinta(rng.value / 100); });
+  $('btn').addEventListener('click', () => {
+    cancelAnimationFrame(raf);
+    const arranque = performance.now();
+    const paso = now => {
+      const t = (now - arranque) / 1000;
+      pinta(Math.min(t, DURACION));
+      if (t < DURACION) raf = requestAnimationFrame(paso);
+    };
+    raf = requestAnimationFrame(paso);
+  });
+})();
+</script>
+</body>
+</html>

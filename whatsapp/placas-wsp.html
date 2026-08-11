@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>FAIM OBRAS — Placas para WhatsApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--acl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#26282e;font-family:var(--s);display:flex;flex-direction:column;
+  align-items:center;gap:36px;padding:36px}
+.rot{color:#9aa2b1;font:600 15px var(--s);letter-spacing:.14em;text-transform:uppercase;
+  align-self:flex-start;margin-left:calc(50% - 540px)}
+
+/* ── lienzo 1080×1350 (4:5, el formato que mejor entra en WhatsApp) ── */
+.placa{width:1080px;height:1350px;position:relative;overflow:hidden;
+  background:var(--bg);color:var(--ink);padding:82px 84px 76px;display:flex;flex-direction:column}
+.placa::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);
+  background-size:54px 54px;opacity:.6}
+.placa>*{position:relative;z-index:1}
+.osc{background:var(--ink);color:var(--bg)}
+.osc::after{background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);opacity:1}
+.vrd{background:var(--ac);color:#fff}
+.vrd::after{background-image:linear-gradient(rgba(255,255,255,.09) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.09) 1px,transparent 1px);opacity:1}
+
+.cab{display:flex;align-items:baseline;justify-content:space-between}
+.logo{font-size:31px;font-weight:800;letter-spacing:-.02em;color:var(--ac)}
+.logo span{color:var(--ink);font-weight:700}
+.osc .logo{color:var(--acl)} .osc .logo span{color:var(--bg)}
+.vrd .logo{color:#fff} .vrd .logo span{color:rgba(255,255,255,.7)}
+.num{font-family:var(--m);font-size:22px;color:var(--mut);letter-spacing:.1em}
+.osc .num{color:#7d879a} .vrd .num{color:rgba(255,255,255,.6)}
+
+.kick{font-family:var(--m);font-size:23px;letter-spacing:.19em;text-transform:uppercase;
+  color:var(--ac);margin-top:44px}
+.osc .kick{color:var(--acl)} .vrd .kick{color:rgba(255,255,255,.82)}
+.tit{font-size:74px;font-weight:800;line-height:1.04;letter-spacing:-.035em;margin-top:14px}
+.tit.ch{font-size:60px}
+.tit em{font-style:normal;color:var(--ac)}
+.osc .tit em{color:var(--acl)} .vrd .tit em{color:rgba(255,255,255,.72)}
+.baj{font-size:30px;color:var(--mut);line-height:1.42;margin-top:22px;max-width:840px}
+.osc .baj{color:#98a0b2} .vrd .baj{color:rgba(255,255,255,.92)}
+.med{flex:1;display:flex;flex-direction:column;justify-content:center}
+.pie{padding-top:24px;border-top:4px solid var(--ink);font-size:26px;font-weight:700;
+  display:flex;justify-content:space-between;align-items:baseline;gap:16px;white-space:nowrap}
+.osc .pie{border-color:var(--acl)} .vrd .pie{border-color:rgba(255,255,255,.55)}
+.pie .w{font-family:var(--m);font-weight:600;color:var(--ac)}
+.osc .pie .w{color:var(--acl)} .vrd .pie .w{color:#fff}
+
+/* ── P1 · golpe ──────────────────────────────────────────────────── */
+.golpe{font-size:92px;font-weight:800;letter-spacing:-.045em;line-height:1.02}
+.tach{position:relative;display:inline-block}
+.tach i{position:absolute;left:-6px;right:-6px;top:53%;height:8px;background:var(--red);border-radius:4px}
+.cambio{font-family:var(--m);font-size:150px;font-weight:600;color:var(--acl);
+  letter-spacing:-.05em;line-height:1;margin-top:40px}
+
+/* ── P2 · cotizador ──────────────────────────────────────────────── */
+.crono{font-family:var(--m);font-size:34px;font-weight:600;color:var(--ac);
+  font-variant-numeric:tabular-nums}
+.busca{background:#fff;border:3px solid var(--bord);border-radius:14px;padding:19px 22px;
+  font-size:29px;color:var(--mut);display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.busca .q{color:var(--ink);font-weight:600;font-family:var(--m)}
+.item{display:flex;align-items:baseline;gap:14px;padding:16px 2px;border-bottom:2px solid var(--bord)}
+.item .nm{flex:1;font-size:24px;font-weight:600;line-height:1.2;white-space:nowrap}
+.item .ct{font-family:var(--m);font-size:22px;color:var(--mut);white-space:nowrap}
+.item .im{font-family:var(--m);font-size:25px;font-weight:600;color:var(--ac);
+  white-space:nowrap;min-width:190px;text-align:right}
+.total{margin-top:22px;padding-top:20px;border-top:4px solid var(--ink)}
+.total .lb{font-family:var(--m);font-size:22px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.total .vl{font-family:var(--m);font-size:72px;font-weight:600;color:var(--ac);line-height:1.05;margin-top:4px}
+.coef{display:flex;gap:12px;margin-top:18px}
+.coef div{background:var(--sup2);border-radius:11px;padding:12px 18px;font-family:var(--m);font-size:22px}
+.coef b{color:var(--ac);font-weight:600}
+
+/* ── P3 · vinculaciones ──────────────────────────────────────────── */
+.nodo{background:var(--acl);color:#0b1220;border-radius:16px;padding:22px 30px;text-align:center;
+  font-size:36px;font-weight:800;letter-spacing:-.02em;align-self:center;min-width:480px}
+.spine{width:5px;height:46px;background:var(--acl);align-self:center;border-radius:3px}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px}
+.chip{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.16);
+  border-radius:14px;padding:22px 20px}
+.chip .t{font-size:29px;font-weight:700;letter-spacing:-.01em}
+.chip .d{font-size:21px;color:#98a0b2;margin-top:6px;line-height:1.35}
+
+/* ── P4 · gantt ──────────────────────────────────────────────────── */
+.fila{display:flex;align-items:center;gap:16px;height:62px}
+.fila .lb{width:318px;font-size:24px;font-weight:600;text-align:right;flex-shrink:0;line-height:1.15}
+.pista{flex:1;height:32px;background:var(--sup2);border-radius:7px;position:relative;overflow:hidden}
+.barra{position:absolute;top:0;bottom:0;background:var(--ac);border-radius:7px}
+.barra.cri{background:#f87171}
+.resu{margin-top:20px;padding-top:20px;border-top:4px solid var(--ink);
+  display:flex;align-items:flex-end;justify-content:space-between;gap:18px}
+.resu .lb{font-family:var(--m);font-size:22px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.resu .vl{font-family:var(--m);font-size:70px;font-weight:600;color:var(--ac);line-height:1;margin-top:4px}
+.resu .nota{font-size:23px;color:var(--mut);text-align:right;line-height:1.35;max-width:330px}
+
+/* ── P5 · asistente ──────────────────────────────────────────────── */
+.burb{border-radius:18px;padding:22px 26px;font-size:27px;line-height:1.4;max-width:80%;margin-bottom:16px}
+.burb.yo{background:var(--acl);color:#0b1220;margin-left:auto;border-bottom-right-radius:5px;font-weight:600}
+.burb.bot{background:rgba(255,255,255,.09);border:2px solid rgba(255,255,255,.14);border-bottom-left-radius:5px}
+.burb.bot b{color:var(--acl);font-family:var(--m);font-weight:600}
+.burb.bot .f2{margin-top:9px;font-family:var(--m);font-size:24px;color:#c7cedb}
+
+/* ── P6 · comparativa ────────────────────────────────────────────── */
+.enc{display:flex;gap:14px;padding-bottom:12px}
+.enc .k{flex:1}
+.enc span{width:210px;text-align:right;font-family:var(--m);font-size:21px;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(255,255,255,.72)}
+.tr{display:flex;align-items:center;gap:14px;padding:22px 0;border-bottom:2px solid rgba(255,255,255,.18)}
+.tr .k{flex:1;font-size:28px;font-weight:600}
+.tr .a{font-family:var(--m);font-size:29px;width:210px;text-align:right;
+  color:rgba(255,255,255,.55);text-decoration:line-through}
+.tr .b{font-family:var(--m);font-size:32px;width:210px;text-align:right;font-weight:600;color:#fff}
+
+/* ── P7 · cierre ─────────────────────────────────────────────────── */
+.mods{display:flex;flex-wrap:wrap;gap:11px;margin-top:24px}
+.mods span{background:rgba(255,255,255,.16);border-radius:100px;padding:12px 20px;font-size:24px;font-weight:600}
+.cta{background:#fff;color:var(--ink);border-radius:16px;padding:28px 30px;margin-top:30px}
+.cta .t{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.cta .d{font-size:25px;color:var(--mut);margin-top:10px;line-height:1.4}
+.cta .w{font-family:var(--m);font-size:28px;color:var(--ac);font-weight:600;margin-top:14px}
+</style>
+</head>
+<body>
+
+<!-- ══ P1 · el gancho ════════════════════════════════════════════════ -->
+<div class="rot">Placa 1 — apertura</div>
+<div class="placa osc" id="placa-1">
+  <div class="cab"><div class="logo">FAIM <span>OBRAS</span></div><div class="num">01</div></div>
+  <div class="med">
+    <div class="golpe">El presupuesto que<br>te lleva <span class="tach">dos días<i></i></span></div>
+    <div class="cambio">14 min</div>
+    <div class="baj" style="margin-top:26px">El mismo cómputo, el mismo detalle, el mismo análisis de precios.
+      Lo que cambia es que ya no lo armás desde cero.</div>
+  </div>
+  <div class="pie"><span>Gestión integral para estudios</span><span class="w">faimobras.com</span></div>
+</div>
+
+<!-- ══ P2 · el cotizador ════════════════════════════════════════════ -->
+<div class="rot">Placa 2 — cotizador</div>
+<div class="placa" id="placa-2">
+  <div class="cab"><div class="logo">FAIM <span>OBRAS</span></div><div class="crono">0:14</div></div>
+  <div class="kick">Cotizador</div>
+  <div class="tit ch">Buscás el ítem.<br><em>El precio ya está.</em></div>
+  <div class="med">
+    <div class="busca"><span style="opacity:.5">⌕</span><span class="q">mamposteria</span></div>
+    <div class="item"><div class="nm">MAMPOSTERÍA LADRILLO HUECO 0,18</div><div class="ct">m² 186,00</div><div class="im">$ 4.786.000</div></div>
+    <div class="item"><div class="nm">CONTRAPISO SOBRE TERRENO NATURAL</div><div class="ct">m² 142,00</div><div class="im">$ 1.884.000</div></div>
+    <div class="item"><div class="nm">REVOQUE GRUESO Y FINO A LA CAL</div><div class="ct">m² 310,00</div><div class="im">$ 6.320.000</div></div>
+    <div class="item"><div class="nm">CARPETA DE NIVELACIÓN 3 CM</div><div class="ct">m² 142,00</div><div class="im">$ 2.148.000</div></div>
+    <div class="item"><div class="nm">PISO CERÁMICO 60×60 COLOCADO</div><div class="ct">m² 128,00</div><div class="im">$ 3.312.000</div></div>
+    <div class="total"><div class="lb">Total del presupuesto</div><div class="vl">$ 28.240.493</div></div>
+    <div class="coef"><div>GG <b>15%</b></div><div>Beneficio <b>10%</b></div><div>IVA <b>21%</b></div></div>
+  </div>
+  <div class="pie"><span>524 ítems con análisis de costos</span><span class="w">materiales · MO · equipos</span></div>
+</div>
+
+<!-- ══ P3 · vinculaciones ═══════════════════════════════════════════ -->
+<div class="rot">Placa 3 — todo vinculado</div>
+<div class="placa osc" id="placa-3">
+  <div class="cab"><div class="logo">FAIM <span>OBRAS</span></div><div class="num">03</div></div>
+  <div class="kick">Todo vinculado</div>
+  <div class="tit ch">Lo cargás una vez.<br><em>Vive en todo el sistema.</em></div>
+  <div class="med">
+    <div class="nodo">PRESUPUESTO</div>
+    <div class="spine"></div>
+    <div class="chips">
+      <div class="chip"><div class="t">Cómputo</div><div class="d">m², m³ y ml por ítem</div></div>
+      <div class="chip"><div class="t">Gantt</div><div class="d">plazo desde los rendimientos</div></div>
+      <div class="chip"><div class="t">Certificados</div><div class="d">avance sobre el mismo ítem</div></div>
+      <div class="chip"><div class="t">Curva de inversión</div><div class="d">cuánto entra y sale por mes</div></div>
+      <div class="chip"><div class="t">Control financiero</div><div class="d">cobros, pagos y personal</div></div>
+      <div class="chip"><div class="t">Portal del cliente</div><div class="d">el comitente mira solo</div></div>
+    </div>
+  </div>
+  <div class="pie"><span>Ningún dato se carga dos veces</span><span class="w">faimobras.com</span></div>
+</div>
+
+<!-- ══ P4 · planificación ═══════════════════════════════════════════ -->
+<div class="rot">Placa 4 — planificación automática</div>
+<div class="placa" id="placa-4">
+  <div class="cab"><div class="logo">FAIM <span>OBRAS</span></div><div class="num">04</div></div>
+  <div class="kick">Planificación automática</div>
+  <div class="tit ch">El plazo no se estima.<br><em>Se calcula.</em></div>
+  <div class="med">
+    <div class="fila"><div class="lb">Replanteo y excavación</div><div class="pista"><div class="barra cri" style="left:0%;width:4.28%"></div></div></div>
+    <div class="fila"><div class="lb">Fundaciones</div><div class="pista"><div class="barra cri" style="left:4.28%;width:7.49%"></div></div></div>
+    <div class="fila"><div class="lb">Estructura de H°A°</div><div class="pista"><div class="barra cri" style="left:11.76%;width:19.25%"></div></div></div>
+    <div class="fila"><div class="lb">Mampostería</div><div class="pista"><div class="barra cri" style="left:31.02%;width:13.90%"></div></div></div>
+    <div class="fila"><div class="lb">Techos y aislaciones</div><div class="pista"><div class="barra" style="left:41.71%;width:9.63%"></div></div></div>
+    <div class="fila"><div class="lb">Instalaciones</div><div class="pista"><div class="barra cri" style="left:44.92%;width:13.90%"></div></div></div>
+    <div class="fila"><div class="lb">Revoques y contrapisos</div><div class="pista"><div class="barra cri" style="left:58.82%;width:12.83%"></div></div></div>
+    <div class="fila"><div class="lb">Pisos y terminaciones</div><div class="pista"><div class="barra cri" style="left:71.66%;width:28.34%"></div></div></div>
+    <div class="resu">
+      <div><div class="lb">Plazo de obra</div><div class="vl">187 días</div></div>
+      <div class="nota">Camino crítico en rojo. Sale del presupuesto, con los rendimientos de cada tarea.</div>
+    </div>
+  </div>
+  <div class="pie"><span>Cambiás una cantidad y se recalcula</span><span class="w">+ curva de inversión</span></div>
+</div>
+
+<!-- ══ P5 · asistente ═══════════════════════════════════════════════ -->
+<div class="rot">Placa 5 — asistente</div>
+<div class="placa osc" id="placa-5">
+  <div class="cab"><div class="logo">FAIM <span>OBRAS</span></div><div class="num">05</div></div>
+  <div class="kick">Asistente</div>
+  <div class="tit ch">Preguntale al sistema.<br><em>Sabe de tu obra.</em></div>
+  <div class="med">
+    <div class="burb yo">¿Cuánto rinde un oficial en mampostería de 18?</div>
+    <div class="burb bot"><b>8,00 m²</b> por jornada, con cuadrilla de oficial + ayudante.
+      <div class="f2">186 m² → 23 jornadas</div></div>
+    <div class="burb yo">¿Cuánto me falta cobrar de la obra Rivadavia?</div>
+    <div class="burb bot">Certificado 4 aprobado, avance <b>62%</b>.
+      <div class="f2">Saldo a cobrar: $ 18.240.000</div></div>
+  </div>
+  <div class="pie"><span>Responde con tus números, no con generalidades</span><span class="w">24/7</span></div>
+</div>
+
+<!-- ══ P6 · comparativa ═════════════════════════════════════════════ -->
+<div class="rot">Placa 6 — la cuenta del mes</div>
+<div class="placa vrd" id="placa-6">
+  <div class="cab"><div class="logo">FAIM <span>OBRAS</span></div><div class="num">06</div></div>
+  <div class="kick">La cuenta del mes</div>
+  <div class="tit ch">Lo mismo,<br>en una décima parte.</div>
+  <div class="med">
+    <div class="enc"><div class="k"></div><span>Excel</span><span>FAIM</span></div>
+    <div class="tr"><div class="k">Armar el presupuesto</div><div class="a">2 días</div><div class="b">14 min</div></div>
+    <div class="tr"><div class="k">Certificar el mes</div><div class="a">3 horas</div><div class="b">4 min</div></div>
+    <div class="tr"><div class="k">Calcular el plazo</div><div class="a">a ojo</div><div class="b">solo</div></div>
+    <div class="tr"><div class="k">Actualizar precios</div><div class="a">uno x uno</div><div class="b">por rubro</div></div>
+    <div class="tr"><div class="k">Informar al cliente</div><div class="a">llamadas</div><div class="b">portal</div></div>
+  </div>
+  <div class="pie"><span>Ese tiempo vuelve a proyecto</span><span class="w">faimobras.com</span></div>
+</div>
+
+<!-- ══ P7 · cierre ══════════════════════════════════════════════════ -->
+<div class="rot">Placa 7 — cierre y contacto</div>
+<div class="placa vrd" id="placa-7">
+  <div class="cab"><div class="logo">FAIM <span>OBRAS</span></div><div class="num">07</div></div>
+  <div class="med">
+    <div class="tit">Gestión integral<br>para estudios.</div>
+    <div class="mods">
+      <span>Cotizador</span><span>Análisis de costos</span><span>Cómputo</span><span>Gantt</span>
+      <span>Certificados</span><span>Adicionales</span><span>Curva de inversión</span>
+      <span>Control financiero</span><span>Portal del cliente</span><span>Asistente</span>
+    </div>
+    <div class="cta">
+      <div class="t">Cargamos tu próxima obra juntos.</div>
+      <div class="d">Te la muestro andando, con tus precios y tu logo. Media hora y decidís.</div>
+      <div class="w">faimobras.com/presentacion</div>
+    </div>
+  </div>
+  <div class="pie"><span>+54 9 3482 30-5155</span><span class="w">Federico</span></div>
+</div>
+
+</body>
+</html>
