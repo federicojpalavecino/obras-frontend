@@ -49,8 +49,9 @@ const CSS = `
   content:'';position:absolute;width:640px;height:640px;right:-160px;top:-260px;border-radius:50%;
   background:radial-gradient(circle,rgba(5,150,105,.22),transparent 66%);pointer-events:none;
 }
-.pv .hero-in{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);
-  gap:44px;align-items:center;padding:34px 0 78px}
+.pv .wrap-hero{max-width:1200px;margin:0 auto;padding:0 26px}
+.pv .hero-in{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.18fr);
+  gap:40px;align-items:center;padding:34px 0 78px}
 .pv .hero .marca{color:var(--night-soft);margin-bottom:30px;display:block}
 .pv .hero .lead{color:var(--night-soft)}
 .pv .hero h1{color:var(--night-ink)}
@@ -61,7 +62,7 @@ const CSS = `
 .pv .cta-2{display:inline-block;color:var(--night-ink);text-decoration:none;padding:15px 22px;border-radius:11px;
   border:1px solid var(--night-line);font-weight:600;font-size:15px;transition:border-color .16s ease,color .16s ease}
 .pv .cta-2:hover{border-color:var(--accent);color:var(--accent)}
-.pv .cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:22px;
+.pv .cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(98px,1fr));gap:16px;
   margin-top:44px;padding-top:24px;border-top:1px solid var(--night-line)}
 .pv .cifra .n{font-family:var(--mono);font-size:29px;font-weight:600;color:var(--accent);line-height:1;font-variant-numeric:tabular-nums}
 .pv .cifra .l{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--night-soft);margin-top:7px;line-height:1.35}
@@ -94,10 +95,13 @@ const CSS = `
   vertical-align:-1px;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
 
-/* ── Pila de dispositivos de la portada ─────────────────────────────────── */
-.pv .stack{position:relative;padding:6px 0 6px 0}
-.pv .stack .lap{position:relative;z-index:1}
-.pv .stack .phone{position:absolute;right:-14px;bottom:-34px;width:150px;z-index:3;
+/* ── Dispositivos de la portada ─────────────────────────────────────────── */
+/* Van uno al lado del otro, no encimados: superpuesto, el celular tapaba o el
+   total del presupuesto o los nombres de los ítems, que son lo que hay que
+   dejar ver. Se pisan apenas el marco, lo justo para que se lea la profundidad. */
+.pv .stack{display:flex;align-items:flex-end;gap:0;padding:6px 0}
+.pv .stack .lap{flex:1 1 auto;min-width:0;position:relative;z-index:1}
+.pv .stack .phone{flex:0 0 152px;width:152px;margin-left:-10px;margin-bottom:-16px;z-index:3;
   animation:floatY 6s ease-in-out infinite}
 @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
 
@@ -119,9 +123,12 @@ const CSS = `
 .pv .m-item .t{font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pv .m-item .s{font-family:var(--mono);font-size:7.5px;color:#9aa8a1}
 .pv .m-item .v{font-family:var(--mono);font-size:9px;color:var(--accent);font-weight:600;white-space:nowrap}
-.pv .m-tot{padding:8px 9px;background:var(--accent-soft);display:flex;justify-content:space-between;align-items:center}
-.pv .m-tot .k{font-family:var(--mono);font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
-.pv .m-tot .v{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
+/* Etiqueta arriba y monto abajo: al ancho de un celular, en una sola línea el
+   total se partía al medio. */
+.pv .m-tot{padding:8px 9px;background:var(--accent-soft)}
+.pv .m-tot .k{font-family:var(--mono);font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);display:block}
+.pv .m-tot .v{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--accent);
+  font-variant-numeric:tabular-nums;display:block;white-space:nowrap;margin-top:2px}
 
 /* ── Sección de dispositivos ────────────────────────────────────────────── */
 .pv .devices{display:grid;grid-template-columns:1.25fr .75fr;gap:30px;align-items:end;
@@ -186,15 +193,18 @@ const CSS = `
 .pv .ingresar{position:fixed;top:18px;right:20px;z-index:20;background:rgba(14,20,17,.72);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.16);color:#eef3f0;text-decoration:none;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:600;font-family:var(--display)}
 .pv .ingresar:hover{color:#fff;border-color:var(--accent)}
 
-/* Aparición al hacer scroll */
-.pv .rev{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.3,1)}
-.pv .rev.on{opacity:1;transform:none}
+/* Aparición al hacer scroll.
+   Solo esconde si el JS pudo poner la clase .anim en la raíz. Sin eso —sin JS,
+   sin IntersectionObserver, con movimiento reducido— la página se ve entera:
+   nunca se esconde contenido que después no haya quien vuelva a mostrar. */
+.pv.anim .rev{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.3,1)}
+.pv.anim .rev.on{opacity:1;transform:none}
 
 @media (max-width:900px){
   .pv .hero-in{grid-template-columns:1fr;gap:52px;padding-bottom:60px}
   .pv .devices{grid-template-columns:1fr;padding:26px 22px 0}
   .pv .dev-tab{margin:0 auto}
-  .pv .stack .phone{right:0;bottom:-26px;width:118px}
+  .pv .stack .phone{flex-basis:112px;width:112px}
 }
 @media (max-width:700px){
   .pv .comp{grid-template-columns:1fr}
@@ -206,7 +216,7 @@ const CSS = `
 }
 @media (prefers-reduced-motion:reduce){
   .pv *{transition:none!important;animation:none!important}
-  .pv .rev{opacity:1;transform:none}
+  .pv.anim .rev{opacity:1;transform:none}
 }
 @media print{
   .pv .ingresar,.pv .stack .phone{display:none}
@@ -218,7 +228,7 @@ const CSS = `
   .pv .cierre h2,.pv .datos b{color:var(--ink)}
   .pv .cierre p,.pv .datos{color:#444}
   .pv .cta{background:#fff;color:var(--ink);border:1.5px solid var(--ink)}
-  .pv .rev{opacity:1;transform:none}
+  .pv.anim .rev{opacity:1!important;transform:none!important}
 }
 `;
 
@@ -255,14 +265,18 @@ const CADENA = [
 
 // Tareas del Gantt de ejemplo. hs = horas de mano de obra que salen del análisis;
 // la duración se calcula dividiéndolas por la cuadrilla, igual que en el sistema.
+// Están calibradas para que con la cuadrilla de arranque den un plazo creíble
+// para una vivienda: ~4 meses, no dos años.
 const TAREAS = [
-  ['Cimientos y platea', 448, true],
-  ['Mampostería', 736, true],
-  ['Losa y encadenados', 384, true],
-  ['Cubierta', 288, false],
-  ['Instalaciones', 512, false],
-  ['Terminaciones', 640, true],
+  ['Cimientos y platea', 280, true],
+  ['Mampostería', 460, true],
+  ['Losa y encadenados', 240, true],
+  ['Cubierta', 180, false],
+  ['Instalaciones', 320, false],
+  ['Terminaciones', 440, true],
 ];
+const CUADRILLA_MIN = 3;   // el plan contra el que se comparan las barras
+const CUADRILLA_MAX = 6;
 
 const money = n => '$ ' + Math.round(n).toLocaleString('es-AR');
 const reducido = () =>
@@ -274,12 +288,11 @@ const reducido = () =>
 function useReveal() {
   const ref = useRef(null);
   useEffect(() => {
-    const nodes = ref.current ? ref.current.querySelectorAll('.rev') : [];
+    const root = ref.current;
+    const nodes = root ? root.querySelectorAll('.rev') : [];
     if (!nodes.length) return;
-    if (reducido() || !('IntersectionObserver' in window)) {
-      nodes.forEach(n => n.classList.add('on'));
-      return;
-    }
+    if (reducido() || !('IntersectionObserver' in window)) return;  // queda todo visible
+    root.classList.add('anim');
     const io = new IntersectionObserver(
       entries => entries.forEach(e => {
         if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); }
@@ -380,7 +393,7 @@ function AppMovil() {
 
 // ── Gantt que se acorta al sumar gente ────────────────────────────────────
 function GanttDemo() {
-  const [personas, setPersonas] = useState(2);
+  const [personas, setPersonas] = useState(CUADRILLA_MIN);
   const [tocado, setTocado] = useState(false);
   const box = useRef(null);
 
@@ -391,7 +404,7 @@ function GanttDemo() {
     const io = new IntersectionObserver(entries => {
       entries.forEach(e => {
         if (e.isIntersecting && !timer) {
-          timer = setInterval(() => setPersonas(p => (p >= 4 ? 2 : p + 1)), 2200);
+          timer = setInterval(() => setPersonas(p => (p >= CUADRILLA_MAX ? CUADRILLA_MIN : p + 1)), 2200);
         } else if (!e.isIntersecting && timer) {
           clearInterval(timer); timer = null;
         }
@@ -412,9 +425,10 @@ function GanttDemo() {
     return b;
   });
   const totalDias = cursor;
-  // La escala queda anclada al plan de 2 personas: así al sumar gente las barras
-  // se ven acortarse de verdad, en vez de reescalarse y quedar igual de largas.
-  const base = TAREAS.reduce((a, t) => a + Math.ceil(t[1] / (HS_DIA * 2)), 0);
+  // La escala queda anclada al plan de la cuadrilla más chica: así al sumar
+  // gente las barras se ven acortarse de verdad, en vez de reescalarse y
+  // quedar siempre igual de largas.
+  const base = TAREAS.reduce((a, t) => a + Math.ceil(t[1] / (HS_DIA * CUADRILLA_MIN)), 0);
   const escala = Math.max(base, totalDias);
 
   const fin = new Date(2026, 8, 1); // 1 de septiembre de 2026
@@ -442,7 +456,7 @@ function GanttDemo() {
             style={btnCrew}>+</button>
         </div>
         <div className="g-fin">
-          Fin de obra <b className={personas > 2 ? 'up' : ''}>{finTxt}</b>
+          Fin de obra <b className={personas > CUADRILLA_MIN ? 'up' : ''}>{finTxt}</b>
           <span style={{ marginLeft: 8 }}>· {totalDias} días hábiles</span>
         </div>
       </div>
@@ -482,7 +496,7 @@ export default function Presentacion() {
 
       {/* ── PORTADA ─────────────────────────────────────────────────────── */}
       <header className="hero">
-        <div className="wrap">
+        <div className="wrap-hero">
           <div className="hero-in">
             <div>
               <span className="marca">FAIM OBRAS</span>
