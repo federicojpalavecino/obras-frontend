@@ -14,11 +14,12 @@ voces neuronales de Microsoft, que tienen es-AR de verdad — Elena y Tomás —
 acento argentino y entonación de pregunta. Es gratis y no necesita clave.
 
 CÓMO SUENA MÁS HUMANO
-1. Frases cortas, de una idea. Una frase larga la lee de corrido y se nota.
+1. Bloques narrados, no frases sueltas (ver el comentario largo sobre GUION).
 2. Velocidad apenas por debajo de la normal: en 0% suena leyendo un cartel.
 3. Los números escritos en palabras. "436" lo dice "cuatro tres seis".
-4. Silencios de verdad entre frases, no una pista continua: cada frase entra en
+4. Silencios de verdad entre bloques, no una pista continua: cada uno entra en
    su segundo exacto del video, así respira donde respira la imagen.
+5. Tono distinto por bloque: las preguntas suben, el giro baja.
 """
 import sys, asyncio, subprocess, shutil
 from pathlib import Path
@@ -33,24 +34,51 @@ FINAL = OUT / "faim-obras-venta-voz.mp4"
 
 VOZ_DEF = "es-AR-ElenaNeural"   # la otra: es-AR-TomasNeural
 
-# (segundo de arranque, texto, velocidad)
-# Los tiempos siguen la línea de tiempo de reel-venta.html.
+# (segundo de arranque, texto, velocidad, tono)
 #
-# El primer guion tenía 54 segundos de voz metidos en 33 de video: catorce de
-# quince frases se pisaban con la siguiente. Se acortó a una idea por placa. La
-# duración del video sale de acá, no al revés — `py locucion-venta.py plan`
-# imprime la línea de tiempo que tiene que tener el HTML.
+# CÓMO SE CONSIGUE QUE SUENE A NARRACIÓN Y NO A CARTELES LEÍDOS
+#
+# 1. Bloques, no frases sueltas. El motor planifica la entonación sobre TODA la
+#    tirada que le das: si le pasás "Tercer fin de semana con el mismo Excel." y
+#    aparte "Tocás una fila, se rompe una fórmula.", las lee como dos carteles,
+#    las dos con la misma curva y las dos terminando para abajo. Juntas en un
+#    solo bloque, la primera queda suspendida y la segunda cierra — que es como
+#    habla alguien contando algo. Por eso los bloques cruzan los cambios de
+#    placa a propósito: la idea termina después de que entró la imagen que
+#    sigue, y eso es justamente lo que amarra una escena con la otra.
+#
+# 2. Puntuación de respiración, no de gramática. La coma y los puntos suspensivos
+#    son las únicas herramientas de fraseo que hay: "Lo cambiás una vez, y se
+#    recalculan todos" respira distinto que la misma frase sin coma.
+#
+# 3. Tono por bloque. Las preguntas suben un poco; el giro ("pero hay otra
+#    forma") baja y afloja. Sin ese contraste todo queda en la misma nota y ahí
+#    es donde suena a robot, aunque la voz sea neuronal.
 GUION = [
-    (0.60,  "¿Cuánto ganaste en tu última obra?",                "-6%"),
-    (4.50,  "¿Seguro?",                                          "-12%"),
-    (8.20,  "Tercer fin de semana con el mismo Excel.",          "-6%"),
-    (14.80, "Y cotizás con precios que ya no existen.",          "-4%"),
-    (20.70, "Hay otra forma.",                                   "-10%"),
-    (25.20, "Cuatrocientos treinta y seis ítems ya analizados.", "-3%"),
-    (32.60, "Cambiás un precio y se recalcula todo.",            "-4%"),
-    (39.20, "Sumás gente y te da la fecha nueva.",               "-4%"),
-    (45.50, "Tu cliente ve el avance solo.",                     "-5%"),
-    (50.60, "Cotizá tu próxima obra en minutos.",                "-6%"),
+    (0.60,  "¿Cuánto ganaste en tu última obra?",
+     "-8%",  "+8Hz"),
+    (5.00,  "En serio... ¿lo sabés?",
+     "-16%", "-8Hz"),
+    (9.00,  "Tercer fin de semana con el mismo Excel. Tocás una fila, "
+            "y se te rompe una fórmula.",
+     "-7%",  "-2Hz"),
+    (17.40, "Y encima estás cotizando con precios que ya no existen. "
+            "Así, cada obra la arrancás perdiendo.",
+     "-6%",  "-4Hz"),
+    (26.40, "Pero hay otra forma de hacerlo.",
+     "-14%", "-6Hz"),
+    (30.40, "Cuatrocientos treinta y seis ítems, con el análisis ya cargado. "
+            "Elegís, computás, y el precio sale solo.",
+     "-5%",  "+2Hz"),
+    (40.80, "¿Subió el hierro? Lo cambiás una vez, y se te recalculan "
+            "todos los presupuestos.",
+     "-5%",  "+4Hz"),
+    (48.80, "El plazo ya no lo estimás a ojo: sumás gente, y te da la fecha nueva.",
+     "-5%",  "+0Hz"),
+    (55.80, "Y tu cliente, en vez de llamarte, entra y ve el avance solo.",
+     "-6%",  "-2Hz"),
+    (62.20, "Cotizá tu próxima obra en minutos.",
+     "-9%",  "-4Hz"),
 ]
 
 def ffmpeg_exe():
@@ -62,11 +90,11 @@ def ffmpeg_exe():
 async def sintetizar(voz):
     import edge_tts
     VOZ.mkdir(parents=True, exist_ok=True)
-    for i, (t, texto, rate) in enumerate(GUION):
+    for i, (t, texto, rate, pitch) in enumerate(GUION):
         destino = VOZ / f"f{i:02d}.mp3"
-        com = edge_tts.Communicate(texto, voz, rate=rate)
+        com = edge_tts.Communicate(texto, voz, rate=rate, pitch=pitch)
         await com.save(str(destino))
-        print(f"  {t:5.2f}s  {rate:>5}  {texto}")
+        print(f"  {t:5.2f}s  {rate:>5} {pitch:>5}  {texto[:62]}")
     print(f"\n{len(GUION)} frases → {VOZ}")
 
 def duracion(mp3):
@@ -95,7 +123,7 @@ def plan():
     tiempo que tiene que tener reel-venta.html."""
     print(f'{"inicio":>7} {"dura":>6} {"fin":>7} {"aire":>6}  frase')
     choques = 0
-    for i, (t, txt, _) in enumerate(GUION):
+    for i, (t, txt, *_) in enumerate(GUION):
         d = duracion(VOZ / f"f{i:02d}.mp3")
         fin = t + d
         sig = GUION[i + 1][0] if i + 1 < len(GUION) else fin + 0.9
@@ -112,7 +140,7 @@ def montar():
     if not REEL.exists():
         sys.exit(f"Falta el video: {REEL}\nCorré primero: node whatsapp/render.mjs venta")
     entradas, filtros, etiquetas = [], [], []
-    for i, (t, _, _) in enumerate(GUION):
+    for i, (t, *_) in enumerate(GUION):
         mp3 = VOZ / f"f{i:02d}.mp3"
         if not mp3.exists(): sys.exit(f"Falta {mp3}. Corré el modo 'voz' primero.")
         entradas += ["-i", str(mp3)]

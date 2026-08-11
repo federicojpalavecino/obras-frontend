@@ -24,7 +24,7 @@ duraciones de audio se miden decodificando a wav y no con ffprobe.
 |---|---|---|
 | `node whatsapp/render.mjs placas` | Las placas de WhatsApp | `out/placa-*.png` |
 | `node whatsapp/render.mjs reel` | Reel de WhatsApp (44 s) | `out/faim-obras-reel.mp4` |
-| `node whatsapp/render.mjs venta` | Reel de venta de Instagram (55,8 s) | `out/faim-obras-venta.mp4` |
+| `node whatsapp/render.mjs venta` | Reel de venta de Instagram (66,7 s) | `out/faim-obras-venta.mp4` |
 | `py -3.12 whatsapp/locucion-venta.py voz` | Los mp3 de cada frase | `out/voz-venta/` |
 | `py -3.12 whatsapp/locucion-venta.py plan` | Mide los mp3 y avisa si dos frases se pisan | consola |
 | `py -3.12 whatsapp/locucion-venta.py montar` | Pega la voz al video | `out/faim-obras-venta-voz.mp4` |
@@ -70,11 +70,20 @@ metálico y con todas las frases entonadas igual. Para contenido nuevo, edge-tts
 
 Lo que hace que suene humano y no a lector de carteles:
 
-- Frases cortas, una idea cada una.
-- Velocidad entre −3% y −12%; en 0% suena leyendo.
+- **Bloques, no frases sueltas.** Es lo que más cambia. El motor planifica la
+  entonación sobre toda la tirada que le pasás: dos frases separadas salen con
+  la misma curva y las dos terminando para abajo — eso es lo que suena a robot,
+  aunque la voz sea neuronal. Juntas en un bloque, la primera queda suspendida
+  y la segunda cierra, que es como habla alguien contando algo. Por eso los
+  bloques del guion cruzan a propósito los cambios de placa.
+- **Puntuación de respiración, no de gramática.** La coma y los puntos
+  suspensivos son las únicas herramientas de fraseo que hay.
+- **Tono por bloque** (4º elemento de la tupla, en Hz): las preguntas suben, el
+  giro afloja. Sin ese contraste queda todo en la misma nota.
+- Velocidad entre −5% y −16%; en 0% suena leyendo.
 - Números escritos en palabras: «436» lo pronuncia «cuatro tres seis».
-- Silencios reales entre frases: cada una entra en su segundo exacto del video,
-  no es una pista continua.
+- Silencios reales entre bloques: cada uno entra en su segundo exacto del
+  video, no es una pista continua.
 
 ## Regla de contenido
 

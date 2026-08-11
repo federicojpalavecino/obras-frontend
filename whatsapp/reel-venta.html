@@ -259,7 +259,7 @@ html,body{background:#111;overflow:hidden}
    Cada placa además queda un rato DESPUÉS de que la voz terminó: sin ese aire
    el texto de pantalla no se llega a leer, que era el problema de la versión
    de 43 s. */
-const DURACION = 55.8;
+const DURACION = 66.7;
 window.DURACION = DURACION;
 const $ = id => document.getElementById(id);
 
@@ -302,7 +302,7 @@ function golpe(el, t, desde, dur = .5){
 const P1 = t => {
   entra($('e1k'), t, .25);
   kinetico($('e1t'),  '¿Cuánto ganaste en tu última obra?', t, .55, .105);
-  kinetico($('e1t2'), '¿Seguro?', t, 4.4, .16);
+  kinetico($('e1t2'), '¿En serio lo sabés?', t, 4.5, .15);
 };
 
 /* ── ESCENA 2 · domingo / Excel ──────────────────────────────────── */
@@ -320,13 +320,13 @@ const P2 = t => {
   // El cartel entra de golpe (escala grande a chica) y se sacude como alerta
   const al = $('alerta');
   const p  = win(t, 3.0, 3.28);
-  const salida = 1 - win(t, 5.4, 5.8);
+  const salida = 1 - win(t, 7.7, 8.2);
   al.style.opacity = Math.min(out(p), salida);
   const s = p < 1 ? 1.9 - 0.9 * out(p) : 1;
   const sac = (t > 3.28 && t < 4.0) ? Math.sin((t - 3.28) * 40) * 9 * (1 - win(t, 3.28, 4.0)) : 0;
   const gir = -3 + (p < 1 ? (1 - out(p)) * 8 : 0);
   al.style.transform = `translate(-50%,-50%) translateX(${sac}px) scale(${s}) rotate(${gir}deg)`;
-  entra($('e2s'), t, 4.3);
+  entra($('e2s'), t, 4.6);
 };
 
 /* ── ESCENA 3 · precios viejos ───────────────────────────────────── */
@@ -338,7 +338,7 @@ const P3 = t => {
   const late = 1 + Math.sin(Math.max(0, t - 1.4) * 5.5) * .035;
   $('e3v').style.transform = `scale(${t > 1.4 ? late : 1})`;
   $('e3v').style.color = t > 1.4 ? 'var(--red)' : 'var(--ink)';
-  entra($('e3s'), t, 2.2);
+  entra($('e3s'), t, 3.4);
 };
 
 /* ── ESCENA 4 · giro ─────────────────────────────────────────────── */
@@ -367,7 +367,7 @@ const P5 = t => {
   const filas = [...$('e5rows').children];
   let total = 0;
   filas.forEach((f, i) => {
-    const a = 1.15 + i * .34;
+    const a = 1.5 + i * .78;
     const p = out(win(t, a, a + .3));
     f.style.opacity = p;
     f.style.transform = `translateX(${(1 - p) * 40}px)`;
@@ -376,7 +376,7 @@ const P5 = t => {
   });
   // El total sube acompañando: es el número que engancha
   $('e5v').textContent = money(total);
-  entra($('e5f'), t, 3.5);
+  entra($('e5f'), t, 6.6);
 };
 
 /* ── ESCENA 6 · precios en cascada ───────────────────────────────── */
@@ -397,11 +397,11 @@ const P6 = t => {
   entra($('e6t'), t, .25);
   golpe($('e6c'), t, .6, .5);
   // El precio sube de 612 a 820 y recién ahí se recalculan las obras
-  const sube = io(win(t, 1.1, 1.9));
+  const sube = io(win(t, 1.6, 2.7));
   $('e6v').textContent = money(612 + (820 - 612) * sube);
   $('e6v').style.color = sube > 0 ? 'var(--ac)' : 'var(--ink)';
   [...$('e6l').children].forEach((f, i) => {
-    const a = 2.0 + i * .22;
+    const a = 3.0 + i * .55;
     const p = out(win(t, a, a + .3));
     f.style.opacity = p;
     f.style.transform = `translateX(${(1 - p) * 34}px)`;
@@ -425,7 +425,7 @@ const P7 = t => {
   entra($('e7k'), t, .1);
   entra($('e7t'), t, .25);
   // La cuadrilla pasa de 3 a 6 y las barras se acortan a la vista
-  const q = io(win(t, 1.6, 3.2));
+  const q = io(win(t, 2.2, 4.6));
   const personas = 3 + 3 * q;
   $('e7p').textContent = Math.round(personas);
   const HD = 8, ESCALA = TAREAS.reduce((a, [, h]) => a + Math.ceil(h / (HD * 3)), 0);
@@ -458,7 +458,7 @@ const P8 = t => {
   entra($('e8t'), t, .25);
   entra($('e8tel'), t, .6, .55, 46);
   [...$('e8rows').children].forEach((f, i) => {
-    const a = 1.2 + i * .18;
+    const a = 1.6 + i * .55;
     const p = io(win(t, a, a + .7));
     const v = Math.round(AVANCE[i][1] * p);
     f.querySelector('.pc').textContent = v + '%';
@@ -479,15 +479,15 @@ const P9 = t => {
    locucion-venta.py): entra medio segundo antes de que arranque la voz y se va
    cuando la voz ya terminó. */
 const ESC = [
-  ['e1',  0.0,  7.4],   // ¿Cuánto ganaste...?  ·  ¿Seguro?
-  ['e2',  7.4, 14.0],   // Tercer fin de semana con el mismo Excel  + alerta #¡REF!
-  ['e3', 14.0, 20.0],   // Y cotizás con precios que ya no existen
-  ['e4', 20.0, 24.4],   // Hay otra forma
-  ['e5', 24.4, 31.8],   // 436 ítems ya analizados
-  ['e6', 31.8, 38.4],   // Cambiás un precio y se recalcula todo
-  ['e7', 38.4, 44.8],   // Sumás gente y te da la fecha nueva
-  ['e8', 44.8, 49.8],   // Tu cliente ve el avance solo
-  ['e9', 49.8, 55.8],   // Cotizá tu próxima obra en minutos
+  ['e1',  0.0,  8.6],   // ¿Cuánto ganaste...?  ·  ¿Seguro?
+  ['e2',  8.6, 17.0],   // Tercer fin de semana con el mismo Excel  + alerta #¡REF!
+  ['e3', 17.0, 26.0],   // Y cotizás con precios que ya no existen
+  ['e4', 26.0, 30.0],   // Hay otra forma
+  ['e5', 30.0, 40.4],   // 436 ítems ya analizados
+  ['e6', 40.4, 48.4],   // Cambiás un precio y se recalcula todo
+  ['e7', 48.4, 55.4],   // Sumás gente y te da la fecha nueva
+  ['e8', 55.4, 61.8],   // Tu cliente ve el avance solo
+  ['e9', 61.8, 66.7],   // Cotizá tu próxima obra en minutos
 ];
 const PINTA = { e1:P1, e2:P2, e3:P3, e4:P4, e5:P5, e6:P6, e7:P7, e8:P8, e9:P9 };
 const FADE = 0.22;
