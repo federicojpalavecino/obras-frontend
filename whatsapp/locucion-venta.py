@@ -78,6 +78,18 @@ def duracion(mp3):
     with wave.open(str(w)) as f:
         return f.getnframes() / f.getframerate()
 
+def duracion_video():
+    """Segundos del reel, leídos del propio HTML (window.DURACION).
+
+    Se lee de ahí y no del mp4 porque imageio-ffmpeg no trae ffprobe y decodificar
+    56 s de video solo para saber cuánto dura es una barbaridad.
+    """
+    import re
+    html = (DIR / "reel-venta.html").read_text(encoding="utf-8")
+    m = re.search(r"const\s+DURACION\s*=\s*([\d.]+)", html)
+    if not m: sys.exit("No encontré DURACION en reel-venta.html")
+    return float(m.group(1))
+
 def plan():
     """Comprueba que ninguna frase pise a la siguiente e imprime la línea de
     tiempo que tiene que tener reel-venta.html."""
@@ -109,7 +121,13 @@ def montar():
         etiquetas.append(f"[a{i}]")
     # normalize=0: sin esto amix baja el volumen de cada frase a 1/N y la voz
     # queda inaudible contra la música que se le agregue después en Instagram.
-    filtros.append("".join(etiquetas) + f"amix=inputs={len(GUION)}:normalize=0[voz]")
+    # La voz termina con la última frase, antes que el video. Sin rellenar,
+    # -shortest corta el video ahí y se come el cierre (quedaba en 54,1 s en vez
+    # de 55,8 y se perdía la placa del contacto). apad rellena con silencio, pero
+    # rellena INFINITO: hay que decirle hasta dónde con whole_dur, o ffmpeg se
+    # queda generando silencio para siempre.
+    filtros.append("".join(etiquetas) + f"amix=inputs={len(GUION)}:normalize=0[mix]")
+    filtros.append(f"[mix]apad=whole_dur={duracion_video()}[voz]")
     cmd = [ffmpeg_exe(), "-y", "-i", str(REEL), *entradas,
            "-filter_complex", ";".join(filtros),
            "-map", "0:v", "-map", "[voz]",
