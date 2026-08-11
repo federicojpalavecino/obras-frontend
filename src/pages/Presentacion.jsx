@@ -193,6 +193,51 @@ const CSS = `
 .pv .ingresar{position:fixed;top:18px;right:20px;z-index:20;background:rgba(14,20,17,.72);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.16);color:#eef3f0;text-decoration:none;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:600;font-family:var(--display)}
 .pv .ingresar:hover{color:#fff;border-color:var(--accent)}
 
+/* Entrada escalonada de los hijos: el contenedor no se desvanece, van entrando
+   las tarjetas de a una. Sin esto la grilla aparecía toda de golpe. */
+.pv.anim .rev.stagger{opacity:1;transform:none}
+.pv.anim .rev.stagger > *{opacity:0;transform:translateY(12px);
+  transition:opacity .55s ease,transform .55s cubic-bezier(.2,.7,.3,1);
+  transition-delay:calc(var(--i,0) * 65ms)}
+.pv.anim .rev.stagger.on > *{opacity:1;transform:none}
+
+/* ── Comparación: los pares se iluminan de a uno ─────────────────────────── */
+.pv .col li{transition:opacity .45s ease,transform .45s ease}
+.pv .comp.vivo li{opacity:.34}
+.pv .comp.vivo li.act{opacity:1;transform:translateX(3px)}
+.pv .col.no li.act::before{color:var(--bad)}
+.pv .par{display:block;height:2px;border-radius:2px;background:var(--line);margin:16px 0 0;overflow:hidden}
+.pv .par i{display:block;height:100%;background:var(--accent);border-radius:2px;
+  transition:width .35s linear}
+
+/* ── Cadena: el dato viaja de un eslabón al siguiente ────────────────────── */
+.pv .eslabon{transition:border-color .4s ease,background .4s ease,transform .4s ease}
+.pv .cadena.vivo .eslabon{opacity:.55}
+.pv .cadena.vivo .eslabon.act{opacity:1;border-color:var(--accent-line);background:var(--accent-soft);transform:translateY(-3px)}
+.pv .cadena.vivo .eslabon.paso{opacity:1}
+.pv .eslabon .barra{display:block;height:2px;background:var(--line);border-radius:2px;margin-top:12px;overflow:hidden}
+.pv .eslabon .barra i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px}
+.pv .eslabon.act .barra i{width:100%;transition:width 1.5s linear}
+.pv .eslabon.paso .barra i{width:100%}
+
+/* ── Tres cosas: cada tarjeta con su propia prueba ───────────────────────── */
+.pv .item .fig{margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.pv .fig-t{display:flex;align-items:baseline;gap:9px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.pv .fig-t .antes{font-size:14px;color:var(--bad);text-decoration:line-through;opacity:.75}
+.pv .fig-t .flecha{color:var(--ink-soft);font-size:12px}
+.pv .fig-t .desp{font-size:22px;font-weight:600;color:var(--accent);letter-spacing:-.02em}
+.pv .fig-p{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-family:var(--mono)}
+.pv .fig-p .m{font-size:19px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.pv .fig-p .f{font-size:10.5px;color:var(--ink-soft);letter-spacing:.04em}
+.pv .fig-c{display:flex;align-items:center;gap:5px}
+.pv .fig-c .n{width:9px;height:9px;border-radius:50%;background:var(--panel-2);flex-shrink:0;
+  transition:background .3s ease,transform .3s ease}
+.pv .fig-c .n.on{background:var(--accent);transform:scale(1.25)}
+.pv .fig-c .l{flex:1;height:2px;background:var(--panel-2);border-radius:2px;overflow:hidden}
+.pv .fig-c .l i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s linear}
+.pv .fig-c .l.on i{width:100%}
+.pv .fig-lbl{font-size:11px;color:var(--ink-soft);margin-top:8px;font-family:var(--mono);letter-spacing:.03em}
+
 /* Aparición al hacer scroll.
    Solo esconde si el JS pudo poner la clase .anim en la raíz. Sin eso —sin JS,
    sin IntersectionObserver, con movimiento reducido— la página se ve entera:
@@ -303,6 +348,91 @@ function useReveal() {
     return () => io.disconnect();
   }, []);
   return ref;
+}
+
+// ¿El elemento está a la vista? Sirve para no dejar animaciones corriendo en
+// secciones que nadie está mirando.
+function useEnPantalla(ref, umbral = 0.25) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!ref.current || !('IntersectionObserver' in window)) { setVisible(true); return; }
+    const io = new IntersectionObserver(
+      ([e]) => setVisible(e.isIntersecting), { threshold: umbral });
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, [ref, umbral]);
+  return visible;
+}
+
+// Índice que avanza en ciclo mientras la sección esté a la vista.
+function useCiclo(n, ms, activo) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (!activo || reducido() || n < 2) return;
+    const t = setInterval(() => setI(x => (x + 1) % n), ms);
+    return () => clearInterval(t);
+  }, [n, ms, activo]);
+  return i;
+}
+
+// ── El problema: los dos lados se leen como pares ─────────────────────────
+// Cada punto de "Con Excel" tiene su contraparte exacta en "Con FAIM OBRAS".
+// Se iluminan de a uno, en paralelo, para que se lean juntos en vez de como
+// dos listas sueltas.
+const PARES = [
+  ['Días armando el presupuesto desde cero, ítem por ítem',
+   'Catálogo con análisis de costos ya cargado: elegís y computás'],
+  ['Precios de materiales que nadie sabe de cuándo son',
+   'Precios con fuente y fecha, actualizables por rubro'],
+  ['El certificado se vuelve a cargar a mano',
+   'El certificado sale del presupuesto, con su avance'],
+  ['El plazo de obra se estima «a ojo»',
+   'El plazo lo calcula el sistema desde las horas de cada tarea'],
+  ['Un adicional obliga a rehacer medio Excel',
+   'Los adicionales se vinculan al presupuesto base'],
+  ['El cliente llama para preguntar cómo viene la obra',
+   'El cliente entra a su portal y ve el avance solo'],
+];
+
+function Comparacion() {
+  const caja = useRef(null);
+  const visible = useEnPantalla(caja, 0.2);
+  const corre = visible && !reducido();
+  const act = useCiclo(PARES.length, 2400, corre);
+  const cls = (i) => (corre ? (i === act ? 'act' : '') : 'act');
+  return (
+    <div className={'comp' + (corre ? ' vivo' : '')} ref={caja}>
+      <div className="col no">
+        <h3>Con Excel</h3>
+        <ul>{PARES.map(([a], i) => <li key={a} className={cls(i)}>{a}</li>)}</ul>
+        <span className="par"><i style={{ width: corre ? ((act + 1) / PARES.length * 100) + '%' : '100%' }} /></span>
+      </div>
+      <div className="col si">
+        <h3>Con FAIM OBRAS</h3>
+        <ul>{PARES.map(([, b], i) => <li key={b} className={cls(i)}>{b}</li>)}</ul>
+        <span className="par"><i style={{ width: corre ? ((act + 1) / PARES.length * 100) + '%' : '100%' }} /></span>
+      </div>
+    </div>
+  );
+}
+
+// ── La cadena: el mismo dato recorriendo la obra ──────────────────────────
+function Cadena() {
+  const caja = useRef(null);
+  const visible = useEnPantalla(caja, 0.3);
+  const corre = visible && !reducido();
+  const act = useCiclo(CADENA.length, 1600, corre);
+  return (
+    <div className={'cadena' + (corre ? ' vivo' : '')} ref={caja}>
+      {CADENA.map(([t, d], i) => (
+        <div className={'eslabon' + (corre ? (i === act ? ' act' : (i < act ? ' paso' : '')) : ' paso')} key={t}>
+          <div className="t">{t}</div>
+          <div className="d">{d}</div>
+          <span className="barra"><i /></span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // ── Maqueta del cotizador: los ítems entran de a uno y el total sube ───────
@@ -480,6 +610,78 @@ function GanttDemo() {
   );
 }
 
+// ── Tres cosas: cada tarjeta muestra su propia prueba, no un adorno ───────
+function TresCosas() {
+  const caja = useRef(null);
+  const visible = useEnPantalla(caja, 0.3);
+  const corre = visible && !reducido();
+
+  // 1) El tiempo de cotizar: dos días de planilla contra un rato en el sistema.
+  const [rapido, setRapido] = useState(false);
+  useEffect(() => {
+    if (!corre) { setRapido(true); return; }
+    setRapido(false);
+    const t = setInterval(() => setRapido(v => !v), 2600);
+    return () => clearInterval(t);
+  }, [corre]);
+
+  // 2) El precio con su fecha: se actualiza y queda fechado.
+  const PRECIOS = [['$ 612', '12/05/2026'], ['$ 745', '03/07/2026'], ['$ 820', '07/08/2026']];
+  const pi = useCiclo(PRECIOS.length, 2200, corre);
+  const [precio, fecha] = corre ? PRECIOS[pi] : PRECIOS[PRECIOS.length - 1];
+
+  // 3) La cadena: un dato que pasa por los cinco módulos sin recargarse.
+  const paso = useCiclo(CADENA.length, 900, corre);
+
+  return (
+    <div className="grilla rev stagger" ref={caja}>
+      <div className="item" style={{ '--i': 0 }}>
+        <div className="t">Cotizás más rápido</div>
+        <div className="d">El análisis de costos ya está armado. Elegís el ítem, cargás la
+          cantidad y el precio sale solo, con tus coeficientes.</div>
+        <div className="fig">
+          <div className="fig-t">
+            <span className="antes">2 días</span>
+            <span className="flecha">→</span>
+            <span className="desp">{rapido ? '14 min' : '2 días'}</span>
+          </div>
+          <div className="fig-lbl">un presupuesto de 40 ítems</div>
+        </div>
+      </div>
+
+      <div className="item" style={{ '--i': 1 }}>
+        <div className="t">Cotizás mejor</div>
+        <div className="d">Precios con fuente y fecha, y mano de obra según escala vigente.
+          Se ve de un vistazo qué precio conviene revisar.</div>
+        <div className="fig">
+          <div className="fig-p">
+            <span className="m">{precio}</span>
+            <span className="f">{fecha}</span>
+          </div>
+          <div className="fig-lbl">ladrillo hueco 15 · cada precio con su fecha</div>
+        </div>
+      </div>
+
+      <div className="item" style={{ '--i': 2 }}>
+        <div className="t">No perdés el hilo</div>
+        <div className="d">Del presupuesto al certificado y a la cobranza sin volver a cargar
+          nada. Cada obra con su historia completa.</div>
+        <div className="fig">
+          <div className="fig-c">
+            {CADENA.map(([t], i) => (
+              <React.Fragment key={t}>
+                {i > 0 && <span className={'l' + (!corre || paso >= i ? ' on' : '')}><i /></span>}
+                <span className={'n' + (!corre || paso >= i ? ' on' : '')} title={t} />
+              </React.Fragment>
+            ))}
+          </div>
+          <div className="fig-lbl">presupuesto → análisis → plazo → certificado → cobro</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const btnCrew = {
   width: 24, height: 24, borderRadius: 6, border: '1px solid var(--line)',
   background: '#fff', color: 'var(--ink-soft)', cursor: 'pointer',
@@ -592,30 +794,7 @@ export default function Presentacion() {
           <p className="sub">Y cuando por fin está lista, el Excel queda huérfano: el certificado
             se rehace, el plazo se estima aparte, la cobranza vive en otro archivo.</p>
         </div>
-        <div className="comp rev">
-          <div className="col no">
-            <h3>Con Excel</h3>
-            <ul>
-              <li>Días armando el presupuesto desde cero, ítem por ítem</li>
-              <li>Precios de materiales que nadie sabe de cuándo son</li>
-              <li>El certificado se vuelve a cargar a mano</li>
-              <li>El plazo de obra se estima «a ojo»</li>
-              <li>Un adicional obliga a rehacer medio Excel</li>
-              <li>El cliente llama para preguntar cómo viene la obra</li>
-            </ul>
-          </div>
-          <div className="col si">
-            <h3>Con FAIM OBRAS</h3>
-            <ul>
-              <li>Catálogo con análisis de costos ya cargado: elegís y computás</li>
-              <li>Precios con fuente y fecha, actualizables por rubro</li>
-              <li>El certificado sale del presupuesto, con su avance</li>
-              <li>El plazo lo calcula el sistema desde las horas de cada tarea</li>
-              <li>Los adicionales se vinculan al presupuesto base</li>
-              <li>El cliente entra a su portal y ve el avance solo</li>
-            </ul>
-          </div>
-        </div>
+        <div className="rev"><Comparacion /></div>
       </section>
 
       {/* ── LA CADENA ───────────────────────────────────────────────────── */}
@@ -626,11 +805,7 @@ export default function Presentacion() {
           <p className="sub">No son módulos sueltos que se parecen entre sí: es el mismo dato
             recorriendo la obra de punta a punta.</p>
         </div>
-        <div className="cadena rev">
-          {CADENA.map(([t, d]) => (
-            <div className="eslabon" key={t}><div className="t">{t}</div><div className="d">{d}</div></div>
-          ))}
-        </div>
+        <div className="rev"><Cadena /></div>
         <div className="destaque rev">
           <b>Un ejemplo concreto.</b> Cambiás la cuadrilla de una tarea de 1 a 3 personas.
           El sistema recalcula la duración con las horas de mano de obra de tu propio análisis,
@@ -645,9 +820,9 @@ export default function Presentacion() {
           <div className="tag">Qué incluye</div>
           <h2>Todo lo que hoy tenés repartido en archivos</h2>
         </div>
-        <div className="grilla rev">
-          {MODULOS.map(([k, t, d]) => (
-            <div className="item" key={t}>
+        <div className="grilla rev stagger">
+          {MODULOS.map(([k, t, d], i) => (
+            <div className="item" key={t} style={{ '--i': i }}>
               <span className="k">{k}</span>
               <div className="t">{t}</div>
               <div className="d">{d}</div>
@@ -662,17 +837,7 @@ export default function Presentacion() {
           <div className="tag">Por qué importa</div>
           <h2>Tres cosas que cambian la semana</h2>
         </div>
-        <div className="grilla rev">
-          <div className="item"><div className="t">Cotizás más rápido</div>
-            <div className="d">El análisis de costos ya está armado. Elegís el ítem, cargás la
-              cantidad y el precio sale solo, con tus coeficientes.</div></div>
-          <div className="item"><div className="t">Cotizás mejor</div>
-            <div className="d">Precios con fuente y fecha, y mano de obra según escala vigente.
-              Se ve de un vistazo qué precio conviene revisar.</div></div>
-          <div className="item"><div className="t">No perdés el hilo</div>
-            <div className="d">Del presupuesto al certificado y a la cobranza sin volver a cargar
-              nada. Cada obra con su historia completa.</div></div>
-        </div>
+        <TresCosas />
       </section>
 
       {/* ── CIERRE ──────────────────────────────────────────────────────── */}
@@ -685,7 +850,7 @@ export default function Presentacion() {
           <a className="cta" href="https://wa.me/5493482305155" target="_blank" rel="noreferrer">Coordinar una demo →</a>
           <div className="datos">
             WhatsApp <b>+54 9 3482 30-5155</b><br />
-            Email <b>faimobras@gmail.com</b><br />
+            Email <b>contacto.faimobras@gmail.com</b><br />
             Web <b>faimobras.com</b>
           </div>
         </div>

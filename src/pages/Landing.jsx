@@ -157,7 +157,7 @@ export default function Landing() {
 
       {/* FOOTER */}
       <div style={{ textAlign: 'center', padding: '24px', borderTop: `1px solid ${C.border}`, color: C.muted, fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: '0.3px', background: C.surface }}>
-        © 2026 FAIM OBRAS · by FIMA Arquitectura · faimobras@gmail.com · Todos los derechos reservados
+        © 2026 FAIM OBRAS · by FIMA Arquitectura · contacto.faimobras@gmail.com · Todos los derechos reservados
       </div>
     </div>
   );

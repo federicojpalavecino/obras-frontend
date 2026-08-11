@@ -1047,7 +1047,7 @@ const BASE = [
     pasos: [
       "Si necesitás una mano que el asistente no resuelve, escribinos:",
       "WhatsApp: +54 9 362 530-5155.",
-      "Email: faimobras@gmail.com.",
+      "Email: contacto.faimobras@gmail.com.",
       "También está la sección “Soporte técnico” en el inicio.",
     ],
     route: "/soporte", routeLabel: "Ir a Soporte",

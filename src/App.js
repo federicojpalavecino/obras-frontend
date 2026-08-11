@@ -116,7 +116,7 @@ function AnuncioBanner({ anuncio, onClose }) {
 
 // ── Soporte técnico ──────────────────────────────────────────────────────────
 function PaginaSoporte() {
-  const MAIL = "faimobras@gmail.com";
+  const MAIL = "contacto.faimobras@gmail.com";
   const WHATSAPP = "5493625305155";
   const WHATSAPP_MSG = encodeURIComponent("Hola, tengo una consulta sobre FAIM OBRAS.");
 
