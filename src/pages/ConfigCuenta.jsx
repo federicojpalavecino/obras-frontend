@@ -101,7 +101,7 @@ export default function ConfigCuenta({ user, onUpdate }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
-  const [form, setForm] = useState({ nombre:"", cuit:"", telefono:"", direccion:"", ciudad:"", provincia:"", email_facturacion:"", color_primario:"#059669" });
+  const [form, setForm] = useState({ nombre:"", cuit:"", telefono:"", direccion:"", ciudad:"", provincia:"", color_primario:"#059669" });
   const fileRef = useRef();
 
   useEffect(() => {
@@ -109,7 +109,7 @@ export default function ConfigCuenta({ user, onUpdate }) {
       .then(r => r.data)
       .then(d => {
         setTenant(d);
-        setForm({ nombre: d.nombre||"", cuit: d.cuit||"", telefono: d.telefono||"", direccion: d.direccion||"", ciudad: d.ciudad||"", provincia: d.provincia||"", email_facturacion: d.email_facturacion||"", color_primario: d.color_primario||"#059669" });
+        setForm({ nombre: d.nombre||"", cuit: d.cuit||"", telefono: d.telefono||"", direccion: d.direccion||"", ciudad: d.ciudad||"", provincia: d.provincia||"", color_primario: d.color_primario||"#059669" });
         setLoading(false);
       });
   }, []);
@@ -234,17 +234,6 @@ export default function ConfigCuenta({ user, onUpdate }) {
             <div>
               <label style={{ display:"block", fontSize:11, color:C.muted, marginBottom:5, fontWeight:600, letterSpacing:"1px", textTransform:"uppercase" }}>Provincia</label>
               <input value={form.provincia} onChange={e=>setForm(f=>({...f,provincia:e.target.value}))} style={inp} />
-            </div>
-          </div>
-          {/* Va aparte del email de la cuenta (que es la identidad y no se toca).
-              Sirve para cuando MercadoPago rechaza una dirección al suscribirse. */}
-          <div>
-            <label style={{ display:"block", fontSize:11, color:C.muted, marginBottom:5, fontWeight:600, letterSpacing:"1px", textTransform:"uppercase" }}>Email de facturación</label>
-            <input type="email" value={form.email_facturacion}
-              onChange={e=>setForm(f=>({...f,email_facturacion:e.target.value}))} style={inp}
-              placeholder="El de tu cuenta de MercadoPago" />
-            <div style={{ fontSize:11, color:C.muted, marginTop:5 }}>
-              Solo para el cobro de la suscripción. Si lo dejás vacío se usa el email de la cuenta.
             </div>
           </div>
         </div>
