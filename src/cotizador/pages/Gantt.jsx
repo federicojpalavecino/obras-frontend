@@ -286,16 +286,6 @@ export default function Gantt() {
     cargar();
   };
 
-  const enviarAlPlanner = async () => {
-    // planner export not available
-    let proyectoId = proyectos?.find(p => p.presupuesto_id === parseInt(id))?.id;
-    
-    if (!proyectoId) {
-      proyectoId = null; // Planner integration not available
-    }
-    showToast('⚠ Integración con Planner no disponible');
-  };
-
   // ── CÁLCULOS DEL GANTT ──
   if (loading) return <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontFamily: 'var(--sans)' }}>Cargando...</div>;
 
@@ -318,6 +308,8 @@ export default function Gantt() {
       personas: p?.personas ?? t.personas ?? 1,
       horas_totales: p?.horas_totales ?? t.horas_totales ?? 0,
       dur_calc: p?.duracion ?? t.duracion_dias,
+      // En las tareas resumen el progreso es el promedio de las hijas.
+      progreso: p?.progreso ?? t.progreso ?? 0,
     };
   });
   const porId = {};
@@ -352,7 +344,6 @@ export default function Gantt() {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <div className="header-actions-desktop" style={{ gap: 8 }}>
-            <button className="btn btn-secondary btn-sm" onClick={enviarAlPlanner} style={{ display:'flex', alignItems:'center', gap:4 }}><Calendar size={12} strokeWidth={1.5} /> Planner</button>
             <button className="btn btn-secondary btn-sm" onClick={() => setEditando({})}>+ Tarea</button>
             {tareas.length > 1 && (
               <button className={`btn btn-sm ${modoVincular ? 'btn-primary' : 'btn-secondary'}`}
@@ -396,8 +387,17 @@ export default function Gantt() {
             )}
           </div>
           <MobileMenu actions={[
-            { label: 'Enviar al Planner', icon: <Calendar size={16} strokeWidth={1.5} />, onClick: enviarAlPlanner },
             { label: 'Nueva tarea', icon: '+', onClick: () => setEditando({}) },
+            ...(tareas.length > 1 ? [
+              { label: 'Traer horas del análisis', icon: '⏱', onClick: cargarHoras },
+              { label: 'Encadenar tareas en orden', icon: '⛓', onClick: encadenarTodo },
+            ] : []),
+            ...(vinculos.length > 0 ? [
+              { label: 'Recalcular fechas', icon: '↻', onClick: aplicarPlan },
+            ] : []),
+            ...(tareas.length > 0 ? [
+              { label: 'Exportar al Planner', icon: <Calendar size={16} strokeWidth={1.5} />, onClick: exportarAlPlanner },
+            ] : []),
             tareas.length === 0
               ? { label: 'Generar desde presupuesto', icon: '⚡', onClick: generarDesdePresupuesto, disabled: generando }
               : { label: 'Regenerar Gantt', icon: '↺', onClick: generarDesdePresupuesto, disabled: generando, color: 'var(--warn)' },
@@ -485,12 +485,20 @@ export default function Gantt() {
                 <div style={{ flex: 1, overflow: 'hidden' }} onClick={() => modoVincular ? clickVincular(t) : setEditando(t)}>
                   <div style={{ fontSize: 12, fontWeight: t.es_resumen ? 800 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textTransform: t.es_resumen ? 'uppercase' : 'none', letterSpacing: t.es_resumen ? 0.4 : 0 }}>
                     {t.nombre}
-                    {t.no_antes_de && <span title={'Fijada al ' + fmtFecha(t.no_antes_de)} style={{ marginLeft: 4, fontSize: 9 }}>📌</span>}
+                    {/* Arrastrar la barra fija la tarea. El chinche la suelta
+                        y la devuelve al mando de sus dependencias. */}
+                    {t.no_antes_de && (
+                      <span role="button" tabIndex={0}
+                        title={`Fijada al ${fmtFecha(t.no_antes_de)} — tocá para soltarla y que vuelva a seguir sus dependencias`}
+                        onClick={e => { e.stopPropagation(); soltarTarea(t.id); }}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); soltarTarea(t.id); } }}
+                        style={{ marginLeft: 4, fontSize: 9, cursor: 'pointer' }}>📌</span>
+                    )}
                   </div>
                   <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {t.horas_totales > 0
                       ? `${Math.round(t.horas_totales)} h${t.holgura ? ` · holgura ${t.holgura}d` : ''}`
-                      : (t.rubro || (t.holgura ? `holgura ${t.holgura}d` : ''))}
+                      : (t.holgura ? `holgura ${t.holgura}d` : '')}
                   </div>
                 </div>
                 {/* Cuadrilla: cuántas personas trabajan. Cambia la duración. */}
@@ -530,10 +538,13 @@ export default function Gantt() {
               {/* Filas */}
               {filas.map(t => {
                 const offsetDias = diasEntre(fechaMin, t.fecha_inicio || fechaMin);
-                const anchoDias = t.duracion_dias || 1;
+                // La grilla son días corridos y la duración está en días hábiles:
+                // la barra tiene que ir de inicio a fin del plan, no inicio + duración,
+                // o queda corrida respecto de la fecha de fin real.
+                const anchoDias = Math.max(1, diasEntre(t.fecha_inicio, t.fecha_fin) + 1);
                 const left = offsetDias * PX_DIA;
                 const width = anchoDias * PX_DIA - 2;
-                const pct = Math.min(100, Math.max(0, t.completado || 0));
+                const pct = Math.min(100, Math.max(0, t.progreso || 0));
                 return (
                   <div key={t.id} style={{ height: ROW_H, borderBottom: '1px solid var(--border2)', position: 'relative', display: 'flex', alignItems: 'center' }}>
                     {/* Columnas de fondo */}
@@ -653,10 +664,10 @@ export default function Gantt() {
 
 function EditarTarea({ tarea, onSave, onDelete, presupuestoId }) {
   const [form, setForm] = useState({
-    nombre: '', rubro: '', duracion_dias: 1,
+    nombre: '', duracion_dias: 1,
     fecha_inicio: new Date().toISOString().split('T')[0],
     fecha_fin: new Date().toISOString().split('T')[0],
-    color: COLORES[0], completado: 0, asignado_a: '',
+    color: COLORES[0], progreso: 0,
     presupuesto_id: presupuestoId,
     ...tarea
   });
@@ -685,10 +696,6 @@ function EditarTarea({ tarea, onSave, onDelete, presupuestoId }) {
           <label style={lblStyle}>Nombre *</label>
           <input style={inpStyle} value={form.nombre} onChange={e => upd('nombre', e.target.value)} />
         </div>
-        <div style={{ gridColumn: 'span 2' }}>
-          <label style={lblStyle}>Rubro</label>
-          <input style={inpStyle} value={form.rubro || ''} onChange={e => upd('rubro', e.target.value)} />
-        </div>
         <div>
           <label style={lblStyle}>Fecha inicio</label>
           <input style={inpStyle} type="date" value={form.fecha_inicio} onChange={e => upd('fecha_inicio', e.target.value)} />
@@ -702,12 +709,11 @@ function EditarTarea({ tarea, onSave, onDelete, presupuestoId }) {
           <input style={inpStyle} type="date" value={form.fecha_fin} onChange={e => upd('fecha_fin', e.target.value)} />
         </div>
         <div>
+          {/* El campo del backend es `progreso`. Se llamaba `completado` acá y
+              por eso el avance que se cargaba nunca se guardaba. */}
           <label style={lblStyle}>% completado</label>
-          <input style={inpStyle} type="number" min={0} max={100} value={form.completado} onChange={e => upd('completado', e.target.value)} />
-        </div>
-        <div style={{ gridColumn: 'span 2' }}>
-          <label style={lblStyle}>Asignado a</label>
-          <input style={inpStyle} value={form.asignado_a || ''} onChange={e => upd('asignado_a', e.target.value)} placeholder="Nombre..." />
+          <input style={inpStyle} type="number" min={0} max={100} value={form.progreso}
+            onChange={e => upd('progreso', e.target.value)} />
         </div>
         <div style={{ gridColumn: 'span 2' }}>
           <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Color</label>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { localidadYFecha } from '../tenant';
 
 const fmt = (n) => {
   if (!n && n !== 0) return '—';
@@ -36,7 +37,7 @@ export default function PrintPresupuesto({ data, modo }) {
             </div>
           </div>
           <div className="print-fecha">
-            <div>Resistencia, {hoy}</div>
+            <div>{localidadYFecha(hoy)}</div>
             {cerrado && data.fecha_cierre && (
               <div style={{ marginTop: 4, fontSize: 9, color: '#888' }}>
                 Cerrado: {new Date(data.fecha_cierre).toLocaleDateString('es-AR')}

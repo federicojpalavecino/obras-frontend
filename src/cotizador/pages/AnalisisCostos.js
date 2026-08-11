@@ -323,8 +323,11 @@ export default function AnalisisCostos() {
                   titulo="1/3) Materiales" color="var(--mat)"
                   columnas={['Material', 'Unidad', 'Cantidad', 'P. Unitario', 'Subtotal', '']}
                   lineas={itemDetalle.lineas_material.map(l => ({
+                    // El back manda nombre/codigo; material_nombre/material_codigo son
+                    // los alias nuevos. Se leen los dos para no depender del orden en
+                    // que se deployen front y back.
                     id: l.id,
-                    col1: l.material_nombre, col1b: l.material_codigo,
+                    col1: l.material_nombre || l.nombre, col1b: l.material_codigo || l.codigo,
                     col2: l.unidad, col3: l.cantidad, col4: l.precio_unitario, col5: l.subtotal,
                   }))}
                   editLinea={editLinea}
@@ -352,7 +355,7 @@ export default function AnalisisCostos() {
                   titulo="2/3) Mano de obra" color="var(--mo)"
                   columnas={['Función', 'Horas', 'Costo/hora', 'Subtotal', '']}
                   lineas={itemDetalle.lineas_mo.map(l => ({
-                    id: l.id, col1: l.funcion, col2: null,
+                    id: l.id, col1: l.funcion || l.nombre, col2: null,
                     col3: l.horas, col4: l.costo_hora, col5: l.subtotal,
                   }))}
                   editLinea={editLinea} setEditLinea={setEditLinea}

@@ -14,6 +14,7 @@ import PanelComputo from './PanelComputo';
 import MobileMenu from './MobileMenu';
 import { coincide } from '../buscar';
 import { parseNum } from '../num';
+import { localidadYFecha } from '../tenant';
 import '../print.css';
 
 const fmt = (n) => {
@@ -348,12 +349,17 @@ export default function Presupuesto() {
     rubros.forEach(rubro => {
       (rubro.lineas || []).forEach(linea => {
         try {
-          // Servidor primero (robusto), sino localStorage. Acepta formato nuevo {tipo,filas} o array viejo.
-          let raw = linea.computo_detalle || localStorage.getItem('computo_' + id + '_' + linea.id);
+          // localStorage primero (es lo más fresco tras editar en este navegador),
+          // sino lo guardado en el servidor. Mismo criterio que PanelComputo.
+          let raw = null;
+          try { raw = localStorage.getItem('computo_' + id + '_' + linea.id); } catch {}
+          if (!raw) raw = linea.computo_detalle;
           if (!raw) return;
           const parsed = JSON.parse(raw);
+          // Formato nuevo {tipo, filas} o array suelto (el viejo, sin tipo).
           const filas = Array.isArray(parsed) ? parsed : (parsed && parsed.filas);
-          if (filas && filas.length > 0) items.push({ linea, rubro, filas });
+          const tipoGuardado = Array.isArray(parsed) ? null : (parsed && parsed.tipo) || null;
+          if (filas && filas.length > 0) items.push({ linea, rubro, filas, tipoGuardado });
         } catch {}
       });
     });
@@ -366,8 +372,10 @@ export default function Presupuesto() {
     const win = window.open('', '_blank');
     const unidLabel = (l) => l.unidad_item || l.unidad_libre || 'u';
 
+    // parseNum, no parseFloat: los valores se cargan con coma decimal
+    // ("2,5") y parseFloat los cortaba en 2.
     const calcFila = (tipo, f) => {
-      const n = (v) => parseFloat(v) || 0;
+      const n = (v) => parseNum(v);
       if (tipo === 'm2')   return n(f.alto) * n(f.ancho) * n(f.cant);
       if (tipo === 'm3')   return n(f.alto) * n(f.ancho) * n(f.largo) * n(f.cant);
       if (tipo === 'ml')   return n(f.long) * n(f.cant);
@@ -385,8 +393,11 @@ export default function Presupuesto() {
       return 'u';
     };
 
-    const renderItem = ({ linea, rubro, filas }) => {
-      const tipo = detectTipo(unidLabel(linea));
+    const renderItem = ({ linea, rubro, filas, tipoGuardado }) => {
+      // Manda el tipo con el que se cargó el cómputo. Deducirlo de la unidad
+      // daba parciales en cero cuando el usuario había elegido otro tipo
+      // (p. ej. computar en m² un ítem cuya unidad es "Gl").
+      const tipo = tipoGuardado || detectTipo(unidLabel(linea));
       const total = filas.reduce((acc, f) => {
         const val = calcFila(tipo, f);
         return f.signo === '-' ? acc - val : acc + val;
@@ -407,6 +418,14 @@ export default function Presupuesto() {
           + '<td style="font-family:monospace;text-align:right">' + formula + '</td>'
           + '<td style="font-family:monospace;text-align:right">' + val.toFixed(3) + '</td></tr>';
       }).join('');
+      // Si el cómputo no se aplicó al ítem, el total y la cantidad del
+      // presupuesto no coinciden. Se avisa en vez de dejarlo pasar callado.
+      const cantPres = parseNum(linea.cantidad);
+      const difiere = Math.abs(cantPres - total) > 0.005;
+      const pie = difiere
+        ? '<div class="aviso">Cantidad cargada en el presupuesto: <b>' + cantPres.toFixed(3)
+          + ' ' + unidLabel(linea) + '</b> — no coincide con el cómputo (falta aplicarlo).</div>'
+        : '';
       return '<div class="item-block"><div class="item-header">'
         + '<span class="rubro-tag">' + rubro.numero + ' — ' + rubro.nombre + '</span>'
         + '<span class="item-name">' + nombre + '</span></div>'
@@ -415,7 +434,7 @@ export default function Presupuesto() {
         + '<tbody>' + rows
         + '<tr class="total-row"><td colspan="4" style="text-align:right;font-weight:700">TOTAL</td>'
         + '<td style="font-family:monospace;font-weight:700;text-align:right">' + total.toFixed(3) + ' ' + unidLabel(linea) + '</td></tr>'
-        + '</tbody></table></div>';
+        + '</tbody></table>' + pie + '</div>';
     };
 
     const html = '<!DOCTYPE html><html><head><title>Cómputo general</title>'
@@ -431,6 +450,7 @@ export default function Presupuesto() {
       + 'th{background:#f0f0f0;padding:5px 8px;text-align:left;border:1px solid #ddd;font-size:9pt}'
       + 'td{padding:4px 8px;border:1px solid #eee}'
       + '.total-row td{background:#f8f8f8;border-top:2px solid #ccc}'
+      + '.aviso{font-size:9pt;color:#92400e;margin-top:4px}'
       + '@media print{body{padding:0}}'
       + '</style></head><body>'
       + '<h1>Cómputo de cantidades</h1>'
@@ -550,7 +570,7 @@ footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;ju
     ${esComercial ? `<div class="datos" style="margin-top:4px"><strong>Vigencia:</strong> ${data.dias_vigencia || coefs?.dias_vigencia || 30} días desde la fecha</div>` : ''}
   </div>
   <div class="meta">
-    <div>Resistencia, ${hoy}</div>
+    <div>${localidadYFecha(hoy)}</div>
     ${cerrado && data.fecha_cierre ? `<div style="font-size:8pt;color:#888;margin-top:3px">Cerrado: ${new Date(data.fecha_cierre).toLocaleDateString('es-AR')}</div>` : ''}
   </div>
 </div>

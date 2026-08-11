@@ -4,6 +4,7 @@ import { getPresupuesto, getCertificados, getCertificado, crearCertificado } fro
 import api from '../api';
 import MobileMenu from './MobileMenu';
 import { ArrowLeft, Plus, FileText, Printer, Trash2, Edit2 } from 'lucide-react';
+import { localidadYFecha } from '../tenant';
 import '../print.css';
 
 const fmt = (n) => n ? '$ ' + Math.round(n).toLocaleString('es-AR') : '$ 0';
@@ -324,7 +325,7 @@ footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;ju
     ${d.certificado?.periodo_desde?`<div class="datos"><strong>Período:</strong> ${new Date(d.certificado.periodo_desde+'T12:00:00').toLocaleDateString('es-AR')} al ${d.certificado?.periodo_hasta?new Date(d.certificado.periodo_hasta+'T12:00:00').toLocaleDateString('es-AR'):'—'}</div>`:''}
   </div>
   <div class="meta">
-    <div>Resistencia, ${hoyStr}</div>
+    <div>${localidadYFecha(hoyStr)}</div>
     ${d.certificado?.fecha?`<div>Fecha: ${new Date(d.certificado.fecha).toLocaleDateString('es-AR')}</div>`:''}
   </div>
 </div>
@@ -446,7 +447,7 @@ ${certEg ? `
     win.document.write("<div class=\"titulo\">Certificado de Egresos / Materiales " + certNumLabel + "</div>");
     win.document.write("<div class=\"datos\"><strong>Obra:</strong> " + obraNombre + "</div>");
     win.document.write("<div class=\"datos\"><strong>Fecha:</strong> " + now + "</div>");
-    win.document.write("</div><div class=\"meta\"><div>Resistencia, " + now + "</div></div></div>");
+    win.document.write("</div><div class=\"meta\"><div>" + localidadYFecha(now) + "</div></div></div>");
     win.document.write("<table><thead><tr><th>Concepto</th><th class=\"r\">Monto</th><th>Semana</th><th>Estado</th></tr></thead><tbody>");
     win.document.write(filas);
     win.document.write("<tr class=\"total-row\"><td>Total</td><td class=\"n\">$" + totalFmt + "</td><td></td><td></td></tr>");
@@ -1117,7 +1118,7 @@ ${certEg ? `
                 <div className="print-titulo">Certificado de avance Nº {certDetalle.certificado?.numero}</div>
               </div>
               <div className="print-fecha">
-                <div>Resistencia, {hoy}</div>
+                <div>{localidadYFecha(hoy)}</div>
                 {certDetalle.certificado?.fecha && (
                   <div>Fecha: {new Date(certDetalle.certificado.fecha).toLocaleDateString('es-AR')}</div>
                 )}

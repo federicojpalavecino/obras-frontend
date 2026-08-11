@@ -44,10 +44,12 @@ function filaTieneDatos(f) {
 }
 function hayDatos(filas) { return (filas || []).some(filaTieneDatos); }
 
-// Lee el cómputo guardado de una línea (servidor primero, sino localStorage)
+// Lee el cómputo guardado de una línea.
+// localStorage primero (es lo más fresco tras editar en este navegador), sino el del servidor.
 function leerComputo(presupuestoId, l) {
-  let raw = l?.computo_detalle;
-  if (!raw) { try { raw = localStorage.getItem(`computo_${presupuestoId}_${l?.id}`); } catch {} }
+  let raw = null;
+  try { raw = localStorage.getItem(`computo_${presupuestoId}_${l?.id}`); } catch {}
+  if (!raw) raw = l?.computo_detalle;
   if (!raw) return null;
   try {
     const d = JSON.parse(raw);
