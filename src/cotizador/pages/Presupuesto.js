@@ -325,13 +325,20 @@ export default function Presupuesto() {
     } catch (e) { return null; }
   };
 
+  // Cada tarea lleva SU superficie: el croquis puede ser sobre 150 m2 y la
+  // direccion de obra sobre otra. Se propone la del presupuesto y se corrige.
   const agregarTarea = async (t) => {
+    let m2Tarea = 1;
+    if (t.modo === 'pct_obra') {
+      const sug = data?.superficie_m2 || '';
+      const r = window.prompt(`¿Sobre cuántos m² es "${t.nombre}"?`, sug ? String(sug) : '');
+      if (r === null) return;
+      m2Tarea = parseFloat(r) || 0;
+      if (m2Tarea <= 0) { avisar('Poné una superficie válida'); return; }
+    }
     setAgregandoTarea(t.id);
     try {
-      await api.post(`/presupuestos/${id}/tareas`, {
-        tarea_id: t.id, cantidad: 1,
-        monto_obra: parseFloat(montoObra) || undefined,
-      });
+      await api.post(`/presupuestos/${id}/tareas`, { tarea_id: t.id, m2: m2Tarea });
       await cargar(true);
     } catch (e) {
       avisar(e?.response?.data?.detail || 'No se pudo agregar');
@@ -959,10 +966,16 @@ ${firma}
                 onClick={() => setCoefsOpen(v => !v)}
                 style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--muted)' }}>Coeficientes</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--muted)' }}>
+                    {esServicio ? 'Honorarios' : 'Coeficientes'}
+                  </span>
                   {coefs && !coefsOpen && (
                     <span style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--accent2)' }}>
-                      GG {coefs.gg_porcentaje}% · BEN {coefs.ben_porcentaje}% · IVA {coefs.iva_porcentaje}%
+                      {esServicio
+                        ? [data?.superficie_m2 ? `${data.superficie_m2} m²` : null,
+                           data?.valor_k_usado ? `K ${Math.round(data.valor_k_usado).toLocaleString('es-AR')}` : 'sin provincia',
+                           `IVA ${coefs.iva_porcentaje}%`].filter(Boolean).join(' · ')
+                        : `GG ${coefs.gg_porcentaje}% · BEN ${coefs.ben_porcentaje}% · IVA ${coefs.iva_porcentaje}%`}
                     </span>
                   )}
                 </div>
