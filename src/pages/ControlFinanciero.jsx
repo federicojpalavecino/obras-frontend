@@ -218,7 +218,7 @@ export default function ControlFinanciero({ user }) {
   // Mobile: grid de 2 columnas. Concepto/nombre ocupan toda la fila arriba, el resto fluye de a 2.
   const mobileRow = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 12, alignItems: "center", paddingBottom: 12, borderBottom: "1px dashed var(--border, #e0e0e8)" };
   const rowGrid = isMobile ? mobileRow
-    : { display: "grid", gridTemplateColumns: "2.5fr 130px 120px 1fr auto", gap: 5, marginBottom: 5, alignItems: "center" };
+    : { display: "grid", gridTemplateColumns: "2.2fr 120px 110px 1.1fr 0.9fr auto", gap: 5, marginBottom: 5, alignItems: "center" };
   const personalGrid = isMobile ? mobileRow
     : { display: "grid", gridTemplateColumns: "1.5fr 1fr 60px 60px 120px 100px auto", gap: 5, marginBottom: 5, alignItems: "center" };
   const herramGrid = isMobile ? mobileRow
@@ -237,6 +237,10 @@ export default function ControlFinanciero({ user }) {
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
   const [obras, setObras] = useState([]);
+  // Obras, clientes, proyectos y usuarios: todo lo que un gasto puede tener adelante
+  const [imputables, setImputables] = useState({ obras: [], clientes: [], proyectos: [], usuarios: [] });
+  const [resumenImp, setResumenImp] = useState(null);   // gasto por imputacion y por persona
+  const [rango, setRango] = useState({ desde: '', hasta: '' });   // periodo del analisis
   const [showImportarObra, setShowImportarObra] = useState(false);
   const [obraPendientes, setObraPendientes] = useState({ cobros: [], pagos_subcontrato: [], compras: [] });
   const [obraSeleccionados, setObraSeleccionados] = useState([]);
@@ -264,6 +268,9 @@ export default function ControlFinanciero({ user }) {
   useEffect(() => {
     const saved = localStorage.getItem("obras-cf-config");
     if (saved) { try { setConfig(JSON.parse(saved)); } catch {} }
+    api.get('/cf/imputables')
+      .then(r => setImputables(r.data || { obras: [], clientes: [], proyectos: [], usuarios: [] }))
+      .catch(() => {});
     api.get('/presupuestos')
       .then(r => { const ps = Array.isArray(r.data) ? r.data : (r.data?.presupuestos || []); setObras(ps.map(p => ({ id: p.id, label: p.nombre_obra || `Presupuesto #${p.id}` })).sort((a, b) => a.label.localeCompare(b.label))); })
       .catch(() => {});
@@ -363,6 +370,26 @@ export default function ControlFinanciero({ user }) {
   };
 
   // ── CRUD rows ─────────────────────────────────────────────────────────────
+  // El resumen se recalcula cuando cambia el periodo elegido. Va contra el
+  // backend y no filtrando en memoria porque el corte tiene que ser el mismo
+  // que usa cualquier otro reporte, y porque los periodos que se solapan con
+  // el borde del rango tienen que contar.
+  useEffect(() => {
+    const q = [];
+    if (rango.desde) q.push(`desde=${rango.desde}`);
+    if (rango.hasta) q.push(`hasta=${rango.hasta}`);
+    api.get(`/cf/resumen${q.length ? '?' + q.join('&') : ''}`)
+      .then(r => setResumenImp(r.data)).catch(() => {});
+  }, [rango.desde, rango.hasta]);
+
+  // Atajos: el analisis casi siempre es "este mes", "este anio" o "todo".
+  const rangoMes = () => { const d = new Date(); const p = n => String(n).padStart(2, '0');
+    setRango({ desde: `${d.getFullYear()}-${p(d.getMonth() + 1)}-01`,
+               hasta: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())}` }); };
+  const rangoAnio = () => { const a = new Date().getFullYear();
+    setRango({ desde: `${a}-01-01`, hasta: `${a}-12-31` }); };
+  const rangoTodo = () => setRango({ desde: '', hasta: '' });
+
   const addIngreso = () => setWeek(w => { const nw = { ...w, ingresos: [...w.ingresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", cliente: "" }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
   const updIngreso = (i, f, v) => setWeek(w => { const a = [...w.ingresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, ingresos: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
   const delIngreso = (i) => { const nw = { ...week, ingresos: week.ingresos.filter((_, j) => j !== i) }; setWeek(nw); setTimeout(() => autoGuardar(nw), 300); };
@@ -381,6 +408,71 @@ export default function ControlFinanciero({ user }) {
       return nw;
     });
   };
+
+  // ── Imputacion: contra que va este movimiento ────────────────────────────
+  // Un solo desplegable agrupado en vez de dos controles encadenados: el que
+  // carga gastos elige "Casa Perez" o "Gasto del estudio" de una lista, sin
+  // tener que decidir primero de que tipo es.
+  const valorImp = (row) => {
+    if (row.imputacion) return `${row.imputacion}:${row.ref_id ?? ''}`;
+    if (row.presupuesto_id) return `obra:${row.presupuesto_id}`;   // filas viejas
+    return '';
+  };
+  const nombreImp = (tipo, id) => {
+    if (tipo === 'estudio') return 'Gasto del estudio';
+    const lista = { obra: imputables.obras, cliente: imputables.clientes, proyecto: imputables.proyectos }[tipo] || [];
+    return lista.find(x => String(x.id) === String(id))?.nombre || '';
+  };
+  const updImputacion = (campo, i, valor) => {
+    const [tipo, id] = (valor || '').split(':');
+    const ref_id = id ? parseInt(id) : null;
+    const nombre = tipo ? nombreImp(tipo, ref_id) : '';
+    setWeek(w => {
+      const a = [...w[campo]];
+      a[i] = {
+        ...a[i],
+        imputacion: tipo || '', ref_id, ref_nombre: nombre,
+        // Se sigue escribiendo obra/presupuesto_id cuando corresponde: de ahi
+        // leen el resumen por obra y los certificados de egresos que ya existen.
+        obra: tipo === 'obra' ? nombre : '',
+        presupuesto_id: tipo === 'obra' ? ref_id : null,
+      };
+      const nw = { ...w, [campo]: a };
+      clearTimeout(window._cfT);
+      window._cfT = setTimeout(() => autoGuardar(nw), 900);
+      return nw;
+    });
+  };
+  const SelectImputacion = ({ campo, i, row, style }) => (
+    <select style={style} value={valorImp(row)} onChange={e => updImputacion(campo, i, e.target.value)}
+      title="Contra que se imputa">
+      <option value="">— Sin imputar —</option>
+      <option value="estudio:">Gasto del estudio</option>
+      {imputables.obras.length > 0 && (
+        <optgroup label="Obras">
+          {imputables.obras.map(o => <option key={`o${o.id}`} value={`obra:${o.id}`}>{o.nombre}</option>)}
+        </optgroup>
+      )}
+      {imputables.clientes.length > 0 && (
+        <optgroup label="Clientes">
+          {imputables.clientes.map(c => <option key={`c${c.id}`} value={`cliente:${c.id}`}>{c.nombre}</option>)}
+        </optgroup>
+      )}
+      {imputables.proyectos.length > 0 && (
+        <optgroup label="Proyectos">
+          {imputables.proyectos.map(pr => <option key={`p${pr.id}`} value={`proyecto:${pr.id}`}>{pr.nombre}</option>)}
+        </optgroup>
+      )}
+    </select>
+  );
+  const SelectQuien = ({ campo, i, row, style }) => (
+    <select style={style} value={row.usuario || ''}
+      onChange={e => (campo === 'egresos' ? updEgreso : updIngreso)(i, 'usuario', e.target.value)}
+      title="Quien lo hizo">
+      <option value="">— Quien —</option>
+      {imputables.usuarios.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
+    </select>
+  );
 
   const addPersonal = () => setWeek(w => { const nw = { ...w, personal: [...w.personal, { nombre: "", rango: "", dias: 5, hs: 8, costo: 0, total: 0, obra: "" }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
   const updPersonal = (i, f, v) => setWeek(w => { const a = [...w.personal]; a[i] = { ...a[i], [f]: v }; a[i].total = (parseFloat(a[i].dias) || 0) * (parseFloat(a[i].hs) || 0) * (parseFloat(a[i].costo) || 0); const nw = { ...w, personal: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
@@ -592,10 +684,8 @@ export default function ControlFinanciero({ user }) {
                   <select style={inp} value={row.estado || "PENDIENTE"} onChange={e => updIngreso(i, "estado", e.target.value)}>
                     {["PENDIENTE", "COBRADO", "EN PROCESO"].map(s => <option key={s}>{s}</option>)}
                   </select>
-                  <select style={inp} value={row.obra || ""} onChange={e => updIngreso(i, "obra", e.target.value)}>
-                    <option value="">— Obra —</option>
-                    {obras.map(o => <option key={o.id} value={o.label}>{o.label}</option>)}
-                  </select>
+                  <SelectImputacion campo="ingresos" i={i} row={row} style={inp} />
+                  <SelectQuien campo="ingresos" i={i} row={row} style={inp} />
                   <button onClick={() => delIngreso(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
                 </div>
               ))}
@@ -612,10 +702,8 @@ export default function ControlFinanciero({ user }) {
                   <select style={inp} value={row.estado || "PENDIENTE"} onChange={e => updEgreso(i, "estado", e.target.value)}>
                     {["PENDIENTE", "PAGADO"].map(s => <option key={s}>{s}</option>)}
                   </select>
-                  <select style={inp} value={row.presupuesto_id || ""} onChange={e => updEgresoObra(i, e.target.value)}>
-                    <option value="">— Obra —</option>
-                    {obras.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-                  </select>
+                  <SelectImputacion campo="egresos" i={i} row={row} style={inp} />
+                  <SelectQuien campo="egresos" i={i} row={row} style={inp} />
                   <button onClick={() => delEgreso(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
                 </div>
               ))}
@@ -769,6 +857,102 @@ export default function ControlFinanciero({ user }) {
                     <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>{semanas.length} período{semanas.length !== 1 ? "s" : ""}</div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Periodo del analisis */}
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: ".4px" }}>Desde</div>
+                  <input type="date" style={inp} value={rango.desde} onChange={e => setRango(r => ({ ...r, desde: e.target.value }))} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: ".4px" }}>Hasta</div>
+                  <input type="date" style={inp} value={rango.hasta} onChange={e => setRango(r => ({ ...r, hasta: e.target.value }))} />
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[["Este mes", rangoMes], ["Este año", rangoAnio], ["Todo", rangoTodo]].map(([t, fn]) => (
+                    <button key={t} onClick={fn}
+                      style={{ padding: "7px 12px", background: "none", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>{t}</button>
+                  ))}
+                </div>
+                {resumenImp && (
+                  <div style={{ marginLeft: "auto", fontSize: 12, color: C.muted, textAlign: "right" }}>
+                    {resumenImp.periodos} período{resumenImp.periodos !== 1 ? "s" : ""}
+                    {resumenImp.alcance && (resumenImp.alcance.obras + resumenImp.alcance.clientes + resumenImp.alcance.proyectos) > 0 && (
+                      <> · {[
+                        resumenImp.alcance.obras ? `${resumenImp.alcance.obras} obra${resumenImp.alcance.obras !== 1 ? "s" : ""}` : null,
+                        resumenImp.alcance.clientes ? `${resumenImp.alcance.clientes} cliente${resumenImp.alcance.clientes !== 1 ? "s" : ""}` : null,
+                        resumenImp.alcance.proyectos ? `${resumenImp.alcance.proyectos} proyecto${resumenImp.alcance.proyectos !== 1 ? "s" : ""}` : null,
+                      ].filter(Boolean).join(" · ")}</>
+                    )}
+                    {resumenImp.rango_real && (
+                      <div style={{ fontSize: 10.5 }}>{resumenImp.rango_real.desde} → {resumenImp.rango_real.hasta}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {resumenImp?.totales && resumenImp.periodos > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginTop: 14 }}>
+                  {[["Ingresos", resumenImp.totales.ingresos, C.green],
+                    ["Egresos", resumenImp.totales.egresos, C.red],
+                    ["Personal", resumenImp.totales.personal, C.warn],
+                    ["Resultado", resumenImp.totales.resultado, resumenImp.totales.resultado >= 0 ? C.accent : C.red]].map(([l, v, col]) => (
+                    <div key={l} style={{ background: C.surface2, borderRadius: 9, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: ".4px" }}>{l}</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: col, fontFamily: "'IBM Plex Mono', monospace" }}>{fmtShort(v)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {resumenImp?.periodos === 0 && (
+                <div style={{ fontSize: 12.5, color: C.muted, marginTop: 12 }}>
+                  No hay períodos cargados dentro de esas fechas.
+                </div>
+              )}
+            </div>
+
+            {/* Gasto imputado y por persona */}
+            {resumenImp && (resumenImp.por_imputacion?.length > 0 || resumenImp.por_usuario?.length > 0) && (
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.3fr 1fr", gap: 12, marginBottom: 16 }}>
+                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Contra qué se gastó</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>
+                    Obras, clientes, proyectos y lo que es del estudio, en todos los períodos.
+                  </div>
+                  {resumenImp.por_imputacion.map((r, i) => {
+                    const col = { obra: C.accent, cliente: C.accent2, proyecto: C.warn, estudio: C.text, sin_imputar: C.muted }[r.imputacion] || C.muted;
+                    const gasto = r.egresos + r.personal;
+                    return (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.ref_nombre}</div>
+                          <div style={{ fontSize: 10.5, color: col, textTransform: "uppercase", letterSpacing: ".4px" }}>
+                            {r.imputacion === "sin_imputar" ? "sin imputar" : r.imputacion}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 700, color: C.red, fontFamily: "'IBM Plex Mono', monospace" }}>{fmtShort(gasto)}</div>
+                          {r.ingresos > 0 && <div style={{ fontSize: 10.5, color: C.green }}>+{fmtShort(r.ingresos)}</div>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Quién lo hizo</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>
+                    Cuánto movió cada uno del estudio.
+                  </div>
+                  {resumenImp.por_usuario.map((r, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: r.usuario === "Sin asignar" ? C.muted : C.text }}>{r.usuario}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: C.red, fontFamily: "'IBM Plex Mono', monospace", flexShrink: 0 }}>{fmtShort(r.egresos + r.personal)}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
