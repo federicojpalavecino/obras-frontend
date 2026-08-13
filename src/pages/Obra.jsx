@@ -50,6 +50,8 @@ export default function Obra() {
   const [almacen, setAlmacen] = useState({ configurado: true, max_mb: 60 });
   const [subiendo, setSubiendo] = useState(null);   // { nombre, pct }
   const [verArchivo, setVerArchivo] = useState(null);
+  const [etapasElegidas, setEtapasElegidas] = useState([]);   // ids a cobrar juntas
+  const [cobrandoLote, setCobrandoLote] = useState(false);
   const [certForm, setCertForm] = useState({ pct_acumulado: '', fecha: today(), nota: '', generar_pago: true });
   const [avForm, setAvForm] = useState({});      // linea_id -> pct escrito
   const [avFecha, setAvFecha] = useState(today());
@@ -158,6 +160,26 @@ export default function Obra() {
     }
   };
 
+  // Cobrar varias etapas juntas: el caso real es que el cliente deposita una
+  // vez por dos o tres etapas cumplidas, y cargarlas de a una es tedioso.
+  const cobrarEtapasElegidas = async () => {
+    if (!etapasElegidas.length) return;
+    setCobrandoLote(true);
+    try {
+      const r = await api.post(`/presupuestos/${id}/cobros/lote`, {
+        desembolso_ids: etapasElegidas, fecha: today(),
+      });
+      setEtapasElegidas([]);
+      showToast(r.data?.en_control_financiero
+        ? `✓ ${r.data.cobros} cobro(s) · ya están en el control financiero`
+        : `✓ ${r.data?.cobros} cobro(s) registrados`);
+      cargar();
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "No se pudo registrar el cobro");
+    }
+    setCobrandoLote(false);
+  };
+
   const cambiarMetodologia = async (metodologia) => {
     await api.patch(`/presupuestos/${id}/metodologia`, { metodologia });
     showToast(metodologia === "desembolsos" ? "Gestión por desembolsos" : "Gestión por certificación");
@@ -169,7 +191,12 @@ export default function Obra() {
     try {
       const r = await api.get(`/presupuestos/${id}/subcontratos/${sid}/certificados`);
       setCertSub(r.data);
-      setCertForm({ pct_acumulado: "", fecha: today(), nota: "", generar_pago: true });
+      const sugerido = r.data?.pct_avance_obra;
+      setCertForm({
+        pct_acumulado: (sugerido != null && sugerido > (r.data?.pct_certificado || 0))
+          ? String(Math.round(sugerido)) : "",
+        fecha: today(), nota: "", generar_pago: true,
+      });
     } catch (e) { showToast("No se pudo abrir el certificado"); }
   };
 
@@ -259,9 +286,12 @@ export default function Obra() {
 
   const crearCobro = async () => {
     if (!cobForm.monto) return;
-    await api.post(`/presupuestos/${id}/cobros`, { ...cobForm, monto: parseFloat(cobForm.monto) });
+    const r = await api.post(`/presupuestos/${id}/cobros`, { ...cobForm, monto: parseFloat(cobForm.monto) });
     setShowCobro(false); setCobForm({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null, desembolso_id: null });
-    showToast("✓ Cobro registrado"); cargar();
+    showToast(r.data?.en_control_financiero
+      ? "✓ Cobro registrado · ya está en el control financiero"
+      : "✓ Cobro registrado");
+    cargar();
   };
 
   const eliminarCobro = async (cid) => {
@@ -448,7 +478,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               <MenuAcciones C={C} acciones={[
                 { label: "Ver Gantt", icon: <BarChart2 size={16} strokeWidth={1.5} />, color: C.blue, onClick: () => navigate(`/cotizador/gantt/${id}`) },
                 { label: "Curva de inversión", icon: <TrendingUp size={16} strokeWidth={1.5} />, color: C.warn, onClick: () => navigate(`/cotizador/presupuesto/${id}/curva`) },
-                { label: "Certificados", icon: <Award size={16} strokeWidth={1.5} />, color: C.accent2, onClick: () => setTab("certificados") },
+                ...(porDesembolsos ? [] : [{ label: "Certificados", icon: <Award size={16} strokeWidth={1.5} />, color: C.accent2, onClick: () => setTab("certificados") }]),
               ]} />
             </div>
           ) : (
@@ -463,7 +493,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               </button>
               <button onClick={() => setTab("certificados")}
                 style={{ ...btn(C.accent2), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
-                <Award size={13} strokeWidth={1.5} /> Certificados
+                <Award size={13} strokeWidth={1.5} /> {porDesembolsos ? "Avance" : "Certificados"}
               </button>
             </div>
           )}
@@ -480,7 +510,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <option value="cobros">Cobros</option>
             <option value="subcontratos">Subcontratos</option>
             <option value="compras">Compras</option>
-            <option value="certificados">Certificados</option>
+            {!porDesembolsos && <option value="certificados">Certificados</option>}
           </select>
         </div>
       ) : (
@@ -531,6 +561,8 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                   <span style={{ fontSize: 13, fontWeight: 700 }}>Avance de obra</span>
                   <span style={{ fontSize: 11, color: C.muted }}>
                     {avance.origen === "certificado" ? "según el último certificado"
+                      : avance.origen === "desembolso" ? "según las etapas cumplidas"
+                      : avance.origen === "subcontrato" ? "según lo certificado a los contratistas"
                       : avance.origen === "avance" ? "cargado a mano" : "sin registrar"}
                     {avance.fecha ? ` · ${avance.fecha}` : ""}
                   </span>
@@ -622,6 +654,12 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12.5, color: C.muted, lineHeight: 1.5 }}>
                 El avance que se muestra hoy sale del último certificado emitido. Lo que cargues
                 acá pasa a mandar a partir de su fecha, sin tocar el certificado.
+              </div>
+            )}
+            {avance?.origen === "subcontrato" && (
+              <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12.5, color: C.muted, lineHeight: 1.5 }}>
+                Parte de este avance viene de lo que le certificaste a los contratistas. Lo que
+                cargues acá lo pisa a partir de su fecha.
               </div>
             )}
 
@@ -810,6 +848,49 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
 
         {/* ── COBROS ── */}
         {tab === "cobros" && (
+          <>
+          {/* Las etapas pendientes, a la vista y cobrables de a varias */}
+          {porDesembolsos && desembolsos.some(d => d.saldo > 0) && (
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>Etapas por cobrar</div>
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3, marginBottom: 10, lineHeight: 1.5 }}>
+                Tildá las que te pagaron y registralas juntas. Cada una queda como su propio
+                cobro, y entran solas al control financiero.
+              </div>
+              {desembolsos.filter(d => d.saldo > 0).map(d => {
+                const elegida = etapasElegidas.includes(d.id);
+                return (
+                  <label key={d.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: `1px solid ${C.border2}`, cursor: "pointer" }}>
+                    <input type="checkbox" checked={elegida}
+                      onChange={() => setEtapasElegidas(v => elegida ? v.filter(x => x !== d.id) : [...v, d.id])} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>Etapa {d.numero}</span>
+                      <span style={{ fontSize: 12, color: C.muted, marginLeft: 8 }}>{d.descripcion}</span>
+                      <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+                        {Number(d.avance_pct || 0).toFixed(0)}% cumplido
+                        {d.fecha_vencimiento ? ` · vence ${d.fecha_vencimiento}` : ""}
+                        {d.cobrado > 0 ? ` · ya cobrado ${fmt(d.cobrado)}` : ""}
+                      </span>
+                    </span>
+                    <span style={{ fontWeight: 700, fontFamily: "'IBM Plex Mono',monospace", fontSize: 13.5 }}>{fmt(d.saldo)}</span>
+                  </label>
+                );
+              })}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 12.5, color: C.muted }}>
+                  {etapasElegidas.length > 0
+                    ? <>Seleccionadas: <b style={{ color: C.text, fontFamily: "'IBM Plex Mono',monospace" }}>
+                        {fmt(desembolsos.filter(d => etapasElegidas.includes(d.id)).reduce((a, d) => a + d.saldo, 0))}
+                      </b></>
+                    : "Ninguna seleccionada"}
+                </div>
+                <button onClick={cobrarEtapasElegidas} disabled={!etapasElegidas.length || cobrandoLote}
+                  style={{ padding: "9px 18px", background: C.green, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: (!etapasElegidas.length || cobrandoLote) ? .45 : 1 }}>
+                  {cobrandoLote ? "Registrando…" : "Registrar cobro"}
+                </button>
+              </div>
+            </div>
+          )}
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div>
@@ -844,6 +925,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               </div>
             )}
           </div>
+          </>
         )}
 
         {/* ── SUBCONTRATOS ── */}
@@ -1053,8 +1135,15 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               {/* Certificar */}
               <div style={{ marginTop: 16, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Certificar avance</div>
-                <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>
+                <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10, lineHeight: 1.5 }}>
                   Lleva {Number(certSub.pct_certificado || 0).toFixed(0)}% certificado. Poné el acumulado nuevo.
+                  {certSub.pct_avance_obra != null && (
+                    <> El avance de obra de esos ítems va por el{" "}
+                      <b style={{ color: C.accent2 }}>{Number(certSub.pct_avance_obra).toFixed(0)}%</b>.</>
+                  )}
+                </div>
+                <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10, lineHeight: 1.5 }}>
+                  Lo que certifiques acá se carga al avance de la obra en los ítems que cubre.
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   <input type="number" min="0" max="100" placeholder="%" value={certForm.pct_acumulado}
