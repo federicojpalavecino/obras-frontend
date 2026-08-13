@@ -1138,28 +1138,20 @@ ${firma}
                       .filter(t => !busqueda || t.nombre.toLowerCase().includes(busqueda.toLowerCase()))
                       .map(t => {
                         const porcentaje = t.modo === 'pct_obra';
-                        const falta = porcentaje && !honorarioCalculado;
-                        const precio = porcentaje
-                          ? (honorarioCalculado ? honorarioCalculado.total * (t.pct_etapa || 0) / 100 : null)
-                          : t.precio_m2;
+                        // Sin provincia no hay K y no hay precio posible. Con
+                        // provincia entra siempre: los m2 van en el computo.
+                        const falta = !data?.valor_k_usado;
                         return (
                           <div key={t.id}
-                            title={falta ? 'Elegí la provincia y la superficie primero' : ''}
+                            title={falta ? 'Elegí la provincia en Honorarios' : 'Se agrega con 1 m²; la superficie se carga en la cantidad'}
                             style={{ padding: '8px 14px', borderBottom: '1px solid rgba(46,46,56,0.5)',
                                      cursor: falta ? 'not-allowed' : 'pointer', opacity: falta ? .45 : 1 }}
                             onMouseEnter={e => { if (!falta) e.currentTarget.style.background = 'var(--surface2)'; }}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             onClick={() => { if (!falta) agregarTarea(t); }}>
                             <div style={{ fontSize: 11, lineHeight: 1.3 }}>{t.nombre}</div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2, gap: 6 }}>
-                              <span style={{ fontSize: 9.5, color: 'var(--muted)' }}>
-                                {porcentaje ? `${t.pct_etapa}% del honorario` : `${t.coef_k} K por m²`}
-                              </span>
-                              {precio ? (
-                                <span style={{ fontSize: 10, color: 'var(--accent)', fontFamily: "'IBM Plex Mono',monospace" }}>
-                                  {'$ ' + Math.round(precio).toLocaleString('es-AR')}
-                                </span>
-                              ) : null}
+                            <div style={{ fontSize: 9.5, color: 'var(--muted)', marginTop: 2 }}>
+                              {porcentaje ? `${t.pct_etapa}% del honorario · por m²` : `${t.coef_k} K por m²`}
                             </div>
                           </div>
                         );
@@ -1283,8 +1275,8 @@ ${firma}
                 {esServicio && !cerrado && !data?.valor_k_usado && (
                   <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10,
                                 padding: 14, marginBottom: 12, fontSize: 13, lineHeight: 1.5 }}>
-                    Elegí la <b>provincia</b> y poné la <b>superficie</b> en los coeficientes, a la
-                    izquierda. De ahí sale el monto de obra y el porcentaje que corresponde.
+                    Elegí la <b>provincia</b> en el bloque Honorarios, a la izquierda. Después
+                    tocás cada tarea y cargás sus m² en la cantidad, como en cualquier ítem.
                   </div>
                 )}
                 <table className="tabla-presupuesto" style={{ width: '100%', borderCollapse: 'collapse' }}>
