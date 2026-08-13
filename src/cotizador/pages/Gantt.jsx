@@ -41,6 +41,30 @@ export default function Gantt() {
   const [presupuesto, setPresupuesto] = useState(null);
   const [lineas, setLineas] = useState([]);
   const [tareas, setTareas] = useState([]);
+  // El avance real de la obra, por linea del presupuesto. La barra se pinta con
+  // esto y no con el `progreso` que se cargaba a mano en la tarea: lo que se
+  // certifico o se midio es la verdad, y tener dos numeros para lo mismo
+  // garantiza que uno quede viejo.
+  const [avanceObra, setAvanceObra] = useState(null);
+  const [cargarAvanceEn, setCargarAvanceEn] = useState(null);   // tarea abierta
+  const [pctNuevo, setPctNuevo] = useState("");
+  const guardarAvanceLinea = async () => {
+    if (!cargarAvanceEn?.linea_id) return;
+    try {
+      await api.post(`/presupuestos/${id}/avance`, {
+        lineas: [{ linea_id: cargarAvanceEn.linea_id, pct: parseFloat(pctNuevo) || 0 }],
+        nota: `Cargado desde el Gantt · ${cargarAvanceEn.nombre}`,
+      });
+      const r = await api.get(`/presupuestos/${id}/avance`);
+      setAvanceObra(r.data);
+      setCargarAvanceEn(null);
+    } catch (e) {
+      alert(e?.response?.data?.detail || 'No se pudo guardar el avance');
+    }
+  };
+
+  const avancePorLinea = Object.fromEntries(
+    ((avanceObra && avanceObra.por_linea) || []).map(a => [a.linea_id, a.pct]));
   // laborables: días de la semana que se trabajan, en índices de getDay() de JS
   // corridos a lunes=0 (igual que weekday() de Python, que es lo que usa el motor).
   const [config, setConfig] = useState({
@@ -87,6 +111,8 @@ export default function Gantt() {
   useEffect(() => { cargar(); }, [id]);
 
   const cargar = async () => {
+    // Sale del mismo registro que usa el resumen, el portal y la curva.
+    api.get(`/presupuestos/${id}/avance`).then(r => setAvanceObra(r.data)).catch(() => {});
     setLoading(true);
     try {
       const [pRes, tRes, cRes, vRes, planRes] = await Promise.all([
@@ -889,7 +915,11 @@ export default function Gantt() {
                 const anchoDias = Math.max(1, diasEntre(t.fecha_inicio, t.fecha_fin) + 1);
                 const left = offsetDias * PX_DIA;
                 const width = anchoDias * PX_DIA - 2;
-                const pct = Math.min(100, Math.max(0, t.progreso || 0));
+                // Si la linea tiene avance registrado, ese manda. El progreso
+                // cargado a mano queda como respaldo para las tareas que no
+                // corresponden a ningun item del presupuesto.
+                const avLinea = t.linea_id && avancePorLinea[t.linea_id];
+                const pct = Math.min(100, Math.max(0, avLinea != null ? avLinea : (t.progreso || 0)));
                 return (
                   <div key={t.id} style={{ height: ROW_H, borderBottom: '1px solid var(--border2)', position: 'relative', display: 'flex', alignItems: 'center' }}>
                     {/* Columnas de fondo */}
@@ -919,7 +949,25 @@ export default function Gantt() {
                         cursor: 'pointer', overflow: 'hidden', zIndex: 4,
                         boxShadow: modoVincular ? '0 0 0 1px rgba(255,255,255,.15)' : 'none' }}
                       onMouseDown={e => iniciarArrastre(e, t)}
-                      onClick={() => modoVincular ? clickVincular(t) : setEditando(t)}>
+                      onContextMenu={e => {
+                        // Boton derecho sobre la barra: cargar avance sin salir
+                        // del Gantt, que es donde se mira como viene la obra.
+                        if (!t.linea_id) return;
+                        e.preventDefault();
+                        setCargarAvanceEn(t);
+                        setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0)));
+                      }}
+                      onClick={e => {
+                        if (modoVincular) return clickVincular(t);
+                        // Alt+click hace lo mismo que el boton derecho, para
+                        // el que usa trackpad.
+                        if (e.altKey && t.linea_id) {
+                          setCargarAvanceEn(t);
+                          setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0)));
+                          return;
+                        }
+                        setEditando(t);
+                      }}>
                       {/* Progreso */}
                       <div style={{ width: `${pct}%`, height: '100%', background: t.color + '55', transition: 'width .3s' }} />
                       {/* Label */}
@@ -1003,6 +1051,42 @@ export default function Gantt() {
       )}
 
       {/* MODAL EDITAR TAREA */}
+      {/* Cargar avance desde el Gantt */}
+      {cargarAvanceEn && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 600,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setCargarAvanceEn(null)}>
+          <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 22, width: 'min(430px,100%)',
+                        border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>{cargarAvanceEn.nombre}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
+              {fmtFechaLarga(cargarAvanceEn.fecha_inicio)} → {fmtFechaLarga(cargarAvanceEn.fecha_fin)}
+              {cargarAvanceEn.horas_totales ? ` · ${cargarAvanceEn.horas_totales} h` : ''}
+              {cargarAvanceEn.personas ? ` · ${cargarAvanceEn.personas} personas` : ''}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>Avance acumulado</div>
+                <input type="number" min="0" max="100" value={pctNuevo} autoFocus
+                  onChange={e => setPctNuevo(e.target.value)}
+                  style={{ width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8,
+                           background: 'var(--surface2)', color: 'var(--text)', fontFamily: "'IBM Plex Mono',monospace",
+                           fontSize: 15, textAlign: 'right' }} />
+              </div>
+              <button onClick={guardarAvanceLinea}
+                style={{ padding: '10px 18px', background: 'var(--accent)', color: '#fff', border: 'none',
+                         borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Guardar
+              </button>
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 10, lineHeight: 1.5 }}>
+              Se registra en el avance de la obra: lo ven el resumen, la curva y el cliente en su portal.
+            </div>
+          </div>
+        </div>
+      )}
+
       {editando !== null && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#ffffff', borderRadius: 16, padding: 24, maxWidth: 480, width: '100%', border: '1px solid #e0e0e8', color: '#1a1a2e' }}>
@@ -1090,5 +1174,6 @@ function EditarTarea({ tarea, onSave, onDelete, presupuestoId }) {
         <button onClick={() => onSave(form)} disabled={!form.nombre} style={{ padding: '8px 24px', borderRadius: 8, border: 'none', background: '#6ee7b7', color: '#0f0f11', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: !form.nombre ? .5 : 1 }}>Guardar</button>
       </div>
     </div>
+
   );
 }
