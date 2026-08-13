@@ -43,6 +43,8 @@ export default function Obra() {
   const [compras, setCompras] = useState([]);
   const [cuentaCorriente, setCuentaCorriente] = useState(null);
   const [avance, setAvance] = useState(null);
+  const [desembolsos, setDesembolsos] = useState([]);
+  const [editDes, setEditDes] = useState(null);   // { id, avance_pct, fecha_real }
   const [avForm, setAvForm] = useState({});      // linea_id -> pct escrito
   const [avFecha, setAvFecha] = useState(today());
   const [avNota, setAvNota] = useState("");
@@ -52,7 +54,7 @@ export default function Obra() {
 
   // Formularios
   const [showCobro, setShowCobro] = useState(false);
-  const [cobForm, setCobForm] = useState({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null });
+  const [cobForm, setCobForm] = useState({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null, desembolso_id: null });
   const [showSub, setShowSub] = useState(false);
   const [subForm, setSubForm] = useState({ nombre_contratista: "", cuit_contratista: "", tipo: "empresa", descripcion_trabajo: "", monto_total: "", fecha_inicio: today(), tipo_pago: "por_avance", estado: "activo", notas: "" });
   const [showCompra, setShowCompra] = useState(false);
@@ -89,6 +91,8 @@ export default function Obra() {
       setCuentaCorriente(cc);
       const av = await api.get(`/presupuestos/${id}/avance`).then(r => r.data).catch(() => null);
       setAvance(av);
+      const des = await api.get(`/presupuestos/${id}/desembolsos`).then(r => r.data).catch(() => []);
+      setDesembolsos(Array.isArray(des) ? des : []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -111,6 +115,28 @@ export default function Obra() {
     setGuardandoAv(false);
   };
 
+  const guardarDesembolso = async () => {
+    if (!editDes) return;
+    try {
+      await api.patch(`/presupuestos/${id}/desembolsos/${editDes.id}`, {
+        avance_pct: parseFloat(editDes.avance_pct) || 0,
+        fecha_real: editDes.fecha_real || null,
+      });
+      setEditDes(null); showToast("✓ Etapa actualizada"); cargar();
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "No se pudo actualizar la etapa");
+    }
+  };
+
+  // Cobrar contra una etapa concreta: asi el control financiero despues sabe
+  // decir "Desembolso 2 — Casa Perez" en vez de un cobro suelto.
+  const cobrarDesembolso = (d) => {
+    setCobForm({ monto: String(d.saldo > 0 ? d.saldo : d.monto), fecha: today(),
+                 forma_pago: "transferencia", referencia: "", nota: `Desembolso ${d.numero}`,
+                 certificado_id: null, desembolso_id: d.id });
+    setShowCobro(true);
+  };
+
   const cambiarMetodologia = async (metodologia) => {
     await api.patch(`/presupuestos/${id}/metodologia`, { metodologia });
     showToast(metodologia === "desembolsos" ? "Gestión por desembolsos" : "Gestión por certificación");
@@ -120,7 +146,7 @@ export default function Obra() {
   const crearCobro = async () => {
     if (!cobForm.monto) return;
     await api.post(`/presupuestos/${id}/cobros`, { ...cobForm, monto: parseFloat(cobForm.monto) });
-    setShowCobro(false); setCobForm({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null });
+    setShowCobro(false); setCobForm({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null, desembolso_id: null });
     showToast("✓ Cobro registrado"); cargar();
   };
 
@@ -585,22 +611,67 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                       <div style={{ fontSize: 13, whiteSpace: "pre-line", color: C.text }}>{contrato.clausulas_adicionales}</div>
                     </div>
                   )}
-                  {(contrato.desembolsos || []).length > 0 && (
+                  {desembolsos.length > 0 && (
                     <div style={{ marginTop: 16 }}>
-                      <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", marginBottom: 8 }}>Calendario de pagos</div>
-                      {contrato.desembolsos.map(d => (
-                        <div key={d.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border2}` }}>
-                          <div>
-                            <span style={{ fontSize: 13, fontWeight: 600 }}>Cuota {d.numero}</span>
-                            <span style={{ fontSize: 12, color: C.muted, marginLeft: 8 }}>{d.descripcion}</span>
+                      <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", marginBottom: 8 }}>Etapas pactadas</div>
+                      {desembolsos.map(d => {
+                        const editando = editDes?.id === d.id;
+                        const col = { cobrado: C.green, parcial: C.warn, cumplido: C.accent2, "en curso": C.accent2, pendiente: C.muted }[d.estado] || C.muted;
+                        return (
+                          <div key={d.id} style={{ padding: "12px 0", borderBottom: `1px solid ${C.border2}` }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}>
+                              <div style={{ minWidth: 0 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700 }}>Etapa {d.numero}</span>
+                                <span style={{ fontSize: 12, color: C.muted, marginLeft: 8 }}>{d.descripcion}</span>
+                                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                                  Vence {d.fecha_vencimiento || "—"}
+                                  {d.fecha_real ? ` · cumplida ${d.fecha_real}` : ""}
+                                  {d.cobrado > 0 ? ` · cobrado ${fmt(d.cobrado)}` : ""}
+                                </div>
+                              </div>
+                              <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+                                <span style={{ fontSize: 12, color: C.accent2, fontFamily: "'IBM Plex Mono',monospace" }}>{Number(d.avance_pct || 0).toFixed(0)}%</span>
+                                <span style={{ fontWeight: 700, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(d.monto)}</span>
+                                <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: col + "1a", color: col, textTransform: "capitalize" }}>{d.estado}</span>
+                              </div>
+                            </div>
+                            <div style={{ height: 6, background: C.surface2, borderRadius: 3, overflow: "hidden", marginTop: 8 }}>
+                              <div style={{ height: "100%", width: `${Math.min(100, d.avance_pct || 0)}%`, background: C.accent2, borderRadius: 3, transition: "width .4s" }} />
+                            </div>
+                            {editando ? (
+                              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+                                <input type="number" min="0" max="100" value={editDes.avance_pct}
+                                  onChange={e => setEditDes(v => ({ ...v, avance_pct: e.target.value }))}
+                                  style={{ width: 90, padding: "6px 9px", border: `1px solid ${C.border}`, borderRadius: 7, fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, textAlign: "right", background: C.surface, color: C.text }} />
+                                <span style={{ fontSize: 12, color: C.muted }}>% cumplido</span>
+                                <input type="date" value={editDes.fecha_real || ""}
+                                  onChange={e => setEditDes(v => ({ ...v, fecha_real: e.target.value }))}
+                                  style={{ padding: "6px 9px", border: `1px solid ${C.border}`, borderRadius: 7, fontFamily: "inherit", fontSize: 12.5, background: C.surface, color: C.text }} />
+                                <button onClick={guardarDesembolso} style={{ padding: "6px 14px", background: C.accent, color: "#fff", border: "none", borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Guardar</button>
+                                <button onClick={() => setEditDes(null)} style={{ padding: "6px 12px", background: "none", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12.5, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+                              </div>
+                            ) : (
+                              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                                <button onClick={() => setEditDes({ id: d.id, avance_pct: d.avance_pct || 0, fecha_real: d.fecha_real || "" })}
+                                  style={{ padding: "5px 12px", background: "none", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, color: C.accent2, cursor: "pointer", fontFamily: "inherit" }}>
+                                  Marcar avance
+                                </button>
+                                {d.saldo > 0 && (
+                                  <button onClick={() => cobrarDesembolso(d)}
+                                    style={{ padding: "5px 12px", background: "none", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, color: C.green, cursor: "pointer", fontFamily: "inherit" }}>
+                                    Registrar cobro de {fmt(d.saldo)}
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                            <span style={{ fontSize: 12, color: C.muted }}>{d.fecha_vencimiento || "Sin fecha"}</span>
-                            <span style={{ fontWeight: 700, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(d.monto)}</span>
-                            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: d.estado === "cobrado" ? "#f0fdf4" : "#fef3c7", color: d.estado === "cobrado" ? C.green : C.warn }}>{d.estado}</span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
+                      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 12, lineHeight: 1.5 }}>
+                        El avance de las etapas alimenta el avance de la obra, ponderado por el peso
+                        en plata de cada una. El cobro que registres acá entra al control financiero
+                        identificado como esa etapa.
+                      </div>
                     </div>
                   )}
                 </div>
