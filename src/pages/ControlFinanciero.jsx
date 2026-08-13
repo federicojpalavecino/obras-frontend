@@ -98,7 +98,10 @@ function calcPeriod(week, cfg) {
   const totalEg = (week.egresos || []).reduce((a, b) => a + (parseFloat(b.monto) || 0), 0) + totalHerram;
   const totalPersonal = (week.personal || []).reduce((a, b) => a + (parseFloat(b.total) || 0), 0);
   const resultado = totalIng - totalEg - totalPersonal;
-  const honorarios = (week.config?.honorarios || cfg?.honorarios || []).filter(h => h.activo);
+  // El `h &&` no sobra: una version anterior de la edicion de honorarios podia
+  // dejar el array con agujeros, y un agujero vuelve de la base como null. Sin
+  // esto, un solo periodo mal guardado deja la pantalla entera en blanco.
+  const honorarios = (week.config?.honorarios || cfg?.honorarios || []).filter(h => h && h.activo);
   const pctReserva = parseFloat(week.config?.pctReserva ?? cfg?.pctReserva ?? 10);
   const reserva = resultado > 0 ? resultado * pctReserva / 100 : 0;
   const totalHonorarios = honorarios.reduce((s, h) => s + calcHonorario(resultado, h), 0);
@@ -295,7 +298,9 @@ export default function ControlFinanciero({ user }) {
   // ── Cargar obras y config ─────────────────────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem("obras-cf-config");
-    if (saved) { try { setConfig(JSON.parse(saved)); } catch {} }
+    // Un "null" guardado aca alcanzaba para dejar la pantalla en blanco: todo
+    // lo que sigue lee config.honorarios sin preguntar.
+    if (saved) { try { const c = JSON.parse(saved); if (c && typeof c === "object") setConfig(c); } catch {} }
     api.get('/cf/imputables')
       .then(r => setImputables(r.data || { obras: [], clientes: [], proyectos: [], usuarios: [] }))
       .catch(() => {});
@@ -344,6 +349,34 @@ export default function ControlFinanciero({ user }) {
 
   const cfgParaCalc = { ...config, ...(week.config || {}), honorarios: week.config?.honorarios?.length ? week.config.honorarios : (config.honorarios || []), pctReserva: week.config?.pctReserva ?? config.pctReserva ?? 10 };
   const calc = calcPeriod(week, cfgParaCalc);
+
+  // Los honorarios que se ven en pantalla. Existe para que el que dibuja la
+  // lista y el que la modifica miren exactamente lo mismo: cuando el periodo
+  // tiene el array vacio se muestran los de la config, y si el handler se
+  // guiaba por `week.config?.honorarios || config.honorarios` se quedaba con el
+  // vacio ([] es truthy) y escribia en un indice fuera de rango. Eso dejaba
+  // agujeros que la base devuelve como null. El filter limpia los que ya
+  // quedaron: al proximo guardado el periodo sale sano, sin migracion.
+  const honorariosVista = (week.config?.honorarios?.length ? week.config.honorarios : (config.honorarios || [])).filter(Boolean);
+  const setHonorarios = (hs, debounce) => {
+    const nw = { ...week, config: { ...week.config, honorarios: hs } };
+    setWeek(nw);
+    if (debounce) setTimeout(() => autoGuardar(nw), debounce);
+  };
+  const updHonorario = (i, campos, debounce) => {
+    const hs = [...honorariosVista];
+    hs[i] = { ...hs[i], ...campos };
+    setHonorarios(hs, debounce);
+  };
+
+  // Mismo par lista/editor para los honorarios por defecto del tab Config, que
+  // salen de localStorage y por lo tanto tampoco son de fiar.
+  const honorariosConfig = (config.honorarios || []).filter(Boolean);
+  const updHonorarioConfig = (i, campos) => {
+    const hs = [...honorariosConfig];
+    hs[i] = { ...hs[i], ...campos };
+    saveConfig({ ...config, honorarios: hs });
+  };
 
   // ── Importar certificado como ingreso ─────────────────────────────────────
   const abrirImportCert = async () => {
@@ -830,18 +863,18 @@ export default function ControlFinanciero({ user }) {
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 14 }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: C.muted, marginBottom: 10 }}>Honorarios y Reserva</div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {(week.config?.honorarios?.length ? week.config.honorarios : config.honorarios || []).map((hon, i) => (
+                {honorariosVista.map((hon, i) => (
                   <div key={i} style={{ background: C.surface2, borderRadius: 8, padding: "10px 12px", border: `1px solid ${C.border}`, minWidth: 200, flex: 1 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <input style={{ ...inp, fontWeight: 700, flex: 1, marginRight: 6, background: "transparent", border: "none", padding: "0", fontSize: 12 }} value={hon.nombre || ""} onChange={e => { const hs = [...(week.config?.honorarios || config.honorarios || [])]; hs[i] = { ...hs[i], nombre: e.target.value }; setWeek(w => ({ ...w, config: { ...w.config, honorarios: hs } })); }} />
-                      <input type="checkbox" checked={hon.activo !== false} onChange={e => { const hs = [...(week.config?.honorarios || config.honorarios || [])]; hs[i] = { ...hs[i], activo: e.target.checked }; const nw = { ...week, config: { ...week.config, honorarios: hs } }; setWeek(nw); setTimeout(() => autoGuardar(nw), 500); }} />
+                      <input style={{ ...inp, fontWeight: 700, flex: 1, marginRight: 6, background: "transparent", border: "none", padding: "0", fontSize: 12 }} value={hon.nombre || ""} onChange={e => updHonorario(i, { nombre: e.target.value })} />
+                      <input type="checkbox" checked={hon.activo !== false} onChange={e => updHonorario(i, { activo: e.target.checked }, 500)} />
                     </div>
                     <div style={{ display: "flex", gap: 5 }}>
-                      <select style={{ ...inp, flex: 1 }} value={hon.modo || "pct"} onChange={e => { const hs = [...(week.config?.honorarios || config.honorarios || [])]; hs[i] = { ...hs[i], modo: e.target.value }; setWeek(w => ({ ...w, config: { ...w.config, honorarios: hs } })); }}>
+                      <select style={{ ...inp, flex: 1 }} value={hon.modo || "pct"} onChange={e => updHonorario(i, { modo: e.target.value })}>
                         <option value="pct">% resultado</option>
                         <option value="monto">Monto fijo</option>
                       </select>
-                      <input style={{ ...inp, width: 70, fontFamily: "'IBM Plex Mono', monospace" }} type="number" value={hon.modo === "monto" ? (hon.monto || 0) : (hon.pct || 0)} onChange={e => { const hs = [...(week.config?.honorarios || config.honorarios || [])]; hs[i] = { ...hs[i], [hon.modo === "monto" ? "monto" : "pct"]: parseFloat(e.target.value) || 0 }; const nw = { ...week, config: { ...week.config, honorarios: hs } }; setWeek(nw); setTimeout(() => autoGuardar(nw), 1000); }} />
+                      <input style={{ ...inp, width: 70, fontFamily: "'IBM Plex Mono', monospace" }} type="number" value={hon.modo === "monto" ? (hon.monto || 0) : (hon.pct || 0)} onChange={e => updHonorario(i, { [hon.modo === "monto" ? "monto" : "pct"]: parseFloat(e.target.value) || 0 }, 1000)} />
                     </div>
                     <div style={{ fontSize: 12, color: C.accent, fontWeight: 700, marginTop: 5, textAlign: "right", fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(calcHonorario(calc.resultado, hon))}</div>
                   </div>
@@ -1076,19 +1109,19 @@ export default function ControlFinanciero({ user }) {
         {tab === "config" && (
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Honorarios por defecto</div>
-            {(config.honorarios || []).map((hon, i) => (
+            {honorariosConfig.map((hon, i) => (
               <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
-                <input style={{ ...inp, flex: 2 }} value={hon.nombre || ""} onChange={e => { const hs = [...config.honorarios]; hs[i] = { ...hs[i], nombre: e.target.value }; saveConfig({ ...config, honorarios: hs }); }} />
-                <select style={{ ...inp, flex: 1 }} value={hon.modo || "pct"} onChange={e => { const hs = [...config.honorarios]; hs[i] = { ...hs[i], modo: e.target.value }; saveConfig({ ...config, honorarios: hs }); }}>
+                <input style={{ ...inp, flex: 2 }} value={hon.nombre || ""} onChange={e => updHonorarioConfig(i, { nombre: e.target.value })} />
+                <select style={{ ...inp, flex: 1 }} value={hon.modo || "pct"} onChange={e => updHonorarioConfig(i, { modo: e.target.value })}>
                   <option value="pct">% resultado</option>
                   <option value="monto">Monto fijo</option>
                 </select>
-                <input style={{ ...inp, width: 80 }} type="number" value={hon.modo === "monto" ? (hon.monto || 0) : (hon.pct || 0)} onChange={e => { const hs = [...config.honorarios]; hs[i] = { ...hs[i], [hon.modo === "monto" ? "monto" : "pct"]: parseFloat(e.target.value) || 0 }; saveConfig({ ...config, honorarios: hs }); }} />
-                <input type="checkbox" checked={hon.activo !== false} onChange={e => { const hs = [...config.honorarios]; hs[i] = { ...hs[i], activo: e.target.checked }; saveConfig({ ...config, honorarios: hs }); }} />
-                <button onClick={() => { const hs = config.honorarios.filter((_, j) => j !== i); saveConfig({ ...config, honorarios: hs }); }} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer" }}>×</button>
+                <input style={{ ...inp, width: 80 }} type="number" value={hon.modo === "monto" ? (hon.monto || 0) : (hon.pct || 0)} onChange={e => updHonorarioConfig(i, { [hon.modo === "monto" ? "monto" : "pct"]: parseFloat(e.target.value) || 0 })} />
+                <input type="checkbox" checked={hon.activo !== false} onChange={e => updHonorarioConfig(i, { activo: e.target.checked })} />
+                <button onClick={() => saveConfig({ ...config, honorarios: honorariosConfig.filter((_, j) => j !== i) })} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer" }}>×</button>
               </div>
             ))}
-            <button onClick={() => saveConfig({ ...config, honorarios: [...(config.honorarios || []), { nombre: `Honorario ${(config.honorarios || []).length + 1}`, pct: 10, monto: 0, modo: "pct", activo: true }] })} style={{ padding: "7px 14px", background: C.accent, color: "#fff", border: "none", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: 20 }}>
+            <button onClick={() => saveConfig({ ...config, honorarios: [...honorariosConfig, { nombre: `Honorario ${honorariosConfig.length + 1}`, pct: 10, monto: 0, modo: "pct", activo: true }] })} style={{ padding: "7px 14px", background: C.accent, color: "#fff", border: "none", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: 20 }}>
               + Agregar honorario
             </button>
             <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
