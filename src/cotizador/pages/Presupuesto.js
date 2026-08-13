@@ -96,6 +96,9 @@ export default function Presupuesto() {
   }, [catAdic]);
 
   const cargar = async (silent = false) => {
+    // Solo hace falta para servicios, pero pedirlo siempre es una llamada
+    // barata y evita un salto visual cuando se cambia el tipo.
+    api.get('/honorarios/config').then(r => setArancel(r.data)).catch(() => {});
     if (!silent) setLoading(true);
     try {
       const res = await getPresupuesto(id);
@@ -293,6 +296,32 @@ export default function Presupuesto() {
   // decide como se va a gestionar y cobrar la obra, y esa decision manda sobre
   // todo lo que viene despues.
   const [modalCierre, setModalCierre] = useState(false);
+  // Arancel del colegio, para los presupuestos de servicio.
+  const [arancel, setArancel] = useState(null);
+  const [montoObra, setMontoObra] = useState("");
+  const [agregandoTarea, setAgregandoTarea] = useState(null);
+  const guardarMontoObra = async (valor) => {
+    try {
+      const r = await api.put(`/presupuestos/${id}/monto-obra`, { monto_obra: parseFloat(valor) || 0 });
+      setMontoObra(String(r.data.monto_obra || ""));
+      return r.data;
+    } catch (e) { return null; }
+  };
+
+  const agregarTarea = async (t) => {
+    setAgregandoTarea(t.id);
+    try {
+      await api.post(`/presupuestos/${id}/tareas`, {
+        tarea_id: t.id, cantidad: 1,
+        monto_obra: parseFloat(montoObra) || undefined,
+      });
+      await cargar(true);
+    } catch (e) {
+      avisar(e?.response?.data?.detail || 'No se pudo agregar');
+    }
+    setAgregandoTarea(null);
+  };
+
   const handleCerrar = () => setModalCierre(true);
   const confirmarCierre = async (metodologia) => {
     setModalCierre(false);
@@ -768,6 +797,14 @@ ${firma}
   // inversion: mostrarle esas pantallas es ofrecerle herramientas de una
   // obra que no esta haciendo.
   const esServicio = data?.tipo === 'servicio';
+  const honorarioCalculado = (() => {
+    const m = parseFloat(montoObra) || data?.monto_obra_ref || 0;
+    const k = arancel?.valor_k || 0;
+    if (!m || !k) return null;
+    const tramo = (arancel.escala || []).find(e => !e.hasta_k || (m / k) <= e.hasta_k);
+    if (!tramo) return null;
+    return { monto: m, enK: m / k, pct: tramo.pct, total: m * tramo.pct / 100 };
+  })();
   // Ni el servicio ni la obra que se cobra por etapas pactadas certifican.
   const certifica = !esServicio && data?.metodologia !== 'desembolsos';
   const coefGgBen = coefs ? 1 / (1 - coefs.gg_porcentaje / 100 - coefs.ben_porcentaje / 100) : 1;
@@ -1137,6 +1174,62 @@ ${firma}
                   </div>
                 )}
 
+                {esServicio && !cerrado && (
+                  <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10,
+                                padding: 14, marginBottom: 12 }}>
+                    {!arancel?.valor_k ? (
+                      <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+                        Para presupuestar honorarios hay que cargar el <b>valor K</b> de tu colegio en
+                        Configuración. Es el índice que publica cada provincia y se actualiza por trimestre.
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                          <div>
+                            <div style={{ fontSize: 10.5, color: 'var(--muted)', marginBottom: 4 }}>Monto de obra de referencia</div>
+                            <input className="input" style={{ width: 190, fontFamily: "'IBM Plex Mono',monospace" }}
+                              type="number" placeholder="0" value={montoObra || data?.monto_obra_ref || ""}
+                              onChange={e => setMontoObra(e.target.value)}
+                              onBlur={e => guardarMontoObra(e.target.value)} />
+                          </div>
+                          {honorarioCalculado && (
+                            <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                              Son <b style={{ color: 'var(--text)' }}>{honorarioCalculado.enK.toFixed(0)} K</b> ·
+                              le corresponde el <b style={{ color: 'var(--accent)' }}>{honorarioCalculado.pct}%</b> ·
+                              honorario de <b style={{ color: 'var(--accent)', fontFamily: "'IBM Plex Mono',monospace" }}>
+                                {'$ ' + Math.round(honorarioCalculado.total).toLocaleString('es-AR')}</b>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, marginBottom: 7 }}>
+                          Tocá una tarea para agregarla. Las que son porcentaje del honorario necesitan el monto de obra.
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {(arancel.tareas || []).map(t => {
+                            const necesitaMonto = t.modo === 'pct_obra' && !honorarioCalculado;
+                            const precio = t.modo === 'k'
+                              ? t.precio
+                              : (honorarioCalculado ? honorarioCalculado.total * (t.pct_etapa || 0) / 100 : null);
+                            return (
+                              <button key={t.id} type="button" disabled={necesitaMonto || agregandoTarea === t.id}
+                                onClick={() => agregarTarea(t)}
+                                title={necesitaMonto ? 'Poné primero el monto de obra' : ''}
+                                style={{ textAlign: 'left', padding: '7px 11px', borderRadius: 9, cursor: necesitaMonto ? 'not-allowed' : 'pointer',
+                                         font: 'inherit', border: '1px solid var(--border)', background: 'var(--surface)',
+                                         opacity: necesitaMonto ? .45 : 1 }}>
+                                <div style={{ fontSize: 12, fontWeight: 600 }}>{t.nombre}</div>
+                                <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 1 }}>
+                                  {t.modo === 'k' ? `${t.coef_k} K` : `${t.pct_etapa}% del honorario`}
+                                  {precio ? ` · $ ${Math.round(precio).toLocaleString('es-AR')}` : ''}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
                 <table className="tabla-presupuesto" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'var(--surface2)', position: 'sticky', top: 0, zIndex: 10 }}>
