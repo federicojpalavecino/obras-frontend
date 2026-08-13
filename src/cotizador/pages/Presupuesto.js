@@ -325,20 +325,13 @@ export default function Presupuesto() {
     } catch (e) { return null; }
   };
 
-  // Cada tarea lleva SU superficie: el croquis puede ser sobre 150 m2 y la
-  // direccion de obra sobre otra. Se propone la del presupuesto y se corrige.
+  // La tarea entra con 1 m2 y la superficie se carga en la cantidad, como en
+  // cualquier item del presupuesto. El precio del m2 se recalcula solo cuando
+  // cambia, porque de los m2 depende en que tramo de la escala cae.
   const agregarTarea = async (t) => {
-    let m2Tarea = 1;
-    if (t.modo === 'pct_obra') {
-      const sug = data?.superficie_m2 || '';
-      const r = window.prompt(`¿Sobre cuántos m² es "${t.nombre}"?`, sug ? String(sug) : '');
-      if (r === null) return;
-      m2Tarea = parseFloat(r) || 0;
-      if (m2Tarea <= 0) { avisar('Poné una superficie válida'); return; }
-    }
     setAgregandoTarea(t.id);
     try {
-      await api.post(`/presupuestos/${id}/tareas`, { tarea_id: t.id, m2: m2Tarea });
+      await api.post(`/presupuestos/${id}/tareas`, { tarea_id: t.id, m2: 1 });
       await cargar(true);
     } catch (e) {
       avisar(e?.response?.data?.detail || 'No se pudo agregar');
@@ -972,9 +965,8 @@ ${firma}
                   {coefs && !coefsOpen && (
                     <span style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--accent2)' }}>
                       {esServicio
-                        ? [data?.superficie_m2 ? `${data.superficie_m2} m²` : null,
-                           data?.valor_k_usado ? `K ${Math.round(data.valor_k_usado).toLocaleString('es-AR')}` : 'sin provincia',
-                           `IVA ${coefs.iva_porcentaje}%`].filter(Boolean).join(' · ')
+                        ? [data?.valor_k_usado ? `K ${Math.round(data.valor_k_usado).toLocaleString('es-AR')}/m²` : 'sin provincia',
+                           `IVA ${coefs.iva_porcentaje}%`].join(' · ')
                         : `GG ${coefs.gg_porcentaje}% · BEN ${coefs.ben_porcentaje}% · IVA ${coefs.iva_porcentaje}%`}
                     </span>
                   )}
@@ -1067,24 +1059,11 @@ ${firma}
                         </div>
                       )}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>Superficie m²</div>
-                      </div>
-                      <input type="number" step="1" min="0" className="input input-mono"
-                        style={{ width: 68, padding: '3px 6px', fontSize: 12 }}
-                        value={m2 !== "" ? m2 : (data?.superficie_m2 || '')} disabled={cerrado}
-                        onChange={e => setM2(e.target.value)}
-                        onBlur={e => guardarValorK({ superficie_m2: parseFloat(e.target.value) || 0 })} />
+                    <div style={{ fontSize: 10, color: 'var(--muted)', lineHeight: 1.5,
+                                  background: 'var(--surface2)', borderRadius: 6, padding: '6px 8px' }}>
+                      Los m² de cada tarea se cargan en su cantidad, abajo. De ahí sale el monto
+                      de obra y el tramo de la escala que le toca.
                     </div>
-                    {honorarioCalculado && (
-                      <div style={{ fontSize: 10, color: 'var(--muted)', lineHeight: 1.5,
-                                    background: 'var(--surface2)', borderRadius: 6, padding: '6px 8px' }}>
-                        Monto de obra <b style={{ color: 'var(--text)' }}>$ {Math.round(honorarioCalculado.monto).toLocaleString('es-AR')}</b><br />
-                        Le toca el <b style={{ color: 'var(--accent)' }}>{honorarioCalculado.pct}%</b> ·
-                        honorario <b style={{ color: 'var(--accent)' }}>$ {Math.round(honorarioCalculado.total).toLocaleString('es-AR')}</b>
-                      </div>
-                    )}
                   </>
                 )}
                 {!esServicio && (
@@ -1301,7 +1280,7 @@ ${firma}
                   </div>
                 )}
 
-                {esServicio && !cerrado && !arancel?.valor_k && (
+                {esServicio && !cerrado && !data?.valor_k_usado && (
                   <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10,
                                 padding: 14, marginBottom: 12, fontSize: 13, lineHeight: 1.5 }}>
                     Elegí la <b>provincia</b> y poné la <b>superficie</b> en los coeficientes, a la
