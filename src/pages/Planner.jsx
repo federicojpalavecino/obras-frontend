@@ -324,6 +324,9 @@ export default function Planner({ user }) {
   const [proyectos, setProyectos] = useState([]);
   const [presupuestos, setPresupuestos] = useState([]);
   const [vista, setVista] = useState("kanban");
+  // Modo reunion: letra grande y sin cromo, para proyectar en una pantalla y
+  // repasar la semana entre varios. Se sale con Escape.
+  const [modoReunion, setModoReunion] = useState(false);
   const [modalTarea, setModalTarea] = useState(null);
   const [modalProyecto, setModalProyecto] = useState(false);
   const [formProy, setFormProy] = useState({ nombre: "", color: COLORES_PROY[0], presupuesto_id: null });
@@ -450,6 +453,48 @@ export default function Planner({ user }) {
     return true;
   });
 
+  // Lo que todavia no se planifico: un presupuesto o un proyecto sin ninguna
+  // tarea es trabajo que alguien acepto y nadie agendo. Aparece aca para
+  // atenderlo, cerrarlo o descartarlo, en vez de perderse.
+  const sinPlanificar = (presupuestos || []).filter(p => {
+    if (!p?.id) return false;
+    return !(tareas || []).some(t => t.presupuesto_id === p.id);
+  });
+
+  const imprimirPlan = () => {
+    const porEstado = { pendiente: [], en_progreso: [], completado: [] };
+    (tareas || []).forEach(t => { (porEstado[t.estado] || porEstado.pendiente).push(t); });
+    const nombreProy = pid => (proyectos.find(p => p.id === pid) || {}).nombre || "";
+    const bloque = (titulo, lista) => !lista.length ? "" : `
+      <h2>${titulo} <span class="n">${lista.length}</span></h2>
+      <table><thead><tr><th>Tarea</th><th>Proyecto</th><th>Responsable</th><th>Vence</th></tr></thead><tbody>
+      ${lista.map(t => `<tr><td>${t.titulo || ""}</td><td>${nombreProy(t.proyecto_id)}</td><td>${t.asignado_a || "—"}</td><td>${t.fecha_fin || "—"}</td></tr>`).join("")}
+      </tbody></table>`;
+    const hoy = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+    const w = window.open("", "_blank");
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Planificación</title>
+      <style>
+        body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;padding:26px;color:#141916}
+        h1{margin:0 0 2px;font-size:19pt} .sub{color:#6b7280;font-size:9pt;margin-bottom:20px}
+        h2{font-size:12pt;margin:22px 0 7px;border-bottom:2px solid #141916;padding-bottom:4px}
+        h2 .n{color:#6b7280;font-weight:400;font-size:9pt}
+        table{width:100%;border-collapse:collapse;margin-bottom:6px}
+        th{background:#f1f3f5;text-align:left;padding:5px 8px;font-size:8.5pt;text-transform:uppercase;letter-spacing:.5px;color:#6b7280}
+        td{padding:5px 8px;border-bottom:1px solid #eee}
+        .pend{margin-top:24px;padding:12px 14px;border:1px solid #f5d78e;background:#fef9ec;border-radius:8px}
+        @media print{@page{margin:1.4cm}}
+      </style></head><body>
+      <h1>Planificación</h1>
+      <div class="sub">${hoy}</div>
+      ${bloque("En progreso", porEstado.en_progreso)}
+      ${bloque("Pendientes", porEstado.pendiente)}
+      ${bloque("Completadas", porEstado.completado)}
+      ${sinPlanificar.length ? `<div class="pend"><b>Sin planificar (${sinPlanificar.length}):</b> ${sinPlanificar.map(p => p.nombre_obra || p.nombre).join(" · ")}</div>` : ""}
+      </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Syne', sans-serif", color: C.text }}>
 
@@ -463,6 +508,11 @@ export default function Planner({ user }) {
             </button>
           ))}
         </div>
+
+        <button onClick={imprimirPlan} title="Imprimir la planificación"
+          style={{ ...inp, width: "auto", cursor: "pointer", color: C.muted, flexShrink: 0 }}>Imprimir</button>
+        <button onClick={() => setModoReunion(true)} title="Pantalla grande para reuniones"
+          style={{ ...inp, width: "auto", cursor: "pointer", color: C.muted, flexShrink: 0 }}>Reunión</button>
 
         <input style={{ ...inp, width: 160 }} placeholder="Buscar..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
 
@@ -512,7 +562,64 @@ export default function Planner({ user }) {
         </div>
       )}
 
+      {modoReunion && (
+        <div onClick={() => setModoReunion(false)}
+          style={{ position: "fixed", inset: 0, background: "#0e1310", color: "#e6ebe7", zIndex: 900, overflowY: "auto", padding: "40px 48px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 28 }}>
+            <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: -1 }}>Planificación</div>
+            <div style={{ fontSize: 15, opacity: .6 }}>Tocá en cualquier lado para salir</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 26 }}>
+            {[["en_progreso", "En progreso", "#2fbe86"], ["pendiente", "Pendientes", "#e0a138"], ["completado", "Completadas", "#6b7280"]].map(([est, label, col]) => {
+              const lista = (tareas || []).filter(t => t.estado === est);
+              return (
+                <div key={est}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: col, marginBottom: 14, borderBottom: `2px solid ${col}`, paddingBottom: 6 }}>
+                    {label} <span style={{ opacity: .6, fontSize: 16 }}>{lista.length}</span>
+                  </div>
+                  {lista.map(t => (
+                    <div key={t.id} style={{ background: "#151b17", borderRadius: 10, padding: "13px 15px", marginBottom: 9 }}>
+                      <div style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.25 }}>{t.titulo}</div>
+                      <div style={{ fontSize: 13, opacity: .62, marginTop: 4 }}>
+                        {t.asignado_a || "sin responsable"}{t.fecha_fin ? ` · vence ${t.fecha_fin}` : ""}
+                      </div>
+                    </div>
+                  ))}
+                  {!lista.length && <div style={{ fontSize: 15, opacity: .4 }}>Nada acá</div>}
+                </div>
+              );
+            })}
+          </div>
+          {sinPlanificar.length > 0 && (
+            <div style={{ marginTop: 34, padding: "18px 22px", borderRadius: 12, background: "#2a2213", border: "1px solid #e0a138" }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "#e0a138" }}>Sin planificar · {sinPlanificar.length}</div>
+              <div style={{ fontSize: 15, marginTop: 7, lineHeight: 1.6, opacity: .85 }}>
+                {sinPlanificar.map(p => p.nombre_obra || p.nombre).join(" · ")}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ maxWidth: vista === "kanban" ? 1200 : 960, margin: "0 auto", padding: "16px 16px 60px" }}>
+        {sinPlanificar.length > 0 && (
+          <div style={{ background: "#fef9ec", border: "1px solid #f5d78e", borderRadius: 12, padding: "13px 16px", marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>
+              {sinPlanificar.length} {sinPlanificar.length === 1 ? "trabajo sin planificar" : "trabajos sin planificar"}
+            </div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 3, marginBottom: 9, lineHeight: 1.5 }}>
+              Están aceptados y no tienen ninguna tarea agendada. Atendelos, cerralos o descartalos.
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {sinPlanificar.map(p => (
+                <button key={p.id} onClick={() => setModalTarea({ titulo: `Planificar ${p.nombre_obra || p.nombre}`, descripcion: "", estado: "pendiente", prioridad: "normal", proyecto_id: null, presupuesto_id: p.id, fecha_inicio: hoy(), fecha_fin: "", hora_inicio: "", hora_fin: "", asignado_a: "" })}
+                  style={{ padding: "5px 11px", borderRadius: 20, border: `1px solid ${C.border}`, background: C.surface, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit", color: C.text }}>
+                  + {p.nombre_obra || p.nombre}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div style={{ textAlign: "center", color: C.muted, padding: 60 }}>Cargando...</div>
