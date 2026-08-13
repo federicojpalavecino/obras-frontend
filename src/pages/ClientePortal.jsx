@@ -63,6 +63,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   const [certs, setCerts] = useState([]);
   const [cobros, setCobros] = useState([]);
   const [contrato, setContrato] = useState(null);
+  const [etapas, setEtapas] = useState(null);   // etapas pactadas del trabajo
   const [comentarios, setComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState("");
   const [loading, setLoading] = useState(true);
@@ -113,6 +114,8 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
     api.get(`/presupuestos/${id}/cobros`).then(r => setCobros(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     api.get(`/presupuestos/${id}/contrato`).then(r => setContrato(r.data)).catch(() => {});
     api.get(`/portal/comentarios/${id}`).then(r => setComentarios(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+    setEtapas(null);
+    api.get(`/portal/etapas/${id}`).then(r => setEtapas(r.data)).catch(() => setEtapas({ etapas: [] }));
   }, [presSelec]);
 
   const enviarComentario = async () => {
@@ -148,12 +151,18 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
 
   const ALL_TABS = [
     { id: "avance", label: "Avance" },
+    { id: "etapas", label: "Etapas" },
     { id: "contrato", label: "Contrato" },
     { id: "cobros", label: "Cuenta corriente" },
     { id: "gantt", label: "Planificación" },
     { id: "consultas", label: "Consultas" },
   ];
-  const TABS = ALL_TABS.filter(t => seccionesVisibles.includes(t.id));
+  // Las secciones se guardan como lista blanca por acceso. Una seccion nueva
+  // no esta en las listas ya creadas, asi que quedaria invisible para siempre
+  // para todo cliente dado de alta antes: por eso las nuevas se muestran salvo
+  // que el estudio las apague expresamente.
+  const SECCIONES_NUEVAS = ["etapas"];
+  const TABS = ALL_TABS.filter(t => seccionesVisibles.includes(t.id) || SECCIONES_NUEVAS.includes(t.id));
 
   // Si el tab activo no está visible, cambiar al primero disponible
   useEffect(() => {
@@ -245,6 +254,57 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
                   <div style={{ ...card, textAlign: "center", color: "#6b7280", padding: 32 }}>Sin certificados emitidos aún</div>
                 )}
               </>
+            )}
+
+            {/* ── ETAPAS ── */}
+            {tab === "etapas" && (
+              <div>
+                {!etapas ? (
+                  <div style={{ ...card, textAlign: "center", color: "#6b7280", padding: 60 }}>Cargando…</div>
+                ) : (etapas.etapas || []).length === 0 ? (
+                  <div style={{ ...card, textAlign: "center", color: "#6b7280", padding: 48 }}>
+                    Todavía no hay etapas acordadas para este trabajo.
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ ...card, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12 }}>
+                      {[["Pactado", etapas.total_pactado, "#1a1a2e"],
+                        ["Cumplido", etapas.total_devengado, tenantColor],
+                        ["Pagaste", etapas.total_cobrado, "#059669"]].map(([l, v, col]) => (
+                        <div key={l}>
+                          <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 5 }}>{l}</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: col, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(v || 0)}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={card}>
+                      {etapas.etapas.map(e => (
+                        <div key={e.numero} style={{ padding: "12px 0", borderBottom: "1px solid #f1f3f5" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "baseline" }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 14, fontWeight: 700 }}>Etapa {e.numero}</div>
+                              <div style={{ fontSize: 12.5, color: "#6b7280", marginTop: 2 }}>{e.descripcion}</div>
+                            </div>
+                            <div style={{ textAlign: "right" }}>
+                              <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(e.monto)}</div>
+                              <div style={{ fontSize: 11, color: e.saldo > 0 ? "#d97706" : "#059669" }}>
+                                {e.saldo > 0 ? `Falta pagar ${fmt(e.saldo)}` : "Pagada"}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ height: 8, background: "#f1f3f5", borderRadius: 4, overflow: "hidden", marginTop: 9 }}>
+                            <div style={{ height: "100%", width: `${Math.min(100, e.avance_pct || 0)}%`, background: tenantColor, borderRadius: 4, transition: "width .5s" }} />
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5, fontSize: 11, color: "#6b7280" }}>
+                            <span>{Number(e.avance_pct || 0).toFixed(0)}% · {e.estado}</span>
+                            <span>{e.fecha_real ? `Cumplida ${fmtDate(e.fecha_real)}` : e.fecha_vencimiento ? `Prevista ${fmtDate(e.fecha_vencimiento)}` : ""}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             )}
 
             {/* ── CONTRATO ── */}

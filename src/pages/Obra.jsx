@@ -139,6 +139,18 @@ export default function Obra() {
     setShowCobro(true);
   };
 
+  // Las etapas al tablero: el planner tiene que mostrar todo lo pendiente del
+  // estudio, venga de una obra o de un proyecto.
+  const mandarAlPlanner = async () => {
+    try {
+      const r = await api.post(`/planner/desde-etapas/${id}`);
+      const n = (r.data?.creadas || 0) + (r.data?.actualizadas || 0);
+      showToast(`✓ ${n} etapa${n !== 1 ? "s" : ""} en el planner`);
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "No se pudo mandar al planner");
+    }
+  };
+
   const cambiarMetodologia = async (metodologia) => {
     await api.patch(`/presupuestos/${id}/metodologia`, { metodologia });
     showToast(metodologia === "desembolsos" ? "Gestión por desembolsos" : "Gestión por certificación");
@@ -714,10 +726,16 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                           </div>
                         );
                       })}
-                      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 12, lineHeight: 1.5 }}>
-                        El avance de las etapas alimenta el avance de la obra, ponderado por el peso
+                      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                        <button onClick={mandarAlPlanner}
+                          style={{ padding: "6px 13px", background: "none", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, color: C.accent2, cursor: "pointer", fontFamily: "inherit" }}>
+                          Mandar las etapas al planner
+                        </button>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10, lineHeight: 1.5 }}>
+                        El avance de las etapas alimenta el avance del trabajo, ponderado por el peso
                         en plata de cada una. El cobro que registres acá entra al control financiero
-                        identificado como esa etapa.
+                        identificado como esa etapa, y el cliente ve las etapas en su portal.
                       </div>
                     </div>
                   )}

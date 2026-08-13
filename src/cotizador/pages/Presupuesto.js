@@ -764,6 +764,10 @@ ${firma}
   );
 
   const cerrado = data?.estado === 'cerrado';
+  // Un proyecto o servicio no tiene computo, ni materiales, ni curva de
+  // inversion: mostrarle esas pantallas es ofrecerle herramientas de una
+  // obra que no esta haciendo.
+  const esServicio = data?.tipo === 'servicio';
   const coefGgBen = coefs ? 1 / (1 - coefs.gg_porcentaje / 100 - coefs.ben_porcentaje / 100) : 1;
 
   if (loading) return <div className="loading">Cargando presupuesto...</div>;
@@ -842,11 +846,13 @@ ${firma}
               { label: 'Imprimir — Cliente', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('comercial') },
               { label: 'Imprimir — Interno', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('interno') },
               ...(cerrado ? [
+                ...(esServicio ? [] : [
                 { label: 'Certificados',        icon: <FileText    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/certificado`) },
-                { label: 'Gantt',               icon: <BarChart2   size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/gantt/${id}`) },
                 { label: 'Curva de inversión',  icon: <TrendingUp  size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/curva`) },
                 { label: 'Listado de materiales',icon: <Package    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/materiales`) },
-                { label: 'Gestión de obra',     icon: <Building2   size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/obra`) },
+                ]),
+                { label: 'Gantt',               icon: <BarChart2   size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/gantt/${id}`) },
+                { label: esServicio ? 'Gestión del proyecto' : 'Gestión de obra', icon: <Building2 size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/obra`) },
                 { label: creandoAdic ? 'Creando adicional...' : 'Crear adicional', icon: <Plus size={18} strokeWidth={1.5} />, onClick: crearAdicional, disabled: creandoAdic, color: 'var(--accent2)' },
                 { label: 'Reabrir presupuesto', icon: <Unlock size={18} strokeWidth={1.5} />, onClick: handleReabrir, color: 'var(--warn)' },
               ] : [

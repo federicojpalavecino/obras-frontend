@@ -20,7 +20,7 @@ export default function Menu() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [editandoCliente, setEditandoCliente] = useState(null);
   const [formCliente, setFormCliente] = useState({ nombre: '', email: '', telefono: '' });
-  const [formPresupuesto, setFormPresupuesto] = useState({ nombre_obra: '', ubicacion: '', cliente_id: '', proyecto_id: '' });
+  const [formPresupuesto, setFormPresupuesto] = useState({ nombre_obra: '', ubicacion: '', cliente_id: '', proyecto_id: '', tipo: 'obra' });
   const [proyectosCliente, setProyectosCliente] = useState([]);
   const [menuMobileOpen, setMenuMobileOpen] = useState(false);
 
@@ -96,7 +96,7 @@ export default function Menu() {
       if (payload.proyecto_id) payload.proyecto_id = parseInt(payload.proyecto_id); else delete payload.proyecto_id;
       const res = await crearPresupuesto(payload);
       setModalPresupuesto(false);
-      setFormPresupuesto({ nombre_obra: '', ubicacion: '', cliente_id: '', proyecto_id: '' });
+      setFormPresupuesto({ nombre_obra: '', ubicacion: '', cliente_id: '', proyecto_id: '', tipo: 'obra' });
       setProyectosCliente([]);
       navigate(`/cotizador/presupuesto/${res.data.id}`);
     } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
@@ -360,6 +360,26 @@ export default function Menu() {
         <div className="modal-overlay" onClick={() => setModalPresupuesto(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h2>Nuevo presupuesto</h2>
+            {/* Que se esta presupuestando. Va primero porque de esto depende
+                que significa todo lo demas: una obra se computa, un proyecto
+                se cobra por etapas. */}
+            <div className="form-group">
+              <label>Qué vas a presupuestar</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {[['obra', 'Obra', 'Con cómputo y análisis de costo'],
+                  ['servicio', 'Proyecto o servicio', 'Honorarios por etapas, sin cómputo']].map(([valor, titulo, ayuda]) => (
+                  <button key={valor} type="button"
+                    onClick={() => setFormPresupuesto(p => ({ ...p, tipo: valor }))}
+                    style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 9, cursor: 'pointer',
+                             font: 'inherit',
+                             border: `1px solid ${formPresupuesto.tipo === valor ? 'var(--accent)' : 'var(--border)'}`,
+                             background: formPresupuesto.tipo === valor ? 'rgba(5,150,105,.08)' : 'var(--surface2)' }}>
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>{titulo}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, lineHeight: 1.35 }}>{ayuda}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="form-group">
               <label>Cliente *</label>
               <select className="input" value={formPresupuesto.cliente_id}
@@ -392,10 +412,10 @@ export default function Menu() {
               </button>
             </div>
             <div className="form-group">
-              <label>Nombre de la obra *</label>
+              <label>{formPresupuesto.tipo === 'servicio' ? 'Nombre del proyecto *' : 'Nombre de la obra *'}</label>
               <input className="input" value={formPresupuesto.nombre_obra}
                 onChange={e => setFormPresupuesto(p => ({ ...p, nombre_obra: e.target.value }))}
-                placeholder="Ej: Refacción vivienda" autoFocus />
+                placeholder={formPresupuesto.tipo === 'servicio' ? 'Ej: Anteproyecto casa Pérez' : 'Ej: Refacción vivienda'} autoFocus />
             </div>
             <div className="form-group">
               <label>Ubicación</label>
