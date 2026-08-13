@@ -99,6 +99,7 @@ export default function Presupuesto() {
     // Solo hace falta para servicios, pero pedirlo siempre es una llamada
     // barata y evita un salto visual cuando se cambia el tipo.
     api.get('/honorarios/config').then(r => setArancel(r.data)).catch(() => {});
+    api.get('/valores-k').then(r => setValoresK(r.data || [])).catch(() => {});
     if (!silent) setLoading(true);
     try {
       const res = await getPresupuesto(id);
@@ -298,8 +299,24 @@ export default function Presupuesto() {
   const [modalCierre, setModalCierre] = useState(false);
   // Arancel del colegio, para los presupuestos de servicio.
   const [arancel, setArancel] = useState(null);
+  const [valoresK, setValoresK] = useState([]);
+  const [m2, setM2] = useState("");
   const [montoObra, setMontoObra] = useState("");
   const [agregandoTarea, setAgregandoTarea] = useState(null);
+  // El K y los m2 van juntos: de los dos sale el monto de obra, y del monto la
+  // escala. Se guardan en el presupuesto para que quede escrito con que valor
+  // se aranceló.
+  const guardarValorK = async (campos) => {
+    try {
+      const r = await api.put(`/presupuestos/${id}/valor-k`, campos);
+      await cargar(true);
+      return r.data;
+    } catch (e) {
+      avisar(e?.response?.data?.detail || 'No se pudo guardar');
+      return null;
+    }
+  };
+
   const guardarMontoObra = async (valor) => {
     try {
       const r = await api.put(`/presupuestos/${id}/monto-obra`, { monto_obra: parseFloat(valor) || 0 });
@@ -798,8 +815,8 @@ ${firma}
   // obra que no esta haciendo.
   const esServicio = data?.tipo === 'servicio';
   const honorarioCalculado = (() => {
-    const m = parseFloat(montoObra) || data?.monto_obra_ref || 0;
-    const k = arancel?.valor_k || 0;
+    const m = data?.monto_obra_ref || 0;
+    const k = data?.valor_k_usado || arancel?.valor_k || 0;
     if (!m || !k) return null;
     const tramo = (arancel.escala || []).find(e => !e.hasta_k || (m / k) <= e.hasta_k);
     if (!tramo) return null;
@@ -1012,6 +1029,48 @@ ${firma}
                       disabled={cerrado} onChange={e => setCoefs(prev => ({ ...prev, cargas_sociales_factor: parseFloat(e.target.value) || 0 }))} />
                   </div>
                 )}
+                {/* Un proyecto no lleva coeficientes de materiales, mano de obra
+                    ni maquinaria: no hay nada de eso. Lleva el K del colegio de
+                    su provincia, el beneficio del estudio y el IVA. */}
+                {esServicio && (
+                  <>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 3 }}>Provincia / distrito</div>
+                      <select className="input" style={{ width: '100%', padding: '4px 6px', fontSize: 11.5 }}
+                        value={data?.valor_k_id || ''} disabled={cerrado}
+                        onChange={e => guardarValorK({ valor_k_id: parseInt(e.target.value) || null })}>
+                        <option value="">— Elegí la provincia —</option>
+                        {valoresK.map(v => (
+                          <option key={v.id} value={v.id} disabled={!v.valor}>{v.etiqueta}</option>
+                        ))}
+                      </select>
+                      {data?.valor_k_usado > 0 && (
+                        <div style={{ fontSize: 9.5, color: 'var(--muted)', marginTop: 2 }}>
+                          K = $ {Math.round(data.valor_k_usado).toLocaleString('es-AR')} por m²
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>Superficie m²</div>
+                      </div>
+                      <input type="number" step="1" min="0" className="input input-mono"
+                        style={{ width: 68, padding: '3px 6px', fontSize: 12 }}
+                        value={m2 !== "" ? m2 : (data?.superficie_m2 || '')} disabled={cerrado}
+                        onChange={e => setM2(e.target.value)}
+                        onBlur={e => guardarValorK({ superficie_m2: parseFloat(e.target.value) || 0 })} />
+                    </div>
+                    {honorarioCalculado && (
+                      <div style={{ fontSize: 10, color: 'var(--muted)', lineHeight: 1.5,
+                                    background: 'var(--surface2)', borderRadius: 6, padding: '6px 8px' }}>
+                        Monto de obra <b style={{ color: 'var(--text)' }}>$ {Math.round(honorarioCalculado.monto).toLocaleString('es-AR')}</b><br />
+                        Le toca el <b style={{ color: 'var(--accent)' }}>{honorarioCalculado.pct}%</b> ·
+                        honorario <b style={{ color: 'var(--accent)' }}>$ {Math.round(honorarioCalculado.total).toLocaleString('es-AR')}</b>
+                      </div>
+                    )}
+                  </>
+                )}
+                {!esServicio && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 11, color: 'var(--muted)' }}>K Materiales</div>
@@ -1021,13 +1080,16 @@ ${firma}
                     style={{ width: 68, padding: '3px 6px', fontSize: 12 }} value={coefs?.k_materiales ?? 1}
                     disabled={cerrado} onChange={e => setCoefs(prev => ({ ...prev, k_materiales: parseFloat(e.target.value) || 0 }))} />
                 </div>
-                {[
-                  { label: 'K Mano de obra', key: 'k_mano_obra' },
-                  { label: 'K Maq/Eq/Herr', key: 'k_maquinaria' },
-                  { label: 'Gastos generales %', key: 'gg_porcentaje' },
-                  { label: 'Beneficios %', key: 'ben_porcentaje' },
-                  { label: 'IVA %', key: 'iva_porcentaje' },
-                ].map(({ label, key }) => (
+                )}
+                {(esServicio
+                  ? [{ label: 'Beneficio %', key: 'ben_porcentaje' },
+                     { label: 'IVA %', key: 'iva_porcentaje' }]
+                  : [{ label: 'K Mano de obra', key: 'k_mano_obra' },
+                     { label: 'K Maq/Eq/Herr', key: 'k_maquinaria' },
+                     { label: 'Gastos generales %', key: 'gg_porcentaje' },
+                     { label: 'Beneficios %', key: 'ben_porcentaje' },
+                     { label: 'IVA %', key: 'iva_porcentaje' }]
+                ).map(({ label, key }) => (
                   <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: 'var(--muted)' }}>{label}</div></div>
                     <input type="number" step="0.01" min="0" className="input input-mono"
@@ -1184,23 +1246,22 @@ ${firma}
                       </div>
                     ) : (
                       <>
-                        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                          <div>
-                            <div style={{ fontSize: 10.5, color: 'var(--muted)', marginBottom: 4 }}>Monto de obra de referencia</div>
-                            <input className="input" style={{ width: 190, fontFamily: "'IBM Plex Mono',monospace" }}
-                              type="number" placeholder="0" value={montoObra || data?.monto_obra_ref || ""}
-                              onChange={e => setMontoObra(e.target.value)}
-                              onBlur={e => guardarMontoObra(e.target.value)} />
+                        {!honorarioCalculado ? (
+                          <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                            Elegí la <b>provincia</b> y poné la <b>superficie en m²</b> en los coeficientes,
+                            acá al costado. De ahí sale el monto de obra y el porcentaje que corresponde.
                           </div>
-                          {honorarioCalculado && (
-                            <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
-                              Son <b style={{ color: 'var(--text)' }}>{honorarioCalculado.enK.toFixed(0)} K</b> ·
-                              le corresponde el <b style={{ color: 'var(--accent)' }}>{honorarioCalculado.pct}%</b> ·
-                              honorario de <b style={{ color: 'var(--accent)', fontFamily: "'IBM Plex Mono',monospace" }}>
-                                {'$ ' + Math.round(honorarioCalculado.total).toLocaleString('es-AR')}</b>
-                            </div>
-                          )}
-                        </div>
+                        ) : (
+                          <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+                            {(data?.superficie_m2 || 0).toLocaleString('es-AR')} m² ×
+                            {' $ ' + Math.round(data?.valor_k_usado || 0).toLocaleString('es-AR')}/m² =
+                            monto de obra <b style={{ color: 'var(--text)' }}>
+                              {'$ ' + Math.round(honorarioCalculado.monto).toLocaleString('es-AR')}</b> ·
+                            le corresponde el <b style={{ color: 'var(--accent)' }}>{honorarioCalculado.pct}%</b> ·
+                            honorario de <b style={{ color: 'var(--accent)', fontFamily: "'IBM Plex Mono',monospace" }}>
+                              {'$ ' + Math.round(honorarioCalculado.total).toLocaleString('es-AR')}</b>
+                          </div>
+                        )}
                         <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, marginBottom: 7 }}>
                           Tocá una tarea para agregarla. Las que son porcentaje del honorario necesitan el monto de obra.
                         </div>
