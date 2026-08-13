@@ -256,6 +256,18 @@ export default function ControlFinanciero({ user }) {
   const [editingId, setEditingId] = useState(null);
   const editingIdRef = useRef(null);
   const setEditingIdSynced = (id) => { editingIdRef.current = id; setEditingId(id); };
+  // El POST que esta creando el periodo, si hay uno en vuelo. Sin esto, dos
+  // guardados disparados antes de que vuelva el primero no encuentran id en
+  // ningun lado y crean dos periodos con las mismas fechas.
+  const creandoRef = useRef(null);
+  // Un unico timer para todo el autoguardado. Antes los `add*` usaban un
+  // setTimeout suelto y los `upd*` la global window._cfT, asi que agregar una
+  // fila y tipear en otra dejaban dos guardados encaminados a la vez.
+  const guardadoRef = useRef(null);
+  const programarGuardado = (nw, ms = 900) => {
+    clearTimeout(guardadoRef.current);
+    guardadoRef.current = setTimeout(() => autoGuardar(nw), ms);
+  };
   const [config, setConfig] = useState({ honorarios: [{ nombre: "Honorario 1", pct: 15, monto: 0, modo: "pct", activo: true }, { nombre: "Honorario 2", pct: 15, monto: 0, modo: "pct", activo: true }], pctReserva: 10 });
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
@@ -272,10 +284,6 @@ export default function ControlFinanciero({ user }) {
       return s?.user?.nombre || s?.user?.email || user?.nombre || user?.email || "";
     } catch { return user?.nombre || ""; }
   })();
-  const [showImportarObra, setShowImportarObra] = useState(false);
-  const [obraPendientes, setObraPendientes] = useState({ cobros: [], pagos_subcontrato: [], compras: [] });
-  const [obraSeleccionados, setObraSeleccionados] = useState([]);
-  const [loadingObra, setLoadingObra] = useState(false);
   const [showImportCert, setShowImportCert] = useState(false);
   const [importCertTab, setImportCertTab] = useState("items");
   const [certDisponibles, setCertDisponibles] = useState([]);
@@ -361,7 +369,7 @@ export default function ControlFinanciero({ user }) {
   const setHonorarios = (hs, debounce) => {
     const nw = { ...week, config: { ...week.config, honorarios: hs } };
     setWeek(nw);
-    if (debounce) setTimeout(() => autoGuardar(nw), debounce);
+    if (debounce) programarGuardado(nw, debounce);
   };
   const updHonorario = (i, campos, debounce) => {
     const hs = [...honorariosVista];
@@ -390,44 +398,15 @@ export default function ControlFinanciero({ user }) {
     setLoadingCerts(false);
   };
 
-  const cargarObraPendientes = async () => {
-    setLoadingObra(true);
-    try {
-      const res = await api.get('/cf/obra-pendientes');
-      setObraPendientes(res.data);
-    } catch(e) {}
-    setLoadingObra(false);
-  };
-
-  const importarDesdeObra = async () => {
-    if (obraSeleccionados.length === 0) return;
-    try {
-      await api.post('/cf/importar-obra', { items: obraSeleccionados });
-      showToast("✓ Importado al CF correctamente");
-      setShowImportarObra(false);
-      setObraSeleccionados([]);
-      await cargar();
-    } catch(e) { showToast("Error al importar"); }
-  };
-
-  const toggleSeleccionObra = (tipo, id) => {
-    const key = `${tipo}-${id}`;
-    setObraSeleccionados(prev => {
-      const exists = prev.find(i => i.tipo === tipo && i.id === id);
-      if (exists) return prev.filter(i => !(i.tipo === tipo && i.id === id));
-      return [...prev, { tipo, id }];
-    });
-  };
-
   const importarCert = (cert) => {
     const nw = { ...week, ingresos: [...week.ingresos, { concepto: `Certificado Nº ${cert.numero} — ${cert.obra || ""}`, monto: String(Math.round(cert.total_periodo || 0)), estado: "PENDIENTE", obra: cert.obra || "", cliente: cert.cliente || "" }] };
-    setWeek(nw); setTimeout(() => autoGuardar(nw), 300); setShowImportCert(false);
+    setWeek(nw); programarGuardado(nw, 300); setShowImportCert(false);
   };
 
   const importarCertEgresos = (ce) => {
     const label = ce.certificado_num ? ` — Cert. Nº ${ce.certificado_num}` : "";
     const nw = { ...week, ingresos: [...week.ingresos, { concepto: `Egresos certificados${label} — ${ce.obra || ""}`, monto: String(Math.round(ce.total || 0)), estado: "PENDIENTE", obra: ce.obra || "" }] };
-    setWeek(nw); setTimeout(() => autoGuardar(nw), 300); setShowImportCert(false);
+    setWeek(nw); programarGuardado(nw, 300); setShowImportCert(false);
   };
 
   // ── CRUD rows ─────────────────────────────────────────────────────────────
@@ -451,24 +430,13 @@ export default function ControlFinanciero({ user }) {
     setRango({ desde: `${a}-01-01`, hasta: `${a}-12-31` }); };
   const rangoTodo = () => setRango({ desde: '', hasta: '' });
 
-  const addIngreso = () => setWeek(w => { const nw = { ...w, ingresos: [...w.ingresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", cliente: "" , usuario: usuarioActual }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
-  const updIngreso = (i, f, v) => setWeek(w => { const a = [...w.ingresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, ingresos: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
-  const delIngreso = (i) => { const nw = { ...week, ingresos: week.ingresos.filter((_, j) => j !== i) }; setWeek(nw); setTimeout(() => autoGuardar(nw), 300); };
+  const addIngreso = () => setWeek(w => { const nw = { ...w, ingresos: [...w.ingresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", cliente: "" , usuario: usuarioActual }] }; programarGuardado(nw, 300); return nw; });
+  const updIngreso = (i, f, v) => setWeek(w => { const a = [...w.ingresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, ingresos: a }; programarGuardado(nw); return nw; });
+  const delIngreso = (i) => { const nw = { ...week, ingresos: week.ingresos.filter((_, j) => j !== i) }; setWeek(nw); programarGuardado(nw, 300); };
 
-  const addEgreso = () => setWeek(w => { const nw = { ...w, egresos: [...w.egresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", presupuesto_id: null , usuario: usuarioActual }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
-  const updEgreso = (i, f, v) => setWeek(w => { const a = [...w.egresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, egresos: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
-  const delEgreso = (i) => { const nw = { ...week, egresos: week.egresos.filter((_, j) => j !== i) }; setWeek(nw); setTimeout(() => autoGuardar(nw), 300); };
-  const updEgresoObra = (i, presupuestoId) => {
-    const obra = obras.find(o => o.id === parseInt(presupuestoId));
-    setWeek(w => {
-      const a = [...w.egresos];
-      a[i] = { ...a[i], obra: obra?.label || '', presupuesto_id: presupuestoId ? parseInt(presupuestoId) : null };
-      const nw = { ...w, egresos: a };
-      clearTimeout(window._cfT);
-      window._cfT = setTimeout(() => autoGuardar(nw), 900);
-      return nw;
-    });
-  };
+  const addEgreso = () => setWeek(w => { const nw = { ...w, egresos: [...w.egresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", presupuesto_id: null , usuario: usuarioActual }] }; programarGuardado(nw, 300); return nw; });
+  const updEgreso = (i, f, v) => setWeek(w => { const a = [...w.egresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, egresos: a }; programarGuardado(nw); return nw; });
+  const delEgreso = (i) => { const nw = { ...week, egresos: week.egresos.filter((_, j) => j !== i) }; setWeek(nw); programarGuardado(nw, 300); };
 
   // ── Imputacion: contra que va este movimiento ────────────────────────────
   // Un solo desplegable agrupado en vez de dos controles encadenados: el que
@@ -499,8 +467,7 @@ export default function ControlFinanciero({ user }) {
         presupuesto_id: tipo === 'obra' ? ref_id : null,
       };
       const nw = { ...w, [campo]: a };
-      clearTimeout(window._cfT);
-      window._cfT = setTimeout(() => autoGuardar(nw), 900);
+      programarGuardado(nw);
       return nw;
     });
   };
@@ -535,9 +502,9 @@ export default function ControlFinanciero({ user }) {
     </select>
   );
 
-  const addPersonal = () => setWeek(w => { const nw = { ...w, personal: [...w.personal, { nombre: "", rango: "", dias: 5, hs: 8, costo: 0, total: 0, obra: "" , usuario: usuarioActual }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
-  const updPersonal = (i, f, v) => setWeek(w => { const a = [...w.personal]; a[i] = { ...a[i], [f]: v }; a[i].total = (parseFloat(a[i].dias) || 0) * (parseFloat(a[i].hs) || 0) * (parseFloat(a[i].costo) || 0); const nw = { ...w, personal: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
-  const delPersonal = (i) => setWeek(w => { const nw = { ...w, personal: w.personal.filter((_, j) => j !== i) }; setTimeout(() => autoGuardar(nw), 300); return nw; });
+  const addPersonal = () => setWeek(w => { const nw = { ...w, personal: [...w.personal, { nombre: "", rango: "", dias: 5, hs: 8, costo: 0, total: 0, obra: "" , usuario: usuarioActual }] }; programarGuardado(nw, 300); return nw; });
+  const updPersonal = (i, f, v) => setWeek(w => { const a = [...w.personal]; a[i] = { ...a[i], [f]: v }; a[i].total = (parseFloat(a[i].dias) || 0) * (parseFloat(a[i].hs) || 0) * (parseFloat(a[i].costo) || 0); const nw = { ...w, personal: a }; programarGuardado(nw); return nw; });
+  const delPersonal = (i) => setWeek(w => { const nw = { ...w, personal: w.personal.filter((_, j) => j !== i) }; programarGuardado(nw, 300); return nw; });
 
   // Una herramienta alquilada es un egreso como cualquier otro. Se puede cargar
   // el costo total o el costo por dia: con "por dia", el total sale de los dias
@@ -548,9 +515,9 @@ export default function ControlFinanciero({ user }) {
     return d >= 0 ? Math.round(d) + 1 : 0;
   };
   const totalHerram = costoHerramienta;
-  const addHerramienta = () => setWeek(w => { const nw = { ...w, herramientas: [...w.herramientas, { nombre: "", cantidad: 1, obra: "", fechaIn: "", fechaEx: "", modoCosto: "total", costoTotal: "", costoDia: "", usuario: usuarioActual }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
-  const updHerramienta = (i, f, v) => setWeek(w => { const a = [...w.herramientas]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, herramientas: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
-  const delHerramienta = (i) => { const nw = { ...week, herramientas: week.herramientas.filter((_, j) => j !== i) }; setWeek(nw); setTimeout(() => autoGuardar(nw), 300); };
+  const addHerramienta = () => setWeek(w => { const nw = { ...w, herramientas: [...w.herramientas, { nombre: "", cantidad: 1, obra: "", fechaIn: "", fechaEx: "", modoCosto: "total", costoTotal: "", costoDia: "", usuario: usuarioActual }] }; programarGuardado(nw, 300); return nw; });
+  const updHerramienta = (i, f, v) => setWeek(w => { const a = [...w.herramientas]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, herramientas: a }; programarGuardado(nw); return nw; });
+  const delHerramienta = (i) => { const nw = { ...week, herramientas: week.herramientas.filter((_, j) => j !== i) }; setWeek(nw); programarGuardado(nw, 300); };
 
   // ── Auto-guardar ──────────────────────────────────────────────────────────
   const autoGuardar = async (weekData) => {
@@ -562,6 +529,11 @@ export default function ControlFinanciero({ user }) {
       totalIng: c.totalIng, totalEg: c.totalEg, totalPersonal: c.totalPersonal, resultado: c.resultado, ganancia: c.ganancia, cerrado: false,
     };
     try {
+      // Si ya hay una creacion en vuelo, esperarla: cuando vuelva tenemos id y
+      // esto pasa a ser un update en vez de un segundo periodo.
+      if (!editingIdRef.current && creandoRef.current) {
+        try { await creandoRef.current; } catch {}
+      }
       if (editingIdRef.current) {
         await api.put(`/cf/semanas/${editingIdRef.current}`, payload);
       } else {
@@ -570,8 +542,11 @@ export default function ControlFinanciero({ user }) {
           await api.put(`/cf/semanas/${existing.id}`, payload);
           setEditingIdSynced(existing.id);
         } else {
-          const res = await api.post('/cf/semanas', payload);
-          setEditingIdSynced(res.data.id);
+          creandoRef.current = api.post('/cf/semanas', payload);
+          try {
+            const res = await creandoRef.current;
+            setEditingIdSynced(res.data.id);
+          } finally { creandoRef.current = null; }
         }
       }
       loadPeriods();
@@ -588,9 +563,17 @@ export default function ControlFinanciero({ user }) {
       totalIng: c.totalIng, totalEg: c.totalEg, totalPersonal: c.totalPersonal, resultado: c.resultado, ganancia: c.ganancia, cerrado: false,
     };
     try {
-      if (editingId) await api.put(`/cf/semanas/${editingId}`, payload);
-      else await api.post('/cf/semanas', payload);
-      showToast("✓ Guardado"); setEditingIdSynced(null); setWeek(emptyPeriod(tipoPeriodo)); loadPeriods();
+      // El periodo queda abierto despues de guardar. Antes se limpiaba la
+      // pantalla incluso al apretar "Actualizar", que se leia como que se habia
+      // borrado todo, y el periodo vacio que quedaba era el que despues
+      // terminaba duplicandose. Para arrancar uno nuevo esta "+ Nuevo".
+      if (editingId) {
+        await api.put(`/cf/semanas/${editingId}`, payload);
+      } else {
+        const res = await api.post('/cf/semanas', payload);
+        setEditingIdSynced(res.data.id);
+      }
+      showToast("✓ Guardado"); loadPeriods();
     } catch { showToast("Error de conexión"); }
     setLoading(false);
   };
@@ -606,27 +589,12 @@ export default function ControlFinanciero({ user }) {
 
   const nuevoPeriodo = () => { setEditingIdSynced(null); setWeek(emptyPeriod(tipoPeriodo)); setTab("carga"); };
 
-  // ── Resumen por obra ──────────────────────────────────────────────────────
-  const resumenPorObra = () => {
-    const mapa = {};
-    semanas.forEach(s => {
-      [...(s.ingresos || []), ...(s.egresos || []), ...(s.personal || [])].forEach(r => {
-        const obra = r.obra || r.cliente || "Sin obra";
-        if (!mapa[obra]) mapa[obra] = { ingresos: 0, egresos: 0, personal: 0 };
-        if (s.ingresos?.includes(r)) mapa[obra].ingresos += parseFloat(r.monto) || 0;
-        else if (s.egresos?.includes(r)) mapa[obra].egresos += parseFloat(r.monto) || 0;
-        else mapa[obra].personal += parseFloat(r.total) || 0;
-      });
-    });
-    // Re-hacer correctamente
-    const mapa2 = {};
-    semanas.forEach(s => {
-      (s.ingresos || []).forEach(r => { const o = r.obra || r.cliente || "Sin obra"; if (!mapa2[o]) mapa2[o] = { ingresos: 0, egresos: 0, personal: 0 }; mapa2[o].ingresos += parseFloat(r.monto) || 0; });
-      (s.egresos || []).forEach(r => { const o = r.obra || "Sin obra"; if (!mapa2[o]) mapa2[o] = { ingresos: 0, egresos: 0, personal: 0 }; mapa2[o].egresos += parseFloat(r.monto) || 0; });
-      (s.personal || []).forEach(r => { const o = r.obra || "Sin obra"; if (!mapa2[o]) mapa2[o] = { ingresos: 0, egresos: 0, personal: 0 }; mapa2[o].personal += parseFloat(r.total) || 0; });
-    });
-    return Object.entries(mapa2).map(([obra, v]) => ({ obra, ...v, resultado: v.ingresos - v.egresos - v.personal })).sort((a, b) => b.resultado - a.resultado);
-  };
+  // El desglose por obra sale de /cf/resumen y no de una cuenta aparte aca.
+  // La version anterior agrupaba por el campo `obra`, que updImputacion deja
+  // vacio salvo que la imputacion sea a una obra: todo lo cargado contra un
+  // cliente, un proyecto o el estudio terminaba junto en "Sin obra". El
+  // backend ya entiende las cuatro imputaciones, respeta el rango de fechas y
+  // traduce las filas viejas que solo guardaban el nombre.
 
   // ── Cert-egresos: sincronizar egresos del CF como cert-egresos ────────────
   // Los egresos del CF se vinculan automáticamente: cuando se crea un cert-egresos,
@@ -657,8 +625,8 @@ export default function ControlFinanciero({ user }) {
 
   const certFiltrados = certDisponibles.filter(c => !certFiltro || (c.obra || "").toLowerCase().includes(certFiltro.toLowerCase()) || String(c.numero).includes(certFiltro));
   const certEgresosFiltrados = certEgresosDisponibles.filter(c => !certFiltro || (c.obra || "").toLowerCase().includes(certFiltro.toLowerCase()));
-  const resumenObras = resumenPorObra();
-  const resumenFiltrado = resumenObraFiltro ? resumenObras.filter(r => r.obra.toLowerCase().includes(resumenObraFiltro.toLowerCase())) : resumenObras;
+  const resumenObras = resumenImp?.por_imputacion || [];
+  const resumenFiltrado = resumenObraFiltro ? resumenObras.filter(r => (r.ref_nombre || "").toLowerCase().includes(resumenObraFiltro.toLowerCase())) : resumenObras;
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif" }}>
@@ -883,7 +851,7 @@ export default function ControlFinanciero({ user }) {
                 <div style={{ background: C.surface2, borderRadius: 8, padding: "10px 12px", border: `1px solid ${C.border}`, minWidth: 140 }}>
                   <div style={{ fontSize: 12, color: C.muted, marginBottom: 6, fontWeight: 700 }}>Reserva</div>
                   <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                    <input style={{ ...inp, width: 60, fontFamily: "'IBM Plex Mono', monospace" }} type="number" value={week.config?.pctReserva ?? config.pctReserva ?? 10} onChange={e => { const nw = { ...week, config: { ...week.config, pctReserva: parseFloat(e.target.value) || 0 } }; setWeek(nw); setTimeout(() => autoGuardar(nw), 1000); }} />
+                    <input style={{ ...inp, width: 60, fontFamily: "'IBM Plex Mono', monospace" }} type="number" value={week.config?.pctReserva ?? config.pctReserva ?? 10} onChange={e => { const nw = { ...week, config: { ...week.config, pctReserva: parseFloat(e.target.value) || 0 } }; setWeek(nw); programarGuardado(nw, 1000); }} />
                     <span style={{ fontSize: 12, color: C.muted }}>%</span>
                   </div>
                   <div style={{ fontSize: 12, color: C.accent, fontWeight: 700, marginTop: 5, textAlign: "right", fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(calc.reserva)}</div>
@@ -953,16 +921,26 @@ export default function ControlFinanciero({ user }) {
         {/* ── TAB RESUMEN ── */}
         {tab === "resumen" && (
           <div>
+            {/* Estas cuatro son de TODO el historial y no miran el filtro de
+                fechas de abajo. Van rotuladas asi a proposito: son los unicos
+                numeros de la pantalla que descuentan honorarios y reserva, y
+                sin el rotulo se leian como si contradijeran al bloque del
+                rango, que muestra resultado bruto del periodo elegido. */}
             {resumen && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
-                {[["Total ingresado", resumen.totalIng, C.green], ["Total egresado", resumen.totalEg, C.red], ["Total personal", resumen.totalPersonal, C.warn], ["Ganancia total", resumen.ganancia, resumen.ganancia >= 0 ? C.accent : C.red]].map(([label, val, color]) => (
-                  <div key={label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 18px" }}>
-                    <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>{label}</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color, fontFamily: "'IBM Plex Mono', monospace" }}>{fmtShort(val)}</div>
-                    <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>{semanas.length} período{semanas.length !== 1 ? "s" : ""}</div>
-                  </div>
-                ))}
-              </div>
+              <>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: C.muted, marginBottom: 8 }}>
+                  Acumulado — todo el historial
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
+                  {[["Total ingresado", resumen.totalIng, C.green], ["Total egresado", resumen.totalEg, C.red], ["Total personal", resumen.totalPersonal, C.warn], ["Ganancia neta", resumen.ganancia, resumen.ganancia >= 0 ? C.accent : C.red]].map(([label, val, color]) => (
+                    <div key={label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 18px" }}>
+                      <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>{label}</div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color, fontFamily: "'IBM Plex Mono', monospace" }}>{fmtShort(val)}</div>
+                      <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>{semanas.length} período{semanas.length !== 1 ? "s" : ""}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
 
             {/* Periodo del analisis */}
@@ -1018,34 +996,9 @@ export default function ControlFinanciero({ user }) {
               )}
             </div>
 
-            {/* Gasto imputado y por persona */}
-            {resumenImp && (resumenImp.por_imputacion?.length > 0 || resumenImp.por_usuario?.length > 0) && (
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.3fr 1fr", gap: 12, marginBottom: 16 }}>
-                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Contra qué se gastó</div>
-                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>
-                    Obras, clientes, proyectos y lo que es del estudio, en todos los períodos.
-                  </div>
-                  {resumenImp.por_imputacion.map((r, i) => {
-                    const col = { obra: C.accent, cliente: C.accent2, proyecto: C.warn, estudio: C.text, sin_imputar: C.muted }[r.imputacion] || C.muted;
-                    const gasto = r.egresos + r.personal;
-                    return (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.ref_nombre}</div>
-                          <div style={{ fontSize: 10.5, color: col, textTransform: "uppercase", letterSpacing: ".4px" }}>
-                            {r.imputacion === "sin_imputar" ? "sin imputar" : r.imputacion}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: 700, color: C.red, fontFamily: "'IBM Plex Mono', monospace" }}>{fmtShort(gasto)}</div>
-                          {r.ingresos > 0 && <div style={{ fontSize: 10.5, color: C.green }}>+{fmtShort(r.ingresos)}</div>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
+            {/* Quien movio la plata. El desglose por imputacion es la tabla de abajo. */}
+            {resumenImp?.por_usuario?.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
                 <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Quién lo hizo</div>
                   <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>
@@ -1063,9 +1016,12 @@ export default function ControlFinanciero({ user }) {
 
             {/* Resumen por obra */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>Por obra / proyecto</div>
-                <input style={{ ...inp, width: 200 }} placeholder="Filtrar por obra..." value={resumenObraFiltro} onChange={e => setResumenObraFiltro(e.target.value)} />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 10, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>Contra qué se gastó</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Obras, clientes, proyectos y lo del estudio, en el período de arriba.</div>
+                </div>
+                <input style={{ ...inp, width: 200 }} placeholder="Filtrar..." value={resumenObraFiltro} onChange={e => setResumenObraFiltro(e.target.value)} />
               </div>
               {resumenFiltrado.length === 0 ? (
                 <div style={{ textAlign: "center", color: C.muted, padding: 32 }}>Sin datos</div>
@@ -1073,15 +1029,20 @@ export default function ControlFinanciero({ user }) {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: C.surface2 }}>
-                      {["Obra / Proyecto", "Ingresos", "Egresos", "Personal", "Resultado"].map(h => (
-                        <th key={h} style={{ padding: "8px 12px", textAlign: h === "Obra / Proyecto" ? "left" : "right", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: C.muted, borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                      {["Imputación", "Ingresos", "Egresos", "Personal", "Resultado"].map(h => (
+                        <th key={h} style={{ padding: "8px 12px", textAlign: h === "Imputación" ? "left" : "right", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: C.muted, borderBottom: `1px solid ${C.border}` }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {resumenFiltrado.map((r, i) => (
-                      <tr key={r.obra} style={{ borderBottom: `1px solid ${C.border2}`, background: i % 2 === 0 ? "transparent" : C.surface2 }}>
-                        <td style={{ padding: "9px 12px", fontSize: 13, fontWeight: 600 }}>{r.obra}</td>
+                      <tr key={`${r.imputacion}:${r.ref_id ?? r.ref_nombre}`} style={{ borderBottom: `1px solid ${C.border2}`, background: i % 2 === 0 ? "transparent" : C.surface2 }}>
+                        <td style={{ padding: "9px 12px", fontSize: 13, fontWeight: 600 }}>
+                          {r.ref_nombre}
+                          <span style={{ fontSize: 10, color: { obra: C.accent, cliente: C.accent2, proyecto: C.warn, estudio: C.text, sin_imputar: C.muted }[r.imputacion] || C.muted, textTransform: "uppercase", letterSpacing: ".4px", marginLeft: 7 }}>
+                            {r.imputacion === "sin_imputar" ? "sin imputar" : r.imputacion}
+                          </span>
+                        </td>
                         <td style={{ padding: "9px 12px", textAlign: "right", fontSize: 13, color: C.green, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(r.ingresos)}</td>
                         <td style={{ padding: "9px 12px", textAlign: "right", fontSize: 13, color: C.red, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(r.egresos)}</td>
                         <td style={{ padding: "9px 12px", textAlign: "right", fontSize: 13, color: C.warn, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(r.personal)}</td>
@@ -1176,102 +1137,6 @@ export default function ControlFinanciero({ user }) {
                   <div style={{ fontSize: 15, fontWeight: 700, color: C.red, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(c.total)}</div>
                 </div>
               ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL IMPORTAR DESDE OBRA ── */}
-      {showImportarObra && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 560, border: "1px solid #e0e0e8", maxHeight: "85vh", overflow: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e" }}>Importar movimientos desde obra</div>
-              <button onClick={() => setShowImportarObra(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: "#6b7280" }}>×</button>
-            </div>
-
-            {loadingObra ? (
-              <div style={{ textAlign: "center", padding: 32, color: "#6b7280" }}>Cargando...</div>
-            ) : (
-              <>
-                {/* Cobros */}
-                {obraPendientes.cobros?.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#059669", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Cobros de clientes</div>
-                    {obraPendientes.cobros.map(cb => {
-                      const sel = obraSeleccionados.some(i => i.tipo === "cobro" && i.id === cb.id);
-                      return (
-                        <div key={cb.id} onClick={() => toggleSeleccionObra("cobro", cb.id)}
-                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, border: `1px solid ${sel ? "#059669" : "#e0e0e8"}`, background: sel ? "#f0fdf4" : "#fff", cursor: "pointer", marginBottom: 6 }}>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 600 }}>{cb.nombre_obra || "Sin obra"}</div>
-                            <div style={{ fontSize: 11, color: "#6b7280" }}>{cb.fecha} · {cb.forma_pago} {cb.referencia ? `· ${cb.referencia}` : ""}</div>
-                          </div>
-                          <div style={{ fontWeight: 700, color: "#059669", fontFamily: "'IBM Plex Mono',monospace" }}>
-                            ${Math.round(cb.monto || 0).toLocaleString("es-AR")}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Pagos subcontrato */}
-                {obraPendientes.pagos_subcontrato?.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Pagos a subcontratistas</div>
-                    {obraPendientes.pagos_subcontrato.map(ps => {
-                      const sel = obraSeleccionados.some(i => i.tipo === "pago_sub" && i.id === ps.id);
-                      return (
-                        <div key={ps.id} onClick={() => toggleSeleccionObra("pago_sub", ps.id)}
-                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, border: `1px solid ${sel ? "#d97706" : "#e0e0e8"}`, background: sel ? "#fffbeb" : "#fff", cursor: "pointer", marginBottom: 6 }}>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 600 }}>{ps.nombre_contratista}</div>
-                            <div style={{ fontSize: 11, color: "#6b7280" }}>{ps.fecha} · {ps.concepto} · {ps.nombre_obra || ""}</div>
-                          </div>
-                          <div style={{ fontWeight: 700, color: "#d97706", fontFamily: "'IBM Plex Mono',monospace" }}>
-                            ${Math.round(ps.monto || 0).toLocaleString("es-AR")}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Compras */}
-                {obraPendientes.compras?.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Compras de materiales</div>
-                    {obraPendientes.compras.map(cm => {
-                      const sel = obraSeleccionados.some(i => i.tipo === "compra" && i.id === cm.id);
-                      return (
-                        <div key={cm.id} onClick={() => toggleSeleccionObra("compra", cm.id)}
-                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 8, border: `1px solid ${sel ? "#7c3aed" : "#e0e0e8"}`, background: sel ? "#f5f3ff" : "#fff", cursor: "pointer", marginBottom: 6 }}>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 600 }}>{cm.proveedor_nombre}</div>
-                            <div style={{ fontSize: 11, color: "#6b7280" }}>{cm.fecha_pedido} · {cm.nombre_obra || ""}</div>
-                          </div>
-                          <div style={{ fontWeight: 700, color: "#7c3aed", fontFamily: "'IBM Plex Mono',monospace" }}>
-                            ${Math.round(cm.monto_pagado || 0).toLocaleString("es-AR")}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {obraPendientes.cobros?.length === 0 && obraPendientes.pagos_subcontrato?.length === 0 && obraPendientes.compras?.length === 0 && (
-                  <div style={{ textAlign: "center", padding: 32, color: "#6b7280" }}>
-                    No hay movimientos pendientes de importar
-                  </div>
-                )}
-
-                {obraSeleccionados.length > 0 && (
-                  <button onClick={importarDesdeObra} style={{ width: "100%", padding: 12, background: "#059669", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 8 }}>
-                    Importar {obraSeleccionados.length} movimiento{obraSeleccionados.length !== 1 ? "s" : ""} al CF
-                  </button>
-                )}
-              </>
             )}
           </div>
         </div>

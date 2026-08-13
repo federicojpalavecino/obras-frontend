@@ -25,6 +25,7 @@ import Presentacion from "./pages/Presentacion";
 import DemoPortal from "./pages/DemoPortal";
 import Obra from "./pages/Obra";
 import Asistente from "./components/Asistente";
+import ErrorBoundary from "./components/ErrorBoundary";
 import api from "./cotizador/api";
 
 const C = {
@@ -246,6 +247,10 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
           </div>
         </div>
       )}
+      {/* La `key` remonta el boundary al cambiar de ruta: sin eso, una pantalla
+          que revienta deja el cartel de error puesto para siempre y no se
+          puede navegar a ningun otro modulo. */}
+      <ErrorBoundary key={location.pathname}>
       <Routes>
         <Route path="/" element={
           <div style={{maxWidth:560, margin:"0 auto", padding:"clamp(40px, 6vw, 64px) clamp(16px, 4vw, 24px)"}}>
@@ -291,6 +296,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
         <Route path="/accesos-clientes" element={<AccesosClientes user={user} />}/>
         <Route path="/config" element={<ConfigCuenta user={user} onUpdate={onTenantUpdate} />}/>
       </Routes>
+      </ErrorBoundary>
       <Asistente />
     </div>
   );
