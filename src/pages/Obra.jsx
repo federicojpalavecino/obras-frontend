@@ -45,6 +45,8 @@ export default function Obra() {
   const [avance, setAvance] = useState(null);
   const [desembolsos, setDesembolsos] = useState([]);
   const [editDes, setEditDes] = useState(null);   // { id, avance_pct, fecha_real }
+  const [certSub, setCertSub] = useState(null);  // resumen del subcontrato abierto
+  const [certForm, setCertForm] = useState({ pct_acumulado: '', fecha: today(), nota: '', generar_pago: true });
   const [avForm, setAvForm] = useState({});      // linea_id -> pct escrito
   const [avFecha, setAvFecha] = useState(today());
   const [avNota, setAvNota] = useState("");
@@ -141,6 +143,51 @@ export default function Obra() {
     await api.patch(`/presupuestos/${id}/metodologia`, { metodologia });
     showToast(metodologia === "desembolsos" ? "Gestión por desembolsos" : "Gestión por certificación");
     cargar();
+  };
+
+  // ── Certificado interno del contratista ─────────────────────────────────
+  const abrirCertSub = async (sid) => {
+    try {
+      const r = await api.get(`/presupuestos/${id}/subcontratos/${sid}/certificados`);
+      setCertSub(r.data);
+      setCertForm({ pct_acumulado: "", fecha: today(), nota: "", generar_pago: true });
+    } catch (e) { showToast("No se pudo abrir el certificado"); }
+  };
+
+  const guardarCertSub = async () => {
+    if (!certSub || certForm.pct_acumulado === "") return;
+    try {
+      const r = await api.post(`/presupuestos/${id}/subcontratos/${certSub.subcontrato.id}/certificados`, {
+        pct_acumulado: parseFloat(certForm.pct_acumulado),
+        fecha: certForm.fecha, nota: certForm.nota, generar_pago: certForm.generar_pago,
+      });
+      setCertSub(r.data);
+      setCertForm(f => ({ ...f, pct_acumulado: "", nota: "" }));
+      showToast(certForm.generar_pago ? "✓ Certificado y pago registrados" : "✓ Certificado registrado");
+      cargar();
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "No se pudo certificar");
+    }
+  };
+
+  const borrarCertSub = async (cid) => {
+    if (!window.confirm("¿Borrar el último certificado?")) return;
+    try {
+      const r = await api.delete(`/presupuestos/${id}/subcontratos/${certSub.subcontrato.id}/certificados/${cid}`);
+      setCertSub(r.data); showToast("Certificado borrado"); cargar();
+    } catch (e) { showToast(e?.response?.data?.detail || "No se pudo borrar"); }
+  };
+
+  const guardarLineasSub = async (sid, lineas_ids) => {
+    const sub = subcontratos.find(x => x.id === sid) || certSub?.subcontrato || {};
+    await api.put(`/presupuestos/${id}/subcontratos/${sid}`, {
+      nombre_contratista: sub.nombre_contratista, cuit_contratista: sub.cuit_contratista,
+      descripcion_trabajo: sub.descripcion_trabajo, monto_total: sub.monto_total,
+      fecha_inicio: sub.fecha_inicio, fecha_fin_estimada: sub.fecha_fin_estimada,
+      tipo_pago: sub.tipo_pago, estado: sub.estado, notas: sub.notas,
+      lineas_ids,
+    });
+    abrirCertSub(sid);
   };
 
   const crearCobro = async () => {
@@ -764,10 +811,128 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 )}
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => { setShowPagoSub(s.id); setPagoSubForm({ monto: "", fecha: today(), concepto: "Pago parcial", forma_pago: "transferencia", pct_avance_al_pagar: "" }); }} style={{ ...btn(C.warn), fontSize: 12 }}>+ Registrar pago</button>
+                  {s.tipo_pago === "por_avance" && (
+                    <button onClick={() => abrirCertSub(s.id)} style={{ ...btn(C.accent2), fontSize: 12 }}>Certificar avance</button>
+                  )}
                   <button onClick={() => eliminarSubcontrato(s.id)} style={{ ...btn("#fee2e2"), color: C.red, fontSize: 12 }}>Eliminar</button>
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── CERTIFICADO INTERNO DEL CONTRATISTA ── */}
+        {certSub && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}
+            onClick={() => setCertSub(null)}>
+            <div style={{ width: "min(680px, 100%)", maxHeight: "88vh", overflowY: "auto", background: C.surface, borderRadius: 14, padding: 22 }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800 }}>{certSub.subcontrato.nombre_contratista}</div>
+                  <div style={{ fontSize: 12, color: C.muted }}>Certificado interno · no lo ve el cliente</div>
+                </div>
+                <button onClick={() => setCertSub(null)} style={{ background: "none", border: "none", fontSize: 22, color: C.muted, cursor: "pointer", lineHeight: 1 }}>×</button>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(122px, 1fr))", gap: 8, marginTop: 16 }}>
+                {[["Pactado", certSub.monto_total, C.text],
+                  ["Certificado", certSub.certificado, C.accent2],
+                  ["Pagado", certSub.pagado, C.green],
+                  ["Saldo a pagar", certSub.saldo_a_pagar, certSub.saldo_a_pagar > 0 ? C.red : C.green]].map(([l, v, col]) => (
+                  <div key={l} style={{ background: C.surface2, borderRadius: 9, padding: "10px 12px" }}>
+                    <div style={{ fontSize: 9.5, color: C.muted, textTransform: "uppercase", letterSpacing: ".4px" }}>{l}</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: col, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(v || 0)}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Contra que costo se lo compara */}
+              <div style={{ marginTop: 16, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>Qué ítems cubre</div>
+                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3, lineHeight: 1.5 }}>
+                  Elegí los ítems del presupuesto que hace este contratista. Sirve para comparar
+                  lo que le pagás contra lo que habías costeado que salía hacerlos.
+                </div>
+                <select multiple value={(certSub.lineas_ids || []).map(String)}
+                  onChange={e => guardarLineasSub(certSub.subcontrato.id, [...e.target.selectedOptions].map(o => parseInt(o.value)))}
+                  style={{ width: "100%", marginTop: 10, minHeight: 96, padding: 8, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, background: C.surface, color: C.text }}>
+                  {lineasObra.map(l => (
+                    <option key={l.id} value={l.id}>{l.nombre_override || l.nombre_item || l.nombre_libre}</option>
+                  ))}
+                </select>
+                {certSub.costo_ejecucion_cubierto > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginTop: 12, flexWrap: "wrap", fontSize: 12.5 }}>
+                    <span style={{ color: C.muted }}>Costo de ejecución de esos ítems</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700 }}>{fmt(certSub.costo_ejecucion_cubierto)}</span>
+                  </div>
+                )}
+                {certSub.diferencia_vs_costo !== null && certSub.diferencia_vs_costo !== undefined && (
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginTop: 5, fontSize: 12.5 }}>
+                    <span style={{ color: C.muted }}>
+                      {certSub.diferencia_vs_costo > 0 ? "Te sale más caro que lo costeado" : "Te sale más barato que lo costeado"}
+                    </span>
+                    <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700, color: certSub.diferencia_vs_costo > 0 ? C.red : C.green }}>
+                      {certSub.diferencia_vs_costo > 0 ? "+" : ""}{fmt(certSub.diferencia_vs_costo)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Certificar */}
+              <div style={{ marginTop: 16, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Certificar avance</div>
+                <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>
+                  Lleva {Number(certSub.pct_certificado || 0).toFixed(0)}% certificado. Poné el acumulado nuevo.
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <input type="number" min="0" max="100" placeholder="%" value={certForm.pct_acumulado}
+                    onChange={e => setCertForm(f => ({ ...f, pct_acumulado: e.target.value }))}
+                    style={{ width: 92, padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, textAlign: "right", background: C.surface, color: C.text }} />
+                  <input type="date" value={certForm.fecha} onChange={e => setCertForm(f => ({ ...f, fecha: e.target.value }))}
+                    style={{ padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, background: C.surface, color: C.text }} />
+                  <input placeholder="Nota (opcional)" value={certForm.nota} onChange={e => setCertForm(f => ({ ...f, nota: e.target.value }))}
+                    style={{ flex: 1, minWidth: 140, padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, background: C.surface, color: C.text }} />
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, fontSize: 12.5, color: C.text, cursor: "pointer" }}>
+                  <input type="checkbox" checked={certForm.generar_pago}
+                    onChange={e => setCertForm(f => ({ ...f, generar_pago: e.target.checked }))} />
+                  Registrar también el pago del período, y mandarlo al control financiero
+                </label>
+                {certForm.pct_acumulado !== "" && (
+                  <div style={{ fontSize: 12.5, color: C.muted, marginTop: 8 }}>
+                    Este período: <b style={{ color: C.text, fontFamily: "'IBM Plex Mono',monospace" }}>
+                      {fmt(Math.max(0, (certSub.monto_total || 0) * (parseFloat(certForm.pct_acumulado) || 0) / 100 - (certSub.certificado || 0)))}
+                    </b>
+                  </div>
+                )}
+                <button onClick={guardarCertSub} disabled={certForm.pct_acumulado === ""}
+                  style={{ marginTop: 12, padding: "9px 18px", background: C.accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: certForm.pct_acumulado === "" ? .5 : 1 }}>
+                  Certificar
+                </button>
+              </div>
+
+              {(certSub.certificados || []).length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Certificados emitidos</div>
+                  {certSub.certificados.map((c, i, arr) => (
+                    <div key={c.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.border2}`, fontSize: 12.5 }}>
+                      <span style={{ color: C.muted }}>
+                        Nº {c.numero} · {c.fecha} · {Number(c.pct_acumulado).toFixed(0)}% acum.
+                        {c.nota ? ` · ${c.nota}` : ""}
+                      </span>
+                      <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <b style={{ fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(c.monto_periodo)}</b>
+                        {i === arr.length - 1 && (
+                          <button onClick={() => borrarCertSub(c.id)}
+                            style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
