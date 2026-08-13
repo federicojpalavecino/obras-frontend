@@ -48,6 +48,26 @@ export default function Gantt() {
   const [avanceObra, setAvanceObra] = useState(null);
   const [cargarAvanceEn, setCargarAvanceEn] = useState(null);   // tarea abierta
   const [pctNuevo, setPctNuevo] = useState("");
+  // Los dias que la obra no avanzo. Se pintan en la grilla y corren el plazo.
+  const [diasPerdidos, setDiasPerdidos] = useState([]);
+  const [panelDias, setPanelDias] = useState(false);
+  const [formDia, setFormDia] = useState({ desde: "", hasta: "", motivo: "lluvia", nota: "" });
+  const perdidoPorFecha = Object.fromEntries(diasPerdidos.map(d => [d.fecha, d]));
+
+  const guardarDiasPerdidos = async () => {
+    if (!formDia.desde) return;
+    try {
+      await api.post(`/presupuestos/${id}/dias-no-trabajados`, formDia);
+      setFormDia({ desde: "", hasta: "", motivo: "lluvia", nota: "" });
+      await cargar();
+    } catch (e) { alert(e?.response?.data?.detail || 'No se pudo guardar'); }
+  };
+
+  const borrarDiaPerdido = async (did) => {
+    await api.delete(`/presupuestos/${id}/dias-no-trabajados/${did}`);
+    await cargar();
+  };
+
   const guardarAvanceLinea = async () => {
     if (!cargarAvanceEn?.linea_id) return;
     try {
@@ -113,6 +133,7 @@ export default function Gantt() {
   const cargar = async () => {
     // Sale del mismo registro que usa el resumen, el portal y la curva.
     api.get(`/presupuestos/${id}/avance`).then(r => setAvanceObra(r.data)).catch(() => {});
+    api.get(`/presupuestos/${id}/dias-no-trabajados`).then(r => setDiasPerdidos(r.data || [])).catch(() => {});
     setLoading(true);
     try {
       const [pRes, tRes, cRes, vRes, planRes] = await Promise.all([
@@ -661,6 +682,10 @@ export default function Gantt() {
               <button className="btn btn-secondary btn-sm" onClick={aplicarPlan}
                 title="Recalcula y guarda las fechas según las dependencias">↻ Recalcular</button>
             )}
+            <button className={`btn btn-sm ${diasPerdidos.length ? 'btn-warn' : 'btn-secondary'}`}
+              onClick={() => setPanelDias(true)} title="Días de lluvia, feriados, paros">
+              ☂ Días perdidos{diasPerdidos.length ? ` (${diasPerdidos.length})` : ''}
+            </button>
             {vinculos.length > 0 && (
               <button className={`btn btn-sm ${verCritico ? 'btn-warn' : 'btn-secondary'}`}
                 onClick={() => setVerCritico(v => !v)} title="Resaltar el camino crítico">
@@ -930,7 +955,13 @@ export default function Gantt() {
                       // el sábado tiene que verse como día de trabajo.
                       const franco = !esLaborable(dia);
                       const esHoyDia = dia === hoy;
-                      return <div key={dia} style={{ width: PX_DIA, height: '100%', flexShrink: 0, background: esHoyDia ? 'rgba(110,231,183,.04)' : franco ? 'rgba(74,74,88,.15)' : 'transparent', borderLeft: d.getDay() === 1 ? '1px solid #3a3a4844' : '1px solid transparent' }} />;
+                      // Un dia perdido se ve distinto de un domingo: el domingo
+                      // no se trabaja nunca, el perdido si se iba a trabajar.
+                      const perdido = perdidoPorFecha[dia];
+                      return <div key={dia} title={perdido ? `${perdido.motivo}${perdido.nota ? ' · ' + perdido.nota : ''}` : undefined}
+                        style={{ width: PX_DIA, height: '100%', flexShrink: 0,
+                          background: perdido ? 'rgba(217,119,6,.22)' : esHoyDia ? 'rgba(110,231,183,.04)' : franco ? 'rgba(74,74,88,.15)' : 'transparent',
+                          borderLeft: d.getDay() === 1 ? '1px solid #3a3a4844' : '1px solid transparent' }} />;
                     })}
                     {/* Barra de tarea */}
                     {t.es_hito ? (
@@ -1080,8 +1111,95 @@ export default function Gantt() {
                 Guardar
               </button>
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 10, lineHeight: 1.5 }}>
-              Se registra en el avance de la obra: lo ven el resumen, la curva y el cliente en su portal.
+            {(() => {
+              const a = (avanceObra?.por_linea || []).find(x => x.linea_id === cargarAvanceEn.linea_id);
+              const deCert = a && a.origen === 'certificado';
+              const deSub = a && a.origen === 'subcontrato';
+              return (
+                <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 10, lineHeight: 1.55 }}>
+                  {deCert && <>Lo que se ve hoy sale del <b>último certificado</b> ({a.fecha}). Lo que cargues acá manda a partir de su fecha, sin tocar el certificado.<br /></>}
+                  {deSub && <>Lo que se ve hoy sale de <b>lo certificado a un contratista</b>. Lo que cargues acá lo pisa.<br /></>}
+                  Se registra en el avance de la obra: es el mismo número que ven el resumen, la
+                  curva y el cliente en su portal.
+                  {avanceObra?.metodologia === 'certificacion'
+                    ? ' Cuando emitas el próximo certificado, va a partir de acá.'
+                    : ' Las etapas pactadas se miden con este mismo avance.'}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+
+      {/* Dias que la obra no avanzo */}
+      {panelDias && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 600,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setPanelDias(false)}>
+          <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 22, width: 'min(520px,100%)',
+                        maxHeight: '85vh', overflowY: 'auto', border: '1px solid var(--border)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <div style={{ fontSize: 15, fontWeight: 800 }}>Días que no se trabajó</div>
+              <button onClick={() => setPanelDias(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 22, cursor: 'pointer' }}>×</button>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>
+              Lluvia, feriado, paro o falta de material. El plazo se corre solo y el cliente ve la
+              fecha nueva.
+            </div>
+
+            <div style={{ display: 'flex', gap: 7, marginTop: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div>
+                <div style={{ fontSize: 10.5, color: 'var(--muted)', marginBottom: 4 }}>Desde</div>
+                <input type="date" value={formDia.desde} onChange={e => setFormDia(f => ({ ...f, desde: e.target.value }))}
+                  style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8,
+                           background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12.5 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10.5, color: 'var(--muted)', marginBottom: 4 }}>Hasta (opcional)</div>
+                <input type="date" value={formDia.hasta} onChange={e => setFormDia(f => ({ ...f, hasta: e.target.value }))}
+                  style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8,
+                           background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12.5 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10.5, color: 'var(--muted)', marginBottom: 4 }}>Motivo</div>
+                <select value={formDia.motivo} onChange={e => setFormDia(f => ({ ...f, motivo: e.target.value }))}
+                  style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8,
+                           background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12.5 }}>
+                  <option value="lluvia">Lluvia</option>
+                  <option value="feriado">Feriado</option>
+                  <option value="paro">Paro</option>
+                  <option value="material">Falta de material</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+              <button onClick={guardarDiasPerdidos} disabled={!formDia.desde}
+                style={{ padding: '9px 16px', background: 'var(--accent)', color: '#fff', border: 'none',
+                         borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                         fontFamily: 'inherit', opacity: formDia.desde ? 1 : .5 }}>Marcar</button>
+            </div>
+
+            <div style={{ marginTop: 18 }}>
+              {diasPerdidos.length === 0 ? (
+                <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Todavía no se marcó ningún día.</div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+                    {diasPerdidos.length} día{diasPerdidos.length !== 1 ? 's' : ''} perdido{diasPerdidos.length !== 1 ? 's' : ''}
+                  </div>
+                  {diasPerdidos.map(d => (
+                    <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10,
+                                             padding: '7px 0', borderBottom: '1px solid var(--border2)', fontSize: 12.5 }}>
+                      <span>{fmtFecha(d.fecha)} · <span style={{ color: 'var(--warn)' }}>{d.motivo}</span>
+                        {d.nota ? ` · ${d.nota}` : ''}</span>
+                      <button onClick={() => borrarDiaPerdido(d.id)}
+                        style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: 15 }}>×</button>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </div>
