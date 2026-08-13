@@ -118,6 +118,9 @@ const inp = {
   background: C.surface2, border: `1px solid ${C.border2}`, borderRadius: 8,
   color: C.text, padding: "7px 10px", fontSize: 13, fontFamily: "inherit",
   outline: "none", boxSizing: "border-box",
+  // Sin esto, en una grilla el control nunca baja del ancho de su contenido y
+  // se sale de la tarjeta en pantallas angostas. Se ve en un Galaxy de 320px.
+  minWidth: 0, maxWidth: "100%",
 };
 
 const HERRAM_LIST = ["Andamios", "Ruedas de andamio", "Hormigonera", "Termofusora", "Taladro", "Laser", "Escalera madera", "Escalera metálica", "Pala ancha", "Pala de punta", "Atornillador", "Alargue", "Reglas", "Baldes", "Otro"];
@@ -239,7 +242,7 @@ export default function ControlFinanciero({ user }) {
   const personalGrid = isMobile ? mobileRow
     : { display: "grid", gridTemplateColumns: "1.5fr 1fr 60px 60px 120px 100px auto", gap: 5, marginBottom: 5, alignItems: "center" };
   const herramGrid = isMobile ? mobileRow
-    : { display: "grid", gridTemplateColumns: "1.7fr 0.5fr 1fr 100px 90px 100px 100px auto", gap: 5, marginBottom: 5, alignItems: "center" };
+    : { display: "grid", gridTemplateColumns: "2fr 0.6fr 1.2fr 110px 110px auto", gap: 5, marginBottom: 5, alignItems: "center" };
   const conceptoSpan = isMobile ? { gridColumn: "1 / -1" } : {};
   const fullSpan = isMobile ? { gridColumn: "1 / -1" } : {};
   const totalPersonalSpan = {};  // en mobile fluye naturalmente a una celda
@@ -793,22 +796,28 @@ export default function ControlFinanciero({ user }) {
                   </select>
                   <input type="date" style={inp} value={row.fechaIn || ""} onChange={e => updHerramienta(i, "fechaIn", e.target.value)} title="Fecha entrada" />
                   <input type="date" style={inp} value={row.fechaEx || ""} onChange={e => updHerramienta(i, "fechaEx", e.target.value)} title="Fecha salida" />
-                  <select style={inp} value={row.modoCosto || "total"} onChange={e => updHerramienta(i, "modoCosto", e.target.value)} title="Cómo se cobra">
-                    <option value="total">Costo total</option>
-                    <option value="dia">Por día</option>
-                  </select>
-                  <NumeroInput style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }}
-                    placeholder={row.modoCosto === "dia" ? "$/día" : "$ total"}
-                    value={(row.modoCosto === "dia" ? row.costoDia : row.costoTotal) || ""}
-                    onChange={v => updHerramienta(i, row.modoCosto === "dia" ? "costoDia" : "costoTotal", v)} />
                   <button onClick={() => delHerramienta(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
-                  {totalHerram(row) > 0 && (
-                    <div style={{ gridColumn: "1 / -1", fontSize: 11, color: C.muted, marginTop: -2, marginBottom: 4 }}>
-                      {row.modoCosto === "dia" && diasHerram(row) > 0 ? `${diasHerram(row)} día${diasHerram(row) !== 1 ? "s" : ""} · ` : ""}
-                      Total: <b style={{ color: C.warn, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(totalHerram(row))}</b>
-                      {row.usuario ? ` · cargó ${row.usuario}` : ""}
-                    </div>
-                  )}
+                  {/* El costo va en su propia linea para no romper la grilla
+                      de arriba, que estaba pensada para seis columnas. */}
+                  <div style={{ gridColumn: "1 / -1", display: "flex", gap: 6, alignItems: "center",
+                                flexWrap: "wrap", marginTop: -1, marginBottom: 6 }}>
+                    <select style={{ ...inp, width: 118, padding: "5px 8px", fontSize: 12 }}
+                      value={row.modoCosto || "total"} onChange={e => updHerramienta(i, "modoCosto", e.target.value)}>
+                      <option value="total">Costo total</option>
+                      <option value="dia">Por día</option>
+                    </select>
+                    <NumeroInput style={{ ...inp, width: 118, padding: "5px 8px", fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}
+                      placeholder={row.modoCosto === "dia" ? "$/día" : "$ total"}
+                      value={(row.modoCosto === "dia" ? row.costoDia : row.costoTotal) || ""}
+                      onChange={v => updHerramienta(i, row.modoCosto === "dia" ? "costoDia" : "costoTotal", v)} />
+                    {totalHerram(row) > 0 && (
+                      <span style={{ fontSize: 11, color: C.muted }}>
+                        {row.modoCosto === "dia" && diasHerram(row) > 0 ? `${diasHerram(row)} día${diasHerram(row) !== 1 ? "s" : ""} · ` : ""}
+                        <b style={{ color: C.warn, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(totalHerram(row))}</b>
+                        {row.usuario ? ` · cargó ${row.usuario}` : ""}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
               <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
