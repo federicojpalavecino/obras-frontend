@@ -206,15 +206,23 @@ export default function Obra() {
     try {
       const r = await api.post(`/presupuestos/${id}/subcontratos/${certSub.subcontrato.id}/certificados`, {
         pct_acumulado: parseFloat(certForm.pct_acumulado),
-        fecha: certForm.fecha, nota: certForm.nota, generar_pago: certForm.generar_pago,
+        fecha: certForm.fecha, nota: certForm.nota, ya_pagado: false,
       });
       setCertSub(r.data);
       setCertForm(f => ({ ...f, pct_acumulado: "", nota: "" }));
-      showToast(certForm.generar_pago ? "✓ Certificado y pago registrados" : "✓ Certificado registrado");
+      showToast("✓ Certificado · ya está en el control financiero como pendiente");
       cargar();
     } catch (e) {
       showToast(e?.response?.data?.detail || "No se pudo certificar");
     }
+  };
+
+  const pagarCertSub = async (pagoId) => {
+    try {
+      const r = await api.patch(`/presupuestos/${id}/subcontratos/${certSub.subcontrato.id}/pagos/${pagoId}`,
+                                { pagado: true, fecha: today() });
+      setCertSub(r.data); showToast("✓ Pagado"); cargar();
+    } catch (e) { showToast(e?.response?.data?.detail || "No se pudo marcar el pago"); }
   };
 
   const borrarCertSub = async (cid) => {
@@ -441,7 +449,8 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
   const cc = cuentaCorriente || {};
   // La metodologia manda: la obra que se cobra por desembolsos pactados no
   // certifica, asi que no tiene sentido rotularle todo como "certificado".
-  const porDesembolsos = cc.metodologia === "desembolsos";
+  const porDesembolsos = cc.metodologia === "desembolsos"
+    || presupuesto?.metodologia === "desembolsos";
   const rotuloDevengado = porDesembolsos ? "Desembolsos devengados" : "Certificado acumulado";
   const aFavor = cc.a_favor_cliente || 0;
   const lineasObra = (presupuesto?.rubros || []).flatMap(r =>
@@ -1094,7 +1103,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 {[["Pactado", certSub.monto_total, C.text],
                   ["Certificado", certSub.certificado, C.accent2],
                   ["Pagado", certSub.pagado, C.green],
-                  ["Saldo a pagar", certSub.saldo_a_pagar, certSub.saldo_a_pagar > 0 ? C.red : C.green]].map(([l, v, col]) => (
+                  ["Le debés", certSub.a_pagar ?? certSub.saldo_a_pagar, (certSub.a_pagar ?? certSub.saldo_a_pagar) > 0 ? C.red : C.green]].map(([l, v, col]) => (
                   <div key={l} style={{ background: C.surface2, borderRadius: 9, padding: "10px 12px" }}>
                     <div style={{ fontSize: 9.5, color: C.muted, textTransform: "uppercase", letterSpacing: ".4px" }}>{l}</div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: col, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(v || 0)}</div>
@@ -1156,11 +1165,10 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                   <input placeholder="Nota (opcional)" value={certForm.nota} onChange={e => setCertForm(f => ({ ...f, nota: e.target.value }))}
                     style={{ flex: 1, minWidth: 140, padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: "inherit", fontSize: 12.5, background: C.surface, color: C.text }} />
                 </div>
-                <label style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, fontSize: 12.5, color: C.text, cursor: "pointer" }}>
-                  <input type="checkbox" checked={certForm.generar_pago}
-                    onChange={e => setCertForm(f => ({ ...f, generar_pago: e.target.checked }))} />
-                  Registrar también el pago del período, y mandarlo al control financiero
-                </label>
+                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10, lineHeight: 1.5 }}>
+                  Al certificar queda registrado lo que le debés, y aparece en el control
+                  financiero como pendiente. Cuando se lo pagues, tocás Pagar.
+                </div>
                 {certForm.pct_acumulado !== "" && (
                   <div style={{ fontSize: 12.5, color: C.muted, marginTop: 8 }}>
                     Este período: <b style={{ color: C.text, fontFamily: "'IBM Plex Mono',monospace" }}>
@@ -1177,21 +1185,34 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               {(certSub.certificados || []).length > 0 && (
                 <div style={{ marginTop: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Certificados emitidos</div>
-                  {certSub.certificados.map((c, i, arr) => (
-                    <div key={c.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.border2}`, fontSize: 12.5 }}>
-                      <span style={{ color: C.muted }}>
-                        Nº {c.numero} · {c.fecha} · {Number(c.pct_acumulado).toFixed(0)}% acum.
-                        {c.nota ? ` · ${c.nota}` : ""}
-                      </span>
-                      <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                        <b style={{ fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(c.monto_periodo)}</b>
-                        {i === arr.length - 1 && (
-                          <button onClick={() => borrarCertSub(c.id)}
-                            style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
-                        )}
-                      </span>
-                    </div>
-                  ))}
+                  {certSub.certificados.map((c, i, arr) => {
+                    const mov = (certSub.movimientos || []).find(m => m.cert_id === c.id);
+                    const pendiente = mov && (mov.estado || "pagado") === "pendiente";
+                    return (
+                      <div key={c.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "9px 0", borderBottom: `1px solid ${C.border2}`, fontSize: 12.5, flexWrap: "wrap" }}>
+                        <span style={{ color: C.muted, minWidth: 0 }}>
+                          Nº {c.numero} · {c.fecha} · {Number(c.pct_acumulado).toFixed(0)}% acum.
+                          {c.nota ? ` · ${c.nota}` : ""}
+                          {mov && !pendiente && mov.fecha_pago ? ` · pagado ${mov.fecha_pago}` : ""}
+                        </span>
+                        <span style={{ display: "flex", gap: 9, alignItems: "center" }}>
+                          <b style={{ fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(c.monto_periodo)}</b>
+                          {pendiente ? (
+                            <button onClick={() => pagarCertSub(mov.id)}
+                              style={{ padding: "4px 14px", background: C.green, color: "#fff", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                              Pagar
+                            </button>
+                          ) : mov ? (
+                            <span style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>Pagado</span>
+                          ) : null}
+                          {i === arr.length - 1 && (
+                            <button onClick={() => borrarCertSub(c.id)}
+                              style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1348,6 +1369,41 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               <div style={{ fontSize: 16, fontWeight: 700 }}>Registrar cobro</div>
               <button onClick={() => setShowCobro(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 22 }}>×</button>
             </div>
+
+            {desembolsos.some(d => d.saldo > 0) && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 7 }}>
+                  ¿Qué etapa te pagaron?
+                </div>
+                {desembolsos.filter(d => d.saldo > 0).map(d => {
+                  const elegida = cobForm.desembolso_id === d.id;
+                  return (
+                    <button key={d.id} type="button"
+                      onClick={() => setCobForm(f => elegida
+                        ? { ...f, desembolso_id: null, monto: "", nota: "" }
+                        : { ...f, desembolso_id: d.id, monto: String(d.saldo), nota: `Etapa ${d.numero}` })}
+                      style={{ width: "100%", textAlign: "left", display: "flex", justifyContent: "space-between",
+                               gap: 10, alignItems: "center", padding: "9px 12px", marginBottom: 6, cursor: "pointer",
+                               font: "inherit", borderRadius: 9,
+                               border: `1px solid ${elegida ? C.accent : C.border}`,
+                               background: elegida ? "rgba(5,150,105,.08)" : C.surface2 }}>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>Etapa {d.numero}</span>
+                        <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+                          {d.descripcion || "Sin descripción"} · {Number(d.avance_pct || 0).toFixed(0)}% cumplido
+                        </span>
+                      </span>
+                      <span style={{ fontWeight: 700, fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, flexShrink: 0 }}>{fmt(d.saldo)}</span>
+                    </button>
+                  );
+                })}
+                <button type="button" onClick={() => setCobForm(f => ({ ...f, desembolso_id: null, monto: "", nota: "" }))}
+                  style={{ background: "none", border: "none", padding: 0, marginTop: 2, fontSize: 11.5,
+                           color: C.muted, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
+                  Es un cobro que no corresponde a ninguna etapa
+                </button>
+              </div>
+            )}
             {[
               { label: "Monto", key: "monto", type: "number", placeholder: "0" },
               { label: "Fecha", key: "fecha", type: "date" },
