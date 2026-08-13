@@ -313,6 +313,10 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
+  // El campo del estudio no se muestra de entrada: aparece solo si el backend
+  // avisa que ese nombre de usuario esta repetido entre estudios.
+  const [estudioLogin, setEstudioLogin] = useState("");
+  const [pideEstudio, setPideEstudio] = useState(false);
   const [modo, setModo] = useState("login"); // "login" | "registro"
   const [regNombre, setRegNombre] = useState("");
   const [regEstudio, setRegEstudio] = useState("");
@@ -400,9 +404,20 @@ export default function App() {
   const login = async () => {
     setError("");
     const emailLower = email.toLowerCase().trim();
+    const estudioTxt = estudioLogin.trim();
+
+    // El login prueba varios endpoints hasta que uno contesta, asi que los
+    // errores se descartan. Pero el 409 no es un "no sos vos": es el backend
+    // diciendo que ese nombre de usuario existe en mas de un estudio y necesita
+    // saber cual. Hay que pescarlo antes de que lo tape el intento siguiente.
+    let ambiguo = false;
+    const intentar = (url, body) => api.post(url, body).catch(e => {
+      if (e?.response?.status === 409) ambiguo = true;
+      return null;
+    });
 
     try {
-      const loginRes = await api.post('/auth/login-cliente', { email: emailLower, password: pass }).catch(() => null);
+      const loginRes = await intentar('/auth/login-cliente', { email: emailLower, password: pass });
       if (loginRes) {
         const data = loginRes.data;
         const ci = { cliente_id: data.cliente_id, nombre: data.nombre, email: data.email };
@@ -420,7 +435,7 @@ export default function App() {
     } catch {}
 
     try {
-      const estudioRes = await api.post('/estudio/login', { email: emailLower, password: pass }).catch(() => null);
+      const estudioRes = await intentar('/estudio/login', { email: emailLower, password: pass, estudio: estudioTxt });
       if (estudioRes) {
         const data = estudioRes.data;
         const ei = { nombre: data.nombre, rol: data.rol, presupuestos_asignados: data.presupuestos_asignados, email: data.email };
@@ -448,7 +463,7 @@ export default function App() {
     } catch {}
 
     try {
-      const authRes = await api.post('/auth/login', { email: emailLower, password: pass }).catch(() => null);
+      const authRes = await intentar('/auth/login', { email: emailLower, password: pass, estudio: estudioTxt });
       if (authRes) {
         const data = authRes.data;
         const token = data.token;
@@ -462,7 +477,7 @@ export default function App() {
     } catch {}
 
     try {
-      const adminRes = await api.post('/admin/login', { email: emailLower, password: pass }).catch(() => null);
+      const adminRes = await intentar('/admin/login', { email: emailLower, password: pass });
       if (adminRes) {
         localStorage.setItem("obras_admin_token", adminRes.data.token);
         window.location.href = "/admin-panel";
@@ -470,7 +485,12 @@ export default function App() {
       }
     } catch {}
 
-    setError("Email o contraseña incorrectos");
+    if (ambiguo) {
+      setPideEstudio(true);
+      setError("Ese usuario existe en más de un estudio. Indicá cuál.");
+      return;
+    }
+    setError("Usuario o contraseña incorrectos");
   };
 
   const registrar = async () => {
@@ -546,10 +566,20 @@ export default function App() {
 
         {modo === "login" ? (
           <>
+            {/* Un solo campo para las dos cosas: el dueño del estudio entra con
+                su mail y la gente que él da de alta con el usuario que le puso.
+                No hace falta que elijan de antemano cuál es cuál. */}
             <div style={{marginBottom:14}}>
-              <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Email</label>
-              <input value={email} onChange={e=>setEmail(e.target.value)} type="email" className="input" style={{width:"100%",boxSizing:"border-box"}}/>
+              <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Usuario o email</label>
+              <input value={email} onChange={e=>setEmail(e.target.value)} type="text" autoCapitalize="none" autoCorrect="off" className="input" style={{width:"100%",boxSizing:"border-box"}}/>
             </div>
+            {/* Solo cuando el mismo usuario existe en más de un estudio. */}
+            {pideEstudio && (
+              <div style={{marginBottom:14}}>
+                <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Estudio</label>
+                <input value={estudioLogin} onChange={e=>setEstudioLogin(e.target.value)} type="text" autoCapitalize="none" autoCorrect="off" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Nombre del estudio"/>
+              </div>
+            )}
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Contraseña</label>
               <input value={pass} onChange={e=>setPass(e.target.value)} type="password" className="input" style={{width:"100%",boxSizing:"border-box"}} onKeyDown={e=>e.key==="Enter"&&login()}/>
