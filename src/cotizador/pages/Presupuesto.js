@@ -808,7 +808,7 @@ ${firma}
             <div style={{ display: 'flex', background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 6, overflow: 'hidden' }}>
               <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => handleImprimir('comercial')}><Printer size={12} strokeWidth={1.5} /> Cliente</button>
               <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => handleImprimir('interno')}><Printer size={12} strokeWidth={1.5} /> Interno</button>
-              <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={imprimirComputoGeneral} title="Imprimir cómputo de cantidades">∑ Cómputo</button>
+              {!esServicio && <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={imprimirComputoGeneral} title="Imprimir cómputo de cantidades">∑ Cómputo</button>}
             </div>
             {cerrado ? (
               <>

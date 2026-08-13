@@ -204,7 +204,7 @@ export default function AnalisisCostos() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/')}>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/cotizador')}>
             <ArrowLeft size={14} /> Volver
           </button>
           <div>

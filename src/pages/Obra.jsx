@@ -1146,8 +1146,26 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               {/* Certificar */}
               <div style={{ marginTop: 16, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Certificar avance</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+                  {[["Certificado anterior", `${Number(certSub.pct_certificado || 0).toFixed(0)}%`, fmt(certSub.certificado)],
+                    ["Este período", certForm.pct_acumulado !== ""
+                      ? `${Math.max(0, (parseFloat(certForm.pct_acumulado) || 0) - Number(certSub.pct_certificado || 0)).toFixed(0)}%` : "—",
+                      certForm.pct_acumulado !== ""
+                        ? fmt(Math.max(0, (certSub.monto_total || 0) * (parseFloat(certForm.pct_acumulado) || 0) / 100 - (certSub.certificado || 0)))
+                        : "—"],
+                    ["Quedaría acumulado", certForm.pct_acumulado !== "" ? `${(parseFloat(certForm.pct_acumulado) || 0).toFixed(0)}%` : "—",
+                      certForm.pct_acumulado !== ""
+                        ? fmt((certSub.monto_total || 0) * (parseFloat(certForm.pct_acumulado) || 0) / 100) : "—"],
+                  ].map(([l, pct, monto]) => (
+                    <div key={l} style={{ flex: 1, minWidth: 118, background: C.surface2, borderRadius: 9, padding: "9px 11px" }}>
+                      <div style={{ fontSize: 9.5, color: C.muted, textTransform: "uppercase", letterSpacing: ".4px" }}>{l}</div>
+                      <div style={{ fontSize: 15, fontWeight: 800, fontFamily: "'IBM Plex Mono',monospace" }}>{pct}</div>
+                      <div style={{ fontSize: 11, color: C.muted, fontFamily: "'IBM Plex Mono',monospace" }}>{monto}</div>
+                    </div>
+                  ))}
+                </div>
                 <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10, lineHeight: 1.5 }}>
-                  Lleva {Number(certSub.pct_certificado || 0).toFixed(0)}% certificado. Poné el acumulado nuevo.
+                  Poné el acumulado nuevo.
                   {certSub.pct_avance_obra != null && (
                     <> El avance de obra de esos ítems va por el{" "}
                       <b style={{ color: C.accent2 }}>{Number(certSub.pct_avance_obra).toFixed(0)}%</b>.</>
@@ -1169,13 +1187,6 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                   Al certificar queda registrado lo que le debés, y aparece en el control
                   financiero como pendiente. Cuando se lo pagues, tocás Pagar.
                 </div>
-                {certForm.pct_acumulado !== "" && (
-                  <div style={{ fontSize: 12.5, color: C.muted, marginTop: 8 }}>
-                    Este período: <b style={{ color: C.text, fontFamily: "'IBM Plex Mono',monospace" }}>
-                      {fmt(Math.max(0, (certSub.monto_total || 0) * (parseFloat(certForm.pct_acumulado) || 0) / 100 - (certSub.certificado || 0)))}
-                    </b>
-                  </div>
-                )}
                 <button onClick={guardarCertSub} disabled={certForm.pct_acumulado === ""}
                   style={{ marginTop: 12, padding: "9px 18px", background: C.accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: certForm.pct_acumulado === "" ? .5 : 1 }}>
                   Certificar

@@ -234,7 +234,7 @@ export default function Materiales() {
     <div>
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/')}><ArrowLeft size={14} /> Volver</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/cotizador')}><ArrowLeft size={14} /> Volver</button>
           <div>
             <div style={{ fontWeight: 800, fontSize: 16 }}>Maestro de Materiales</div>
             <div style={{ fontSize: 11, color: 'var(--muted)' }}>{materiales.length} materiales</div>
