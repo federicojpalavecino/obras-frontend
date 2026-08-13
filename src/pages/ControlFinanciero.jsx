@@ -678,15 +678,20 @@ export default function ControlFinanciero({ user }) {
               <SectionHeader label="Ingresos" total={calc.totalIng} onAdd={addIngreso} />
               {week.ingresos.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin ingresos — tocá Agregar</div>}
               {week.ingresos.map((row, i) => (
-                <div key={i} style={rowGrid}>
-                  <input style={{ ...inp, ...conceptoSpan }} placeholder="Concepto" value={row.concepto || ""} onChange={e => updIngreso(i, "concepto", e.target.value)} />
+                <div key={i} style={{ ...rowGrid, ...(row.origen === "obra" ? { opacity: .82 } : {}) }}
+                  title={row.origen === "obra" ? "Viene de la obra: se edita desde ahí" : undefined}>
+                  <input style={{ ...inp, ...conceptoSpan, ...(row.origen === "obra" ? { background: "var(--surface2)" } : {}) }}
+                    placeholder="Concepto" value={row.concepto || ""} readOnly={row.origen === "obra"}
+                    onChange={e => updIngreso(i, "concepto", e.target.value)} />
                   <NumeroInput style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} placeholder="Monto" value={row.monto || ""} onChange={v => updIngreso(i, "monto", v)} />
                   <select style={inp} value={row.estado || "PENDIENTE"} onChange={e => updIngreso(i, "estado", e.target.value)}>
                     {["PENDIENTE", "COBRADO", "EN PROCESO"].map(s => <option key={s}>{s}</option>)}
                   </select>
                   <SelectImputacion campo="ingresos" i={i} row={row} style={inp} />
                   <SelectQuien campo="ingresos" i={i} row={row} style={inp} />
-                  <button onClick={() => delIngreso(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
+                  {row.origen === "obra"
+                    ? <span style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap" }} title="Se edita desde la obra">obra</span>
+                    : <button onClick={() => delIngreso(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>}
                 </div>
               ))}
             </div>
@@ -696,15 +701,20 @@ export default function ControlFinanciero({ user }) {
               <SectionHeader label="Egresos" total={calc.totalEg} onAdd={addEgreso} />
               {week.egresos.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin egresos</div>}
               {week.egresos.map((row, i) => (
-                <div key={i} style={rowGrid}>
-                  <input style={{ ...inp, ...conceptoSpan }} placeholder="Concepto" value={row.concepto || ""} onChange={e => updEgreso(i, "concepto", e.target.value)} />
+                <div key={i} style={{ ...rowGrid, ...(row.origen === "obra" ? { opacity: .82 } : {}) }}
+                  title={row.origen === "obra" ? "Viene de la obra: se edita desde ahí" : undefined}>
+                  <input style={{ ...inp, ...conceptoSpan, ...(row.origen === "obra" ? { background: "var(--surface2)" } : {}) }}
+                    placeholder="Concepto" value={row.concepto || ""} readOnly={row.origen === "obra"}
+                    onChange={e => updEgreso(i, "concepto", e.target.value)} />
                   <NumeroInput style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} placeholder="Monto" value={row.monto || ""} onChange={v => updEgreso(i, "monto", v)} />
                   <select style={inp} value={row.estado || "PENDIENTE"} onChange={e => updEgreso(i, "estado", e.target.value)}>
                     {["PENDIENTE", "PAGADO"].map(s => <option key={s}>{s}</option>)}
                   </select>
                   <SelectImputacion campo="egresos" i={i} row={row} style={inp} />
                   <SelectQuien campo="egresos" i={i} row={row} style={inp} />
-                  <button onClick={() => delEgreso(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
+                  {row.origen === "obra"
+                    ? <span style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap" }} title="Se edita desde la obra">obra</span>
+                    : <button onClick={() => delEgreso(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>}
                 </div>
               ))}
               {/* Indicador de egresos disponibles para cert */}

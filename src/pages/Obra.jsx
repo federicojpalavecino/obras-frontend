@@ -182,6 +182,7 @@ export default function Obra() {
 
   const cambiarMetodologia = async (metodologia) => {
     await api.patch(`/presupuestos/${id}/metodologia`, { metodologia });
+    if (metodologia === "desembolsos" && tab === "certificados") setTab("avance");
     showToast(metodologia === "desembolsos" ? "Gestión por desembolsos" : "Gestión por certificación");
     cargar();
   };
@@ -491,9 +492,10 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 style={{ ...btn(C.warn), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
                 <TrendingUp size={13} strokeWidth={1.5} /> Curva
               </button>
-              <button onClick={() => setTab("certificados")}
+              <button onClick={() => setTab(porDesembolsos ? "avance" : "certificados")}
                 style={{ ...btn(C.accent2), fontSize: 12, display:"flex", alignItems:"center", gap:5 }}>
-                <Award size={13} strokeWidth={1.5} /> {porDesembolsos ? "Avance" : "Certificados"}
+                {porDesembolsos ? <TrendingUp size={13} strokeWidth={1.5} /> : <Award size={13} strokeWidth={1.5} />}
+                {porDesembolsos ? "Avance" : "Certificados"}
               </button>
             </div>
           )}
@@ -523,7 +525,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <TabBtn id="compras" label="Compras" />
             <TabBtn id="avance" label="Avance" />
             <TabBtn id="planos" label="Planos" />
-            {(!porDesembolsos || certificados.length > 0) && <TabBtn id="certificados" label="Certificados" />}
+            {!porDesembolsos && <TabBtn id="certificados" label="Certificados" />}
           </div>
         </div>
       )}
