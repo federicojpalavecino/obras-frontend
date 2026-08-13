@@ -22,6 +22,7 @@ import PersonalPortal from "./pages/PersonalPortal";
 import AccesosClientes from "./pages/AccesosClientes";
 import Landing from "./pages/Landing";
 import Presentacion from "./pages/Presentacion";
+import DemoPortal from "./pages/DemoPortal";
 import Obra from "./pages/Obra";
 import Asistente from "./components/Asistente";
 import api from "./cotizador/api";
@@ -508,6 +509,12 @@ export default function App() {
   // un prospecto. Va antes del chequeo de sesión para que abra directo.
   if (window.location.pathname === "/presentacion" || window.location.pathname === "/presentacion/") {
     return <Presentacion />;
+  }
+
+  // Demo del portal de clientes — también pública. Muestra con datos ficticios
+  // lo que ve el cliente del estudio, sin pedir usuario.
+  if (["/demo-portal", "/demo-portal/", "/portal-demo", "/portal-demo/"].includes(window.location.pathname)) {
+    return <DemoPortal />;
   }
 
   if (loading) return (
