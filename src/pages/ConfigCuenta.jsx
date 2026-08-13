@@ -147,8 +147,10 @@ function HonorariosSection() {
   const sinK = !cfg.valor_k;
 
   return (
-    <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:14, padding:20, marginTop:16 }}>
-      <div style={{ fontSize:16, fontWeight:800 }}>Honorarios profesionales</div>
+    <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:24, marginBottom:24 }}>
+      <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.5px" }}>
+        Honorarios profesionales
+      </div>
       <div style={{ fontSize:12.5, color:C.muted, marginTop:4, lineHeight:1.5, maxWidth:640 }}>
         Para presupuestar proyectos y servicios. El colegio de tu provincia publica un índice
         «K» y lo actualiza por trimestre: de ahí sale el precio, sin cómputo ni análisis de costo.
@@ -443,13 +445,15 @@ export default function ConfigCuenta({ user, onUpdate }) {
         </div>
       </div>
 
+      {/* HONORARIOS — antes que usuarios: es configuracion del producto */}
+      <HonorariosSection />
+
       {/* USUARIOS */}
       <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:24, marginBottom:24 }}>
         <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:16, textTransform:"uppercase", letterSpacing:"0.5px" }}>Usuarios del estudio</div>
-        <HonorariosSection />
-
         <UsuariosSection />
       </div>
+
 
       {msg && <div style={{ fontSize:13, color: msg.includes("Error") ? C.red : C.accent, marginBottom:12, textAlign:"center" }}>{msg}</div>}
 
