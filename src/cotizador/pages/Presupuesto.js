@@ -768,6 +768,8 @@ ${firma}
   // inversion: mostrarle esas pantallas es ofrecerle herramientas de una
   // obra que no esta haciendo.
   const esServicio = data?.tipo === 'servicio';
+  // Ni el servicio ni la obra que se cobra por etapas pactadas certifican.
+  const certifica = !esServicio && data?.metodologia !== 'desembolsos';
   const coefGgBen = coefs ? 1 / (1 - coefs.gg_porcentaje / 100 - coefs.ben_porcentaje / 100) : 1;
 
   if (loading) return <div className="loading">Cargando presupuesto...</div>;
@@ -812,9 +814,11 @@ ${firma}
               <>
                 {/* Gestión group */}
                 <div style={{ display: 'flex', background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 6, overflow: 'hidden' }}>
+                  {certifica && (
                   <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => navigate(`/cotizador/presupuesto/${id}/certificado`)}>
                     <FileText size={13} /> Cert.
                   </button>
+                  )}
                   <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => navigate(`/cotizador/gantt/${id}`)}>
                     <BarChart2 size={13} /> Gantt
                   </button>
@@ -846,8 +850,10 @@ ${firma}
               { label: 'Imprimir — Cliente', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('comercial') },
               { label: 'Imprimir — Interno', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('interno') },
               ...(cerrado ? [
-                ...(esServicio ? [] : [
+                ...(certifica ? [
                 { label: 'Certificados',        icon: <FileText    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/certificado`) },
+                ] : []),
+                ...(esServicio ? [] : [
                 { label: 'Curva de inversión',  icon: <TrendingUp  size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/curva`) },
                 { label: 'Listado de materiales',icon: <Package    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/materiales`) },
                 ]),
