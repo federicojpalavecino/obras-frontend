@@ -1,0 +1,266 @@
+<title>Propuesta · Gestión de obra</title>
+<style>
+:root{
+  --ground:#f4f6f4; --sheet:#ffffff; --sheet2:#eef1ee;
+  --ink:#141916; --ink2:#3d4742; --mut:#6f7a74;
+  --line:#d9ded9; --line2:#c3cbc4;
+  --ac:#059669; --ac-soft:#e2f2ea; --warn:#b8760a; --warn-soft:#fbf1de; --red:#d63c3c;
+  --grid:rgba(20,25,22,.055);
+  --disp:"Bahnschrift","DIN Alternate","Roboto Condensed",ui-sans-serif,system-ui,sans-serif;
+  --body:"Segoe UI Variable Text","Segoe UI",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","Segoe UI Mono",Consolas,"SF Mono",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0e1310; --sheet:#151b17; --sheet2:#1b221d;
+  --ink:#e6ebe7; --ink2:#b4bfb8; --mut:#8b968f;
+  --line:#28312b; --line2:#374139;
+  --ac:#2fbe86; --ac-soft:#12281f; --warn:#e0a138; --warn-soft:#2a2213; --red:#f0736f;
+  --grid:rgba(255,255,255,.05);
+}}
+:root[data-theme="dark"]{
+  --ground:#0e1310; --sheet:#151b17; --sheet2:#1b221d;
+  --ink:#e6ebe7; --ink2:#b4bfb8; --mut:#8b968f;
+  --line:#28312b; --line2:#374139;
+  --ac:#2fbe86; --ac-soft:#12281f; --warn:#e0a138; --warn-soft:#2a2213; --red:#f0736f;
+  --grid:rgba(255,255,255,.05);
+}
+*{box-sizing:border-box}
+body{background:var(--ground);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:34px 34px;
+  color:var(--ink); font-family:var(--body); font-size:15.5px; line-height:1.58;
+  margin:0; padding:0 20px 80px; -webkit-font-smoothing:antialiased}
+.wrap{max-width:880px; margin:0 auto}
+h1,h2,h3{font-family:var(--disp); font-weight:700; text-wrap:balance; margin:0}
+h1{font-size:clamp(36px,6vw,60px); line-height:.98; letter-spacing:-.02em}
+h2{font-size:clamp(22px,3vw,29px); letter-spacing:-.01em}
+h3{font-size:18px}
+p{margin:0; max-width:64ch}
+.eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--mut)}
+.lead{font-size:18px; color:var(--ink2)}
+.mono{font-family:var(--mono); font-size:.87em}
+strong{font-weight:650}
+header{padding:64px 0 34px; display:flex; flex-direction:column; gap:16px}
+section{padding-top:52px; display:flex; flex-direction:column; gap:18px}
+.shead{border-top:2px solid var(--ink); padding-top:13px; display:flex; flex-direction:column; gap:8px}
+
+/* Tesis */
+.tesis{background:var(--sheet); border:1px solid var(--line); border-left:3px solid var(--ac);
+  padding:24px 26px; display:flex; flex-direction:column; gap:13px}
+.tesis .antes{color:var(--mut)}
+.dos{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line); border:1px solid var(--line)}
+.via{background:var(--sheet); padding:19px 21px; display:flex; flex-direction:column; gap:7px}
+.via .h{font-family:var(--disp); font-size:17px; font-weight:700}
+.via .q{font-family:var(--mono); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--ac)}
+.via p{font-size:14.5px; color:var(--ink2)}
+
+/* Puntos */
+.pts{display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line)}
+.pt{background:var(--sheet); padding:21px 23px; display:grid; grid-template-columns:34px 1fr; gap:16px}
+.pt .n{font-family:var(--mono); font-size:12px; color:var(--ac); padding-top:3px}
+.pt .b{display:flex; flex-direction:column; gap:9px; min-width:0}
+.pt .top{display:flex; align-items:baseline; gap:11px; flex-wrap:wrap}
+.pt p{font-size:14.5px; color:var(--ink2)}
+.hoy{font-family:var(--mono); font-size:12px; color:var(--mut); background:var(--sheet2);
+  border-left:2px solid var(--line2); padding:8px 12px; overflow-x:auto}
+.chip{font-family:var(--mono); font-size:9.5px; letter-spacing:.13em; text-transform:uppercase;
+  padding:3px 7px; border:1px solid var(--line2); color:var(--mut); white-space:nowrap}
+.chip.ok{border-color:var(--ac); color:var(--ac); background:var(--ac-soft)}
+.chip.new{border-color:var(--warn); color:var(--warn); background:var(--warn-soft)}
+
+/* Orden */
+.orden{display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line)}
+.paso{background:var(--sheet); padding:15px 20px; display:grid; grid-template-columns:26px 1fr auto; gap:15px; align-items:baseline}
+.paso .i{font-family:var(--mono); font-size:12px; color:var(--ac)}
+.paso .t{font-size:14.5px}
+.paso .w{font-family:var(--mono); font-size:11px; color:var(--mut); white-space:nowrap}
+ul.no{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px}
+ul.no li{padding-left:22px; position:relative; font-size:14.5px; color:var(--ink2)}
+ul.no li::before{content:"—"; position:absolute; left:0; color:var(--ac)}
+.cierre{background:var(--sheet); border:1px solid var(--line); border-left:3px solid var(--warn);
+  padding:22px 24px; display:flex; flex-direction:column; gap:11px}
+footer{padding-top:44px; color:var(--mut); font-size:13px}
+@media (max-width:640px){ .dos{grid-template-columns:1fr} .pt{grid-template-columns:1fr; gap:9px} }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Propuesta · 12/08/2026</div>
+  <h1>La obra no se<br>gestiona por<br>certificado</h1>
+  <p class="lead">Siete pedidos que, mirados juntos, son un solo cambio de fondo. Esto es lo
+  que propongo hacer y en qué orden.</p>
+</header>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">El cambio de fondo</div>
+    <h2>La modalidad gobierna la gestión</h2>
+  </div>
+  <div class="tesis">
+    <p class="antes">Hoy el certificado es el centro: es el único lugar donde vive un avance,
+    la cuenta corriente calcula <span class="mono">saldo = certificado − cobrado</span>, y el
+    portal le dice «sin certificados emitidos aún» al estudio que ya eligió cobrar por
+    desembolsos.</p>
+    <p><strong>Al cerrar el presupuesto se elige la metodología, y esa metodología manda</strong>:
+    qué pantalla ve el estudio, qué le pide el sistema, y qué ve el cliente. El certificado deja
+    de ser el centro y pasa a ser una de las dos vías. Se decide en el cierre porque es el
+    momento en que el presupuesto ya es un trato y todavía no empezó la gestión.</p>
+  </div>
+  <div class="dos">
+    <div class="via">
+      <div class="q">Vía A</div>
+      <div class="h">Por avance de obra</div>
+      <p>Se mide el avance físico y se certifica. Es lo que existe hoy, intacto.</p>
+    </div>
+    <div class="via">
+      <div class="q">Vía B</div>
+      <div class="h">Por desembolsos pactados</div>
+      <p>Etapas acordadas con el cliente. Cada una con su monto y su fecha. Sin certificar
+      nada.</p>
+    </div>
+  </div>
+  <p>Dos cosas valen para las dos vías, y por eso no viven en ninguna de ellas:</p>
+  <div class="dos">
+    <div class="via">
+      <div class="q">Común</div>
+      <div class="h">El avance de obra</div>
+      <p>Se registra siempre, se cobre como se cobre. Las dos vías escriben en el
+      <strong>mismo registro</strong>: por eso el portal, la curva y la cuenta corriente
+      funcionan igual sin saber cuál se usó.</p>
+    </div>
+    <div class="via">
+      <div class="q">Común</div>
+      <div class="h">El anticipo</div>
+      <p>Cualquiera de las dos puede arrancar con un anticipo. Se cobra antes de que haya
+      avance y se descuenta después, así que no es ni un certificado ni una etapa: es del
+      contrato.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">Los siete puntos</div>
+    <h2>Qué hay, qué falta</h2>
+  </div>
+  <div class="pts">
+
+    <div class="pt"><div class="n">01</div><div class="b">
+      <div class="top"><h3>Desembolsos que guían la obra</h3><span class="chip ok">medio hecho</span></div>
+      <p>El desembolso pasa a llevar su propio avance y su fecha real. La gestión de la obra
+      muestra las etapas pactadas en lugar de los certificados, y el cliente ve exactamente eso.</p>
+      <div class="hoy">Ya existe: t_contratos.tipo_pago = 'desembolsos' · t_desembolsos_contrato · t_cobros.desembolso_id</div>
+    </div></div>
+
+    <div class="pt"><div class="n">02</div><div class="b">
+      <div class="top"><h3>El desembolso entra al control financiero</h3><span class="chip ok">un campo</span></div>
+      <p>Cobros, compras y pagos a subcontratistas ya se enganchan al control financiero por
+      una bandeja de pendientes. El desembolso es el único que quedó afuera: se le agrega el
+      mismo enganche y aparece ahí solo.</p>
+      <div class="hoy">Ya existe: cf_semana_id en t_cobros, t_compras, t_pagos_subcontrato · GET /cf/obra-pendientes</div>
+    </div></div>
+
+    <div class="pt"><div class="n">03</div><div class="b">
+      <div class="top"><h3>Quién gastó y en qué se imputa</h3><span class="chip new">el trabajo grande</span></div>
+      <p>Cada movimiento pasa a ser una fila con <strong>quién lo hizo</strong> y contra
+      <strong>qué se imputa</strong>: el estudio, una obra, un cliente o un proyecto. Con eso
+      salen solos «cuánto gastó cada uno» y «cuánto lleva esta obra», que hoy no se pueden ni
+      sumar.</p>
+      <div class="hoy">Hoy: ingresos, egresos y personal son JSON adentro de la semana. Un egreso es {concepto, estado, monto, obra, presupuesto_id} — sin usuario, sin cliente, sin proyecto.</div>
+    </div></div>
+
+    <div class="pt"><div class="n">04</div><div class="b">
+      <div class="top"><h3>Certificado interno del contratista</h3><span class="chip ok">medio hecho</span></div>
+      <p>Cuando a un subcontratista se le paga por avance, se le certifica adentro: avance por
+      línea, valorizado <strong>al costo de ejecución</strong> y no al precio de venta — que es
+      el número que el sistema ya calcula para cada línea. El pago resultante va al control
+      financiero por el enganche que ya existe.</p>
+      <div class="hoy">Ya existe: t_pagos_subcontrato.pct_avance_al_pagar · t_subcontratos.tipo_pago · t_subcontratos.linea_presupuesto_id</div>
+    </div></div>
+
+    <div class="pt"><div class="n">05</div><div class="b">
+      <div class="top"><h3>Proyectos creativos</h3><span class="chip ok">casi todo reusa</span></div>
+      <p>Un presupuesto de tipo servicio: croquis preliminar, relevamiento, anteproyecto,
+      documentación. Cada etapa con su desembolso y su avance. El cliente entra y ve en qué
+      etapa está, cuánto avanzó y cuánto le toca pagar por esa etapa. Sirve para estudios que
+      no hacen obra.</p>
+      <div class="hoy">Ya existe: líneas libres (nombre, unidad y costo propios) · con GG y beneficio en 0 el monto pasa tal cual · contrato, desembolsos, cobros y portal son los mismos</div>
+    </div></div>
+
+    <div class="pt"><div class="n">07</div><div class="b">
+      <div class="top"><h3>El planner ve todo lo pendiente</h3><span class="chip new">se agranda</span></div>
+      <p>Las etapas de un proyecto creativo son tareas con fecha y responsable: tienen que
+      aparecer en el planner junto a lo de obra. <strong>Un solo tablero con todo lo pendiente
+      del estudio</strong>, venga de una obra, de un proyecto o de nada. Hoy el planner tiene
+      su propia idea de proyecto, separada de la del presupuesto: eso se unifica, no se
+      duplica.</p>
+      <div class="hoy">Ya existe: tablero kanban, vista semana, estados, prioridad, asignado y sync con Google Calendar · POST /planner/desde-gantt</div>
+    </div></div>
+
+    <div class="pt"><div class="n">06</div><div class="b">
+      <div class="top"><h3>Planos en PDF dentro de la obra</h3><span class="chip new">infraestructura nueva</span></div>
+      <p>Ver el plano en la app, sin bajarlo. Es el único punto que necesita algo que hoy no
+      existe: <strong>almacenamiento de archivos</strong>. El logo del estudio se guarda
+      incrustado en la base, que sirve para 30 KB y no para un plano de 15 MB. Hay que decidir
+      dónde viven los archivos antes de empezarlo.</p>
+      <div class="hoy">Hoy: no hay storage. Decisión previa, no técnica de detalle.</div>
+    </div></div>
+
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">Por qué son uno solo</div>
+    <h2>Lo mismo, cinco veces</h2>
+  </div>
+  <p>Cinco de los siete puntos piden las mismas dos cosas: <strong>un avance</strong> —de la
+  obra, de una etapa, de un subcontrato— y <strong>un movimiento de plata imputado a algo</strong>
+  —una obra, un cliente, un proyecto, el estudio—. Modelados una vez, los cinco salen juntos.
+  Modelados de a uno, quedan cinco mitades que no se suman entre sí, que es lo que pasa hoy.</p>
+</section>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">Orden propuesto</div>
+    <h2>Qué primero</h2>
+  </div>
+  <div class="orden">
+    <div class="paso"><div class="i">01</div><div class="t"><strong>Modalidad y avance</strong> — el registro único de avance, y que la obra elija su vía. Desbloquea todo lo demás.</div><div class="w">base</div></div>
+    <div class="paso"><div class="i">02</div><div class="t"><strong>Desembolsos con avance</strong> y su enganche al control financiero.</div><div class="w">chico</div></div>
+    <div class="paso"><div class="i">03</div><div class="t"><strong>Movimientos con quién e imputación</strong> en el control financiero.</div><div class="w">grande</div></div>
+    <div class="paso"><div class="i">04</div><div class="t"><strong>Certificado interno</strong> del subcontratista, al costo de ejecución.</div><div class="w">medio</div></div>
+    <div class="paso"><div class="i">05</div><div class="t"><strong>Proyectos creativos</strong>, su vista en el portal y sus etapas dentro del planner.</div><div class="w">medio</div></div>
+    <div class="paso"><div class="i">06</div><div class="t"><strong>Planos en PDF</strong>, después de decidir dónde se guardan los archivos.</div><div class="w">aparte</div></div>
+  </div>
+  <p>El 5 y el 7 van juntos y pueden adelantarse si lo comercial apura: comparten el registro
+  de avance con el 1, pero no dependen de que el 3 esté hecho.</p>
+</section>
+
+<section>
+  <div class="shead">
+    <div class="eyebrow">La garantía</div>
+    <h2>Qué no se toca</h2>
+  </div>
+  <ul class="no">
+    <li>Cero <span class="mono">UPDATE</span> y cero <span class="mono">DELETE</span> sobre datos ya cargados. Todo es columna nueva que admite vacío, o tabla nueva vacía.</li>
+    <li>Los certificados emitidos quedan como están y se siguen leyendo de donde siempre estuvieron. Nada de backfill.</li>
+    <li>Las semanas del control financiero ya cargadas se siguen leyendo en su formato viejo mientras convive con el nuevo.</li>
+    <li>El motor de cálculo de presupuestos no cambia en ningún punto.</li>
+    <li>Todo presupuesto ya cerrado queda en la vía A —por certificado— sin que se le escriba nada, y se comporta igual que hoy.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="cierre">
+    <h3>Lo que hay que decidir para arrancar</h3>
+    <p><strong>Dónde viven los archivos</strong>, para el punto 6. Es la única decisión que no
+    puedo tomar yo, y conviene tomarla aunque el 6 vaya último.</p>
+    <p>Lo demás arranca por el punto 1 cuando digas.</p>
+  </div>
+</section>
+
+<footer>Verificado contra el código y contra producción el 12/08/2026. El mapa del sistema está en <span class="mono">docs/MAPA.md</span>.</footer>
+
+</div>

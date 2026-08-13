@@ -71,7 +71,10 @@ export const getMenu = (estado, clienteId) => {
 export const getPresupuesto = (id) => api.get(`/presupuestos/${id}`);
 export const crearPresupuesto = (data) => api.post('/presupuestos', data);
 export const actualizarPresupuesto = (id, data) => api.put(`/presupuestos/${id}`, data);
-export const cerrarPresupuesto = (id) => api.post(`/presupuestos/${id}/cerrar`);
+// Al cerrar se define como se va a gestionar la obra. Sin metodologia el
+// backend la deja en certificacion, que es como se comporto siempre.
+export const cerrarPresupuesto = (id, metodologia) =>
+  api.post(`/presupuestos/${id}/cerrar`, metodologia ? { metodologia } : {});
 export const reabrirPresupuesto = (id) => api.post(`/presupuestos/${id}/reabrir`);
 export const duplicarPresupuesto = (id, nombre) => api.post(`/presupuestos/${id}/duplicar`, null, { params: { nuevo_nombre: nombre } });
 

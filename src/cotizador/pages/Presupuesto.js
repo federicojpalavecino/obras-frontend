@@ -289,9 +289,14 @@ export default function Presupuesto() {
     setGuardando(false);
   };
 
-  const handleCerrar = async () => {
-    if (!window.confirm('¿Cerrar el presupuesto? Los precios quedarán congelados.')) return;
-    await cerrarPresupuesto(id); cargar(true);
+  // El cierre es el momento en que el presupuesto pasa a ser un trato: ahi se
+  // decide como se va a gestionar y cobrar la obra, y esa decision manda sobre
+  // todo lo que viene despues.
+  const [modalCierre, setModalCierre] = useState(false);
+  const handleCerrar = () => setModalCierre(true);
+  const confirmarCierre = async (metodologia) => {
+    setModalCierre(false);
+    await cerrarPresupuesto(id, metodologia); cargar(true);
   };
 
   const handleReabrir = async () => {
@@ -1524,6 +1529,42 @@ ${firma}
         )}
 
         {/* MODAL ADICIONAL */}
+        {modalCierre && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 16 }}
+            onClick={() => setModalCierre(false)}>
+            <div style={{ width: 'min(560px, 100%)', background: 'var(--surface)', borderRadius: 14, padding: 24, boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ fontWeight: 800, fontSize: 17 }}>Cerrar el presupuesto</div>
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6, lineHeight: 1.5 }}>
+                Los precios quedan congelados. Elegí cómo vas a gestionar y cobrar esta obra:
+                de esto dependen las pantallas que vas a usar y lo que va a ver el cliente.
+              </div>
+              <div style={{ display: 'grid', gap: 10, marginTop: 18 }}>
+                {[
+                  ['certificacion', 'Por avance de obra',
+                   'Se mide el avance y se emiten certificados. El cobro sigue a lo certificado.'],
+                  ['desembolsos', 'Por desembolsos pactados',
+                   'Etapas acordadas con el cliente, cada una con su monto y su fecha. Sin certificar.'],
+                ].map(([valor, titulo, ayuda]) => (
+                  <button key={valor} onClick={() => confirmarCierre(valor)}
+                    style={{ textAlign: 'left', background: 'var(--surface2)', border: '1px solid var(--border)',
+                             borderRadius: 10, padding: '14px 16px', cursor: 'pointer', font: 'inherit' }}>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{titulo}</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3, lineHeight: 1.45 }}>{ayuda}</div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 14, lineHeight: 1.5 }}>
+                Cualquiera de las dos admite anticipo, y en las dos podés registrar el avance de obra.
+                Se puede cambiar después desde la gestión de obra.
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => setModalCierre(false)}>Cancelar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {modalAdicional && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', zIndex: 200 }}
             onClick={() => { setModalAdicional(null); setLineaSeleccionadaAdic(null); setComputoAdicLinea(null); }}>

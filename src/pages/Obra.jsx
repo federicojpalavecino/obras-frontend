@@ -42,6 +42,11 @@ export default function Obra() {
   const [subcontratos, setSubcontratos] = useState([]);
   const [compras, setCompras] = useState([]);
   const [cuentaCorriente, setCuentaCorriente] = useState(null);
+  const [avance, setAvance] = useState(null);
+  const [avForm, setAvForm] = useState({});      // linea_id -> pct escrito
+  const [avFecha, setAvFecha] = useState(today());
+  const [avNota, setAvNota] = useState("");
+  const [guardandoAv, setGuardandoAv] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
 
@@ -82,11 +87,35 @@ export default function Obra() {
       // Cuenta corriente
       const cc = await api.get(`/presupuestos/${id}/cuenta-corriente`).then(r => r.data);
       setCuentaCorriente(cc);
+      const av = await api.get(`/presupuestos/${id}/avance`).then(r => r.data).catch(() => null);
+      setAvance(av);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   useEffect(() => { cargar(); }, [id]);
+
+  const guardarAvance = async () => {
+    const lineas = Object.entries(avForm)
+      .filter(([, v]) => v !== "" && v !== null && v !== undefined)
+      .map(([linea_id, pct]) => ({ linea_id: parseInt(linea_id), pct: parseFloat(pct) }));
+    if (!lineas.length) return;
+    setGuardandoAv(true);
+    try {
+      await api.post(`/presupuestos/${id}/avance`, { fecha: avFecha, nota: avNota, lineas });
+      setAvForm({}); setAvNota("");
+      showToast("✓ Avance registrado"); await cargar();
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "No se pudo guardar el avance");
+    }
+    setGuardandoAv(false);
+  };
+
+  const cambiarMetodologia = async (metodologia) => {
+    await api.patch(`/presupuestos/${id}/metodologia`, { metodologia });
+    showToast(metodologia === "desembolsos" ? "Gestión por desembolsos" : "Gestión por certificación");
+    cargar();
+  };
 
   const crearCobro = async () => {
     if (!cobForm.monto) return;
@@ -239,6 +268,14 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
 
   const total_pres = presupuesto?.totales?.total_precio_con_iva || 0;
   const cc = cuentaCorriente || {};
+  // La metodologia manda: la obra que se cobra por desembolsos pactados no
+  // certifica, asi que no tiene sentido rotularle todo como "certificado".
+  const porDesembolsos = cc.metodologia === "desembolsos";
+  const rotuloDevengado = porDesembolsos ? "Desembolsos devengados" : "Certificado acumulado";
+  const aFavor = cc.a_favor_cliente || 0;
+  const lineasObra = (presupuesto?.rubros || []).flatMap(r =>
+    (r.lineas || []).map(l => ({ ...l, rubro: r.nombre })));
+  const avancePorLinea = Object.fromEntries((avance?.por_linea || []).map(a => [a.linea_id, a]));
 
   const TabBtn = ({ id: tid, label }) => (
     <button onClick={() => setTab(tid)} style={{
@@ -314,7 +351,8 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <TabBtn id="cobros" label="Cobros" />
             <TabBtn id="subcontratos" label="Subcontratos" />
             <TabBtn id="compras" label="Compras" />
-            <TabBtn id="certificados" label="Certificados" />
+            <TabBtn id="avance" label="Avance" />
+            {(!porDesembolsos || certificados.length > 0) && <TabBtn id="certificados" label="Certificados" />}
           </div>
         </div>
       )}
@@ -327,9 +365,13 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 24 }}>
               {[
                 ["Presupuesto", total_pres, C.text],
-                ["Certificado acumulado", cc.total_certificado, C.accent2],
+                [rotuloDevengado, cc.total_devengado ?? cc.total_certificado, C.accent2],
                 ["Cobrado", cc.total_cobrado, C.green],
-                ["Saldo pendiente", cc.saldo_pendiente, cc.saldo_pendiente > 0 ? C.red : C.green],
+                // Cobrar mas de lo devengado no es un error: es anticipo. Se
+                // nombra como lo que es, en vez de un saldo negativo en rojo.
+                aFavor > 0
+                  ? ["A favor del cliente", aFavor, C.accent2]
+                  : ["Saldo pendiente", cc.saldo_pendiente, cc.saldo_pendiente > 0 ? C.red : C.green],
                 ["Subcontratos pagados", cc.total_subcontratos, C.warn],
                 ["Compras pagadas", cc.total_compras, C.warn],
                 ["Resultado neto", cc.resultado_neto, (cc.resultado_neto || 0) >= 0 ? C.accent : C.red],
@@ -340,6 +382,32 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 </div>
               ))}
             </div>
+
+            {/* Avance de obra — se registra igual con cualquier metodologia */}
+            {avance && (
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>Avance de obra</span>
+                  <span style={{ fontSize: 11, color: C.muted }}>
+                    {avance.origen === "certificado" ? "según el último certificado"
+                      : avance.origen === "avance" ? "cargado a mano" : "sin registrar"}
+                    {avance.fecha ? ` · ${avance.fecha}` : ""}
+                  </span>
+                  <span style={{ fontSize: 13, color: C.accent2, fontWeight: 700, fontFamily: "'IBM Plex Mono',monospace" }}>
+                    {(avance.pct || 0).toFixed(1)}%
+                  </span>
+                </div>
+                <div style={{ height: 10, background: C.surface2, borderRadius: 5, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${Math.min(100, avance.pct || 0)}%`, background: C.accent2, borderRadius: 5, transition: "width 0.5s" }} />
+                </div>
+                {!avance.pct && (
+                  <button onClick={() => setTab("avance")} className="btn btn-secondary btn-sm"
+                    style={{ marginTop: 12, background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 12, color: C.accent, cursor: "pointer", fontFamily: "inherit" }}>
+                    Registrar el primer avance
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Barra de cobro */}
             {total_pres > 0 && (
@@ -379,6 +447,111 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
         )}
 
         {/* ── CONTRATO ── */}
+        {/* ── AVANCE ── */}
+        {tab === "avance" && (
+          <div>
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>Avance de obra</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 3, maxWidth: 560, lineHeight: 1.5 }}>
+                    Se registra igual se cobre como se cobre. Poné el porcentaje acumulado de
+                    cada ítem: el total se pondera por precio, así hormigonar la platea no pesa
+                    lo mismo que revocar un baño.
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: C.accent2, fontFamily: "'IBM Plex Mono',monospace" }}>
+                    {(avance?.pct || 0).toFixed(1)}%
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted }}>
+                    gestión por {porDesembolsos ? "desembolsos" : "certificación"}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                <button onClick={() => cambiarMetodologia(porDesembolsos ? "certificacion" : "desembolsos")}
+                  style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", fontSize: 12, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>
+                  Cambiar a {porDesembolsos ? "certificación" : "desembolsos pactados"}
+                </button>
+              </div>
+            </div>
+
+            {avance?.origen === "certificado" && (
+              <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 12.5, color: C.muted, lineHeight: 1.5 }}>
+                El avance que se muestra hoy sale del último certificado emitido. Lo que cargues
+                acá pasa a mandar a partir de su fecha, sin tocar el certificado.
+              </div>
+            )}
+
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+                <div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Fecha</div>
+                  <input type="date" value={avFecha} onChange={e => setAvFecha(e.target.value)}
+                    style={{ padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: "inherit", fontSize: 13, background: C.surface, color: C.text }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Nota (opcional)</div>
+                  <input value={avNota} onChange={e => setAvNota(e.target.value)} placeholder="Ej: medición de fin de mes"
+                    style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: "inherit", fontSize: 13, background: C.surface, color: C.text }} />
+                </div>
+                <button onClick={guardarAvance} disabled={guardandoAv || !Object.values(avForm).some(v => v !== "")}
+                  style={{ padding: "9px 18px", background: C.accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: guardandoAv ? .6 : 1 }}>
+                  {guardandoAv ? "Guardando..." : "Registrar avance"}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+              {lineasObra.length === 0 ? (
+                <div style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>
+                  Este presupuesto todavía no tiene ítems cargados.
+                </div>
+              ) : lineasObra.map(l => {
+                const act = avancePorLinea[l.id];
+                const pctActual = act ? act.pct : 0;
+                return (
+                  <div key={l.id} style={{ display: "grid", gridTemplateColumns: "1fr 92px 120px", gap: 12, alignItems: "center", padding: "11px 16px", borderBottom: `1px solid ${C.border2}` }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {l.nombre_override || l.nombre_item || l.nombre_libre}
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted }}>
+                        {l.rubro} · {fmt(l.precio_venta_con_iva || 0)}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 13, color: C.muted, fontFamily: "'IBM Plex Mono',monospace", textAlign: "right" }}>
+                      {pctActual.toFixed(0)}%
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <input type="number" min="0" max="100" step="1"
+                        value={avForm[l.id] ?? ""} placeholder="—"
+                        onChange={e => setAvForm(f => ({ ...f, [l.id]: e.target.value }))}
+                        style={{ width: "100%", padding: "7px 9px", border: `1px solid ${C.border}`, borderRadius: 7, fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, textAlign: "right", background: C.surface, color: C.text }} />
+                      <span style={{ fontSize: 12, color: C.muted }}>%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {(avance?.historial || []).length > 0 && (
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginTop: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Historial</div>
+                {[...avance.historial].reverse().slice(0, 12).map(h => (
+                  <div key={h.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "7px 0", borderBottom: `1px solid ${C.border2}`, fontSize: 12.5 }}>
+                    <span style={{ color: C.muted }}>
+                      {h.fecha} · {h.creado_por_nombre || "—"}{h.nota ? ` · ${h.nota}` : ""}
+                    </span>
+                    <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700 }}>{Number(h.pct).toFixed(0)}%</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {tab === "contrato" && (
           <div>
             {contrato ? (
