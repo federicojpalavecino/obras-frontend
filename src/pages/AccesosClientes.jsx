@@ -18,12 +18,13 @@ export default function AccesosClientes({ user }) {
   const SECCIONES = [
     { id: "avance", label: "Avance de obra" },
     { id: "etapas", label: "Etapas del proyecto" },
+    { id: "planos", label: "Planos" },
     { id: "contrato", label: "Contrato" },
     { id: "cobros", label: "Cuenta corriente" },
     { id: "gantt", label: "Planificación" },
     { id: "consultas", label: "Consultas" },
   ];
-  const [form, setForm] = useState({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","etapas","contrato","cobros","gantt","consultas"], presupuestos_visibles: [] });
+  const [form, setForm] = useState({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","etapas","planos","contrato","cobros","gantt","consultas"], presupuestos_visibles: [] });
   const [presupuestosCliente, setPresupuestosCliente] = useState([]);
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
@@ -49,7 +50,7 @@ export default function AccesosClientes({ user }) {
     setSaving(true); setMsg("");
     try {
       await api.post('/portal/accesos', { email: form.email.toLowerCase().trim(), nombre: form.nombre, cliente_id: parseInt(form.cliente_id), password: form.password, secciones_visibles: form.secciones_visibles, presupuestos_visibles: form.presupuestos_visibles.length > 0 ? form.presupuestos_visibles : null });
-      setModal(false); setForm({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","etapas","contrato","cobros","gantt","consultas"], presupuestos_visibles: [] }); setPresupuestosCliente([]); showToast("✓ Acceso creado"); cargar();
+      setModal(false); setForm({ email: "", nombre: "", cliente_id: "", password: "", secciones_visibles: ["avance","etapas","planos","contrato","cobros","gantt","consultas"], presupuestos_visibles: [] }); setPresupuestosCliente([]); showToast("✓ Acceso creado"); cargar();
     } catch(err) { setMsg(err.response?.data?.detail || "Error de conexión"); }
     setSaving(false);
   };
@@ -99,7 +100,7 @@ export default function AccesosClientes({ user }) {
                     <div style={{ fontSize: 14, fontWeight: 700 }}>{a.nombre || a.email}</div>
                     <div style={{ fontSize: 12, color: C.muted }}>{a.email}</div>
                     {cliente && <div style={{ fontSize: 12, color: C.accent, marginTop: 2 }}>Cliente: {cliente.nombre}</div>}
-                    {a.secciones_visibles && a.secciones_visibles.length < 6 && (
+                    {a.secciones_visibles && a.secciones_visibles.length < 7 && (
                       <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Ve: {a.secciones_visibles.join(", ")}</div>
                     )}
                   </div>

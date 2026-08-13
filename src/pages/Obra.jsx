@@ -46,6 +46,10 @@ export default function Obra() {
   const [desembolsos, setDesembolsos] = useState([]);
   const [editDes, setEditDes] = useState(null);   // { id, avance_pct, fecha_real }
   const [certSub, setCertSub] = useState(null);  // resumen del subcontrato abierto
+  const [archivos, setArchivos] = useState([]);
+  const [almacen, setAlmacen] = useState({ configurado: true, max_mb: 60 });
+  const [subiendo, setSubiendo] = useState(null);   // { nombre, pct }
+  const [verArchivo, setVerArchivo] = useState(null);
   const [certForm, setCertForm] = useState({ pct_acumulado: '', fecha: today(), nota: '', generar_pago: true });
   const [avForm, setAvForm] = useState({});      // linea_id -> pct escrito
   const [avFecha, setAvFecha] = useState(today());
@@ -95,6 +99,9 @@ export default function Obra() {
       setAvance(av);
       const des = await api.get(`/presupuestos/${id}/desembolsos`).then(r => r.data).catch(() => []);
       setDesembolsos(Array.isArray(des) ? des : []);
+      const arc = await api.get(`/presupuestos/${id}/archivos`).then(r => r.data).catch(() => []);
+      setArchivos(Array.isArray(arc) ? arc : []);
+      api.get('/almacenamiento/estado').then(r => setAlmacen(r.data)).catch(() => {});
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -200,6 +207,54 @@ export default function Obra() {
       lineas_ids,
     });
     abrirCertSub(sid);
+  };
+
+  // ── Planos y documentacion ──────────────────────────────────────────────
+  // El archivo va del navegador al bucket sin pasar por el backend: un plano
+  // de 20 MB atravesando FastAPI le come memoria al mismo proceso que atiende
+  // el cotizador. El backend solo firma y despues registra la fila.
+  const subirArchivo = async (file) => {
+    if (!file) return;
+    if (file.size > (almacen.max_mb || 60) * 1024 * 1024) {
+      showToast(`El archivo supera los ${almacen.max_mb} MB`); return;
+    }
+    setSubiendo({ nombre: file.name, pct: 0 });
+    try {
+      const { data: firma } = await api.post(`/presupuestos/${id}/archivos/subida`, {
+        nombre: file.name, mime: file.type, bytes: file.size,
+      });
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", firma.url);
+        xhr.setRequestHeader("Content-Type", firma.mime);
+        xhr.upload.onprogress = e => {
+          if (e.lengthComputable) setSubiendo({ nombre: file.name, pct: Math.round(e.loaded / e.total * 100) });
+        };
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300) ? resolve() : reject(new Error("Falló la subida"));
+        xhr.onerror = () => reject(new Error("Falló la subida"));
+        xhr.send(file);
+      });
+      await api.post(`/presupuestos/${id}/archivos`, {
+        clave: firma.clave, nombre: file.name, mime: firma.mime,
+        tipo: file.type === "application/pdf" ? "plano" : "foto",
+      });
+      showToast("✓ Archivo subido"); cargar();
+    } catch (e) {
+      showToast(e?.response?.data?.detail || e.message || "No se pudo subir");
+    }
+    setSubiendo(null);
+  };
+
+  const cambiarVisibilidad = async (a) => {
+    await api.patch(`/presupuestos/${id}/archivos/${a.id}`, { visible_cliente: !a.visible_cliente });
+    showToast(a.visible_cliente ? "Ya no lo ve el cliente" : "✓ Ahora lo ve el cliente");
+    cargar();
+  };
+
+  const borrarArchivo = async (a) => {
+    if (!window.confirm(`¿Borrar "${a.nombre}"?`)) return;
+    await api.delete(`/presupuestos/${id}/archivos/${a.id}`);
+    showToast("Archivo borrado"); cargar();
   };
 
   const crearCobro = async () => {
@@ -437,6 +492,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <TabBtn id="subcontratos" label="Subcontratos" />
             <TabBtn id="compras" label="Compras" />
             <TabBtn id="avance" label="Avance" />
+            <TabBtn id="planos" label="Planos" />
             {(!porDesembolsos || certificados.length > 0) && <TabBtn id="certificados" label="Certificados" />}
           </div>
         </div>
@@ -836,6 +892,103 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── PLANOS Y DOCUMENTACION ── */}
+        {tab === "planos" && (
+          <div>
+            {!almacen.configurado ? (
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.warn}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>Falta configurar el almacenamiento</div>
+                <div style={{ fontSize: 13, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
+                  Los archivos se guardan fuera de la base. Hasta que esté configurado,
+                  esta sección queda deshabilitada — nada más del sistema se ve afectado.
+                </div>
+              </div>
+            ) : (
+              <>
+                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700 }}>Planos y documentación</div>
+                      <div style={{ fontSize: 12, color: C.muted, marginTop: 3, maxWidth: 520, lineHeight: 1.5 }}>
+                        PDF e imágenes, hasta {almacen.max_mb} MB. Se suben acá y se ven en la app,
+                        sin bajarlos. El cliente sólo ve los que marques.
+                      </div>
+                    </div>
+                    <label style={{ padding: "9px 16px", background: C.accent, color: "#fff", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: subiendo ? "wait" : "pointer", opacity: subiendo ? .6 : 1 }}>
+                      {subiendo ? `Subiendo… ${subiendo.pct}%` : "+ Subir archivo"}
+                      <input type="file" accept="application/pdf,image/*" disabled={!!subiendo}
+                        onChange={e => { subirArchivo(e.target.files?.[0]); e.target.value = ""; }}
+                        style={{ display: "none" }} />
+                    </label>
+                  </div>
+                  {subiendo && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 5 }}>{subiendo.nombre}</div>
+                      <div style={{ height: 6, background: C.surface2, borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${subiendo.pct}%`, background: C.accent, borderRadius: 3, transition: "width .2s" }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {archivos.length === 0 ? (
+                  <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>
+                    Todavía no hay planos cargados en esta obra.
+                  </div>
+                ) : (
+                  <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+                    {archivos.map(a => (
+                      <div key={a.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "13px 16px", borderBottom: `1px solid ${C.border2}`, alignItems: "center", flexWrap: "wrap" }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nombre}</div>
+                          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                            {(a.bytes / 1024 / 1024).toFixed(1)} MB · {a.subido_por || "—"} · {String(a.created_at).slice(0, 10)}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap" }}>
+                          <button onClick={() => cambiarVisibilidad(a)}
+                            style={{ padding: "5px 11px", borderRadius: 20, fontSize: 11, cursor: "pointer", fontFamily: "inherit",
+                                     border: `1px solid ${a.visible_cliente ? C.accent : C.border}`,
+                                     background: a.visible_cliente ? "rgba(5,150,105,.09)" : "none",
+                                     color: a.visible_cliente ? C.accent : C.muted }}>
+                            {a.visible_cliente ? "Lo ve el cliente" : "Sólo interno"}
+                          </button>
+                          <button onClick={() => setVerArchivo(a)}
+                            style={{ padding: "5px 11px", background: "none", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, color: C.accent2, cursor: "pointer", fontFamily: "inherit" }}>Ver</button>
+                          <button onClick={() => borrarArchivo(a)}
+                            style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 4px" }}>×</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Visor: el navegador renderiza PDFs e imagenes solo, sin libreria */}
+        {verArchivo && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.82)", zIndex: 400, display: "flex", flexDirection: "column" }}
+            onClick={() => setVerArchivo(null)}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 18px", color: "#fff", gap: 12 }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{verArchivo.nombre}</div>
+              <button onClick={() => setVerArchivo(null)}
+                style={{ background: "none", border: "none", color: "#fff", fontSize: 26, cursor: "pointer", lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ flex: 1, padding: "0 18px 18px" }} onClick={e => e.stopPropagation()}>
+              {String(verArchivo.mime || "").startsWith("image/") ? (
+                <img src={verArchivo.url} alt={verArchivo.nombre}
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              ) : (
+                <iframe src={verArchivo.url} title={verArchivo.nombre}
+                  style={{ width: "100%", height: "100%", border: "none", borderRadius: 8, background: "#fff" }} />
+              )}
+            </div>
           </div>
         )}
 

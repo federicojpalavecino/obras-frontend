@@ -64,6 +64,8 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   const [cobros, setCobros] = useState([]);
   const [contrato, setContrato] = useState(null);
   const [etapas, setEtapas] = useState(null);   // etapas pactadas del trabajo
+  const [planos, setPlanos] = useState([]);
+  const [verPlano, setVerPlano] = useState(null);
   const [comentarios, setComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState("");
   const [loading, setLoading] = useState(true);
@@ -116,6 +118,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
     api.get(`/portal/comentarios/${id}`).then(r => setComentarios(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     setEtapas(null);
     api.get(`/portal/etapas/${id}`).then(r => setEtapas(r.data)).catch(() => setEtapas({ etapas: [] }));
+    api.get(`/portal/archivos/${id}`).then(r => setPlanos(Array.isArray(r.data) ? r.data : [])).catch(() => setPlanos([]));
   }, [presSelec]);
 
   const enviarComentario = async () => {
@@ -152,6 +155,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   const ALL_TABS = [
     { id: "avance", label: "Avance" },
     { id: "etapas", label: "Etapas" },
+    { id: "planos", label: "Planos" },
     { id: "contrato", label: "Contrato" },
     { id: "cobros", label: "Cuenta corriente" },
     { id: "gantt", label: "Planificación" },
@@ -161,7 +165,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   // no esta en las listas ya creadas, asi que quedaria invisible para siempre
   // para todo cliente dado de alta antes: por eso las nuevas se muestran salvo
   // que el estudio las apague expresamente.
-  const SECCIONES_NUEVAS = ["etapas"];
+  const SECCIONES_NUEVAS = ["etapas", "planos"];
   const TABS = ALL_TABS.filter(t => seccionesVisibles.includes(t.id) || SECCIONES_NUEVAS.includes(t.id));
 
   // Si el tab activo no está visible, cambiar al primero disponible
@@ -303,6 +307,34 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
                       ))}
                     </div>
                   </>
+                )}
+              </div>
+            )}
+
+            {/* ── PLANOS ── */}
+            {tab === "planos" && (
+              <div>
+                {planos.length === 0 ? (
+                  <div style={{ ...card, textAlign: "center", color: "#6b7280", padding: 48 }}>
+                    Todavía no hay planos publicados para esta obra.
+                  </div>
+                ) : (
+                  <div style={card}>
+                    {planos.map(a => (
+                      <div key={a.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "12px 0", borderBottom: "1px solid #f1f3f5", alignItems: "center" }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nombre}</div>
+                          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+                            {(a.bytes / 1024 / 1024).toFixed(1)} MB · {String(a.created_at).slice(0, 10)}
+                          </div>
+                        </div>
+                        <button onClick={() => setVerPlano(a)}
+                          style={{ padding: "6px 14px", background: "none", border: `1px solid ${tenantColor}`, borderRadius: 8, fontSize: 12.5, color: tenantColor, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+                          Ver
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -456,6 +488,27 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
           </>
         )}
       </div>
+
+      {/* Visor: el navegador renderiza PDFs e imagenes solo, sin libreria */}
+      {verPlano && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 400, display: "flex", flexDirection: "column" }}
+          onClick={() => setVerPlano(null)}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", color: "#fff", gap: 12 }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{verPlano.nombre}</div>
+            <button onClick={() => setVerPlano(null)}
+              style={{ background: "none", border: "none", color: "#fff", fontSize: 26, cursor: "pointer", lineHeight: 1 }}>×</button>
+          </div>
+          <div style={{ flex: 1, padding: "0 12px 12px" }} onClick={e => e.stopPropagation()}>
+            {String(verPlano.mime || "").startsWith("image/") ? (
+              <img src={verPlano.url} alt={verPlano.nombre} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            ) : (
+              <iframe src={verPlano.url} title={verPlano.nombre}
+                style={{ width: "100%", height: "100%", border: "none", borderRadius: 8, background: "#fff" }} />
+            )}
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "#1a1a2e", color: "#fff", borderRadius: 20, padding: "10px 20px", fontSize: 13, zIndex: 999 }}>
