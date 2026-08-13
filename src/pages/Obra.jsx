@@ -31,6 +31,27 @@ const btn = (color = C.accent) => ({
   borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
 });
 
+// Las clausulas que aparecen en casi todo contrato de obra en Argentina. No
+// son un modelo legal cerrado: son el punto de partida que el estudio ajusta.
+const CLAUSULAS_FRECUENTES = [
+  { titulo: "Mayores costos",
+    texto: "MAYORES COSTOS: Los precios se ajustarán conforme a la variación del índice de la construcción publicado por el INDEC entre la fecha del presupuesto y la de cada certificación o desembolso." },
+  { titulo: "Plazo y prórrogas",
+    texto: "PLAZO: El plazo de obra se contará en días hábiles a partir del acta de inicio, y se prorrogará por los días de lluvia, paros, falta de provisión de materiales por causas ajenas al contratista, y toda causa de fuerza mayor debidamente notificada." },
+  { titulo: "Anticipo",
+    texto: "ANTICIPO: El comitente abonará un anticipo a la firma del presente, que se descontará proporcionalmente de cada certificación o desembolso posterior." },
+  { titulo: "Fondo de reparo",
+    texto: "FONDO DE REPARO: De cada certificación se retendrá un porcentaje en concepto de fondo de reparo, que se devolverá a la recepción definitiva de la obra." },
+  { titulo: "Trabajos adicionales",
+    texto: "ADICIONALES: Todo trabajo no previsto en el presupuesto será presupuestado por separado y requerirá aprobación escrita del comitente antes de su ejecución." },
+  { titulo: "Recepción de obra",
+    texto: "RECEPCIÓN: A la finalización se labrará acta de recepción provisoria. La recepción definitiva operará transcurrido el plazo de garantía convenido, sin observaciones pendientes." },
+  { titulo: "Seguros y ART",
+    texto: "SEGUROS: El contratista mantendrá vigentes durante toda la obra los seguros de responsabilidad civil y la cobertura de ART de todo el personal afectado, y acreditará su vigencia cuando le sea requerido." },
+  { titulo: "Rescisión",
+    texto: "RESCISIÓN: Cualquiera de las partes podrá rescindir el contrato por incumplimiento grave de la otra, previa intimación fehaciente a subsanarlo en un plazo razonable." },
+];
+
 export default function Obra() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -66,7 +87,7 @@ export default function Obra() {
   const [showSub, setShowSub] = useState(false);
   const [subForm, setSubForm] = useState({ nombre_contratista: "", cuit_contratista: "", tipo: "empresa", descripcion_trabajo: "", monto_total: "", fecha_inicio: today(), tipo_pago: "por_avance", estado: "activo", notas: "" });
   const [showCompra, setShowCompra] = useState(false);
-  const [compraForm, setCompraForm] = useState({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "" });
+  const [compraForm, setCompraForm] = useState({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "", destino: "interna" });
   const [showPagoSub, setShowPagoSub] = useState(null); // subcontrato id
   const [pagoSubForm, setPagoSubForm] = useState({ monto: "", fecha: today(), concepto: "Pago parcial", forma_pago: "transferencia", pct_avance_al_pagar: "" });
   const [showContrato, setShowContrato] = useState(false);
@@ -331,9 +352,15 @@ export default function Obra() {
 
   const crearCompra = async () => {
     if (!compraForm.proveedor_nombre) return;
-    await api.post(`/presupuestos/${id}/compras`, { ...compraForm, monto_total: parseFloat(compraForm.monto_total) || 0 });
-    setShowCompra(false); setCompraForm({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "" });
-    showToast("✓ Compra registrada"); cargar();
+    const r = await api.post(`/presupuestos/${id}/compras`, {
+      ...compraForm,
+      monto_total: parseFloat(compraForm.monto_total) || 0,
+      // Solo la compra hecha mueve plata: una solicitud todavia no se pago.
+      monto_pagado: compraForm.destino === "compra" ? (parseFloat(compraForm.monto_total) || 0) : 0,
+    });
+    setShowCompra(false); setCompraForm({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "", destino: "interna" });
+    showToast(r.data?.en_control_financiero ? "✓ Compra registrada · ya está en el control financiero" : "✓ Registrado");
+    cargar();
   };
 
   const eliminarCompra = async (cid) => {
@@ -1518,6 +1545,29 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               <div style={{ fontSize: 16, fontWeight: 700 }}>Registrar compra</div>
               <button onClick={() => setShowCompra(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 22 }}>×</button>
             </div>
+
+            {/* Que es esta compra: de eso depende que pasa con ella despues */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 7 }}>
+                ¿Qué estás registrando?
+              </div>
+              {[["interna", "Solicitud interna", "Un pedido del estudio. No lo ve el cliente ni toca la plata."],
+                ["cliente", "Solicitud para el cliente", "Aparece en su portal para que la vea y la apruebe."],
+                ["compra", "Compra hecha", "Ya se compró: impacta en la obra y va al control financiero como egreso."],
+              ].map(([valor, titulo, ayuda]) => {
+                const elegido = compraForm.destino === valor;
+                return (
+                  <button key={valor} type="button" onClick={() => setCompraForm(p => ({ ...p, destino: valor }))}
+                    style={{ width: "100%", textAlign: "left", padding: "10px 12px", marginBottom: 6, cursor: "pointer",
+                             font: "inherit", borderRadius: 9,
+                             border: `1px solid ${elegido ? C.accent : C.border}`,
+                             background: elegido ? "rgba(5,150,105,.08)" : C.surface2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{titulo}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2, lineHeight: 1.4 }}>{ayuda}</div>
+                  </button>
+                );
+              })}
+            </div>
             {[
               { label: "Proveedor", key: "proveedor_nombre" },
               { label: "Monto total", key: "monto_total", type: "number" },
@@ -1625,7 +1675,31 @@ function ContratoModal({ presupuestoId, presupuesto, existing, onClose, onSave }
         </div>
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 11, color: "#6b7280", display: "block", marginBottom: 4 }}>Cláusulas adicionales</label>
-          <textarea style={{ ...inp2, height: 80, resize: "vertical" }} value={form.clausulas_adicionales} onChange={e => setForm(f => ({ ...f, clausulas_adicionales: e.target.value }))} />
+          {/* Las que se escriben en casi todos los contratos. Se tocan y se
+              agregan al texto: es mas rapido borrar lo que no va que escribir
+              de cero cada vez, y evita que se olvide la de mayores costos. */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 7 }}>
+            {CLAUSULAS_FRECUENTES.map(c => {
+              const puesta = (form.clausulas_adicionales || "").includes(c.texto);
+              return (
+                <button key={c.titulo} type="button" title={c.texto}
+                  onClick={() => setForm(f => ({
+                    ...f,
+                    clausulas_adicionales: puesta
+                      ? (f.clausulas_adicionales || "").replace(c.texto, "").replace(/\n{3,}/g, "\n\n").trim()
+                      : ((f.clausulas_adicionales || "").trim() + "\n\n" + c.texto).trim(),
+                  }))}
+                  style={{ padding: "5px 10px", borderRadius: 20, fontSize: 11.5, cursor: "pointer",
+                           fontFamily: "inherit",
+                           border: `1px solid ${puesta ? "#059669" : "#e0e0e8"}`,
+                           background: puesta ? "rgba(5,150,105,.09)" : "#f1f3f5",
+                           color: puesta ? "#059669" : "#6b7280" }}>
+                  {puesta ? "✓ " : "+ "}{c.titulo}
+                </button>
+              );
+            })}
+          </div>
+          <textarea style={{ ...inp2, height: 120, resize: "vertical" }} value={form.clausulas_adicionales} onChange={e => setForm(f => ({ ...f, clausulas_adicionales: e.target.value }))} />
         </div>
 
         {/* Desembolsos */}

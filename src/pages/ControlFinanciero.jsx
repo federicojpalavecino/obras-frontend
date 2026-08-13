@@ -76,9 +76,26 @@ function calcHonorario(resultado, hon) {
   return resultado > 0 ? resultado * (parseFloat(hon.pct) || 0) / 100 : 0;
 }
 
+// Cuanto cuesta una herramienta del periodo. Se puede cargar el costo total o
+// el costo por dia: con "por dia" el total sale de los dias entre entrada y
+// salida, que es como se factura un alquiler.
+function costoHerramienta(row) {
+  const cant = parseFloat(row.cantidad) || 1;
+  if (row.modoCosto === "dia") {
+    if (!row.fechaIn || !row.fechaEx) return 0;
+    const d = (new Date(row.fechaEx) - new Date(row.fechaIn)) / 86400000;
+    const dias = d >= 0 ? Math.round(d) + 1 : 0;
+    return (parseFloat(row.costoDia) || 0) * dias * cant;
+  }
+  return (parseFloat(row.costoTotal) || 0) * cant;
+}
+
 function calcPeriod(week, cfg) {
   const totalIng = (week.ingresos || []).reduce((a, b) => a + (parseFloat(b.monto) || 0), 0);
-  const totalEg = (week.egresos || []).reduce((a, b) => a + (parseFloat(b.monto) || 0), 0);
+  // Las herramientas son un egreso mas: alquilar un martillo neumatico sale
+  // plata igual que comprar cemento, y hasta ahora no entraba en el resultado.
+  const totalHerram = (week.herramientas || []).reduce((a, b) => a + costoHerramienta(b), 0);
+  const totalEg = (week.egresos || []).reduce((a, b) => a + (parseFloat(b.monto) || 0), 0) + totalHerram;
   const totalPersonal = (week.personal || []).reduce((a, b) => a + (parseFloat(b.total) || 0), 0);
   const resultado = totalIng - totalEg - totalPersonal;
   const honorarios = (week.config?.honorarios || cfg?.honorarios || []).filter(h => h.activo);
@@ -86,7 +103,7 @@ function calcPeriod(week, cfg) {
   const reserva = resultado > 0 ? resultado * pctReserva / 100 : 0;
   const totalHonorarios = honorarios.reduce((s, h) => s + calcHonorario(resultado, h), 0);
   const ganancia = resultado - totalHonorarios - reserva;
-  return { totalIng, totalEg, totalPersonal, resultado, reserva, totalHonorarios, honorarios, ganancia };
+  return { totalIng, totalEg, totalPersonal, totalHerram, resultado, reserva, totalHonorarios, honorarios, ganancia };
 }
 
 const C = {
@@ -222,7 +239,7 @@ export default function ControlFinanciero({ user }) {
   const personalGrid = isMobile ? mobileRow
     : { display: "grid", gridTemplateColumns: "1.5fr 1fr 60px 60px 120px 100px auto", gap: 5, marginBottom: 5, alignItems: "center" };
   const herramGrid = isMobile ? mobileRow
-    : { display: "grid", gridTemplateColumns: "2fr 0.6fr 1.2fr 110px 110px auto", gap: 5, marginBottom: 5, alignItems: "center" };
+    : { display: "grid", gridTemplateColumns: "1.7fr 0.5fr 1fr 100px 90px 100px 100px auto", gap: 5, marginBottom: 5, alignItems: "center" };
   const conceptoSpan = isMobile ? { gridColumn: "1 / -1" } : {};
   const fullSpan = isMobile ? { gridColumn: "1 / -1" } : {};
   const totalPersonalSpan = {};  // en mobile fluye naturalmente a una celda
@@ -241,6 +258,14 @@ export default function ControlFinanciero({ user }) {
   const [imputables, setImputables] = useState({ obras: [], clientes: [], proyectos: [], usuarios: [] });
   const [resumenImp, setResumenImp] = useState(null);   // gasto por imputacion y por persona
   const [rango, setRango] = useState({ desde: '', hasta: '' });   // periodo del analisis
+  // Quien esta cargando: queda escrito en cada fila que se agrega, para poder
+  // preguntarle despues a la persona que la cargo y no adivinar.
+  const usuarioActual = (() => {
+    try {
+      const s = JSON.parse(localStorage.getItem("obras_session") || "{}");
+      return s?.user?.nombre || s?.user?.email || user?.nombre || user?.email || "";
+    } catch { return user?.nombre || ""; }
+  })();
   const [showImportarObra, setShowImportarObra] = useState(false);
   const [obraPendientes, setObraPendientes] = useState({ cobros: [], pagos_subcontrato: [], compras: [] });
   const [obraSeleccionados, setObraSeleccionados] = useState([]);
@@ -390,11 +415,11 @@ export default function ControlFinanciero({ user }) {
     setRango({ desde: `${a}-01-01`, hasta: `${a}-12-31` }); };
   const rangoTodo = () => setRango({ desde: '', hasta: '' });
 
-  const addIngreso = () => setWeek(w => { const nw = { ...w, ingresos: [...w.ingresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", cliente: "" }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
+  const addIngreso = () => setWeek(w => { const nw = { ...w, ingresos: [...w.ingresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", cliente: "" , usuario: usuarioActual }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
   const updIngreso = (i, f, v) => setWeek(w => { const a = [...w.ingresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, ingresos: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
   const delIngreso = (i) => { const nw = { ...week, ingresos: week.ingresos.filter((_, j) => j !== i) }; setWeek(nw); setTimeout(() => autoGuardar(nw), 300); };
 
-  const addEgreso = () => setWeek(w => { const nw = { ...w, egresos: [...w.egresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", presupuesto_id: null }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
+  const addEgreso = () => setWeek(w => { const nw = { ...w, egresos: [...w.egresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", presupuesto_id: null , usuario: usuarioActual }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
   const updEgreso = (i, f, v) => setWeek(w => { const a = [...w.egresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, egresos: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
   const delEgreso = (i) => { const nw = { ...week, egresos: week.egresos.filter((_, j) => j !== i) }; setWeek(nw); setTimeout(() => autoGuardar(nw), 300); };
   const updEgresoObra = (i, presupuestoId) => {
@@ -474,13 +499,22 @@ export default function ControlFinanciero({ user }) {
     </select>
   );
 
-  const addPersonal = () => setWeek(w => { const nw = { ...w, personal: [...w.personal, { nombre: "", rango: "", dias: 5, hs: 8, costo: 0, total: 0, obra: "" }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
+  const addPersonal = () => setWeek(w => { const nw = { ...w, personal: [...w.personal, { nombre: "", rango: "", dias: 5, hs: 8, costo: 0, total: 0, obra: "" , usuario: usuarioActual }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
   const updPersonal = (i, f, v) => setWeek(w => { const a = [...w.personal]; a[i] = { ...a[i], [f]: v }; a[i].total = (parseFloat(a[i].dias) || 0) * (parseFloat(a[i].hs) || 0) * (parseFloat(a[i].costo) || 0); const nw = { ...w, personal: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
   const delPersonal = (i) => setWeek(w => { const nw = { ...w, personal: w.personal.filter((_, j) => j !== i) }; setTimeout(() => autoGuardar(nw), 300); return nw; });
 
-  const addHerramienta = () => setWeek(w => ({ ...w, herramientas: [...w.herramientas, { nombre: "", cantidad: 1, obra: "", fechaIn: "", fechaEx: "" }] }));
-  const updHerramienta = (i, f, v) => setWeek(w => { const a = [...w.herramientas]; a[i] = { ...a[i], [f]: v }; return { ...w, herramientas: a }; });
-  const delHerramienta = (i) => setWeek(w => ({ ...w, herramientas: w.herramientas.filter((_, j) => j !== i) }));
+  // Una herramienta alquilada es un egreso como cualquier otro. Se puede cargar
+  // el costo total o el costo por dia: con "por dia", el total sale de los dias
+  // entre la fecha de entrada y la de salida, que es como se factura un alquiler.
+  const diasHerram = (row) => {
+    if (!row.fechaIn || !row.fechaEx) return 0;
+    const d = (new Date(row.fechaEx) - new Date(row.fechaIn)) / 86400000;
+    return d >= 0 ? Math.round(d) + 1 : 0;
+  };
+  const totalHerram = costoHerramienta;
+  const addHerramienta = () => setWeek(w => { const nw = { ...w, herramientas: [...w.herramientas, { nombre: "", cantidad: 1, obra: "", fechaIn: "", fechaEx: "", modoCosto: "total", costoTotal: "", costoDia: "", usuario: usuarioActual }] }; setTimeout(() => autoGuardar(nw), 300); return nw; });
+  const updHerramienta = (i, f, v) => setWeek(w => { const a = [...w.herramientas]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, herramientas: a }; clearTimeout(window._cfT); window._cfT = setTimeout(() => autoGuardar(nw), 900); return nw; });
+  const delHerramienta = (i) => { const nw = { ...week, herramientas: week.herramientas.filter((_, j) => j !== i) }; setWeek(nw); setTimeout(() => autoGuardar(nw), 300); };
 
   // ── Auto-guardar ──────────────────────────────────────────────────────────
   const autoGuardar = async (weekData) => {
@@ -744,7 +778,7 @@ export default function ControlFinanciero({ user }) {
 
             {/* Herramientas */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 14 }}>
-              <SectionHeader label="Herramientas / Equipos" onAdd={addHerramienta} />
+              <SectionHeader label="Herramientas / Equipos" total={week.herramientas.reduce((a, r) => a + totalHerram(r), 0)} onAdd={addHerramienta} />
               {week.herramientas.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin herramientas</div>}
               {week.herramientas.map((row, i) => (
                 <div key={i} style={herramGrid}>
@@ -759,9 +793,28 @@ export default function ControlFinanciero({ user }) {
                   </select>
                   <input type="date" style={inp} value={row.fechaIn || ""} onChange={e => updHerramienta(i, "fechaIn", e.target.value)} title="Fecha entrada" />
                   <input type="date" style={inp} value={row.fechaEx || ""} onChange={e => updHerramienta(i, "fechaEx", e.target.value)} title="Fecha salida" />
+                  <select style={inp} value={row.modoCosto || "total"} onChange={e => updHerramienta(i, "modoCosto", e.target.value)} title="Cómo se cobra">
+                    <option value="total">Costo total</option>
+                    <option value="dia">Por día</option>
+                  </select>
+                  <NumeroInput style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }}
+                    placeholder={row.modoCosto === "dia" ? "$/día" : "$ total"}
+                    value={(row.modoCosto === "dia" ? row.costoDia : row.costoTotal) || ""}
+                    onChange={v => updHerramienta(i, row.modoCosto === "dia" ? "costoDia" : "costoTotal", v)} />
                   <button onClick={() => delHerramienta(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
+                  {totalHerram(row) > 0 && (
+                    <div style={{ gridColumn: "1 / -1", fontSize: 11, color: C.muted, marginTop: -2, marginBottom: 4 }}>
+                      {row.modoCosto === "dia" && diasHerram(row) > 0 ? `${diasHerram(row)} día${diasHerram(row) !== 1 ? "s" : ""} · ` : ""}
+                      Total: <b style={{ color: C.warn, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(totalHerram(row))}</b>
+                      {row.usuario ? ` · cargó ${row.usuario}` : ""}
+                    </div>
+                  )}
                 </div>
               ))}
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+                Lo que cuesta una herramienta es un egreso de la obra: entra en el resultado del
+                período junto con el resto.
+              </div>
             </div>
 
             {/* Honorarios y Reserva */}
