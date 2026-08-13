@@ -98,8 +98,8 @@ export default function Presupuesto() {
   const cargar = async (silent = false) => {
     // Solo hace falta para servicios, pero pedirlo siempre es una llamada
     // barata y evita un salto visual cuando se cambia el tipo.
-    api.get('/honorarios/config').then(r => setArancel(r.data)).catch(() => {});
-    api.get('/valores-k').then(r => setValoresK(r.data || [])).catch(() => {});
+    api.get('/honorarios/config').then(r => setArancel(r.data && Array.isArray(r.data.tareas) ? r.data : null)).catch(() => {});
+    api.get('/valores-k').then(r => setValoresK(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     if (!silent) setLoading(true);
     try {
       const res = await getPresupuesto(id);
@@ -988,6 +988,7 @@ ${firma}
                     </select>
                   </div>
                 )}
+                {!esServicio && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Gestión de materiales</div>
@@ -999,7 +1000,8 @@ ${firma}
                     <span style={{ position: 'absolute', top: 3, left: coefs?.modo_gestion ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: 'white', transition: 'left 0.2s', display: 'block' }} />
                   </button>
                 </div>
-                {coefs?.modo_gestion && (
+                )}
+                {!esServicio && coefs?.modo_gestion && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0 6px', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ flex: 1 }}><div style={{ fontSize: 11, color: 'var(--accent2)' }}>% Gestión sobre materiales</div></div>
                     <input type="number" step="0.01" min="0" max="100" className="input input-mono"
@@ -1007,6 +1009,7 @@ ${firma}
                       disabled={cerrado} onChange={e => setCoefs(prev => ({ ...prev, pct_gestion: parseFloat(e.target.value) || 0 }))} />
                   </div>
                 )}
+                {!esServicio && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Cargas sociales MO</div>
@@ -1018,7 +1021,8 @@ ${firma}
                     <span style={{ position: 'absolute', top: 3, left: coefs?.cargas_sociales_activas ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: 'white', transition: 'left 0.2s', display: 'block' }} />
                   </button>
                 </div>
-                {coefs?.cargas_sociales_activas && (
+                )}
+                {!esServicio && coefs?.cargas_sociales_activas && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 11, color: 'var(--muted)' }}>Factor cargas</div>
@@ -1124,7 +1128,55 @@ ${firma}
               )}
             </div>
 
-            {!cerrado && (
+            {/* En un proyecto no hay items de obra que buscar: hay tareas del
+                arancel. Es la misma barra, con lo que corresponde adentro. */}
+            {!cerrado && esServicio && (
+              <>
+                <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 7 }}>Agregar tarea</div>
+                  <input className="input" style={{ fontSize: 11 }} placeholder="Buscar tarea..."
+                    value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  {!arancel?.tareas?.length ? (
+                    <div style={{ padding: 16, fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.5 }}>
+                      Todavía no hay tareas en tu arancel. Se cargan en Configuración → Honorarios.
+                    </div>
+                  ) : arancel.tareas
+                      .filter(t => !busqueda || t.nombre.toLowerCase().includes(busqueda.toLowerCase()))
+                      .map(t => {
+                        const porcentaje = t.modo === 'pct_obra';
+                        const falta = porcentaje && !honorarioCalculado;
+                        const precio = porcentaje
+                          ? (honorarioCalculado ? honorarioCalculado.total * (t.pct_etapa || 0) / 100 : null)
+                          : t.precio_m2;
+                        return (
+                          <div key={t.id}
+                            title={falta ? 'Elegí la provincia y la superficie primero' : ''}
+                            style={{ padding: '8px 14px', borderBottom: '1px solid rgba(46,46,56,0.5)',
+                                     cursor: falta ? 'not-allowed' : 'pointer', opacity: falta ? .45 : 1 }}
+                            onMouseEnter={e => { if (!falta) e.currentTarget.style.background = 'var(--surface2)'; }}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            onClick={() => { if (!falta) agregarTarea(t); }}>
+                            <div style={{ fontSize: 11, lineHeight: 1.3 }}>{t.nombre}</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2, gap: 6 }}>
+                              <span style={{ fontSize: 9.5, color: 'var(--muted)' }}>
+                                {porcentaje ? `${t.pct_etapa}% del honorario` : `${t.coef_k} K por m²`}
+                              </span>
+                              {precio ? (
+                                <span style={{ fontSize: 10, color: 'var(--accent)', fontFamily: "'IBM Plex Mono',monospace" }}>
+                                  {'$ ' + Math.round(precio).toLocaleString('es-AR')}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                </div>
+              </>
+            )}
+
+            {!cerrado && !esServicio && (
               <>
                 <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 7 }}>Agregar ítem</div>
@@ -1236,59 +1288,11 @@ ${firma}
                   </div>
                 )}
 
-                {esServicio && !cerrado && (
+                {esServicio && !cerrado && !arancel?.valor_k && (
                   <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10,
-                                padding: 14, marginBottom: 12 }}>
-                    {!arancel?.valor_k ? (
-                      <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-                        Para presupuestar honorarios hay que cargar el <b>valor K</b> de tu colegio en
-                        Configuración. Es el índice que publica cada provincia y se actualiza por trimestre.
-                      </div>
-                    ) : (
-                      <>
-                        {!honorarioCalculado ? (
-                          <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
-                            Elegí la <b>provincia</b> y poné la <b>superficie en m²</b> en los coeficientes,
-                            acá al costado. De ahí sale el monto de obra y el porcentaje que corresponde.
-                          </div>
-                        ) : (
-                          <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
-                            {(data?.superficie_m2 || 0).toLocaleString('es-AR')} m² ×
-                            {' $ ' + Math.round(data?.valor_k_usado || 0).toLocaleString('es-AR')}/m² =
-                            monto de obra <b style={{ color: 'var(--text)' }}>
-                              {'$ ' + Math.round(honorarioCalculado.monto).toLocaleString('es-AR')}</b> ·
-                            le corresponde el <b style={{ color: 'var(--accent)' }}>{honorarioCalculado.pct}%</b> ·
-                            honorario de <b style={{ color: 'var(--accent)', fontFamily: "'IBM Plex Mono',monospace" }}>
-                              {'$ ' + Math.round(honorarioCalculado.total).toLocaleString('es-AR')}</b>
-                          </div>
-                        )}
-                        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10, marginBottom: 7 }}>
-                          Tocá una tarea para agregarla. Las que son porcentaje del honorario necesitan el monto de obra.
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                          {(arancel.tareas || []).map(t => {
-                            const necesitaMonto = t.modo === 'pct_obra' && !honorarioCalculado;
-                            const precio = t.modo === 'k'
-                              ? t.precio
-                              : (honorarioCalculado ? honorarioCalculado.total * (t.pct_etapa || 0) / 100 : null);
-                            return (
-                              <button key={t.id} type="button" disabled={necesitaMonto || agregandoTarea === t.id}
-                                onClick={() => agregarTarea(t)}
-                                title={necesitaMonto ? 'Poné primero el monto de obra' : ''}
-                                style={{ textAlign: 'left', padding: '7px 11px', borderRadius: 9, cursor: necesitaMonto ? 'not-allowed' : 'pointer',
-                                         font: 'inherit', border: '1px solid var(--border)', background: 'var(--surface)',
-                                         opacity: necesitaMonto ? .45 : 1 }}>
-                                <div style={{ fontSize: 12, fontWeight: 600 }}>{t.nombre}</div>
-                                <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 1 }}>
-                                  {t.modo === 'k' ? `${t.coef_k} K` : `${t.pct_etapa}% del honorario`}
-                                  {precio ? ` · $ ${Math.round(precio).toLocaleString('es-AR')}` : ''}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </>
-                    )}
+                                padding: 14, marginBottom: 12, fontSize: 13, lineHeight: 1.5 }}>
+                    Elegí la <b>provincia</b> y poné la <b>superficie</b> en los coeficientes, a la
+                    izquierda. De ahí sale el monto de obra y el porcentaje que corresponde.
                   </div>
                 )}
                 <table className="tabla-presupuesto" style={{ width: '100%', borderCollapse: 'collapse' }}>
