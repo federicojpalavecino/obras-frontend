@@ -595,6 +595,12 @@ export default function Gantt() {
 <title>Gantt — ${esc(presupuesto?.nombre_obra || '')}</title>
 <style>
   @page{size:A4 landscape;margin:10mm}
+  /* Los navegadores tiran los fondos al imprimir para ahorrar tinta, y un Gantt
+     sin el color de sus barras no es un Gantt: es una tabla de fechas. Esto se
+     lo pide explicitamente, y hay que ponerlo en TODO lo que tenga fondo, no
+     solo en el body — si no, la regla no baja a los hijos en Chrome. */
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;
+    color-adjust:exact !important}
   body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#111;margin:0}
   h1{font-size:13pt;margin:0 0 2px}
   .sub{font-size:9pt;color:#555;margin-bottom:3px}
