@@ -162,12 +162,16 @@ footer{padding-top:44px; color:var(--mut); font-size:13px}
     </div></div>
 
     <div class="pt"><div class="n">03</div><div class="b">
-      <div class="top"><h3>Quién gastó y en qué se imputa</h3><span class="chip new">el trabajo grande</span></div>
-      <p>Cada movimiento pasa a ser una fila con <strong>quién lo hizo</strong> y contra
-      <strong>qué se imputa</strong>: el estudio, una obra, un cliente o un proyecto. Con eso
-      salen solos «cuánto gastó cada uno» y «cuánto lleva esta obra», que hoy no se pueden ni
-      sumar.</p>
-      <div class="hoy">Hoy: ingresos, egresos y personal son JSON adentro de la semana. Un egreso es {concepto, estado, monto, obra, presupuesto_id} — sin usuario, sin cliente, sin proyecto.</div>
+      <div class="top"><h3>Quién gastó y en qué se imputa</h3><span class="chip ok">hecho</span></div>
+      <p>Cada movimiento lleva <strong>quién lo hizo</strong> y contra <strong>qué se
+      imputa</strong>: el estudio, una obra, un cliente o un proyecto, en un solo desplegable
+      agrupado. El resumen se acota a un período y dice qué obras, clientes y proyectos abarca.</p>
+      <p>No se migró a una tabla de movimientos, como decía este punto: el CF guarda la semana
+      entera como JSON y el front la manda completa en cada guardado, así que pasar a filas
+      obligaba a reescribir el modelo de edición del único módulo donde vive la plata real. Los
+      campos viven adentro del mismo objeto y son exactamente la forma que hay que mover el día
+      que la tabla haga falta — cuando dos personas editando la misma semana se pisen, o cuando
+      el reporte no entre más en memoria.</p>
     </div></div>
 
     <div class="pt"><div class="n">04</div><div class="b">
@@ -240,7 +244,7 @@ footer{padding-top:44px; color:var(--mut); font-size:13px}
     <div class="paso"><div class="i">01</div><div class="t"><strong>Modalidad y avance</strong> — el registro único de avance, y que la obra elija su vía al cerrar el presupuesto.</div><div class="w" style="color:var(--ac)">hecho</div></div>
     <div class="paso"><div class="i">02</div><div class="t"><strong>Desembolsos con avance</strong> y su enganche al control financiero.</div><div class="w" style="color:var(--ac)">hecho</div></div>
     <div class="paso"><div class="i">02b</div><div class="t"><strong>Días no trabajados en el Gantt</strong> — lluvia, feriado, paro— y el plazo que se recorre solo.</div><div class="w">chico</div></div>
-    <div class="paso"><div class="i">03</div><div class="t"><strong>Movimientos con quién e imputación</strong> en el control financiero.</div><div class="w">grande</div></div>
+    <div class="paso"><div class="i">03</div><div class="t"><strong>Movimientos con quién e imputación</strong> en el control financiero, y análisis por período.</div><div class="w" style="color:var(--ac)">hecho</div></div>
     <div class="paso"><div class="i">04</div><div class="t"><strong>Certificado interno</strong> del subcontratista, al costo de ejecución.</div><div class="w">medio</div></div>
     <div class="paso"><div class="i">05</div><div class="t"><strong>Proyectos creativos</strong>, su vista en el portal y sus etapas dentro del planner.</div><div class="w">medio</div></div>
     <div class="paso"><div class="i">06</div><div class="t"><strong>Planos en PDF</strong>, después de decidir dónde se guardan los archivos.</div><div class="w">aparte</div></div>
