@@ -624,13 +624,25 @@ export default function App() {
   // Trial banner wrapper
   const banner = suscripcion && suscripcion.en_trial ? <TrialBanner diasRestantes={suscripcion.dias_restantes} /> : null;
 
+  // Los dos portales van envueltos igual que el resto. Cuando el boundary
+  // cubria solo las rutas de adentro, un error en el portal del personal
+  // seguia dando pantalla en blanco sin ningun mensaje — que es exactamente
+  // como se manifesto el bug de presupuestos_asignados.
   if (clienteInfo) {
-    return <ClientePortal user={user} clienteId={clienteInfo.cliente_id} clienteNombre={clienteInfo.nombre} onLogout={handleLogout} token={clienteToken || localStorage.getItem("obras_token")} />;
+    return (
+      <ErrorBoundary>
+        <ClientePortal user={user} clienteId={clienteInfo.cliente_id} clienteNombre={clienteInfo.nombre} onLogout={handleLogout} token={clienteToken || localStorage.getItem("obras_token")} />
+      </ErrorBoundary>
+    );
   }
 
   if (estudioInfo) {
     if (estudioInfo.rol === "personal") {
-      return <PersonalPortal user={user} userInfo={estudioInfo} onLogout={handleLogout} />;
+      return (
+        <ErrorBoundary>
+          <PersonalPortal user={user} userInfo={estudioInfo} onLogout={handleLogout} />
+        </ErrorBoundary>
+      );
     }
     return (
       <BrowserRouter>

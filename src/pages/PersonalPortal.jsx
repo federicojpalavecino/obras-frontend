@@ -9,8 +9,16 @@ const C = {
 };
 
 export default function PersonalPortal({ user, userInfo, onLogout }) {
-  const { nombre, rol, presupuestos_asignados } = userInfo;
-  const presIds = (presupuestos_asignados || "").split(",").map((x) => x.trim()).filter(Boolean).map(Number);
+  const { nombre, rol, presupuestos_asignados } = userInfo || {};
+  // Las obras asignadas llegan a veces como la cadena "1,2,3" de la columna y a
+  // veces como lista. Un array vacio es truthy, asi que el `|| ""` de antes no
+  // lo atajaba: se iba a .split(), que no existe en un array, y la pantalla
+  // entera quedaba en blanco. Se aceptan las dos formas.
+  const presIds = (Array.isArray(presupuestos_asignados)
+    ? presupuestos_asignados
+    : String(presupuestos_asignados ?? "").split(","))
+    .map((x) => Number(String(x).trim()))
+    .filter((n) => Number.isFinite(n) && n > 0);
 
   const [tab, setTab] = useState("egresos");
   const [presupuestos, setPresupuestos] = useState([]);
