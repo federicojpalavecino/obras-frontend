@@ -26,5 +26,8 @@
     "development": [
       "last 1 chrome version"
     ]
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0"
   }
 }

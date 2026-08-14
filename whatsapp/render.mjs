@@ -63,12 +63,16 @@ async function placas(browser){
 }
 
 /* ── REEL ────────────────────────────────────────────────────────── */
-async function reel(browser, archivo = 'reel-wsp.html', nombre = 'faim-obras-reel.mp4'){
+async function reel(browser, archivo = 'reel-wsp.html', nombre = 'faim-obras-reel.mp4', escena = null){
   const page = await abrir(browser, archivo, 1080, 1920);
   await page.evaluate(() => {
     document.getElementById('ui').style.display = 'none';
     document.getElementById('reel').style.setProperty('--z', 1);
   });
+
+  // Un mismo archivo puede traer varias escenas y una duración por escena, así
+  // que hay que elegirla ANTES de leer DURACION.
+  if (escena) await page.evaluate(e => window.setEscena(e), escena);
 
   const dur    = await page.evaluate(() => window.DURACION);
   const total  = Math.round(dur * FPS);
@@ -115,6 +119,18 @@ try {
   if (modo === 'todo' || modo === 'placas') await placas(browser);
   if (modo === 'todo' || modo === 'reel')   await reel(browser);
   if (modo === 'venta') await reel(browser, 'reel-venta.html', 'faim-obras-venta.mp4');
+  if (modo === 'historias'){
+    // Una historia por escena: son clips sueltos que se suben de a uno, no un
+    // video largo. El tercer argumento del CLI permite rendir una sola.
+    const page = await abrir(browser, 'historias-anim.html', 1080, 1920);
+    const todas = await page.evaluate(() => window.ESCENAS);
+    await page.close();
+    const pedidas = process.argv[3] ? [process.argv[3]] : todas;
+    for (const e of pedidas){
+      if (!todas.includes(e)){ console.error('Escena desconocida: ' + e + ' (hay: ' + todas.join(', ') + ')'); continue; }
+      await reel(browser, 'historias-anim.html', `historia-${e}.mp4`, e);
+    }
+  }
 } finally {
   await browser.close();
 }
