@@ -240,6 +240,14 @@ try {
     console.log('\nTodo en whatsapp/out/historias/');
   }
   if (modo === 'perfil') await perfil(browser, Number(process.argv[3]) || 1);
+  if (modo === 'mail'){
+    // Van a public/ y no a out/, porque el correo necesita una URL pública: las
+    // imágenes en base64 las descarta Gmail y las adjuntas quedan como archivo.
+    const dir = path.join(DIR, '..', 'public', 'mail');
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    const n = await piezas(browser, '../mails/imagenes.html', dir);
+    console.log(`\n${n} imágenes → public/mail/  (se sirven como faimobras.com/mail/*.png)`);
+  }
   if (modo === 'campania'){
     const dir = path.join(OUT, 'campania');
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });

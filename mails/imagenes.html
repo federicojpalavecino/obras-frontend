@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Imágenes del mail (1200×560, se muestran a 600)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--warn:#d97706;
+  --ink:#16211c;--bg:#f2f5f3;--bord:#d3dbd6;--mut:#7d8b84;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#22252b;font-family:var(--s)}
+/* El doble del ancho del mail: se muestra a 600 y queda nítido en pantallas retina. */
+#stage{width:1200px;height:560px;position:relative;overflow:hidden;
+  transform:scale(var(--z,.62));transform-origin:top left}
+.pieza{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+  padding:56px 64px;background:var(--bg);color:var(--ink)}
+.pieza.on{display:flex}
+.pieza::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.6;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);
+  background-size:48px 48px}
+.pieza.ver{background:var(--ac);color:#fff}
+.pieza.ver::before{background-image:linear-gradient(rgba(255,255,255,.12) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px);opacity:1}
+.pieza>*{position:relative;z-index:1}
+
+.marca{font-size:30px;font-weight:800;letter-spacing:-.02em;color:#fff;margin-bottom:26px}
+.marca span{color:rgba(255,255,255,.7)}
+.hero{font-size:74px;font-weight:800;line-height:1.02;letter-spacing:-.035em}
+.hero em{font-style:normal;color:rgba(255,255,255,.72)}
+.chips{display:flex;flex-wrap:wrap;gap:11px;margin-top:34px}
+.chips span{font-size:19px;padding:9px 18px;border-radius:22px;background:rgba(255,255,255,.16);color:#fff}
+
+.rot{font-family:var(--m);font-size:17px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--ac);margin-bottom:20px}
+.gt{display:flex;flex-direction:column;gap:18px}
+.gt .f{display:flex;align-items:center;gap:22px}
+.gt .n{width:250px;font-size:26px;flex-shrink:0}
+.gt .p{flex:1;height:42px;background:#e4eae6;border-radius:9px;position:relative;overflow:hidden}
+.gt .b{position:absolute;top:0;height:42px;border-radius:9px;background:var(--ac)}
+.gt .b.v{background:var(--ac2)} .gt .b.a{background:var(--warn)}
+.gt .lluvia{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,
+  rgba(124,58,237,.2) 0 6px,transparent 6px 12px);border-left:3px dashed var(--ac2);border-right:3px dashed var(--ac2)}
+.fin{margin-top:30px;font-size:26px;color:var(--mut)}
+.fin b{font-family:var(--m);color:var(--ac);font-size:30px}
+
+#ui{position:fixed;right:14px;top:14px;z-index:99;font-family:system-ui;color:#fff;font-size:13px;
+  background:#2e3238;border:1px solid #555;border-radius:9px;padding:10px 12px}
+#ui select{font:inherit;padding:6px 10px;border-radius:7px;border:1px solid #555;background:#22252b;color:#fff}
+</style>
+</head>
+<body>
+
+<div id="ui"><select id="sel"></select></div>
+<div id="stage">
+
+  <div class="pieza ver" data-id="hero">
+    <div class="marca">FAIM <span>OBRAS</span></div>
+    <div class="hero">Se carga una vez.<br><em>Se usa siete veces.</em></div>
+    <div class="chips">
+      <span>Plazo de obra</span><span>Certificados</span><span>Curva de inversión</span>
+      <span>Materiales</span><span>Control financiero</span><span>Portal del cliente</span>
+    </div>
+  </div>
+
+  <div class="pieza" data-id="gantt">
+    <div class="rot">Llovió tres días · el plazo se corre solo</div>
+    <div class="gt">
+      <div class="f"><div class="n">Excavación</div><div class="p">
+        <div class="lluvia" style="left:21%;width:21%"></div><div class="b" style="left:0;width:42%"></div></div></div>
+      <div class="f"><div class="n">Fundación</div><div class="p">
+        <div class="b v" style="left:42%;width:21%"></div></div></div>
+      <div class="f"><div class="n">Mampostería</div><div class="p">
+        <div class="b a" style="left:63%;width:34%"></div></div></div>
+    </div>
+    <div class="fin">Fin de obra: <b>7 → 10 de septiembre</b></div>
+  </div>
+
+</div>
+
+<script>
+window.FORMATO={w:1200,h:560};
+window.PIEZAS=[...document.querySelectorAll('.pieza')].map(n=>n.dataset.id);
+window.mostrar=function(id){
+  document.querySelectorAll('.pieza').forEach(n=>n.classList.toggle('on', n.dataset.id===id));
+};
+const sel=document.getElementById('sel');
+sel.innerHTML=window.PIEZAS.map(i=>`<option>${i}</option>`).join('');
+sel.onchange=()=>window.mostrar(sel.value);
+window.mostrar(window.PIEZAS[0]);
+</script>
+</body>
+</html>
