@@ -172,15 +172,20 @@ tr:last-child td{border-bottom:none}
 // ── Logos ────────────────────────────────────────────────────────────────────
 // Se prueban cuatro caminos: monograma de una letra, marca corta de cuatro,
 // marca corta en negativo, y una con la unidad de obra como guiño.
+// Los cuerpos están medidos contra el lienzo: "FAIM" en Syne 800 mide unos 4 px
+// de ancho por cada px de cuerpo, y adentro de un círculo de 320 no puede pasar
+// de ~285 sin rozar el borde. Con 112 daba 446 y las tres variantes de texto
+// salían cortadas por los costados — se veía en el PNG exportado, no en la
+// vista previa, porque ahí el recorte circular disimulaba.
 const LOGOS = [
   {id:'a', t:'Marca corta, fondo verde', d:'La recomendada. Cuatro letras es el máximo que sobrevive a 32 px.',
-   bg:'#059669', fg:'#ffffff', txt:'FAIM', size:112, sub:null},
+   bg:'#059669', fg:'#ffffff', txt:'FAIM', size:70, sub:null},
   {id:'b', t:'Marca corta, fondo tinta', d:'Más sobria. Contrasta bien sobre el feed claro de Instagram.',
-   bg:'#1a1a2e', fg:'#10b981', txt:'FAIM', size:112, sub:null},
+   bg:'#1a1a2e', fg:'#10b981', txt:'FAIM', size:70, sub:null},
   {id:'c', t:'Monograma', d:'Máxima legibilidad en chico, pero pierde el nombre. Sirve si la cuenta ya es conocida.',
    bg:'#059669', fg:'#ffffff', txt:'F', size:190, sub:null},
   {id:'d', t:'Con bajada', d:'Se lee bien a 110 px, pero a 32 px la bajada desaparece. Sirve si no vas a comentar mucho.',
-   bg:'#ffffff', fg:'#059669', txt:'FAIM', size:96, sub:'OBRAS'},
+   bg:'#ffffff', fg:'#059669', txt:'FAIM', size:62, sub:'OBRAS'},
 ];
 
 const cuerpoLogo = (L, cls='') => `

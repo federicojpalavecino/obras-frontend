@@ -100,6 +100,39 @@ async function historiasFijas(browser, salidaDir){
   console.log('Historias fijas: ' + total + ' PNG');
 }
 
+/* ── FOTO DE PERFIL ──────────────────────────────────────────────── */
+// Las variantes viven en instagram/perfil.html dentro de tarjetas comparativas.
+// Acá se aísla una y se escala a 1080: Instagram pide 320 mínimo, pero conviene
+// darle de sobra porque después recomprime.
+async function perfil(browser, cual = 1){
+  const LADO = 1080, ESCALA = LADO / 320;   // el .logo del archivo mide 320px
+  const dir = path.join(OUT, 'perfil');
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+  const page = await abrir(browser, '../instagram/perfil.html', LADO, LADO);
+  const titulo = await page.evaluate(({ i, esc }) => {
+    const card = document.querySelectorAll('.lcard')[i];
+    if (!card) return null;
+    const t = card.querySelector('.cab .t').textContent.trim();
+    const logo = card.querySelector('.cuerpo .logo');
+    document.body.innerHTML = '';
+    document.body.style.cssText = 'margin:0;padding:0;background:#fff;overflow:hidden';
+    document.body.appendChild(logo);
+    // Cuadrada y sin recorte circular: el círculo lo aplica Instagram.
+    logo.style.cssText += ';position:fixed;left:0;top:0;margin:0;border-radius:0;' +
+                          'transform:scale(' + esc + ');transform-origin:top left';
+    return t;
+  }, { i: cual - 1, esc: ESCALA });
+
+  if (titulo === null){ await page.close(); throw new Error('No existe la variante ' + cual); }
+
+  const salida = path.join(dir, `perfil-opcion-${cual}.png`);
+  await page.screenshot({ path: salida, clip: { x: 0, y: 0, width: LADO, height: LADO } });
+  await page.close();
+  console.log(`Opción ${cual} — ${titulo}`);
+  console.log('→ ' + salida + `  (${LADO}×${LADO})`);
+}
+
 /* ── PIEZAS FIJAS CON CONTRATO ───────────────────────────────────── */
 // Los archivos de campaña exponen FORMATO, PIEZAS y mostrar(id): cada pieza ya
 // vive sola y a tamaño real, así que acá no hay que desarmar ninguna hoja de
@@ -206,6 +239,7 @@ try {
     }
     console.log('\nTodo en whatsapp/out/historias/');
   }
+  if (modo === 'perfil') await perfil(browser, Number(process.argv[3]) || 1);
   if (modo === 'campania'){
     const dir = path.join(OUT, 'campania');
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });

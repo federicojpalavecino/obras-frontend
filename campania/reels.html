@@ -23,42 +23,83 @@ html,body{background:#22252b}
 .esc{position:absolute;inset:0;padding:250px 82px 260px;display:none;flex-direction:column}
 .esc.on{display:flex}
 .esc>*{position:relative;z-index:1}
+.esc.osc{background:var(--ink);color:var(--bg)}
 
 .logo{font-size:34px;font-weight:800;letter-spacing:-.02em;color:var(--ac)}
 .logo span{color:var(--ink);font-weight:700}
+.osc .logo span{color:var(--bg)}
 .et{font-family:var(--m);font-size:24px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--ac);margin-top:60px;display:flex;align-items:center;gap:18px}
+  color:var(--ac);margin-top:58px;display:flex;align-items:center;gap:18px}
 .et::before{content:'';width:54px;height:5px;background:var(--ac);border-radius:3px}
-.tit{font-size:74px;font-weight:800;line-height:1.03;letter-spacing:-.035em;margin-top:26px;text-wrap:balance}
+.osc .et{color:var(--ac-cl)} .osc .et::before{background:var(--ac-cl)}
+.tit{font-size:72px;font-weight:800;line-height:1.03;letter-spacing:-.035em;margin-top:24px;text-wrap:balance}
 .tit em{font-style:normal;color:var(--ac)}
-.cuerpo{flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px;margin:36px 0}
-.pie{padding-top:28px;border-top:5px solid var(--ink);display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.osc .tit em{color:var(--ac-cl)}
+.cuerpo{flex:1;display:flex;flex-direction:column;justify-content:center;margin:32px 0}
+.pie{padding-top:26px;border-top:5px solid var(--ink);display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.osc .pie{border-color:var(--ac-cl)}
 .pie .iz{font-size:30px;font-weight:700;line-height:1.28;max-width:19ch}
 .pie .de{font-family:var(--m);font-size:23px;color:var(--mut)}
+.osc .pie .de{color:#8b93a5}
 
-/* ── cadena ────────────────────────────────────────────────────── */
-.paso{display:flex;align-items:center;gap:26px;padding:22px 26px;border-radius:16px;
-  border:3px solid var(--bord);background:#fff}
-.paso .n{font-family:var(--m);font-size:32px;font-weight:600;color:var(--mut);width:56px;flex-shrink:0}
-.paso .tx{flex:1}
-.paso .tx b{display:block;font-size:38px;line-height:1.2}
-.paso .tx s{display:block;font-size:25px;color:var(--mut);text-decoration:none;margin-top:5px;line-height:1.3}
+/* ── cadena: un token que baja por los pasos ───────────────────── */
+.riel{position:relative;padding-left:90px}
+.riel .via{position:absolute;left:29px;top:24px;bottom:24px;width:5px;background:var(--bord);border-radius:3px}
+.riel .viaon{position:absolute;left:29px;top:24px;width:5px;background:var(--ac);border-radius:3px}
+.riel .tok{position:absolute;left:12px;width:39px;height:39px;border-radius:50%;background:var(--ac);
+  box-shadow:0 0 0 10px rgba(5,150,105,.18)}
+.paso{display:flex;align-items:center;gap:22px;padding:20px 26px;border-radius:16px;
+  border:3px solid var(--bord);background:#fff;margin-bottom:16px}
+.paso:last-child{margin-bottom:0}
+.paso .n{font-family:var(--m);font-size:28px;font-weight:600;color:var(--mut);width:48px;flex-shrink:0}
+.paso .tx b{display:block;font-size:36px;line-height:1.2}
+.paso .tx s{display:block;font-size:24px;color:var(--mut);text-decoration:none;margin-top:4px}
 .paso.act{border-color:var(--ac);background:rgba(5,150,105,.09)}
 .paso.act .n{color:var(--ac)}
-.paso.hecho{border-color:rgba(5,150,105,.4)}
+
+/* ── materiales: kilos que se tachan y se vuelven bolsas ───────── */
+.lista{display:flex;flex-direction:column;gap:16px}
+.mat{display:flex;align-items:center;gap:20px;padding:22px 26px;border-radius:16px;background:#fff;
+  border:3px solid var(--bord)}
+.mat .nm{flex:1;font-size:33px;line-height:1.2}
+.mat .kg{font-family:var(--m);font-size:29px;color:var(--mut);position:relative;white-space:nowrap}
+.mat .kg .tach{position:absolute;left:-4px;top:52%;height:4px;background:var(--red);border-radius:2px}
+.mat .bl{font-family:var(--m);font-size:34px;font-weight:600;color:var(--ac);white-space:nowrap}
+
+/* ── catálogo: contador con nombres pasando ────────────────────── */
+.cont{text-align:center}
+.cont .num{font-family:var(--m);font-size:300px;font-weight:600;color:var(--ac-cl);line-height:.88;letter-spacing:-.05em}
+.cont .lb{font-size:38px;color:#98a0b2;margin-top:16px}
+.flick{margin-top:44px;height:210px;overflow:hidden;position:relative}
+.flick .f{position:absolute;left:0;right:0;font-size:31px;color:#7b8494;font-family:var(--m);
+  text-align:center;line-height:70px}
+
+/* ── curva de inversión ────────────────────────────────────────── */
+.graf{position:relative;background:#fff;border:3px solid var(--bord);border-radius:18px;padding:26px 24px 12px}
+.graf svg{width:100%;height:520px;display:block}
+/* Una celda por mes, con el mismo margen lateral que el svg (34 de 916 = 3.71%),
+   para que cada rótulo caiga bajo su barra y no derive hacia la derecha. */
+.ejes{display:grid;grid-template-columns:repeat(7,1fr);padding:10px 3.71% 0;font-family:var(--m);
+  font-size:22px;color:var(--mut);text-align:center}
+.leyenda{display:flex;gap:34px;padding:20px 4px 0;font-size:26px;color:var(--mut)}
+.leyenda i{display:inline-block;width:22px;height:22px;border-radius:6px;margin-right:10px;vertical-align:-3px}
+.aviso{margin-top:22px;padding:26px 30px;border-radius:16px;background:var(--ink);color:#fff;
+  display:flex;justify-content:space-between;align-items:baseline;gap:20px}
+.aviso .k{font-size:30px;color:#98a0b2}
+.aviso .v{font-family:var(--m);font-size:62px;font-weight:600;color:var(--ac-cl);letter-spacing:-.03em}
 
 /* ── ganancia ──────────────────────────────────────────────────── */
-.mov{display:flex;align-items:center;gap:20px;padding:20px 24px;border-radius:14px;
-  background:#fff;border:3px solid var(--bord);font-size:30px}
-.mov .tag{font-family:var(--m);font-size:19px;letter-spacing:.11em;text-transform:uppercase;
-  padding:6px 13px;border-radius:14px;background:rgba(5,150,105,.13);color:var(--ac);flex-shrink:0}
+.mov{display:flex;align-items:center;gap:18px;padding:19px 24px;border-radius:14px;background:#fff;
+  border:3px solid var(--bord);font-size:29px;margin-bottom:13px}
+.mov .tag{font-family:var(--m);font-size:18px;letter-spacing:.11em;text-transform:uppercase;
+  padding:6px 12px;border-radius:14px;background:rgba(5,150,105,.13);color:var(--ac);flex-shrink:0}
 .mov .tx{flex:1;line-height:1.25}
-.mov .v{font-family:var(--m);font-size:32px;white-space:nowrap}
+.mov .v{font-family:var(--m);font-size:30px;white-space:nowrap}
 .mov .v.neg{color:var(--mut)} .mov .v.pos{color:var(--ac)}
-.res{margin-top:30px;padding:30px 32px;border-radius:18px;background:var(--ink);color:#fff;
+.res{margin-top:26px;padding:28px 32px;border-radius:18px;background:var(--ink);color:#fff;
   display:flex;justify-content:space-between;align-items:baseline;gap:20px}
-.res .k{font-size:32px;color:#98a0b2}
-.res .v{font-family:var(--m);font-size:72px;font-weight:600;color:var(--ac-cl);letter-spacing:-.03em}
+.res .k{font-size:30px;color:#98a0b2}
+.res .v{font-family:var(--m);font-size:68px;font-weight:600;color:var(--ac-cl);letter-spacing:-.03em}
 
 #ui{position:fixed;right:14px;top:14px;z-index:99;font-family:system-ui;color:#fff;font-size:13px;
   background:#2e3238;border:1px solid #555;border-radius:9px;padding:10px 12px}
@@ -68,26 +109,71 @@ html,body{background:#22252b}
 </head>
 <body>
 
-<div id="ui">
-  <select id="sel"></select><button id="play">Reproducir</button><span id="rel"></span>
-</div>
+<div id="ui"><select id="sel"></select><button id="play">Reproducir</button><span id="rel"></span></div>
 
 <div id="reel">
 
   <div class="esc" data-e="cadena">
     <div class="logo">FAIM <span>OBRAS</span></div>
     <div class="et">Cómo funciona</div>
-    <div class="tit" id="c-tit">De la cotización al <em>certificado</em></div>
-    <div class="cuerpo" id="c-pasos"></div>
-    <div class="pie"><div class="iz" id="c-pie">El mismo dato, de punta a punta.</div><div class="de">faimobras.com</div></div>
+    <div class="tit">De la cotización al <em>certificado</em></div>
+    <div class="cuerpo"><div class="riel" id="c-riel"></div></div>
+    <div class="pie"><div class="iz" id="c-pie">Un dato, cinco pantallas.</div><div class="de">faimobras.com</div></div>
+  </div>
+
+  <div class="esc" data-e="materiales">
+    <div class="logo">FAIM <span>OBRAS</span></div>
+    <div class="et">Listado de materiales</div>
+    <div class="tit">Al corralón con una <em>lista</em>, no de memoria</div>
+    <div class="cuerpo"><div class="lista" id="m-lista"></div></div>
+    <div class="pie"><div class="iz" id="m-pie">Sale del cómputo de tu presupuesto.</div><div class="de">faimobras.com</div></div>
+  </div>
+
+  <div class="esc osc" data-e="catalogo">
+    <div class="logo">FAIM <span>OBRAS</span></div>
+    <div class="et">El catálogo</div>
+    <div class="tit">No arrancás de una <em>hoja en blanco</em></div>
+    <div class="cuerpo">
+      <div class="cont">
+        <div class="num" id="k-num">0</div>
+        <div class="lb">ítems con análisis de costos real</div>
+      </div>
+      <div class="flick" id="k-flick"></div>
+    </div>
+    <div class="pie"><div class="iz" id="k-pie">829 materiales y 14 gremios.</div><div class="de">faimobras.com</div></div>
+  </div>
+
+  <div class="esc" data-e="curva">
+    <div class="logo">FAIM <span>OBRAS</span></div>
+    <div class="et">Curva de inversión</div>
+    <div class="tit">Sabés cuándo te va a <em>faltar plata</em></div>
+    <div class="cuerpo">
+      <div class="graf">
+        <svg id="v-svg" viewBox="0 0 916 520" preserveAspectRatio="none">
+          <g id="v-barras"></g>
+          <polyline id="v-linea" fill="none" stroke="#059669" stroke-width="7"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+          <circle id="v-punto" r="13" fill="#059669" opacity="0"/>
+        </svg>
+        <div class="ejes" id="v-ejes"></div>
+      </div>
+      <div class="leyenda">
+        <span><i style="background:#7c3aed"></i> Desembolso del mes</span>
+        <span><i style="background:#059669"></i> Acumulado</span>
+      </div>
+      <div class="aviso" id="v-aviso" style="opacity:0">
+        <span class="k">Pico de caja · junio</span><span class="v" id="v-pico">$ 0</span>
+      </div>
+    </div>
+    <div class="pie"><div class="iz" id="v-pie">Antes de que falte, no después.</div><div class="de">faimobras.com</div></div>
   </div>
 
   <div class="esc" data-e="ganancia">
     <div class="logo">FAIM <span>OBRAS</span></div>
     <div class="et">Control financiero</div>
-    <div class="tit" id="g-tit">¿Cuánto <em>ganaste</em> en tu última obra?</div>
+    <div class="tit">¿Cuánto <em>ganaste</em> en tu última obra?</div>
     <div class="cuerpo">
-      <div id="g-movs" style="display:flex;flex-direction:column;gap:14px"></div>
+      <div id="g-movs"></div>
       <div class="res" id="g-res" style="opacity:0"><span class="k">Resultado del período</span><span class="v" id="g-v">$ 0</span></div>
     </div>
     <div class="pie"><div class="iz" id="g-pie">Cobros, compras y pagos entran solos.</div><div class="de">faimobras.com</div></div>
@@ -96,78 +182,205 @@ html,body{background:#22252b}
 </div>
 
 <script>
-/* Todo sale de `t`. Nada de Date.now ni requestAnimationFrame: el renderer
-   llama setT(t) cuadro por cuadro y cualquier dependencia del reloj real sale
-   congelada o saltando en el video. */
+/* Todo sale de `t`. Nada de Date.now, requestAnimationFrame ni Math.random:
+   el renderer llama setT(t) cuadro por cuadro, así que cada cuadro tiene que
+   ser una función pura del tiempo o el video sale saltando. */
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const tramo=(t,a,b)=>clamp((t-a)/(b-a),0,1);
 const suave=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+const rebote=p=>1+2.6*Math.pow(1-p,2)*Math.sin(p*9);      // pop al aparecer
 const pesos=n=>(n<0?'– $ ':'$ ')+Math.abs(Math.round(n)).toLocaleString('es-AR');
 
-/* ── REEL 1: la cadena ─────────────────────────────────────────── */
-const PASOS=[
-  ['Presupuesto','Rubros, ítems y cómputo'],
-  ['Análisis de costos','Materiales, mano de obra y equipos'],
-  ['Planificación','Gantt y camino crítico, desde las horas'],
-  ['Certificados','Avance sobre el presupuesto'],
-  ['Cobranzas','Contrato, cuenta corriente y resultado'],
-];
+/* ── 1. CADENA — un token baja por el riel y va encendiendo ────── */
+const PASOS=[['Presupuesto','Rubros, ítems y cómputo'],
+             ['Análisis de costos','Materiales, mano de obra y equipos'],
+             ['Planificación','Gantt y camino crítico'],
+             ['Certificados','Avance sobre el presupuesto'],
+             ['Cobranzas','Contrato y resultado']];
 function cadena(t){
-  const cont=document.getElementById('c-pasos');
-  if(!cont.dataset.listo){
-    cont.innerHTML=PASOS.map(([b,s],i)=>
-      `<div class="paso" data-p="${i}"><div class="n">0${i+1}</div><div class="tx"><b>${b}</b><s>${s}</s></div></div>`).join('');
-    cont.dataset.listo='1';
+  const r=document.getElementById('c-riel');
+  if(!r.dataset.listo){
+    r.innerHTML='<div class="via"></div><div class="viaon" id="c-on"></div><div class="tok" id="c-tok"></div>'+
+      PASOS.map(([b,s],i)=>`<div class="paso" data-p="${i}"><div class="n">0${i+1}</div>
+        <div class="tx"><b>${b}</b><s>${s}</s></div></div>`).join('');
+    r.dataset.listo='1';
   }
+  // aparecen
   PASOS.forEach((_,i)=>{
-    const el=cont.querySelector(`[data-p="${i}"]`);
-    const ent=tramo(t,1.1+i*.42,1.7+i*.42);            // entra
-    el.style.opacity=ent;
-    el.style.transform=`translateX(${(1-suave(ent))*-40}px)`;
-    const act0=4.2+i*1.25, act1=act0+1.1;               // se enciende en orden
-    el.classList.toggle('act', t>=act0 && t<act1);
-    el.classList.toggle('hecho', t>=act1);
+    const el=r.querySelector(`[data-p="${i}"]`);
+    const p=tramo(t,.5+i*.26,1.05+i*.26);
+    el.style.opacity=p;
+    el.style.transform=`translateY(${(1-suave(p))*26}px)`;
   });
-  document.getElementById('c-pie').textContent = t>10.6
-    ? 'Se carga una vez. Se usa siete veces.'
-    : 'El mismo dato, de punta a punta.';
+  // el token recorre: de 2,3 s a 9,3 s, un paso cada 1,4 s
+  const T0=2.3, PASO=1.4;
+  const avance=clamp((t-T0)/PASO,0,PASOS.length-1+.999);
+  const idx=Math.min(Math.floor(avance),PASOS.length-1);
+  const frac=avance-idx;
+  const cajas=[...r.querySelectorAll('.paso')].map(n=>n.offsetTop+n.offsetHeight/2);
+  const y=(t<T0)?cajas[0]:(idx<PASOS.length-1?cajas[idx]+(cajas[idx+1]-cajas[idx])*suave(frac):cajas[PASOS.length-1]);
+  const tok=document.getElementById('c-tok');
+  tok.style.top=(y-19)+'px';
+  tok.style.opacity=t>1.6?1:0;
+  document.getElementById('c-on').style.height=Math.max(0,y-24)+'px';
+  PASOS.forEach((_,i)=>{
+    const el=r.querySelector(`[data-p="${i}"]`);
+    const activo=t>=T0 && i===idx;
+    el.classList.toggle('act',activo);
+    el.style.transform=`translateY(0) scale(${activo?1+.03*Math.sin(clamp(frac,0,1)*Math.PI):1})`;
+  });
+  document.getElementById('c-pie').textContent=t>10.4?'Se carga una vez. Se usa siete veces.':'Un dato, cinco pantallas.';
 }
 
-/* ── REEL 2: la ganancia ───────────────────────────────────────── */
-const MOVS=[
-  ['de la obra','Desembolso 2 — Vivienda unifamiliar', 2400000],
-  ['de la obra','Corralón — hierro y cemento',         -870000],
-  ['de la obra','Pago a contratista — instalación',    -540000],
-  ['cargado','Andamios (6 días de alquiler)',           -96000],
-];
+/* ── 2. MATERIALES — los kilos se tachan y aparecen las bolsas ─── */
+const MATS=[['Cemento de albañilería','1.240 kg','25 bolsas'],
+            ['Cal hidratada','880 kg','18 bolsas'],
+            ['Hierro del 8','168 m','14 barras'],
+            ['Ladrillo hueco 12×18×33','3.462 u','3.480 unid.']];
+function materiales(t){
+  const l=document.getElementById('m-lista');
+  if(!l.dataset.listo){
+    l.innerHTML=MATS.map(([n,kg,bl],i)=>
+      `<div class="mat" data-m="${i}"><span class="nm">${n}</span>
+       <span class="kg">${kg}<span class="tach" data-t="${i}" style="width:0"></span></span>
+       <span class="bl" data-b="${i}" style="opacity:0">${bl}</span></div>`).join('');
+    l.dataset.listo='1';
+  }
+  MATS.forEach((_,i)=>{
+    const fila=l.querySelector(`[data-m="${i}"]`);
+    const ap=tramo(t,.5+i*.3,1.1+i*.3);
+    fila.style.opacity=ap;
+    fila.style.transform=`translateX(${(1-suave(ap))*-40}px)`;
+    // el tachado corre sobre los kilos y detrás entra la presentación
+    const base=3.4+i*.75;
+    const tach=l.querySelector(`[data-t="${i}"]`);
+    const anchoKg=fila.querySelector('.kg').offsetWidth;
+    tach.style.width=(suave(tramo(t,base,base+.42))*(anchoKg+8))+'px';
+    const bl=l.querySelector(`[data-b="${i}"]`);
+    const pb=tramo(t,base+.3,base+.85);
+    bl.style.opacity=pb;
+    bl.style.transform=`scale(${pb>0?rebote(pb):0})`;
+    fila.querySelector('.kg').style.opacity=1-.55*pb;
+  });
+  document.getElementById('m-pie').textContent=t>8.2
+    ? 'Redondeado para arriba, agrupado por rubro.'
+    : 'Sale del cómputo de tu presupuesto.';
+}
+
+/* ── 3. CATÁLOGO — el contador corre y pasan los nombres ───────── */
+const NOMS=['MAMPOSTERÍA DE LADRILLO HUECO 12×18×33','HORMIGÓN H-21 ELABORADO','CONTRAPISO DE CASCOTE',
+  'REVOQUE GRUESO A LA CAL','CARPETA DE NIVELACIÓN','AISLACIÓN HIDRÓFUGA HORIZONTAL',
+  'VIGA DE ENCADENADO 20×20','PISO CERÁMICO 45×45','CIELORRASO DE PLACA DE YESO',
+  'PINTURA LÁTEX INTERIOR 3 MANOS','ZAPATA CORRIDA DE HORMIGÓN','CUBIERTA DE CHAPA ACANALADA'];
+function catalogo(t){
+  const p=suave(tramo(t,.7,4.6));
+  document.getElementById('k-num').textContent=Math.round(436*p);
+  const f=document.getElementById('k-flick');
+  if(!f.dataset.listo){
+    f.innerHTML=NOMS.map((n,i)=>`<div class="f" data-f="${i}">${n}</div>`).join('');
+    f.dataset.listo='1';
+  }
+  // rueda continua: los nombres suben, tres visibles a la vez
+  const vel=145;                                  // px por segundo
+  const alto=70, total=NOMS.length*alto;
+  const off=((t*vel)%total);
+  NOMS.forEach((_,i)=>{
+    const el=f.querySelector(`[data-f="${i}"]`);
+    let y=i*alto-off;
+    if(y<-alto) y+=total;
+    el.style.top=y+'px';
+    el.style.opacity=clamp(1-Math.abs(y-70)/110,0,1)*clamp(tramo(t,.4,1),0,1);
+  });
+  document.getElementById('k-pie').textContent=t>6.4
+    ? 'Elegís el ítem y computás.'
+    : '829 materiales y 14 gremios.';
+}
+
+/* ── 4. CURVA — las barras crecen y el acumulado se dibuja ─────── */
+const MESES=['Mar','Abr','May','Jun','Jul','Ago','Sep'];
+const DESEMB=[1.8,3.4,5.1,6.2,4.7,3.1,1.4];              // millones por mes
+const W=916,H=520,PX=34;                                   // lienzo del svg
+function curva(t){
+  const g=document.getElementById('v-barras');
+  const maxD=Math.max(...DESEMB);
+  const acum=DESEMB.reduce((a,v)=>[...a,(a[a.length-1]||0)+v],[]);
+  const maxA=acum[acum.length-1];
+  const anchoCol=(W-PX*2)/DESEMB.length;
+  const anchoBar=anchoCol*.52;
+
+  if(!g.dataset.listo){
+    g.innerHTML=DESEMB.map((_,i)=>
+      `<rect data-r="${i}" x="${PX+anchoCol*i+(anchoCol-anchoBar)/2}" width="${anchoBar}" rx="7" fill="#7c3aed" opacity=".72"/>`).join('');
+    g.dataset.listo='1';
+    document.getElementById('v-ejes').innerHTML=MESES.map(m=>`<span>${m}</span>`).join('');
+  }
+  // las barras crecen de a una, de abajo hacia arriba
+  DESEMB.forEach((v,i)=>{
+    const p=suave(tramo(t,.8+i*.24,1.5+i*.24));
+    const h=(v/maxD)*(H-70)*p;
+    const r=g.querySelector(`[data-r="${i}"]`);
+    r.setAttribute('y',H-h); r.setAttribute('height',Math.max(0,h));
+  });
+  // el acumulado se dibuja encima, ya con las barras puestas
+  const pl=document.getElementById('v-linea');
+  const pts=acum.map((a,i)=>[PX+anchoCol*i+anchoCol/2, H-(a/maxA)*(H-70)]);
+  const avance=tramo(t,3.1,6.3);
+  const cuantos=avance*(pts.length-1);
+  const enteros=Math.floor(cuantos), frac=cuantos-enteros;
+  const dibujo=pts.slice(0,enteros+1);
+  if(enteros<pts.length-1 && avance>0){
+    const [x0,y0]=pts[enteros], [x1,y1]=pts[enteros+1];
+    dibujo.push([x0+(x1-x0)*frac, y0+(y1-y0)*frac]);
+  }
+  pl.setAttribute('points',dibujo.map(p=>p.join(',')).join(' '));
+  const punta=dibujo[dibujo.length-1];
+  const pt=document.getElementById('v-punto');
+  if(punta && avance>0){ pt.setAttribute('cx',punta[0]); pt.setAttribute('cy',punta[1]); pt.setAttribute('opacity',1); }
+  else pt.setAttribute('opacity',0);
+
+  // el pico de caja: el mes que más plata pide
+  const pico=Math.max(...DESEMB)*1e6;
+  const ap=tramo(t,6.5,7.2);
+  const av=document.getElementById('v-aviso');
+  av.style.opacity=ap; av.style.transform=`translateY(${(1-suave(ap))*30}px)`;
+  document.getElementById('v-pico').textContent=pesos(pico*suave(tramo(t,6.7,8.4)));
+  document.getElementById('v-pie').textContent=t>8.6
+    ? 'Sale del mismo presupuesto.'
+    : 'Antes de que falte, no después.';
+}
+
+/* ── 5. GANANCIA ───────────────────────────────────────────────── */
+const MOVS=[['de la obra','Desembolso 2 — Vivienda unifamiliar',2400000],
+            ['de la obra','Corralón — hierro y cemento',-870000],
+            ['de la obra','Pago a contratista — instalación',-540000],
+            ['cargado','Andamios (6 días de alquiler)',-96000]];
 function ganancia(t){
-  const cont=document.getElementById('g-movs');
-  if(!cont.dataset.listo){
-    cont.innerHTML=MOVS.map(([tag,tx,v],i)=>
+  const c=document.getElementById('g-movs');
+  if(!c.dataset.listo){
+    c.innerHTML=MOVS.map(([tag,tx,v],i)=>
       `<div class="mov" data-m="${i}"><span class="tag">${tag}</span><span class="tx">${tx}</span>
        <span class="v ${v<0?'neg':'pos'}">${pesos(v)}</span></div>`).join('');
-    cont.dataset.listo='1';
+    c.dataset.listo='1';
   }
   MOVS.forEach((_,i)=>{
-    const el=cont.querySelector(`[data-m="${i}"]`);
-    const p=tramo(t,1.4+i*.85,2.1+i*.85);
+    const el=c.querySelector(`[data-m="${i}"]`);
+    const p=tramo(t,1.1+i*.8,1.75+i*.8);
     el.style.opacity=p;
-    el.style.transform=`translateX(${(1-suave(p))*-46}px)`;
+    el.style.transform=`translateX(${(1-suave(p))*-46}px) scale(${p>0?Math.min(1,rebote(p)):1})`;
   });
-  // el resultado aparece recién cuando entraron todos, y cuenta hasta el total
   const total=MOVS.reduce((a,[,,v])=>a+v,0);
-  const ap=tramo(t,5.4,6.2);
+  const ap=tramo(t,4.9,5.7);
   const res=document.getElementById('g-res');
   res.style.opacity=ap;
   res.style.transform=`translateY(${(1-suave(ap))*36}px)`;
-  document.getElementById('g-v').textContent=pesos(total*suave(tramo(t,5.6,7.8)));
-  document.getElementById('g-pie').textContent = t>8.4
-    ? 'El número, no la sensación.'
-    : 'Cobros, compras y pagos entran solos.';
+  document.getElementById('g-v').textContent=pesos(total*suave(tramo(t,5.1,7.4)));
+  document.getElementById('g-pie').textContent=t>8?'El número, no la sensación.':'Cobros, compras y pagos entran solos.';
 }
 
 /* ── despacho ──────────────────────────────────────────────────── */
-const ESC={ cadena:{dur:12.5,fn:cadena}, ganancia:{dur:10.0,fn:ganancia} };
+const ESC={ cadena:{dur:12.0,fn:cadena}, materiales:{dur:9.5,fn:materiales},
+            catalogo:{dur:8.0,fn:catalogo}, curva:{dur:10.0,fn:curva},
+            ganancia:{dur:9.5,fn:ganancia} };
 let actual='cadena';
 window.ESCENAS=Object.keys(ESC);
 window.DURACION=ESC[actual].dur;
