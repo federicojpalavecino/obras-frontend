@@ -69,6 +69,11 @@ body{background:#22252b;font-family:var(--s)}
 .pie .de{font-family:var(--m);font-size:23px;color:var(--mut)}
 .osc .pie .de{color:#8b93a5} .ver .pie .de,.vio .pie .de{color:rgba(255,255,255,.82)}
 
+/* Variante sin nada: solo la marca y la frase. Se usa para la placa de apertura,
+   donde cualquier elemento de más le saca fuerza al mensaje. */
+.pieza.limpia .cuerpo{justify-content:center;margin:0}
+.pieza.limpia .tit{font-size:104px;margin:0}
+
 #ui{position:fixed;right:14px;top:14px;z-index:99;font-family:system-ui;color:#fff;font-size:13px;
   background:#2e3238;border:1px solid #555;border-radius:9px;padding:10px 12px}
 #ui select{font:inherit;padding:6px 10px;border-radius:7px;border:1px solid #555;background:#22252b;color:#fff}
@@ -81,6 +86,9 @@ body{background:#22252b;font-family:var(--s)}
 
 <script>
 const P=[
+ {id:'h-00',fondo:'ver',limpia:1,
+  tit:'La app que necesita <em>tu estudio o empresa</em>'},
+
  {id:'h-01',et:'Contame',fondo:'',
   tit:'¿Cuánto tardás en armar <em>un presupuesto</em>?',titCh:1,
   zona:['Encuesta','Menos de un día · Dos días o más'],
@@ -119,6 +127,10 @@ stage.innerHTML=P.map(x=>{
   const gr=x.gr?`<div class="gr">${x.gr}</div>`:'';
   const baj=x.baj?`<div class="baj">${x.baj}</div>`:'';
   const zona=x.zona?`<div class="zona"><div class="z-t">${x.zona[0]}</div><div class="z-d">${x.zona[1]}</div></div>`:'';
+  if(x.limpia) return `<div class="pieza limpia ${x.fondo||''}" data-id="${x.id}">
+    <div class="logo">FAIM <span>OBRAS</span></div>
+    <div class="cuerpo"><div class="tit">${x.tit}</div></div>
+  </div>`;
   return `<div class="pieza ${x.fondo||''}" data-id="${x.id}">
     <div class="logo">FAIM <span>OBRAS</span></div>
     <div class="et">${x.et}</div>
