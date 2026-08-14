@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Campaña de captación — Reels (1080×1920)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--warn:#d97706;--red:#ef4444;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#22252b}
+#reel{width:1080px;height:1920px;position:relative;overflow:hidden;background:var(--bg);
+  color:var(--ink);font-family:var(--s);transform:scale(var(--z,.42));transform-origin:top left}
+#reel::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);
+  background-size:60px 60px}
+.esc{position:absolute;inset:0;padding:250px 82px 260px;display:none;flex-direction:column}
+.esc.on{display:flex}
+.esc>*{position:relative;z-index:1}
+
+.logo{font-size:34px;font-weight:800;letter-spacing:-.02em;color:var(--ac)}
+.logo span{color:var(--ink);font-weight:700}
+.et{font-family:var(--m);font-size:24px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ac);margin-top:60px;display:flex;align-items:center;gap:18px}
+.et::before{content:'';width:54px;height:5px;background:var(--ac);border-radius:3px}
+.tit{font-size:74px;font-weight:800;line-height:1.03;letter-spacing:-.035em;margin-top:26px;text-wrap:balance}
+.tit em{font-style:normal;color:var(--ac)}
+.cuerpo{flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px;margin:36px 0}
+.pie{padding-top:28px;border-top:5px solid var(--ink);display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.pie .iz{font-size:30px;font-weight:700;line-height:1.28;max-width:19ch}
+.pie .de{font-family:var(--m);font-size:23px;color:var(--mut)}
+
+/* ── cadena ────────────────────────────────────────────────────── */
+.paso{display:flex;align-items:center;gap:26px;padding:22px 26px;border-radius:16px;
+  border:3px solid var(--bord);background:#fff}
+.paso .n{font-family:var(--m);font-size:32px;font-weight:600;color:var(--mut);width:56px;flex-shrink:0}
+.paso .tx{flex:1}
+.paso .tx b{display:block;font-size:38px;line-height:1.2}
+.paso .tx s{display:block;font-size:25px;color:var(--mut);text-decoration:none;margin-top:5px;line-height:1.3}
+.paso.act{border-color:var(--ac);background:rgba(5,150,105,.09)}
+.paso.act .n{color:var(--ac)}
+.paso.hecho{border-color:rgba(5,150,105,.4)}
+
+/* ── ganancia ──────────────────────────────────────────────────── */
+.mov{display:flex;align-items:center;gap:20px;padding:20px 24px;border-radius:14px;
+  background:#fff;border:3px solid var(--bord);font-size:30px}
+.mov .tag{font-family:var(--m);font-size:19px;letter-spacing:.11em;text-transform:uppercase;
+  padding:6px 13px;border-radius:14px;background:rgba(5,150,105,.13);color:var(--ac);flex-shrink:0}
+.mov .tx{flex:1;line-height:1.25}
+.mov .v{font-family:var(--m);font-size:32px;white-space:nowrap}
+.mov .v.neg{color:var(--mut)} .mov .v.pos{color:var(--ac)}
+.res{margin-top:30px;padding:30px 32px;border-radius:18px;background:var(--ink);color:#fff;
+  display:flex;justify-content:space-between;align-items:baseline;gap:20px}
+.res .k{font-size:32px;color:#98a0b2}
+.res .v{font-family:var(--m);font-size:72px;font-weight:600;color:var(--ac-cl);letter-spacing:-.03em}
+
+#ui{position:fixed;right:14px;top:14px;z-index:99;font-family:system-ui;color:#fff;font-size:13px;
+  background:#2e3238;border:1px solid #555;border-radius:9px;padding:10px 12px}
+#ui select,#ui button{font:inherit;padding:6px 11px;border-radius:7px;border:1px solid #555;
+  background:#22252b;color:#fff;cursor:pointer;margin-right:5px}
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <select id="sel"></select><button id="play">Reproducir</button><span id="rel"></span>
+</div>
+
+<div id="reel">
+
+  <div class="esc" data-e="cadena">
+    <div class="logo">FAIM <span>OBRAS</span></div>
+    <div class="et">Cómo funciona</div>
+    <div class="tit" id="c-tit">De la cotización al <em>certificado</em></div>
+    <div class="cuerpo" id="c-pasos"></div>
+    <div class="pie"><div class="iz" id="c-pie">El mismo dato, de punta a punta.</div><div class="de">faimobras.com</div></div>
+  </div>
+
+  <div class="esc" data-e="ganancia">
+    <div class="logo">FAIM <span>OBRAS</span></div>
+    <div class="et">Control financiero</div>
+    <div class="tit" id="g-tit">¿Cuánto <em>ganaste</em> en tu última obra?</div>
+    <div class="cuerpo">
+      <div id="g-movs" style="display:flex;flex-direction:column;gap:14px"></div>
+      <div class="res" id="g-res" style="opacity:0"><span class="k">Resultado del período</span><span class="v" id="g-v">$ 0</span></div>
+    </div>
+    <div class="pie"><div class="iz" id="g-pie">Cobros, compras y pagos entran solos.</div><div class="de">faimobras.com</div></div>
+  </div>
+
+</div>
+
+<script>
+/* Todo sale de `t`. Nada de Date.now ni requestAnimationFrame: el renderer
+   llama setT(t) cuadro por cuadro y cualquier dependencia del reloj real sale
+   congelada o saltando en el video. */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const tramo=(t,a,b)=>clamp((t-a)/(b-a),0,1);
+const suave=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+const pesos=n=>(n<0?'– $ ':'$ ')+Math.abs(Math.round(n)).toLocaleString('es-AR');
+
+/* ── REEL 1: la cadena ─────────────────────────────────────────── */
+const PASOS=[
+  ['Presupuesto','Rubros, ítems y cómputo'],
+  ['Análisis de costos','Materiales, mano de obra y equipos'],
+  ['Planificación','Gantt y camino crítico, desde las horas'],
+  ['Certificados','Avance sobre el presupuesto'],
+  ['Cobranzas','Contrato, cuenta corriente y resultado'],
+];
+function cadena(t){
+  const cont=document.getElementById('c-pasos');
+  if(!cont.dataset.listo){
+    cont.innerHTML=PASOS.map(([b,s],i)=>
+      `<div class="paso" data-p="${i}"><div class="n">0${i+1}</div><div class="tx"><b>${b}</b><s>${s}</s></div></div>`).join('');
+    cont.dataset.listo='1';
+  }
+  PASOS.forEach((_,i)=>{
+    const el=cont.querySelector(`[data-p="${i}"]`);
+    const ent=tramo(t,1.1+i*.42,1.7+i*.42);            // entra
+    el.style.opacity=ent;
+    el.style.transform=`translateX(${(1-suave(ent))*-40}px)`;
+    const act0=4.2+i*1.25, act1=act0+1.1;               // se enciende en orden
+    el.classList.toggle('act', t>=act0 && t<act1);
+    el.classList.toggle('hecho', t>=act1);
+  });
+  document.getElementById('c-pie').textContent = t>10.6
+    ? 'Se carga una vez. Se usa siete veces.'
+    : 'El mismo dato, de punta a punta.';
+}
+
+/* ── REEL 2: la ganancia ───────────────────────────────────────── */
+const MOVS=[
+  ['de la obra','Desembolso 2 — Vivienda unifamiliar', 2400000],
+  ['de la obra','Corralón — hierro y cemento',         -870000],
+  ['de la obra','Pago a contratista — instalación',    -540000],
+  ['cargado','Andamios (6 días de alquiler)',           -96000],
+];
+function ganancia(t){
+  const cont=document.getElementById('g-movs');
+  if(!cont.dataset.listo){
+    cont.innerHTML=MOVS.map(([tag,tx,v],i)=>
+      `<div class="mov" data-m="${i}"><span class="tag">${tag}</span><span class="tx">${tx}</span>
+       <span class="v ${v<0?'neg':'pos'}">${pesos(v)}</span></div>`).join('');
+    cont.dataset.listo='1';
+  }
+  MOVS.forEach((_,i)=>{
+    const el=cont.querySelector(`[data-m="${i}"]`);
+    const p=tramo(t,1.4+i*.85,2.1+i*.85);
+    el.style.opacity=p;
+    el.style.transform=`translateX(${(1-suave(p))*-46}px)`;
+  });
+  // el resultado aparece recién cuando entraron todos, y cuenta hasta el total
+  const total=MOVS.reduce((a,[,,v])=>a+v,0);
+  const ap=tramo(t,5.4,6.2);
+  const res=document.getElementById('g-res');
+  res.style.opacity=ap;
+  res.style.transform=`translateY(${(1-suave(ap))*36}px)`;
+  document.getElementById('g-v').textContent=pesos(total*suave(tramo(t,5.6,7.8)));
+  document.getElementById('g-pie').textContent = t>8.4
+    ? 'El número, no la sensación.'
+    : 'Cobros, compras y pagos entran solos.';
+}
+
+/* ── despacho ──────────────────────────────────────────────────── */
+const ESC={ cadena:{dur:12.5,fn:cadena}, ganancia:{dur:10.0,fn:ganancia} };
+let actual='cadena';
+window.ESCENAS=Object.keys(ESC);
+window.DURACION=ESC[actual].dur;
+window.setEscena=function(n){
+  actual=n; window.DURACION=ESC[n].dur;
+  document.querySelectorAll('.esc').forEach(e=>e.classList.toggle('on', e.dataset.e===n));
+  window.setT(0);
+};
+window.setT=function(t){ ESC[actual].fn(t); };
+
+const sel=document.getElementById('sel');
+sel.innerHTML=window.ESCENAS.map(e=>`<option>${e}</option>`).join('');
+sel.onchange=()=>window.setEscena(sel.value);
+let timer=null;
+document.getElementById('play').onclick=function(){
+  clearInterval(timer);
+  const t0=Date.now(), dur=window.DURACION;
+  timer=setInterval(()=>{
+    const t=(Date.now()-t0)/1000;
+    if(t>dur){ clearInterval(timer); window.setT(dur); document.getElementById('rel').textContent='fin'; return; }
+    window.setT(t); document.getElementById('rel').textContent=t.toFixed(1)+'s';
+  },1000/30);
+};
+window.setEscena('cadena');
+</script>
+</body>
+</html>

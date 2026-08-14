@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Campaña de captación — Historias (1080×1920)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--warn:#d97706;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#22252b;font-family:var(--s)}
+#stage{width:1080px;height:1920px;position:relative;overflow:hidden;
+  transform:scale(var(--z,.42));transform-origin:top left}
+/* El padding de arriba y abajo deja libres los 250px que Instagram tapa con el
+   avatar y con la caja de respuesta. */
+.pieza{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:290px 82px 300px;background:var(--bg);color:var(--ink)}
+.pieza.on{display:flex}
+.pieza::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);
+  background-size:60px 60px}
+.pieza.osc{background:var(--ink);color:var(--bg)}
+.pieza.osc::before{background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);opacity:1}
+.pieza.ver{background:var(--ac);color:#fff}
+.pieza.vio{background:var(--ac2);color:#fff}
+.pieza.ver::before,.pieza.vio::before{background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);opacity:1}
+.pieza>*{position:relative;z-index:1}
+
+.logo{font-size:34px;font-weight:800;letter-spacing:-.02em;color:var(--ac)}
+.logo span{color:var(--ink);font-weight:700}
+.osc .logo{color:var(--ac-cl)} .osc .logo span{color:var(--bg)}
+.ver .logo,.vio .logo{color:#fff} .ver .logo span,.vio .logo span{color:rgba(255,255,255,.72)}
+
+.et{font-family:var(--m);font-size:24px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ac);margin-top:64px;display:flex;align-items:center;gap:18px}
+.et::before{content:'';width:54px;height:5px;background:var(--ac);border-radius:3px}
+.osc .et{color:var(--ac-cl)} .osc .et::before{background:var(--ac-cl)}
+.ver .et,.vio .et{color:#fff} .ver .et::before,.vio .et::before{background:rgba(255,255,255,.8)}
+
+.tit{font-size:88px;font-weight:800;line-height:1.02;letter-spacing:-.035em;margin-top:30px;text-wrap:balance}
+.tit.ch{font-size:66px}
+.tit em{font-style:normal;color:var(--ac)}
+.osc .tit em{color:var(--ac-cl)} .ver .tit em,.vio .tit em{color:rgba(255,255,255,.72)}
+
+.cuerpo{flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px;margin:40px 0}
+.baj{font-size:36px;color:var(--mut);line-height:1.42}
+.osc .baj{color:#98a0b2} .ver .baj,.vio .baj{color:rgba(255,255,255,.9)}
+
+.gr{font-family:var(--m);font-size:240px;font-weight:600;color:var(--ac);line-height:.9;letter-spacing:-.04em}
+.osc .gr{color:var(--ac-cl)} .ver .gr,.vio .gr{color:#fff}
+
+.zona{border:4px dashed var(--ac);border-radius:26px;padding:30px 32px;margin-top:16px}
+.osc .zona{border-color:var(--ac-cl)} .ver .zona,.vio .zona{border-color:rgba(255,255,255,.75)}
+.zona .z-t{font-family:var(--m);font-size:21px;letter-spacing:.13em;text-transform:uppercase;color:var(--ac);margin-bottom:12px}
+.osc .zona .z-t{color:var(--ac-cl)} .ver .zona .z-t,.vio .zona .z-t{color:rgba(255,255,255,.9)}
+.zona .z-d{font-size:33px;font-weight:600;line-height:1.32}
+
+.pie{padding-top:30px;border-top:5px solid var(--ink);display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.osc .pie{border-color:var(--ac-cl)} .ver .pie,.vio .pie{border-color:rgba(255,255,255,.6)}
+.pie .iz{font-size:30px;font-weight:700;line-height:1.28;max-width:19ch}
+.pie .de{font-family:var(--m);font-size:23px;color:var(--mut)}
+.osc .pie .de{color:#8b93a5} .ver .pie .de,.vio .pie .de{color:rgba(255,255,255,.82)}
+
+#ui{position:fixed;right:14px;top:14px;z-index:99;font-family:system-ui;color:#fff;font-size:13px;
+  background:#2e3238;border:1px solid #555;border-radius:9px;padding:10px 12px}
+#ui select{font:inherit;padding:6px 10px;border-radius:7px;border:1px solid #555;background:#22252b;color:#fff}
+</style>
+</head>
+<body>
+
+<div id="ui"><select id="sel"></select></div>
+<div id="stage"></div>
+
+<script>
+const P=[
+ {id:'h-01',et:'Contame',fondo:'',
+  tit:'¿Cuánto tardás en armar <em>un presupuesto</em>?',titCh:1,
+  zona:['Encuesta','Menos de un día · Dos días o más'],
+  pie:['Mañana el promedio.','faimobras.com']},
+
+ {id:'h-02',et:'El dato',fondo:'osc',
+  gr:'436',
+  tit:'Ítems con su <em>análisis</em> ya cargado',titCh:1,
+  baj:'Materiales, mano de obra y equipos por unidad. Más 829 materiales y 14 gremios en escala UOCRA.',
+  pie:['No arrancás de cero.','faimobras.com']},
+
+ {id:'h-03',et:'Planificación',fondo:'vio',
+  tit:'El plazo <em>no se estima</em>. Se calcula.',titCh:1,
+  baj:'Sale de las horas de mano de obra de tu propio análisis, divididas por la cuadrilla que le pongas.',
+  pie:['Sumás gente y se reacomoda.','faimobras.com']},
+
+ {id:'h-04',et:'La plata',fondo:'',
+  tit:'¿Cuánto <em>ganaste</em> en tu última obra?',titCh:1,
+  baj:'Cobros, compras y pagos a contratistas entran solos al período que les toca, imputados a su obra.',
+  pie:['El número, no la sensación.','faimobras.com']},
+
+ {id:'h-05',et:'Tu cliente',fondo:'',
+  tit:'Entra a su portal y <em>ve el avance solo</em>',titCh:1,
+  baj:'Contrato, cuenta corriente y planificación. Vos elegís qué secciones ve.',
+  pie:['Una llamada menos por semana.','faimobras.com']},
+
+ {id:'h-06',et:'Probalo',fondo:'ver',
+  tit:'Veámoslo con <em>una obra tuya</em>',
+  baj:'30 minutos, un presupuesto real de tu estudio, el flujo completo.',
+  zona:['Sticker de link','Coordinar una demo por WhatsApp'],
+  pie:['+54 9 3482 30-5155','faimobras.com']},
+];
+
+const stage=document.getElementById('stage');
+stage.innerHTML=P.map(x=>{
+  const gr=x.gr?`<div class="gr">${x.gr}</div>`:'';
+  const baj=x.baj?`<div class="baj">${x.baj}</div>`:'';
+  const zona=x.zona?`<div class="zona"><div class="z-t">${x.zona[0]}</div><div class="z-d">${x.zona[1]}</div></div>`:'';
+  return `<div class="pieza ${x.fondo||''}" data-id="${x.id}">
+    <div class="logo">FAIM <span>OBRAS</span></div>
+    <div class="et">${x.et}</div>
+    <div class="tit${x.titCh?' ch':''}">${x.tit}</div>
+    <div class="cuerpo">${gr}${baj}${zona}</div>
+    <div class="pie"><div class="iz">${x.pie[0]}</div><div class="de">${x.pie[1]}</div></div>
+  </div>`;
+}).join('');
+
+window.FORMATO={w:1080,h:1920};
+window.PIEZAS=P.map(x=>x.id);
+window.mostrar=function(id){
+  document.querySelectorAll('.pieza').forEach(n=>n.classList.toggle('on', n.dataset.id===id));
+};
+
+const sel=document.getElementById('sel');
+sel.innerHTML=window.PIEZAS.map(i=>`<option>${i}</option>`).join('');
+sel.onchange=()=>window.mostrar(sel.value);
+window.mostrar(window.PIEZAS[0]);
+</script>
+</body>
+</html>

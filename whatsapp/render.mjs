@@ -8,6 +8,8 @@
    node whatsapp/render.mjs historias → las 12 placas PNG + los 3 clips MP4,
                                         todo junto en out/historias/
    node whatsapp/render.mjs historias plazo → solo ese clip
+   node whatsapp/render.mjs campania  → la campaña de captación entera
+                                        (8 posts + 6 historias + 2 reels)
 
    El reel se dibuja cuadro por cuadro llamando a window.setT(t) en la
    página y se codifica con el ffmpeg que trae imageio-ffmpeg (pip).
@@ -98,6 +100,34 @@ async function historiasFijas(browser, salidaDir){
   console.log('Historias fijas: ' + total + ' PNG');
 }
 
+/* ── PIEZAS FIJAS CON CONTRATO ───────────────────────────────────── */
+// Los archivos de campaña exponen FORMATO, PIEZAS y mostrar(id): cada pieza ya
+// vive sola y a tamaño real, así que acá no hay que desarmar ninguna hoja de
+// contactos. Es el camino que conviene para todo lo nuevo.
+async function piezas(browser, archivo, salidaDir, prefijo = ''){
+  const tmp = await abrir(browser, archivo, 100, 100);
+  const fmt = await tmp.evaluate(() => window.FORMATO);
+  await tmp.close();
+
+  const page = await abrir(browser, archivo, fmt.w, fmt.h);
+  await page.evaluate(() => {
+    const ui = document.getElementById('ui'); if (ui) ui.style.display = 'none';
+    document.getElementById('stage').style.setProperty('--z', 1);
+    document.body.style.margin = '0';
+  });
+
+  const ids = await page.evaluate(() => window.PIEZAS);
+  for (const id of ids){
+    await page.evaluate(i => { window.mostrar(i); window.scrollTo(0, 0); }, id);
+    const nombre = prefijo + id + '.png';
+    await page.screenshot({ path: path.join(salidaDir, nombre),
+                            clip: { x: 0, y: 0, width: fmt.w, height: fmt.h } });
+    console.log('  ✓ ' + nombre + `  (${fmt.w}×${fmt.h})`);
+  }
+  await page.close();
+  return ids.length;
+}
+
 /* ── REEL ────────────────────────────────────────────────────────── */
 async function reel(browser, archivo = 'reel-wsp.html', nombre = 'faim-obras-reel.mp4', escena = null){
   const page = await abrir(browser, archivo, 1080, 1920);
@@ -175,6 +205,22 @@ try {
       await reel(browser, 'historias-anim.html', path.join('historias', `clip-${e}.mp4`), e);
     }
     console.log('\nTodo en whatsapp/out/historias/');
+  }
+  if (modo === 'campania'){
+    const dir = path.join(OUT, 'campania');
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+    const nPosts = await piezas(browser, '../campania/posts.html', dir);
+    const nHist  = await piezas(browser, '../campania/historias.html', dir);
+
+    const page  = await abrir(browser, '../campania/reels.html', 1080, 1920);
+    const todas = await page.evaluate(() => window.ESCENAS);
+    await page.close();
+    for (const e of todas){
+      await reel(browser, '../campania/reels.html', path.join('campania', `reel-${e}.mp4`), e);
+    }
+    console.log(`\nCampaña lista: ${nPosts} publicaciones + ${nHist} historias + ${todas.length} reels`);
+    console.log('→ whatsapp/out/campania/');
   }
 } finally {
   await browser.close();

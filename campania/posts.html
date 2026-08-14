@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Campaña de captación — Publicaciones de feed (1080×1350)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--warn:#d97706;--red:#ef4444;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#22252b;font-family:var(--s)}
+#stage{width:1080px;height:1350px;position:relative;overflow:hidden;
+  transform:scale(var(--z,.52));transform-origin:top left}
+.pieza{position:absolute;inset:0;display:none;flex-direction:column;
+  padding:96px 88px;background:var(--bg);color:var(--ink)}
+.pieza.on{display:flex}
+.pieza::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);
+  background-size:60px 60px}
+.pieza.osc{background:var(--ink);color:var(--bg)}
+.pieza.osc::before{background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);opacity:1}
+.pieza.ver{background:var(--ac);color:#fff}
+.pieza.ver::before{background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);opacity:1}
+.pieza>*{position:relative;z-index:1}
+
+.logo{font-size:31px;font-weight:800;letter-spacing:-.02em;color:var(--ac)}
+.logo span{color:var(--ink);font-weight:700}
+.osc .logo{color:var(--ac-cl)} .osc .logo span{color:var(--bg)}
+.ver .logo{color:#fff} .ver .logo span{color:rgba(255,255,255,.72)}
+
+.et{font-family:var(--m);font-size:21px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;
+  color:var(--ac);margin-top:52px;display:flex;align-items:center;gap:16px}
+.et::before{content:'';width:46px;height:5px;background:var(--ac);border-radius:3px}
+.osc .et{color:var(--ac-cl)} .osc .et::before{background:var(--ac-cl)}
+.ver .et{color:#fff} .ver .et::before{background:rgba(255,255,255,.8)}
+
+.tit{font-size:78px;font-weight:800;line-height:1.02;letter-spacing:-.035em;margin-top:26px;text-wrap:balance}
+.tit.ch{font-size:60px}
+.tit em{font-style:normal;color:var(--ac)}
+.osc .tit em{color:var(--ac-cl)} .ver .tit em{color:rgba(255,255,255,.72)}
+
+.cuerpo{flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;margin:34px 0}
+.baj{font-size:32px;color:var(--mut);line-height:1.44}
+.osc .baj{color:#98a0b2} .ver .baj{color:rgba(255,255,255,.9)}
+
+.fila{display:flex;align-items:baseline;gap:20px;padding:19px 0;border-bottom:3px solid var(--bord)}
+.osc .fila{border-color:#31344a} .ver .fila{border-color:rgba(255,255,255,.3)}
+.fila:last-child{border-bottom:none}
+.fila .q{flex:1;font-size:32px;font-weight:600;line-height:1.24}
+.fila .c{font-family:var(--m);font-size:40px;font-weight:600;color:var(--ac);white-space:nowrap}
+.osc .fila .c{color:var(--ac-cl)} .ver .fila .c{color:#fff}
+
+.gr{font-family:var(--m);font-size:215px;font-weight:600;color:var(--ac);line-height:.9;letter-spacing:-.04em}
+.osc .gr{color:var(--ac-cl)} .ver .gr{color:#fff}
+
+.pie{padding-top:28px;border-top:5px solid var(--ink);display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.osc .pie{border-color:var(--ac-cl)} .ver .pie{border-color:rgba(255,255,255,.6)}
+.pie .iz{font-size:27px;font-weight:700;line-height:1.28;max-width:20ch}
+.pie .de{font-family:var(--m);font-size:21px;color:var(--mut)}
+.osc .pie .de{color:#8b93a5} .ver .pie .de{color:rgba(255,255,255,.82)}
+
+#ui{position:fixed;right:14px;top:14px;z-index:99;font-family:system-ui;color:#fff;font-size:13px;
+  background:#2e3238;border:1px solid #555;border-radius:9px;padding:10px 12px}
+#ui select{font:inherit;padding:6px 10px;border-radius:7px;border:1px solid #555;background:#22252b;color:#fff}
+</style>
+</head>
+<body>
+
+<div id="ui"><select id="sel"></select></div>
+<div id="stage"></div>
+
+<script>
+const P=[
+ {id:'post-01',et:'El problema',fondo:'',
+  tit:'Cotizar bien te lleva <em>dos días</em>',
+  baj:'Y cuando por fin está listo, el Excel queda huérfano: el certificado se rehace, el plazo se estima aparte y la cobranza vive en otro archivo.',
+  pie:['¿Cuánto te llevó el último?','faimobras.com']},
+
+ {id:'post-02',et:'La respuesta',fondo:'osc',
+  tit:'No arrancás de una <em>hoja en blanco</em>',titCh:1,
+  gr:'436',
+  baj:'ítems con análisis de costos real. 829 materiales y 14 gremios en escala UOCRA, ya cargados.',
+  pie:['Elegís el ítem y computás.','faimobras.com']},
+
+ {id:'post-03',et:'El problema',fondo:'',
+  tit:'¿El plazo de obra lo estimás <em>a ojo</em>?',titCh:1,
+  baj:'Es la parte del presupuesto que más se defiende con intuición. Y la que más caro sale cuando falla.',
+  pie:['Después se discute con el cliente.','faimobras.com']},
+
+ {id:'post-04',et:'La respuesta',fondo:'',
+  tit:'El plazo sale de <em>tus propias horas</em>',titCh:1,
+  baj:'El sistema toma las horas de mano de obra de tu análisis de costos, las divide por la cuadrilla que le pongas y las reparte en los días que se trabajan por semana.',
+  pie:['No es una estimación: es una cuenta.','faimobras.com']},
+
+ {id:'post-05',et:'Planificación',fondo:'',
+  tit:'Sumás gente y la fecha <em>se mueve sola</em>',titCh:1,
+  filas:[['Cambiás la cuadrilla de 1 a 3','↻'],['Se recalcula la duración','↻'],['Corren las tareas que dependen','↻'],['Nueva fecha de fin de obra','✓']],
+  baj:'Sin tocar una planilla.',
+  pie:['Y si llueve tres días, también.','faimobras.com']},
+
+ {id:'post-06',et:'El problema',fondo:'osc',
+  tit:'¿Cuánto <em>ganaste</em> en tu última obra?',titCh:1,
+  baj:'La mayoría de los estudios contesta con una sensación, no con un número. Los cobros están en un lado, las compras en otro y los pagos a contratistas en la cabeza de alguien.',
+  pie:['Es la pregunta más incómoda.','faimobras.com']},
+
+ {id:'post-07',et:'La respuesta',fondo:'',
+  tit:'Cada peso, <em>imputado a su obra</em>',titCh:1,
+  filas:[['Cobros del cliente','entra solo'],['Pagos a contratistas','entra solo'],['Compras de materiales','entra solo'],['Herramientas y alquileres','se cargan']],
+  baj:'Y el resumen te dice, para el período que elijas, contra qué se fue la plata y cuánto movió cada uno.',
+  pie:['El número, no la sensación.','faimobras.com']},
+
+ {id:'post-08',et:'Probalo',fondo:'ver',
+  tit:'Veámoslo con <em>una obra tuya</em>',
+  baj:'En 30 minutos cargamos juntos un presupuesto real de tu estudio y ves el flujo completo, de la cotización al certificado. Si no te sirve, lo decís y listo.',
+  pie:['WhatsApp +54 9 3482 30-5155','faimobras.com']},
+];
+
+const stage=document.getElementById('stage');
+stage.innerHTML=P.map(x=>{
+  let c='';
+  if(x.filas) c=x.filas.map(([q,v])=>`<div class="fila"><div class="q">${q}</div><div class="c">${v}</div></div>`).join('');
+  else if(x.gr) c=`<div class="gr">${x.gr}</div>`;
+  const baj=x.baj?`<div class="baj">${x.baj}</div>`:'';
+  return `<div class="pieza ${x.fondo||''}" data-id="${x.id}">
+    <div class="logo">FAIM <span>OBRAS</span></div>
+    <div class="et">${x.et}</div>
+    <div class="tit${x.titCh?' ch':''}">${x.tit}</div>
+    <div class="cuerpo">${c}${baj}</div>
+    <div class="pie"><div class="iz">${x.pie[0]}</div><div class="de">${x.pie[1]}</div></div>
+  </div>`;
+}).join('');
+
+window.FORMATO={w:1080,h:1350};
+window.PIEZAS=P.map(x=>x.id);
+window.mostrar=function(id){
+  document.querySelectorAll('.pieza').forEach(n=>n.classList.toggle('on', n.dataset.id===id));
+};
+
+const sel=document.getElementById('sel');
+sel.innerHTML=window.PIEZAS.map(i=>`<option>${i}</option>`).join('');
+sel.onchange=()=>window.mostrar(sel.value);
+window.mostrar(window.PIEZAS[0]);
+</script>
+</body>
+</html>
