@@ -109,8 +109,9 @@ function UsuariosSection() {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           <input value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder="Contraseña" type="password" style={inp} />
           <select value={form.rol} onChange={e=>setForm(f=>({...f,rol:e.target.value}))} style={inp}>
-            <option value="admin">Admin</option>
-            <option value="personal">Personal</option>
+            <option value="admin">Admin — todo, incluida esta pantalla</option>
+            <option value="arquitecto">Arquitecto — todo menos Configuración</option>
+            <option value="personal">Personal — solo cargar egresos y herramientas</option>
           </select>
         </div>
         {msg && <div style={{ fontSize:13, color: msg.includes('Error') || msg.includes('Completá') ? '#ef4444' : C.accent }}>{msg}</div>}

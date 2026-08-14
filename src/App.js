@@ -208,6 +208,11 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   const navigate = useNavigate();
   const location = useLocation();
   const isCotizador = location.pathname.startsWith("/cotizador");
+  // Configuración es del dueño de la cuenta: ahí viven los datos del estudio,
+  // el alta y baja de usuarios y la facturación. El rol `arquitecto` trabaja
+  // en las obras pero no entra. Esconder el módulo es la mitad cómoda; la que
+  // manda es el candado del backend (get_tenant_admin).
+  const esAdmin = (user?.rol || "admin").toLowerCase() === "admin";
   const nombreMarca = tenant?.nombre || "FAIM OBRAS";
   const logoUrl = tenant?.logo_url || null;
   const colorAccent = tenant?.color_primario || C.accent;
@@ -218,9 +223,9 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
     { id:"planner",   path:"/planner",   Icon:Calendar,      label:"Planner",               desc:"Tablero de tareas y calendario",                         color:C.warn },
     { id:"clientes",  path:"/clientes",  Icon:Users,         label:"Clientes y Proyectos",  desc:"Gestión de clientes, obras y contactos",                 color:C.green },
     { id:"accesos",   path:"/accesos-clientes", Icon:Lock,   label:"Accesos de clientes",   desc:"Gestionar portal de clientes",                           color:C.accent2 },
-    { id:"config",    path:"/config",    Icon:Settings,      label:"Configuración",         desc:"Logo, nombre y datos del estudio",                       color:C.muted },
+    { id:"config",    path:"/config",    Icon:Settings,      label:"Configuración",         desc:"Logo, nombre y datos del estudio",                       color:C.muted, soloAdmin:true },
     { id:"soporte",   path:"/soporte",   Icon:MessageCircle, label:"Soporte técnico",       desc:"Contacto, ayuda y sugerencias",                          color:C.blue },
-  ];
+  ].filter(m => !m.soloAdmin || esAdmin);
 
   const currentModule = modules.find(m => location.pathname.startsWith(m.path));
 
@@ -294,7 +299,11 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
         <Route path="/fiscal/*" element={<Fiscal user={user} />}/>
         <Route path="/clientes/*" element={<Clientes user={user} />}/>
         <Route path="/accesos-clientes" element={<AccesosClientes user={user} />}/>
-        <Route path="/config" element={<ConfigCuenta user={user} onUpdate={onTenantUpdate} />}/>
+        <Route path="/config" element={esAdmin
+          ? <ConfigCuenta user={user} onUpdate={onTenantUpdate} />
+          : <div style={{maxWidth:520, margin:"80px auto", padding:24, textAlign:"center", color:C.muted, fontSize:14}}>
+              Configuración es solo para el admin del estudio.
+            </div>}/>
       </Routes>
       </ErrorBoundary>
       <Asistente />
