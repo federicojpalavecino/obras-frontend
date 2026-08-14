@@ -5,6 +5,9 @@
    node whatsapp/render.mjs placas    → solo las placas
    node whatsapp/render.mjs reel      → solo el reel de WhatsApp
    node whatsapp/render.mjs venta     → solo el reel de venta (Instagram)
+   node whatsapp/render.mjs historias → las 12 placas PNG + los 3 clips MP4,
+                                        todo junto en out/historias/
+   node whatsapp/render.mjs historias plazo → solo ese clip
 
    El reel se dibuja cuadro por cuadro llamando a window.setT(t) en la
    página y se codifica con el ffmpeg que trae imageio-ffmpeg (pip).
@@ -60,6 +63,39 @@ async function placas(browser){
   }
   await page.close();
   console.log('Placas listas: ' + ids.length + ' → whatsapp/out/');
+}
+
+/* ── HISTORIAS FIJAS ─────────────────────────────────────────────── */
+// El archivo de historias es una hoja de contactos: muestra las placas
+// reducidas dentro de tarjetas, con las franjas rojas que marcan lo que tapa
+// Instagram. Para exportar hay que sacar todo ese andamiaje y dejar UNA placa
+// sola, a tamaño real, pegada al origen — igual que en placas().
+async function historiasFijas(browser, salidaDir){
+  const page = await abrir(browser, '../instagram/historias-presentacion.html', 1080, 1920);
+  const total = await page.$$eval('.h', ns => ns.length);
+
+  for (let i = 0; i < total; i++){
+    await page.evaluate(idx => {
+      document.querySelectorAll('.barra,.sem,.meta').forEach(n => n.style.display = 'none');
+      document.querySelectorAll('.safe').forEach(n => n.style.display = 'none');   // guías, no van al PNG
+      document.body.style.cssText = 'margin:0;padding:0;background:#fff';
+      document.querySelectorAll('.fila-h').forEach(n => { n.style.display = 'block'; n.style.gap = '0'; });
+      document.querySelectorAll('.card').forEach((n, k) => {
+        n.style.display = k === idx ? 'block' : 'none';
+        n.style.cssText += ';border:none;border-radius:0;width:auto;margin:0';
+      });
+      document.querySelectorAll('.esc').forEach(n => { n.style.padding = '0'; n.style.background = '#fff'; });
+      document.querySelectorAll('.h').forEach(n => { n.style.transform = 'none'; n.style.marginBottom = '0'; });
+      window.scrollTo(0, 0);
+    }, i);
+
+    const nombre = `historia-${String(i + 1).padStart(2, '0')}.png`;
+    await page.screenshot({ path: path.join(salidaDir, nombre),
+                            clip: { x: 0, y: 0, width: 1080, height: 1920 } });
+    console.log('  ✓ ' + nombre);
+  }
+  await page.close();
+  console.log('Historias fijas: ' + total + ' PNG');
 }
 
 /* ── REEL ────────────────────────────────────────────────────────── */
@@ -120,16 +156,25 @@ try {
   if (modo === 'todo' || modo === 'reel')   await reel(browser);
   if (modo === 'venta') await reel(browser, 'reel-venta.html', 'faim-obras-venta.mp4');
   if (modo === 'historias'){
+    // Todo el material de historias en una sola carpeta: las fijas y los clips
+    // juntos, que es como se sube después.
+    const dir = path.join(OUT, 'historias');
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+    const soloEsta = process.argv[3];
+    if (!soloEsta) await historiasFijas(browser, dir);
+
     // Una historia por escena: son clips sueltos que se suben de a uno, no un
     // video largo. El tercer argumento del CLI permite rendir una sola.
     const page = await abrir(browser, 'historias-anim.html', 1080, 1920);
     const todas = await page.evaluate(() => window.ESCENAS);
     await page.close();
-    const pedidas = process.argv[3] ? [process.argv[3]] : todas;
+    const pedidas = soloEsta ? [soloEsta] : todas;
     for (const e of pedidas){
       if (!todas.includes(e)){ console.error('Escena desconocida: ' + e + ' (hay: ' + todas.join(', ') + ')'); continue; }
-      await reel(browser, 'historias-anim.html', `historia-${e}.mp4`, e);
+      await reel(browser, 'historias-anim.html', path.join('historias', `clip-${e}.mp4`), e);
     }
+    console.log('\nTodo en whatsapp/out/historias/');
   }
 } finally {
   await browser.close();
