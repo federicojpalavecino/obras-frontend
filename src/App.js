@@ -213,6 +213,13 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   // en las obras pero no entra. Esconder el módulo es la mitad cómoda; la que
   // manda es el candado del backend (get_tenant_admin).
   const esAdmin = (user?.rol || "admin").toLowerCase() === "admin";
+  // Con quien saludamos y que ponemos en el circulito. Los subusuarios pueden
+  // no tener mail, asi que nada de esto puede salir de `email` a secas: se
+  // prueba nombre, despues usuario, despues mail, y si no hay nada igual se
+  // dibuja algo. Un email nulo aca dejaba la pantalla entera en blanco, y
+  // encima el header va antes del boundary, asi que ni el cartel se veia.
+  const comoSeLlama = user?.nombre || user?.usuario || (user?.email || "").split("@")[0] || "Hola";
+  const iniciales = (comoSeLlama.trim().slice(0, 2) || "··").toUpperCase();
   const nombreMarca = tenant?.nombre || "FAIM OBRAS";
   const logoUrl = tenant?.logo_url || null;
   const colorAccent = tenant?.color_primario || C.accent;
@@ -244,7 +251,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
           </div>
           <div style={{display:"flex", alignItems:"center", gap:8}}>
             <div style={{width:30, height:30, borderRadius:"50%", background:C.surface2, border:"1px solid " + C.border, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:C.muted, fontFamily:"'IBM Plex Mono', monospace"}}>
-              {user.email.slice(0,2).toUpperCase()}
+              {iniciales}
             </div>
             <button onClick={onLogout} style={{fontSize:12, color:C.muted, background:"none", border:"none", cursor:"pointer", fontFamily:"'Syne', sans-serif", display:"flex", alignItems:"center", gap:4, padding:"4px 6px"}}>
               <LogOut size={13} /> Salir
@@ -260,7 +267,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
         <Route path="/" element={
           <div style={{maxWidth:560, margin:"0 auto", padding:"clamp(40px, 6vw, 64px) clamp(16px, 4vw, 24px)"}}>
             <div style={{marginBottom:"clamp(32px, 5vw, 48px)"}}>
-              <div style={{fontSize:"clamp(22px, 5vw, 30px)", fontWeight:800, letterSpacing:"-0.5px", marginBottom:4}}>{user.nombre || user.email.split("@")[0]}</div>
+              <div style={{fontSize:"clamp(22px, 5vw, 30px)", fontWeight:800, letterSpacing:"-0.5px", marginBottom:4}}>{comoSeLlama}</div>
               <div style={{fontSize:13, color:C.muted, letterSpacing:"0.2px"}}>¿Con qué vas a trabajar hoy?</div>
             </div>
             <div style={{display:"flex", flexDirection:"column"}}>
@@ -370,9 +377,13 @@ export default function App() {
       if (savedEstudio) {
         try {
           const ei = JSON.parse(savedEstudio);
-          if (ei?.email && ei?.rol) {
+          // La condicion pedia mail y dejaba afuera a los subusuarios que
+          // entran con usuario: al recargar la pagina los mandaba de vuelta al
+          // login. Alcanza con que haya rol y con que se sepa quien es, por
+          // mail o por usuario.
+          if (ei?.rol && (ei?.email || ei?.usuario || ei?.nombre)) {
             setEstudioInfo(ei);
-            setUser({ email: ei.email, nombre: ei.nombre, rol: ei.rol });
+            setUser({ email: ei.email, nombre: ei.nombre, rol: ei.rol, usuario: ei.usuario });
             const token = localStorage.getItem("obras_token");
             if (token) {
               await checkSuscripcion();
@@ -447,7 +458,7 @@ export default function App() {
       const estudioRes = await intentar('/estudio/login', { email: emailLower, password: pass, estudio: estudioTxt });
       if (estudioRes) {
         const data = estudioRes.data;
-        const ei = { nombre: data.nombre, rol: data.rol, presupuestos_asignados: data.presupuestos_asignados, email: data.email };
+        const ei = { nombre: data.nombre, rol: data.rol, presupuestos_asignados: data.presupuestos_asignados, email: data.email, usuario: data.usuario };
         localStorage.setItem("obras_estudio", JSON.stringify(ei));
         // Check subscription using the token from estudio login
         if (data.token) {
@@ -657,7 +668,9 @@ export default function App() {
       <BrowserRouter>
         <AnuncioBanner anuncio={anuncio} onClose={cerrarAnuncio} />
         {banner}
-        <AppInner user={{ ...user, rol: estudioInfo.rol, nombre: estudioInfo.nombre }} tenant={tenant} onLogout={handleLogout} onTenantUpdate={(data) => setTenant(t => ({...t, ...data}))} />
+        <ErrorBoundary>
+          <AppInner user={{ ...user, rol: estudioInfo.rol, nombre: estudioInfo.nombre, usuario: estudioInfo.usuario }} tenant={tenant} onLogout={handleLogout} onTenantUpdate={(data) => setTenant(t => ({...t, ...data}))} />
+        </ErrorBoundary>
       </BrowserRouter>
     );
   }
@@ -666,7 +679,9 @@ export default function App() {
     <BrowserRouter>
       <AnuncioBanner anuncio={anuncio} onClose={cerrarAnuncio} />
       {banner}
-      <AppInner user={user} tenant={tenant} onLogout={handleLogout} onTenantUpdate={(data) => setTenant(t => ({...t, ...data}))} />
+      <ErrorBoundary>
+        <AppInner user={user} tenant={tenant} onLogout={handleLogout} onTenantUpdate={(data) => setTenant(t => ({...t, ...data}))} />
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }
