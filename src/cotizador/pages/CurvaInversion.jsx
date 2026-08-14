@@ -6,6 +6,18 @@ import { Printer, TrendingUp } from 'lucide-react';
 import api from '../api';
 
 
+// El membrete del impreso sale del estudio que lo emite, nunca de un nombre
+// escrito en el codigo: este documento se lo lleva el cliente.
+const getTenant = () => {
+  try {
+    const s = JSON.parse(localStorage.getItem('obras_session') || '{}');
+    if (s?.tenant) return s.tenant;
+    return JSON.parse(localStorage.getItem('obras_tenant') || 'null');
+  } catch { return null; }
+};
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
 const fmt = n => '$ ' + Math.round(n || 0).toLocaleString('es-AR');
 const fmtK = n => {
   const v = Math.abs(Math.round(n || 0));
@@ -130,6 +142,17 @@ export default function CurvaInversion() {
 
   const imprimir = () => {
     const hoy = new Date().toLocaleDateString('es-AR');
+    const t = getTenant();
+    const tenantNombre = t?.nombre || 'FAIM OBRAS';
+    const tenantColor = /^#[0-9a-fA-F]{3,8}$/.test(t?.color_primario || '') ? t.color_primario : '#059669';
+    // Solo los datos que el estudio cargo: un membrete con renglones vacios
+    // queda peor que uno corto.
+    const datosEstudio = [
+      t?.cuit ? `CUIT: ${t.cuit}` : '',
+      t?.telefono ? `Tel: ${t.telefono}` : '',
+      t?.direccion || '',
+      [t?.ciudad, t?.provincia].filter(Boolean).join(', '),
+    ].filter(Boolean).map(x => `<div>${esc(x)}</div>`).join('');
     const filas = curva.map((c, i) => `
       <tr style="background:${i%2===0?'#fff':'#fafafa'}">
         <td>${labelPeriodo(c.fecha, modo)}</td>
@@ -172,18 +195,26 @@ export default function CurvaInversion() {
     const win = window.open('', '_blank');
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Curva de Inversión</title>
     <style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{font-size:18pt;margin:0}h2{font-size:10pt;color:#666;margin:4px 0 16px}
+    .membrete{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;
+      border-bottom:2px solid ${tenantColor};padding-bottom:12px;margin-bottom:14px}
+    .membrete .logo{font-size:16pt;font-weight:800;color:${tenantColor};letter-spacing:-.4px}
+    .membrete .datos{font-size:8.5pt;color:#666;line-height:1.55;text-align:right}
     .chart{margin:16px 0;border:1px solid #eee;padding:12px;border-radius:4px}
     table{width:100%;border-collapse:collapse;font-size:10pt}th{background:#1a1a1a;color:#fff;padding:6px 10px;text-align:left}
     td{padding:6px 10px;border-bottom:1px solid #eee}.r{text-align:right;font-family:monospace}
     .total{background:#f0f5ff;font-weight:700}.footer{margin-top:20px;font-size:9pt;color:#aaa;border-top:1px solid #eee;padding-top:8px;display:flex;justify-content:space-between}
     @media print{@page{margin:1.5cm}}
     </style></head><body>
-    <h1>Fima Arquitectura — Curva de Inversión</h1>
-    <h2>${presupuesto?.nombre_obra} · Plan de desembolso ${modo} · ${hoy}</h2>
+    <div class="membrete">
+      <div class="logo">${esc(tenantNombre)}</div>
+      <div class="datos">${datosEstudio}</div>
+    </div>
+    <h1>Curva de Inversión</h1>
+    <h2>${esc(presupuesto?.nombre_obra || '')} · Plan de desembolso ${esc(modo)} · ${hoy}</h2>
     <div class="chart">${svgChart}</div>
     <table><thead><tr><th>Período</th><th class="r">Desembolso</th><th class="r">Acumulado</th><th class="r">% Avance</th></tr></thead>
     <tbody>${filas}<tr class="total"><td>TOTAL</td><td class="r">${fmt(totalObra)}</td><td class="r">${fmt(totalObra)}</td><td class="r">100%</td></tr></tbody></table>
-    <div class="footer"><span>Fima Arquitectura</span><span>${hoy}</span></div>
+    <div class="footer"><span>${esc(tenantNombre)}</span><span>${hoy}</span></div>
     </body></html>`);
     win.document.close();
     setTimeout(() => win.print(), 600);
