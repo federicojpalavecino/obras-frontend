@@ -45,6 +45,14 @@ function UsuariosSection() {
     setTimeout(() => setMsg(''), 3000);
   };
 
+  const cambiarRol = async (u, rol) => {
+    try {
+      await api.patch(`/estudio/usuarios/${u.id}`, { rol });
+      setMsg(`${u.nombre} ahora es ${rol}`); cargar();
+    } catch(err) { setMsg(err.response?.data?.detail || 'Error'); cargar(); }
+    setTimeout(() => setMsg(''), 3000);
+  };
+
   const eliminar = async (u) => {
     if (!window.confirm(`¿Eliminar usuario ${u.nombre}?`)) return;
     try {
@@ -75,11 +83,17 @@ function UsuariosSection() {
 
       {usuarios.length === 0 && <div style={{color:C.muted, fontSize:13, marginBottom:16}}>No hay usuarios adicionales configurados.</div>}
       {usuarios.map(u => (
-        <div key={u.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:`1px solid ${C.border}` }}>
-          <div>
+        <div key={u.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'8px 0', borderBottom:`1px solid ${C.border}`, flexWrap:'wrap' }}>
+          <div style={{ minWidth:0, flex:1 }}>
             <div style={{ fontSize:14, fontWeight:600 }}>{u.nombre}</div>
-            <div style={{ fontSize:12, color:C.muted }}>{u.email || u.usuario} · {u.rol}</div>
+            <div style={{ fontSize:12, color:C.muted }}>{u.email || u.usuario}</div>
           </div>
+          <select value={u.rol} onChange={e => cambiarRol(u, e.target.value)}
+            style={{ ...inp, width:'auto', minWidth:190, padding:'6px 10px', fontSize:12.5 }}>
+            <option value="admin">Admin</option>
+            <option value="arquitecto">Arquitecto — sin Configuración</option>
+            <option value="personal">Personal — solo egresos</option>
+          </select>
           <button onClick={() => eliminar(u)} style={{ padding:'4px 10px', background:'none', border:`1px solid ${C.border}`, borderRadius:6, color:'#ef4444', cursor:'pointer', fontSize:12, fontFamily:"'Syne',sans-serif" }}>Eliminar</button>
         </div>
       ))}
