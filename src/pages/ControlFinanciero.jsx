@@ -275,6 +275,11 @@ export default function ControlFinanciero({ user }) {
   // Obras, clientes, proyectos y usuarios: todo lo que un gasto puede tener adelante
   const [imputables, setImputables] = useState({ obras: [], clientes: [], proyectos: [], usuarios: [] });
   const [resumenImp, setResumenImp] = useState(null);   // gasto por imputacion y por persona
+  // Lo que va a entrar y salir segun lo ya pactado. Va aparte del resultado del
+  // periodo a proposito: el control financiero es caja —plata que se movio— y
+  // esto son compromisos. Mezclarlos haria que el resultado deje de coincidir
+  // con el banco.
+  const [prevision, setPrevision] = useState(null);
   const [rango, setRango] = useState({ desde: '', hasta: '' });   // periodo del analisis
   // Quien esta cargando: queda escrito en cada fila que se agrega, para poder
   // preguntarle despues a la persona que la cargo y no adivinar.
@@ -421,6 +426,12 @@ export default function ControlFinanciero({ user }) {
     api.get(`/cf/resumen${q.length ? '?' + q.join('&') : ''}`)
       .then(r => setResumenImp(r.data)).catch(() => {});
   }, [rango.desde, rango.hasta]);
+
+  // La prevision no depende del rango del analisis: mira siempre hacia adelante.
+  useEffect(() => {
+    if (tab !== "prevision") return;
+    api.get('/cf/prevision').then(r => setPrevision(r.data)).catch(() => setPrevision(null));
+  }, [tab]);
 
   // Atajos: el analisis casi siempre es "este mes", "este anio" o "todo".
   const rangoMes = () => { const d = new Date(); const p = n => String(n).padStart(2, '0');
@@ -639,6 +650,7 @@ export default function ControlFinanciero({ user }) {
               style={{ flex: 1, padding: "9px 12px", border: `1px solid ${C.border2}`, borderRadius: 8, fontSize: 14, fontWeight: 700, color: C.text, background: C.surface2, fontFamily: "inherit", outline: "none" }}>
               <option value="carga">{TIPO_LABELS[tipoPeriodo]}</option>
               <option value="historial">Historial</option>
+              <option value="prevision">Previsión</option>
               <option value="resumen">Resumen</option>
               <option value="config">Config</option>
             </select>
@@ -658,6 +670,7 @@ export default function ControlFinanciero({ user }) {
         <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", position: "sticky", top: 0, zIndex: 50 }}>
           <TabBtn id="carga" label={TIPO_LABELS[tipoPeriodo]} />
           <TabBtn id="historial" label="Historial" />
+          <TabBtn id="prevision" label="Previsión" />
           <TabBtn id="resumen" label="Resumen" />
           <TabBtn id="config" label="Config" />
 
@@ -915,6 +928,71 @@ export default function ControlFinanciero({ user }) {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* ── TAB PREVISIÓN ── */}
+        {tab === "prevision" && (
+          <div>
+            <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.55, marginBottom: 16, maxWidth: "62ch" }}>
+              Lo que va a entrar y salir según lo que ya está pactado. No hace falta cargar nada:
+              sale de los desembolsos del contrato, los certificados emitidos, lo certificado a
+              contratistas y las compras con saldo. <b style={{ color: C.text }}>No entra en el resultado del
+              período</b> — ahí va solo la plata que se movió.
+            </div>
+
+            {!prevision ? (
+              <div style={{ textAlign: "center", color: C.muted, padding: 50, background: C.surface, borderRadius: 12, border: `1px solid ${C.border}` }}>Cargando…</div>
+            ) : prevision.filas.length === 0 ? (
+              <div style={{ textAlign: "center", color: C.muted, padding: 50, background: C.surface, borderRadius: 12, border: `1px solid ${C.border}` }}>
+                No hay nada pactado pendiente. Cuando pactes un contrato, emitas un certificado o
+                le certifiques a un contratista, aparece acá.
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 18 }}>
+                  {[["Va a entrar", prevision.totales.entra, C.green],
+                    ["Va a salir", prevision.totales.sale, C.red],
+                    ["Neto", prevision.totales.neto, prevision.totales.neto >= 0 ? C.accent : C.red]].map(([l, v, col]) => (
+                    <div key={l} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "15px 17px" }}>
+                      <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 5 }}>{l}</div>
+                      <div style={{ fontSize: 21, fontWeight: 800, color: col, fontFamily: "'IBM Plex Mono', monospace" }}>{fmtShort(v)}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {(prevision.vencido.entra > 0 || prevision.vencido.sale > 0) && (
+                  <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 15px", marginBottom: 16, fontSize: 13, color: C.text }}>
+                    <b>Con fecha pasada:</b>
+                    {prevision.vencido.entra > 0 && <> {fmt(prevision.vencido.entra)} que tenías que cobrar</>}
+                    {prevision.vencido.entra > 0 && prevision.vencido.sale > 0 && " ·"}
+                    {prevision.vencido.sale > 0 && <> {fmt(prevision.vencido.sale)} que tenías que pagar</>}.
+                  </div>
+                )}
+
+                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+                  {prevision.filas.map((f, i) => (
+                    <div key={`${f.origen}-${f.origen_id}`} style={{
+                      display: "flex", alignItems: "center", gap: 12, padding: "13px 16px",
+                      borderBottom: i < prevision.filas.length - 1 ? `1px solid ${C.border}` : "none",
+                      background: f.vencido ? "#fffbeb" : "transparent" }}>
+                      <div style={{ width: 76, flexShrink: 0, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12,
+                                    color: f.vencido ? C.warn : C.muted }}>
+                        {new Date(f.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.concepto}</div>
+                        {f.obra && <div style={{ fontSize: 11, color: C.muted }}>{f.obra}</div>}
+                      </div>
+                      <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 600,
+                                    color: f.tipo === "entra" ? C.green : C.red, whiteSpace: "nowrap" }}>
+                        {f.tipo === "entra" ? "+" : "–"} {fmt(f.monto)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
