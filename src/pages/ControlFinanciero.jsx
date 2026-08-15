@@ -280,6 +280,7 @@ export default function ControlFinanciero({ user }) {
   // esto son compromisos. Mezclarlos haria que el resultado deje de coincidir
   // con el banco.
   const [prevision, setPrevision] = useState(null);
+  const [previsionVista, setPrevisionVista] = useState("fecha");   // "fecha" | "obra"
   const [rango, setRango] = useState({ desde: '', hasta: '' });   // periodo del analisis
   // Quien esta cargando: queda escrito en cada fila que se agrega, para poder
   // preguntarle despues a la persona que la cargo y no adivinar.
@@ -504,14 +505,35 @@ export default function ControlFinanciero({ user }) {
       )}
     </select>
   );
-  const SelectQuien = ({ campo, i, row, style }) => (
-    <select style={style} value={row.usuario || ''}
-      onChange={e => (campo === 'egresos' ? updEgreso : updIngreso)(i, 'usuario', e.target.value)}
-      title="Quien lo hizo">
-      <option value="">— Quien —</option>
-      {imputables.usuarios.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
-    </select>
-  );
+  // Quien puso o recibio la plata. No siempre es del estudio: pasa seguido que
+  // un contratista o un proveedor adelante un gasto, y ahi el estudio le queda
+  // debiendo. Los de afuera salen de lo que ya esta cargado en las obras, asi
+  // que no hay que darlos de alta en ningun lado.
+  const SelectQuien = ({ campo, i, row, style }) => {
+    const grupos = [
+      ["Del estudio", imputables.usuarios || []],
+      ["Contratistas", imputables.contratistas || []],
+      ["Proveedores", imputables.proveedores || []],
+    ].filter(([, lista]) => lista.length > 0);
+    // Si la fila quedó con un nombre que ya no está en ninguna lista —se borró
+    // el subcontrato, cambió de nombre— se agrega para no perderlo al abrir.
+    const conocidos = grupos.flatMap(([, l]) => l.map(x => x.nombre));
+    return (
+      <select style={style} value={row.usuario || ''}
+        onChange={e => (campo === 'egresos' ? updEgreso : updIngreso)(i, 'usuario', e.target.value)}
+        title="Quién puso o recibió la plata">
+        <option value="">— Quién —</option>
+        {row.usuario && !conocidos.includes(row.usuario) && (
+          <option value={row.usuario}>{row.usuario}</option>
+        )}
+        {grupos.map(([titulo, lista]) => (
+          <optgroup key={titulo} label={titulo}>
+            {lista.map((x, k) => <option key={`${titulo}${x.id ?? k}`} value={x.nombre}>{x.nombre}</option>)}
+          </optgroup>
+        ))}
+      </select>
+    );
+  };
 
   const addPersonal = () => setWeek(w => { const nw = { ...w, personal: [...w.personal, { nombre: "", rango: "", dias: 5, hs: 8, costo: 0, total: 0, obra: "" , usuario: usuarioActual }] }; programarGuardado(nw, 300); return nw; });
   const updPersonal = (i, f, v) => setWeek(w => { const a = [...w.personal]; a[i] = { ...a[i], [f]: v }; a[i].total = (parseFloat(a[i].dias) || 0) * (parseFloat(a[i].hs) || 0) * (parseFloat(a[i].costo) || 0); const nw = { ...w, personal: a }; programarGuardado(nw); return nw; });
@@ -970,27 +992,97 @@ export default function ControlFinanciero({ user }) {
                   </div>
                 )}
 
-                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-                  {prevision.filas.map((f, i) => (
-                    <div key={`${f.origen}-${f.origen_id}`} style={{
-                      display: "flex", alignItems: "center", gap: 12, padding: "13px 16px",
-                      borderBottom: i < prevision.filas.length - 1 ? `1px solid ${C.border}` : "none",
-                      background: f.vencido ? "#fffbeb" : "transparent" }}>
-                      <div style={{ width: 76, flexShrink: 0, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12,
-                                    color: f.vencido ? C.warn : C.muted }}>
-                        {new Date(f.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.concepto}</div>
-                        {f.obra && <div style={{ fontSize: 11, color: C.muted }}>{f.obra}</div>}
-                      </div>
-                      <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 600,
-                                    color: f.tipo === "entra" ? C.green : C.red, whiteSpace: "nowrap" }}>
-                        {f.tipo === "entra" ? "+" : "–"} {fmt(f.monto)}
-                      </div>
-                    </div>
+                <div style={{ display: "flex", gap: 2, background: C.surface2, borderRadius: 8, padding: 3, marginBottom: 14, width: "fit-content" }}>
+                  {[["fecha", "Por fecha"], ["obra", "Por obra"]].map(([k, l]) => (
+                    <button key={k} onClick={() => setPrevisionVista(k)}
+                      style={{ padding: "6px 15px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit",
+                               fontSize: 12.5, fontWeight: 600,
+                               background: previsionVista === k ? C.accent : "transparent",
+                               color: previsionVista === k ? "#fff" : C.muted }}>{l}</button>
                   ))}
                 </div>
+
+                {previsionVista === "fecha" ? (
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
+                    {[["Va a entrar", "entra", C.green], ["Va a salir", "sale", C.red]].map(([titulo, tipo, col]) => {
+                      const filas = prevision.filas.filter(f => f.tipo === tipo);
+                      const suma = filas.reduce((a, f) => a + f.monto, 0);
+                      return (
+                        <div key={tipo} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10,
+                                        padding: "13px 16px", borderBottom: `2px solid ${col}` }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".7px", textTransform: "uppercase", color: col }}>{titulo}</span>
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 15, fontWeight: 700, color: col }}>{fmt(suma)}</span>
+                          </div>
+                          {filas.length === 0
+                            ? <div style={{ padding: 26, textAlign: "center", color: C.muted, fontSize: 13 }}>Nada pendiente</div>
+                            : filas.map((f, i) => (
+                              <div key={`${f.origen}-${f.origen_id}`} style={{
+                                display: "flex", alignItems: "center", gap: 11, padding: "12px 16px",
+                                borderBottom: i < filas.length - 1 ? `1px solid ${C.border}` : "none",
+                                background: f.vencido ? "#fffbeb" : "transparent" }}>
+                                <div style={{ width: 62, flexShrink: 0, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5,
+                                              color: f.vencido ? C.warn : C.muted }}>
+                                  {new Date(f.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.concepto}</div>
+                                  {f.obra && <div style={{ fontSize: 10.5, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.obra}</div>}
+                                </div>
+                                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 600, color: col, whiteSpace: "nowrap" }}>
+                                  {fmt(f.monto)}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* Por obra: la pregunta que contesta es si esa obra te va a dar
+                     plata o te la va a pedir. Ordenadas por el neto mas negativo,
+                     que es la que primero hay que mirar. */
+                  Object.entries(prevision.filas.reduce((acc, f) => {
+                    const k = f.obra || "Sin obra";
+                    (acc[k] = acc[k] || []).push(f);
+                    return acc;
+                  }, {}))
+                    .map(([obra, filas]) => {
+                      const e = filas.filter(f => f.tipo === "entra").reduce((a, f) => a + f.monto, 0);
+                      const s = filas.filter(f => f.tipo === "sale").reduce((a, f) => a + f.monto, 0);
+                      return { obra, filas, e, s, neto: e - s };
+                    })
+                    .sort((a, b) => a.neto - b.neto)
+                    .map(({ obra, filas, e, s, neto }) => (
+                      <div key={obra} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, marginBottom: 12, overflow: "hidden" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12,
+                                      padding: "13px 16px", borderBottom: `1px solid ${C.border}`, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 14.5, fontWeight: 700 }}>{obra}</span>
+                          <span style={{ fontSize: 12.5, color: C.muted, fontFamily: "'IBM Plex Mono', monospace" }}>
+                            <span style={{ color: C.green }}>+{fmtShort(e)}</span>
+                            {"  "}<span style={{ color: C.red }}>–{fmtShort(s)}</span>
+                            {"  ·  neto "}<b style={{ color: neto >= 0 ? C.accent : C.red }}>{fmtShort(neto)}</b>
+                          </span>
+                        </div>
+                        {filas.sort((a, b) => a.fecha.localeCompare(b.fecha)).map((f, i) => (
+                          <div key={`${f.origen}-${f.origen_id}`} style={{
+                            display: "flex", alignItems: "center", gap: 11, padding: "11px 16px",
+                            borderBottom: i < filas.length - 1 ? `1px solid ${C.border}` : "none",
+                            background: f.vencido ? "#fffbeb" : "transparent" }}>
+                            <div style={{ width: 62, flexShrink: 0, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5,
+                                          color: f.vencido ? C.warn : C.muted }}>
+                              {new Date(f.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.concepto}</div>
+                            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 600,
+                                          color: f.tipo === "entra" ? C.green : C.red, whiteSpace: "nowrap" }}>
+                              {f.tipo === "entra" ? "+" : "–"} {fmt(f.monto)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))
+                )}
               </>
             )}
           </div>
