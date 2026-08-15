@@ -514,6 +514,7 @@ export default function ControlFinanciero({ user }) {
       ["Del estudio", imputables.usuarios || []],
       ["Contratistas", imputables.contratistas || []],
       ["Proveedores", imputables.proveedores || []],
+      ["Clientes", imputables.clientes || []],
     ].filter(([, lista]) => lista.length > 0);
     // Si la fila quedó con un nombre que ya no está en ninguna lista —se borró
     // el subcontrato, cambió de nombre— se agrega para no perderlo al abrir.
@@ -993,7 +994,7 @@ export default function ControlFinanciero({ user }) {
                 )}
 
                 <div style={{ display: "flex", gap: 2, background: C.surface2, borderRadius: 8, padding: 3, marginBottom: 14, width: "fit-content" }}>
-                  {[["fecha", "Por fecha"], ["obra", "Por obra"]].map(([k, l]) => (
+                  {[["fecha", "Por fecha"], ["obra", "Por obra"], ["persona", "Quién te debe / a quién le debés"]].map(([k, l]) => (
                     <button key={k} onClick={() => setPrevisionVista(k)}
                       style={{ padding: "6px 15px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit",
                                fontSize: 12.5, fontWeight: 600,
@@ -1038,6 +1039,53 @@ export default function ControlFinanciero({ user }) {
                       );
                     })}
                   </div>
+                ) : previsionVista === "persona" ? (
+                  /* La cuenta corriente: la misma informacion, pivoteada por
+                     quien. Contesta a quien le tenes que pagar y quien te tiene
+                     que pagar, con el detalle de por que. Se salda pagando o
+                     cobrando donde corresponde, y la fila desaparece sola. */
+                  Object.entries(prevision.filas.reduce((acc, f) => {
+                    (acc[f.persona] = acc[f.persona] || []).push(f);
+                    return acc;
+                  }, {}))
+                    .map(([persona, filas]) => {
+                      const teDebe = filas.filter(f => f.tipo === "entra").reduce((a, f) => a + f.monto, 0);
+                      const leDebes = filas.filter(f => f.tipo === "sale").reduce((a, f) => a + f.monto, 0);
+                      return { persona, filas, teDebe, leDebes };
+                    })
+                    .sort((a, b) => (b.leDebes - b.teDebe) - (a.leDebes - a.teDebe))
+                    .map(({ persona, filas, teDebe, leDebes }) => (
+                      <div key={persona} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, marginBottom: 12, overflow: "hidden" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12,
+                                      padding: "13px 16px", borderBottom: `1px solid ${C.border}`, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 14.5, fontWeight: 700 }}>{persona}</span>
+                          <span style={{ fontSize: 12.5, fontFamily: "'IBM Plex Mono', monospace" }}>
+                            {leDebes > 0 && <span style={{ color: C.red }}>le debés {fmt(leDebes)}</span>}
+                            {leDebes > 0 && teDebe > 0 && <span style={{ color: C.muted }}>{"  ·  "}</span>}
+                            {teDebe > 0 && <span style={{ color: C.green }}>te debe {fmt(teDebe)}</span>}
+                          </span>
+                        </div>
+                        {filas.sort((a, b) => a.fecha.localeCompare(b.fecha)).map((f, i) => (
+                          <div key={`${f.origen}-${f.origen_id}`} style={{
+                            display: "flex", alignItems: "center", gap: 11, padding: "11px 16px",
+                            borderBottom: i < filas.length - 1 ? `1px solid ${C.border}` : "none",
+                            background: f.vencido ? "#fffbeb" : "transparent" }}>
+                            <div style={{ width: 62, flexShrink: 0, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5,
+                                          color: f.vencido ? C.warn : C.muted }}>
+                              {new Date(f.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.concepto}</div>
+                              {f.obra && <div style={{ fontSize: 10.5, color: C.muted }}>{f.obra}</div>}
+                            </div>
+                            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 600,
+                                          color: f.tipo === "entra" ? C.green : C.red, whiteSpace: "nowrap" }}>
+                              {f.tipo === "entra" ? "+" : "–"} {fmt(f.monto)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))
                 ) : (
                   /* Por obra: la pregunta que contesta es si esa obra te va a dar
                      plata o te la va a pedir. Ordenadas por el neto mas negativo,
