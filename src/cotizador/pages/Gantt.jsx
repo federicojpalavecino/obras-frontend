@@ -103,6 +103,26 @@ export default function Gantt() {
     setSuspendiendo(false);
   };
 
+  // Dividir: distinto de suspender. Suspender es la misma tarea parada un
+  // tiempo; esto cierra la parte que se hizo y manda el resto a otra fecha,
+  // como tarea aparte que hereda el item, el color y la cuadrilla.
+  const dividirTarea = async (tarea) => {
+    const pct = window.prompt("¿Qué porcentaje de la tarea ya se hizo? (1 a 99)", "50");
+    if (!pct) return;
+    const n = parseFloat(pct);
+    if (!(n > 0 && n < 100)) { alert("Tiene que ser entre 1 y 99."); return; }
+    const fecha = window.prompt("¿Desde qué fecha se retoma el resto? (AAAA-MM-DD)", hoy);
+    if (!fecha) return;
+    try {
+      const r = await api.post(`/presupuestos/${id}/gantt/tareas/${tarea.id}/dividir`,
+        { pct_hecho: n, fecha_reanuda: fecha });
+      const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
+      setTareas(t.data);
+      setCargarAvanceEn(null);
+      alert(`Dividida: ${r.data.dias_hecho} día(s) hechos y ${r.data.dias_resto} para el resto, desde el ${fecha}.`);
+    } catch (e) { alert(e.response?.data?.detail || "No se pudo dividir"); }
+  };
+
   const guardarAvanceLinea = async () => {
     if (!cargarAvanceEn?.linea_id) return;
     try {
@@ -1190,6 +1210,7 @@ export default function Gantt() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={() => setCargarAvanceEn(null)}>
           <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 22, width: 'min(430px,100%)',
+                        maxHeight: '88vh', overflowY: 'auto',
                         border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 800 }}>{cargarAvanceEn.nombre}</div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
@@ -1234,8 +1255,17 @@ export default function Gantt() {
               );
             })()}
 
+            {!cargarAvanceEn.suspendida && (
+              <button onClick={() => dividirTarea(cargarAvanceEn)}
+                style={{ marginTop: 14, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
+                         fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: 'transparent',
+                         border: '1px solid var(--accent)', color: 'var(--accent)' }}>
+                Hacer una parte y reprogramar el resto
+              </button>
+            )}
+
             <button onClick={() => alternarSuspension(cargarAvanceEn)} disabled={suspendiendo}
-              style={{ marginTop: 14, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
+              style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
                        fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
                        border: `1px solid ${cargarAvanceEn.suspendida ? 'var(--accent)' : '#d97706'}`,
                        background: 'transparent',

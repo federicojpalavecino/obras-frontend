@@ -219,7 +219,7 @@ export default function Clientes({ user }) {
       {/* MODAL PROYECTO */}
       {modalProyecto !== null && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: C.surface, borderRadius: 16, padding: 24, maxWidth: 440, width: "100%", border: `1px solid ${C.border2}` }}>
+          <div style={{ background: C.surface, borderRadius: 16, padding: 24, maxWidth: 440, width: "100%", border: `1px solid ${C.border2}`, maxHeight: "88vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div style={{ fontSize: 18, fontWeight: 700 }}>{formP.id ? "Editar proyecto" : "Nuevo proyecto"}</div>
               <button onClick={() => setModalProyecto(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 22 }}>×</button>

@@ -122,7 +122,10 @@ export default function AccesosClientes({ user }) {
       {/* MODAL */}
       {modal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: C.surface, borderRadius: 16, padding: 24, maxWidth: 420, width: "100%", border: `1px solid ${C.border2}` }}>
+          {/* Tope de alto y scroll propio: el formulario crece con las secciones
+              y las obras que se le tildan al cliente, y sin esto se hacía más
+              alto que la pantalla y no se llegaba al botón de guardar. */}
+          <div style={{ background: C.surface, borderRadius: 16, padding: 24, maxWidth: 420, width: "100%", border: `1px solid ${C.border2}`, maxHeight: "88vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div style={{ fontSize: 18, fontWeight: 700 }}>Nuevo acceso de cliente</div>
               <button onClick={() => setModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 22 }}>×</button>

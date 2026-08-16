@@ -1457,7 +1457,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
       {/* ── MODAL COBRO ── */}
       {showCobro && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: C.surface, borderRadius: 16, padding: 24, width: "100%", maxWidth: 420, border: `1px solid ${C.border}` }}>
+          <div style={{ background: C.surface, borderRadius: 16, padding: 24, width: "100%", maxWidth: 420, border: `1px solid ${C.border}`, maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Registrar cobro</div>
               <button onClick={() => setShowCobro(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 22 }}>×</button>
@@ -1599,7 +1599,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                       display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
           onClick={() => setAjustando(null)}>
           <div style={{ background: C.surface, borderRadius: 14, padding: 22, width: "min(420px,100%)",
-                        border: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                        border: `1px solid ${C.border}`, maxHeight: '88vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 3 }}>Ajustar etapa {ajustando.numero}</div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>
               Si se renegoció, se le sumó un adicional o se le descontó algo.
@@ -1623,7 +1623,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
       {/* ── MODAL PAGO SUBCONTRATO ── */}
       {showPagoSub && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: C.surface, borderRadius: 16, padding: 24, width: "100%", maxWidth: 400, border: `1px solid ${C.border}` }}>
+          <div style={{ background: C.surface, borderRadius: 16, padding: 24, width: "100%", maxWidth: 400, border: `1px solid ${C.border}`, maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Registrar pago al subcontratista</div>
               <button onClick={() => setShowPagoSub(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 22 }}>×</button>
@@ -1653,7 +1653,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
       {/* ── MODAL COMPRA ── */}
       {showCompra && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: C.surface, borderRadius: 16, padding: 24, width: "100%", maxWidth: 420, border: `1px solid ${C.border}` }}>
+          <div style={{ background: C.surface, borderRadius: 16, padding: 24, width: "100%", maxWidth: 420, border: `1px solid ${C.border}`, maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Registrar compra</div>
               <button onClick={() => setShowCompra(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 22 }}>×</button>
