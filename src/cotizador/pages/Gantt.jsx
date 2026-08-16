@@ -983,18 +983,16 @@ export default function Gantt() {
             </button>
           )}
           {tareas.length > 0 && (
-            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden' }}>
-              {[['entra', 'Entra todo'], ['mes', 'Mes'], ['semana', 'Semana'], ['dia', 'Día']].map(([v, l]) => (
-                <button key={v} onClick={() => elegirEscala(v)}
-                  title={v === 'entra' ? 'Que la obra entera entre en la pantalla' : `Escala por ${l.toLowerCase()}`}
-                  style={{ padding: '4px 9px', fontSize: 11, border: 'none', cursor: 'pointer',
-                           fontFamily: 'inherit', fontWeight: escala === v ? 700 : 400,
-                           background: escala === v ? 'var(--accent)' : 'transparent',
-                           color: escala === v ? '#fff' : 'var(--muted)' }}>
-                  {l}
-                </button>
-              ))}
-            </div>
+            <select value={escala} onChange={e => elegirEscala(e.target.value)}
+              title="Cuánto tiempo entra en la pantalla"
+              style={{ padding: '5px 8px', fontSize: 12, borderRadius: 7, cursor: 'pointer',
+                       fontFamily: 'inherit', background: 'var(--surface2)',
+                       border: '1px solid var(--border)', color: 'var(--text)' }}>
+              <option value="entra">Toda la obra</option>
+              <option value="mes">Por mes</option>
+              <option value="semana">Por semana</option>
+              <option value="dia">Día por día</option>
+            </select>
           )}
           {esCelular && tareas.length > 0 && (
             <button className="btn btn-secondary btn-sm" onClick={() => setVerDiagrama(v => !v)}
@@ -1099,11 +1097,14 @@ export default function Gantt() {
 
       {/* Resumen del plan */}
       {plan && vinculos.length > 0 && (
-        <div style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border)', padding: '7px 20px', display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 11, alignItems: 'center' }}>
-          <span style={{ color: 'var(--muted)' }}>Inicio <b style={{ color: 'var(--text)' }}>{fmtFechaLarga(plan.inicio)}</b></span>
-          <span style={{ color: 'var(--muted)' }}>Fin <b style={{ color: 'var(--text)' }}>{fmtFechaLarga(plan.fin)}</b></span>
-          <span style={{ color: 'var(--muted)' }}>Duración <b style={{ color: 'var(--text)' }}>{plan.duracion_dias} días hábiles</b></span>
-          <span style={{ color: '#f87171' }}>▲ {plan.criticas?.length || 0} tarea(s) en camino crítico</span>
+        <div style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border)', padding: '4px 14px', display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11, alignItems: 'center' }}>
+          <span style={{ color: 'var(--muted)' }}>
+            <b style={{ color: 'var(--text)' }}>{fmtFecha(plan.inicio)}</b> → <b style={{ color: 'var(--text)' }}>{fmtFecha(plan.fin)}</b>
+            {' '}· {plan.duracion_dias} días hábiles
+          </span>
+          {(plan.criticas?.length || 0) > 0 && (
+            <span style={{ color: '#f87171' }}>▲ {plan.criticas.length} en camino crítico</span>
+          )}
           {/* Los vínculos se dibujaban como flechas y no había forma de sacarlos:
               borrarVinculo existía en el código pero sin nada que lo llamara. */}
           <button onClick={() => setPanelVinculos(v => !v)}
@@ -1176,9 +1177,7 @@ export default function Gantt() {
                     padding: '6px 16px', fontSize: 11.5, color: 'var(--muted)',
                     display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <span>{tareas.length} tareas</span>
-        <span>·</span>
-        <span>{fmtFechaLarga(fechaMin)} → {fmtFechaLarga(fechaMax)}</span>
-        {plan?.duracion_dias > 0 && <><span>·</span><span>{plan.duracion_dias} días hábiles</span></>}
+        {!plan && <><span>·</span><span>{fmtFecha(fechaMin)} → {fmtFecha(fechaMax)}</span></>}
         <button onClick={() => setPanelConfig(true)}
           style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)',
                    borderRadius: 12, padding: '2px 10px', fontSize: 11, cursor: 'pointer',
@@ -1282,6 +1281,20 @@ export default function Gantt() {
           })}
         </div>
       ) : (
+        <>
+        {/* La leyenda va ARRIBA de las dos columnas. Estaba adentro de la del
+            diagrama y lo empujaba hacia abajo: las barras quedaban un renglón
+            corridas respecto de los nombres de la izquierda. */}
+        {plata && plata.eventos.length > 0 && (
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', padding: '4px 12px',
+                        fontSize: 10, borderBottom: '1px solid var(--border)',
+                        background: 'var(--surface2)', color: 'var(--muted)' }}>
+            <span style={{ color: '#10b981' }}>▎cobrado {fmt(plata.totales.cobrado)}</span>
+            <span style={{ color: '#10b981', opacity: .75 }}>┊ por cobrar {fmt(plata.totales.por_cobrar)}</span>
+            <span style={{ color: '#f87171' }}>▎pagado {fmt(plata.totales.pagado)}</span>
+            <span style={{ color: '#f87171', opacity: .75 }}>┊ por pagar {fmt(plata.totales.por_pagar)}</span>
+          </div>
+        )}
         <div style={{ display: 'flex', overflow: 'hidden' }}>
           {/* Labels */}
           <div style={{ width: verNombres ? LABEL_W : 0, flexShrink: 0, overflow: 'hidden',
@@ -1376,17 +1389,6 @@ export default function Gantt() {
 
           {/* Grid */}
           <div style={{ flex: 1, minWidth: 0 }}>
-          {plata && plata.eventos.length > 0 && (
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', padding: '6px 10px',
-                          fontSize: 10.5, borderBottom: '1px solid var(--border)',
-                          background: 'var(--surface2)', color: 'var(--muted)' }}>
-              <span>Las marcas verticales son plata, en su fecha:</span>
-              <span style={{ color: '#10b981' }}>▎cobrado {fmt(plata.totales.cobrado)}</span>
-              <span style={{ color: '#10b981', opacity: .75 }}>┊ por cobrar {fmt(plata.totales.por_cobrar)}</span>
-              <span style={{ color: '#f87171' }}>▎pagado {fmt(plata.totales.pagado)}</span>
-              <span style={{ color: '#f87171', opacity: .75 }}>┊ por pagar {fmt(plata.totales.por_pagar)}</span>
-            </div>
-          )}
           <div ref={scrollRef} style={{ overflowX: 'auto', overflowY: 'hidden' }}>
             <div style={{ width: totalDias * PX_DIA, position: 'relative' }}>
               {/* Header fechas */}
@@ -1567,18 +1569,22 @@ export default function Gantt() {
                                     top: ROW_H / 2 - 1, height: 2, zIndex: 3, pointerEvents: 'none',
                                     background: `repeating-linear-gradient(90deg, ${t.color}88 0 4px, transparent 4px 8px)` }} />
                     )}
-                    {/* Y al costado cuando no entra: con la escala achicada
-                        las barras son de dos milímetros y sin esto el diagrama
-                        es una hilera de rayitas sin nombre. */}
-                    {segs[iAncho].width <= 70 && (
-                      <div style={{ position: 'absolute', left: segs[iAncho].left + segs[iAncho].width + 5,
-                                    top: 0, height: ROW_H, display: 'flex', alignItems: 'center',
-                                    pointerEvents: 'none', zIndex: 5, whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted)' }}>
-                          {t.nombre}{pct > 0 ? ` · ${pct}%` : ''}
-                        </span>
-                      </div>
-                    )}
+                    {/* El nombre va SIEMPRE al lado de la barra, nunca adentro.
+                        Adentro se superpone con el relleno del avance y con el
+                        color de la barra, y termina siendo un texto de color
+                        sobre otro color: ilegible. Al lado, sobre el fondo de
+                        la fila, se lee igual de bien en cualquier escala. */}
+                    <div style={{ position: 'absolute',
+                                  left: segs[segs.length - 1].left + segs[segs.length - 1].width + 6,
+                                  top: 0, height: ROW_H, display: 'flex', alignItems: 'center',
+                                  pointerEvents: 'none', zIndex: 6, whiteSpace: 'nowrap',
+                                  maxWidth: 320, overflow: 'hidden' }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text)',
+                                     background: 'var(--bg)', padding: '1px 5px', borderRadius: 4,
+                                     opacity: .95, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {t.nombre}{pct > 0 ? ` · ${pct}%` : ''}
+                      </span>
+                    </div>
                     {segs.map((s, si) => (
                     <div key={si} title={`${t.nombre}\n${fmtFechaLarga(t.fecha_inicio)} → ${fmtFechaLarga(t.fecha_fin)}${tramos ? `\n✂ Se hace en ${tramos.length} partes` : ''}${t.holgura != null ? `\nHolgura: ${t.holgura} día(s)` : ''}${t.critica ? '\n⚠ Camino crítico' : ''}${t.no_antes_de ? `\n📌 Fijada al ${fmtFecha(t.no_antes_de)}` : ''}`}
                       style={{ position: 'absolute', left: s.left, top: 6, width: s.width, height: ROW_H - 12, borderRadius: 6,
@@ -1613,13 +1619,6 @@ export default function Gantt() {
                       }}>
                       {/* Progreso */}
                       <div style={{ width: `${pct}%`, height: '100%', background: t.color + '55', transition: 'width .3s' }} />
-                      {/* El nombre adentro de la barra cuando entra. */}
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '0 7px' }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: t.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {si === iAncho && s.width > 70 ? t.nombre : ''}
-                          {si === iAncho && pct > 0 && s.width > 110 ? ` ${pct}%` : ''}
-                        </span>
-                      </div>
                     </div>
                     ))}
                     </>;
@@ -1706,6 +1705,7 @@ export default function Gantt() {
           </div>
           </div>
         </div>
+        </>
       )}
 
       {/* MODAL EDITAR TAREA */}

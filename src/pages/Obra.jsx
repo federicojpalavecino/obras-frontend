@@ -1461,6 +1461,72 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               <button onClick={() => setShowCobro(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 22 }}>×</button>
             </div>
 
+            {/* Lo que está pendiente de cobro tiene que estar acá adentro. Si
+                no, hay que ir a buscar el monto a otra pantalla, anotarlo y
+                volver a tipearlo: se equivoca cualquiera. */}
+            {(() => {
+              const certPend = (certificados || []).filter(c => {
+                const total = Number(c.total_cobrar ?? c.total_periodo ?? c.monto_periodo ?? c.monto_total ?? 0);
+                const cobrado = (cobros || [])
+                  .filter(x => x.certificado_id === c.id)
+                  .reduce((a, x) => a + Number(x.monto || 0), 0);
+                return total - cobrado > 1;
+              });
+              if (desembolsos.some(d => d.saldo > 0) || certPend.length) return null;
+              return (
+                <div style={{ marginBottom: 16, padding: "12px 14px", borderRadius: 10,
+                              background: C.surface2, border: `1px solid ${C.border}`, fontSize: 12.5,
+                              color: C.muted, lineHeight: 1.55 }}>
+                  <b style={{ color: C.text }}>No hay nada pactado pendiente de cobro.</b><br />
+                  Si esta obra se cobra por etapas, cargalas en <b>Cobros → Etapas de pago</b> y
+                  después aparecen acá para cobrarlas de un toque. Mientras tanto, cargá el monto
+                  a mano: sirve igual para un anticipo o un adelanto.
+                </div>
+              );
+            })()}
+
+            {/* Certificados emitidos que el cliente todavía no pagó */}
+            {(() => {
+              const pend = (certificados || []).map(c => {
+                const total = Number(c.total_cobrar ?? c.total_periodo ?? c.monto_periodo ?? c.monto_total ?? 0);
+                const cobrado = (cobros || [])
+                  .filter(x => x.certificado_id === c.id)
+                  .reduce((a, x) => a + Number(x.monto || 0), 0);
+                return { ...c, saldo: total - cobrado };
+              }).filter(c => c.saldo > 1);
+              if (!pend.length) return null;
+              return (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 7 }}>
+                    Certificados emitidos sin cobrar
+                  </div>
+                  {pend.map(c => {
+                    const elegida = cobForm.certificado_id === c.id;
+                    return (
+                      <button key={c.id} type="button"
+                        onClick={() => setCobForm(f => elegida
+                          ? { ...f, certificado_id: null, monto: "", nota: "" }
+                          : { ...f, certificado_id: c.id, desembolso_id: null,
+                              monto: String(Math.round(c.saldo)), nota: `Certificado Nº ${c.numero}` })}
+                        style={{ width: "100%", textAlign: "left", display: "flex", justifyContent: "space-between",
+                                 gap: 10, alignItems: "center", padding: "9px 12px", marginBottom: 6, cursor: "pointer",
+                                 font: "inherit", borderRadius: 9,
+                                 border: `1px solid ${elegida ? C.accent : C.border}`,
+                                 background: elegida ? "rgba(5,150,105,.08)" : C.surface2 }}>
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600 }}>Certificado Nº {c.numero}</span>
+                          <span style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 1 }}>
+                            {c.fecha ? new Date(c.fecha + "T12:00:00").toLocaleDateString("es-AR") : ""}
+                          </span>
+                        </span>
+                        <span style={{ fontWeight: 700, fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, flexShrink: 0 }}>{fmt(c.saldo)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
             {desembolsos.some(d => d.saldo > 0) && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 7 }}>
@@ -1472,7 +1538,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                     <button key={d.id} type="button"
                       onClick={() => setCobForm(f => elegida
                         ? { ...f, desembolso_id: null, monto: "", nota: "" }
-                        : { ...f, desembolso_id: d.id, monto: String(d.saldo), nota: `Etapa ${d.numero}` })}
+                        : { ...f, desembolso_id: d.id, certificado_id: null, monto: String(d.saldo), nota: `Etapa ${d.numero}` })}
                       style={{ width: "100%", textAlign: "left", display: "flex", justifyContent: "space-between",
                                gap: 10, alignItems: "center", padding: "9px 12px", marginBottom: 6, cursor: "pointer",
                                font: "inherit", borderRadius: 9,
@@ -1495,6 +1561,20 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 </button>
               </div>
             )}
+            <div style={{ display: "flex", gap: 7, marginBottom: 12 }}>
+              {["Anticipo", "Adelanto", "Ajuste"].map(t => (
+                <button key={t} type="button"
+                  onClick={() => setCobForm(f => ({ ...f, desembolso_id: null, certificado_id: null, nota: t }))}
+                  style={{ flex: 1, padding: "7px 0", borderRadius: 8, cursor: "pointer", font: "inherit",
+                           fontSize: 12,
+                           border: `1px solid ${cobForm.nota === t ? C.accent : C.border}`,
+                           background: cobForm.nota === t ? "rgba(5,150,105,.08)" : "transparent",
+                           color: cobForm.nota === t ? C.accent : C.muted }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+
             {[
               { label: "Monto", key: "monto", type: "number", placeholder: "0" },
               { label: "Fecha", key: "fecha", type: "date" },

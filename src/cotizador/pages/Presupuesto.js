@@ -900,7 +900,9 @@ ${firma}
           {/* Mobile action buttons */}
           <div className="header-actions-mobile" style={{ gap: 6 }}>
             <MobileMenu actions={[
-              { label: `Ver: ${vista === 'comercial' ? 'Precio' : vista === 'ejec' ? 'Ejecución' : 'Ejec + Precio'}`,
+              { label: vista === 'comercial' ? 'Mostrando: lo que le cobro'
+                       : vista === 'ejec' ? 'Mostrando: lo que me cuesta'
+                       : 'Mostrando: costo, precio y margen',
                 icon: <Eye size={18} strokeWidth={1.5} />,
                 onClick: () => setVista(v => v === 'comercial' ? 'ejec' : v === 'ejec' ? 'ambos' : 'comercial') },
               { label: esServicio ? 'Honorarios' : 'Coeficientes', icon: <Settings size={18} strokeWidth={1.5} />,
@@ -1232,14 +1234,19 @@ ${firma}
           <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div className="toolbar-presupuesto" style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <div className="solo-escritorio" style={{ display: 'flex', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
-                  {[['ambos', 'Ejec + Precio'], ['ejec', 'Ejecución'], ['comercial', 'Precio']].map(([v, l]) => (
-                    <button key={v} onClick={() => setVista(v)}
-                      style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'var(--sans)',
-                        background: vista === v ? 'var(--accent2)' : 'transparent', color: vista === v ? 'white' : 'var(--muted)' }}>
-                      {l}
-                    </button>
-                  ))}
+                {/* «Ejec + Precio / Ejecución / Precio» no lo entiende nadie que
+                    no haya visto el sistema antes. Se dice con todas las
+                    letras qué muestra cada opción. */}
+                <div className="solo-escritorio" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label style={{ fontSize: 11, color: 'var(--muted)' }}>Mostrar</label>
+                  <select value={vista} onChange={e => setVista(e.target.value)}
+                    style={{ padding: '4px 8px', fontSize: 12, borderRadius: 6, cursor: 'pointer',
+                             fontFamily: 'inherit', background: 'var(--surface2)',
+                             border: '1px solid var(--border)', color: 'var(--text)' }}>
+                    <option value="comercial">Lo que le cobro al cliente</option>
+                    <option value="ejec">Lo que me cuesta hacerlo</option>
+                    <option value="ambos">Las dos cosas y el margen</option>
+                  </select>
                 </div>
                 {/* Mobile: botón para abrir sidebar */}
                 {!cerrado && (

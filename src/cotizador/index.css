@@ -543,8 +543,8 @@ html, body {
   .tabla-presupuesto tr.fila-item {
     border: 1px solid var(--border);
     border-radius: 9px;
-    margin: 0 8px 5px;
-    padding: 7px 10px;
+    margin: 0 6px 4px;
+    padding: 5px 9px;
     width: auto;
     background: var(--surface);
   }
@@ -554,7 +554,7 @@ html, body {
   }
   /* El nombre, entero y sin cortar */
   .tabla-presupuesto tr.fila-item td.celda-nombre {
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 1.25;
     white-space: normal;
@@ -562,7 +562,7 @@ html, body {
     /* Dos renglones como máximo: un nombre de catálogo puede tener sesenta
        caracteres y una sola ficha se comía la pantalla. */
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -586,7 +586,7 @@ html, body {
   .tabla-presupuesto tr.fila-item td.celda-precio {
     float: right;
     text-align: right;
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 800;
     line-height: 1.2;
   }
