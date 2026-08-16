@@ -1366,13 +1366,19 @@ export default function Gantt() {
               formPartir ? (
                 <div style={{ marginTop: 10, padding: '13px 14px', borderRadius: 10,
                               background: 'var(--surface2)', border: '1px solid var(--accent)' }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>Hacer una parte ahora y el resto después</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>
+                    {cargarAvanceEn.tramos?.length > 1 ? 'Partir otra vez lo que queda' : 'Hacer una parte ahora y el resto después'}
+                  </div>
                   <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 11, lineHeight: 1.5 }}>
-                    Sigue siendo la misma tarea: la barra queda cortada, con el hueco de los días en que se para.
+                    {cargarAvanceEn.tramos?.length > 1
+                      ? `Se parte la última parte, la de ${cargarAvanceEn.tramos[cargarAvanceEn.tramos.length - 1].dias} día${cargarAvanceEn.tramos[cargarAvanceEn.tramos.length - 1].dias !== 1 ? 's' : ''}. Las anteriores no se tocan.`
+                      : 'Sigue siendo la misma tarea: la barra queda cortada, con el hueco de los días en que se para.'}
                   </div>
                   <div style={{ display: 'flex', gap: 9 }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Se hace ahora</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
+                        {cargarAvanceEn.tramos?.length > 1 ? 'De eso se hace' : 'Se hace ahora'}
+                      </div>
                       <div style={{ position: 'relative' }}>
                         <input type="number" min="1" max="99" value={formPartir.pct} autoFocus
                           onChange={e => setFormPartir({ ...formPartir, pct: e.target.value })}
@@ -1403,7 +1409,7 @@ export default function Gantt() {
                     </button>
                   </div>
                 </div>
-              ) : cargarAvanceEn.tramos?.length > 1 ? (
+              ) : cargarAvanceEn.tramos?.length > 1 ? (<>
                 <div style={{ marginTop: 10, padding: '11px 13px', borderRadius: 10, fontSize: 12.5,
                               background: 'var(--surface2)', border: '1px solid var(--border)' }}>
                   <div style={{ fontWeight: 700, marginBottom: 7 }}>Se hace en {cargarAvanceEn.tramos.length} partes</div>
@@ -1432,7 +1438,17 @@ export default function Gantt() {
                     Volver a hacerla de corrido
                   </button>
                 </div>
-              ) : (
+                {/* Una obra se puede frenar una vez o cinco: no hay tope de
+                    partes. Lo que se parte siempre es lo que queda. */}
+                {cargarAvanceEn.tramos[cargarAvanceEn.tramos.length - 1].dias > 1 && (
+                  <button onClick={() => { setAvisoTarea(''); setFormPartir({ pct: '50', fecha: hoy }); }}
+                    style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
+                             fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: 'transparent',
+                             border: '1px solid var(--accent)', color: 'var(--accent)' }}>
+                    Partir otra vez lo que queda
+                  </button>
+                )}
+              </>) : (
                 <button onClick={() => { setAvisoTarea(''); setFormPartir({ pct: '50', fecha: hoy }); }}
                   style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
                            fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: 'transparent',
