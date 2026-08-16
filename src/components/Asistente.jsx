@@ -1137,6 +1137,177 @@ const BASE = [
 ];
 
 // Sección actual a partir de la URL (para priorizar respuestas relevantes)
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  EL ASISTENTE COMO SECRETARIO
+//
+//  Hasta acá sabía explicar cómo se usa el sistema, pero no sabía nada del
+//  estudio: preguntarle «cuánto me deben» era preguntarle a un manual. Estas
+//  preguntas se contestan con los números de verdad, sin vueltas y sin
+//  mandar a nadie a buscar la pantalla.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const plata = (n) => "$ " + Math.round(n || 0).toLocaleString("es-AR");
+const fechaCorta = (f) => f ? new Date(f + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) : "";
+
+// Cada pregunta de datos: cómo se reconoce y cómo se contesta.
+const PREGUNTAS_DATOS = [
+  {
+    id: "cobrar",
+    claves: ["cuanto me deben", "quien me debe", "por cobrar", "cobranzas", "que tengo por cobrar",
+             "cuanto tengo que cobrar", "deudas de clientes", "me deben"],
+    responder: (d) => {
+      const c = d.por_cobrar || {};
+      if (!c.cuantos) return { texto: "No tenés nada pendiente de cobro: todo lo pactado ya está cobrado." };
+      const venc = c.vencido > 0
+        ? `\n\n⚠ De eso, **${plata(c.vencido)}** ya está vencido.` : "";
+      const lista = (c.detalle || []).slice(0, 6)
+        .map(x => `· ${x.obra || "sin obra"} — ${plata(x.monto)}${x.vencido ? " (vencido)" : x.fecha ? ` · ${fechaCorta(x.fecha)}` : ""}`)
+        .join("\n");
+      return {
+        texto: `Te deben **${plata(c.total)}** en ${c.cuantos} ${c.cuantos === 1 ? "cosa" : "cosas"} pendientes.${venc}\n\n${lista}`,
+        ir: "/finanzas", irLabel: "Ver la previsión completa",
+      };
+    },
+  },
+  {
+    id: "pagar",
+    claves: ["cuanto debo", "a quien le debo", "por pagar", "que tengo que pagar", "deudas",
+             "cuanto tengo que pagar", "le debo"],
+    responder: (d) => {
+      const c = d.por_pagar || {};
+      const pers = d.personal || {};
+      const partes = [];
+      if (c.cuantos) {
+        const venc = c.vencido > 0 ? ` (${plata(c.vencido)} vencido)` : "";
+        partes.push(`Tenés **${plata(c.total)}** para pagar en ${c.cuantos} ${c.cuantos === 1 ? "cosa" : "cosas"}${venc}:\n` +
+          (c.detalle || []).slice(0, 6)
+            .map(x => `· ${x.persona || x.obra || x.concepto || "—"} — ${plata(x.monto)}${x.vencido ? " (vencido)" : ""}`)
+            .join("\n"));
+      }
+      if (pers.total > 0) {
+        partes.push(`Y al personal, esta semana: **${plata(pers.total)}**.\n` +
+          (pers.grupos || []).filter(g => g.total > 0)
+            .map(g => `· ${g.modalidad}: ${plata(g.total)}`).join("\n"));
+      }
+      if (!partes.length) return { texto: "No tenés nada pendiente de pago." };
+      return { texto: partes.join("\n\n"), ir: "/finanzas", irLabel: "Ver la previsión" };
+    },
+  },
+  {
+    id: "personal",
+    claves: ["cuanto le pago al personal", "sueldos", "jornales", "cuanto le tengo que pagar a",
+             "pago del personal", "quien vino esta semana", "asistencia"],
+    responder: (d) => {
+      const p = d.personal || {};
+      if (!p.total) return { texto: "Esta semana no hay nada para pagarle al personal. Si falta marcar la asistencia, entrá a Personal.", ir: "/personal", irLabel: "Ir a Personal" };
+      const det = (p.grupos || []).filter(g => g.total > 0).map(g =>
+        `**${g.modalidad}** — ${plata(g.total)}\n` +
+        g.personas.map(x => `  · ${x.nombre}: ${plata(x.queda)} (${x.detalle})`).join("\n")
+      ).join("\n\n");
+      return {
+        texto: `Del ${fechaCorta(p.desde)} al ${fechaCorta(p.hasta)} tenés que pagar **${plata(p.total)}**:\n\n${det}`,
+        ir: "/personal", irLabel: "Ir a pagar",
+      };
+    },
+  },
+  {
+    id: "atrasadas",
+    claves: ["que obra esta atrasada", "obras atrasadas", "atraso", "como vienen las obras",
+             "estado de las obras", "que obras tengo"],
+    responder: (d) => {
+      const o = d.obras || {};
+      if (!o.total) return { texto: "Todavía no hay ninguna obra con el plan armado en el Gantt." };
+      const atr = o.atrasadas || [];
+      if (!atr.length) {
+        const prox = (o.todas || []).filter(x => x.fin).slice(0, 4)
+          .map(x => `· ${x.obra} — termina el ${fechaCorta(x.fin)} (${Math.round(x.avance_pct)}%)`).join("\n");
+        return { texto: `Ninguna obra está atrasada. Tenés ${o.total} con plan armado:\n\n${prox}`,
+                 ir: "/planner", irLabel: "Ver todas en el Planner" };
+      }
+      const lista = atr.map(x =>
+        `· **${x.obra}** — tenía que terminar el ${fechaCorta(x.fin)} y va ${Math.round(x.avance_pct)}%`).join("\n");
+      return {
+        texto: `${atr.length} obra${atr.length !== 1 ? "s" : ""} pasada${atr.length !== 1 ? "s" : ""} de fecha:\n\n${lista}`,
+        ir: "/planner", irLabel: "Ver todas en el Planner",
+      };
+    },
+  },
+  {
+    id: "deposito",
+    claves: ["cuanto stock", "que hay en el deposito", "material que queda", "falta material",
+             "hay que pedir", "cuanto cemento", "stock"],
+    responder: (d) => {
+      const dep = d.deposito || {};
+      if (!(dep.items || []).length) return { texto: "El depósito está vacío: todavía no cargaste material.", ir: "/panol", irLabel: "Ir al depósito" };
+      const falt = dep.faltantes || [];
+      const lista = dep.items.slice(0, 8)
+        .map(x => `· ${x.nombre}: **${x.disponible} ${x.unidad}**${x.disponible < x.minimo ? " ⚠ bajo el mínimo" : ""}`).join("\n");
+      const aviso = falt.length
+        ? `\n\n⚠ Hay que pedir: ${falt.map(x => x.nombre).join(", ")}.` : "";
+      return { texto: `En el depósito:\n\n${lista}${aviso}`, ir: "/panol", irLabel: "Ir al depósito" };
+    },
+  },
+  {
+    id: "panol",
+    claves: ["donde estan las herramientas", "herramientas", "andamios", "donde esta el andamio",
+             "que herramientas hay", "panol"],
+    responder: (d) => {
+      const p = d.panol || {};
+      if (!(p.herramientas || []).length) return { texto: "Todavía no cargaste herramientas al pañol.", ir: "/panol", irLabel: "Ir al pañol" };
+      const libres = p.herramientas.map(x => `· ${x.nombre}: **${x.libre}** libre${x.libre !== 1 ? "s" : ""} de ${x.total}`).join("\n");
+      const fuera = (p.en_obra || []).length
+        ? "\n\nEn obra:\n" + p.en_obra.map(x => `· ${x.cantidad} ${x.herramienta} en ${x.obra || "—"}${x.desde ? ` desde el ${fechaCorta(x.desde)}` : ""}`).join("\n")
+        : "";
+      return { texto: `En el pañol:\n\n${libres}${fuera}`, ir: "/panol", irLabel: "Ir al pañol" };
+    },
+  },
+  {
+    id: "caja",
+    claves: ["como viene la caja", "cuanto entro", "cuanto sali", "resultado del periodo",
+             "cuanto gaste", "caja", "cuanto llevo"],
+    responder: (d) => {
+      const c = d.caja;
+      if (!c) return { texto: "No hay un período abierto en el control financiero.", ir: "/finanzas", irLabel: "Ir al control financiero" };
+      const signo = c.resultado >= 0 ? "a favor" : "en contra";
+      return {
+        texto: `En el período abierto entraron **${plata(c.ingresos)}** y salieron **${plata(c.egresos)}**.\n\nQuedás **${plata(Math.abs(c.resultado))} ${signo}**.`,
+        ir: "/finanzas", irLabel: "Ver el detalle",
+      };
+    },
+  },
+];
+
+// ¿La pregunta es de datos? Se compara contra las frases clave, tolerando
+// errores de tipeo con la misma medida que usa el resto del asistente.
+function preguntaDeDatos(texto) {
+  const q = normalizar(texto);
+  if (q.length < 3) return null;
+  let mejor = null, mejorPuntaje = 0;
+  for (const p of PREGUNTAS_DATOS) {
+    for (const k of p.claves) {
+      const kn = normalizar(k);
+      let puntaje = 0;
+      if (q.includes(kn)) puntaje = kn.length * 2;
+      else {
+        // cuántas palabras de la clave aparecen en la pregunta
+        const pal = kn.split(" ").filter(w => w.length > 3);
+        const hits = pal.filter(w => q.split(" ").some(x => pesoToken(x, w) >= 1)).length;
+        if (pal.length && hits === pal.length) puntaje = kn.length;
+      }
+      if (puntaje > mejorPuntaje) { mejorPuntaje = puntaje; mejor = p; }
+    }
+  }
+  return mejorPuntaje >= 8 ? mejor : null;
+}
+
+// Las cifras van en negrita: en una respuesta de tres renglones, el número es
+// lo único que se busca con la vista.
+function conNegritas(t) {
+  const partes = String(t ?? "").split(/\*\*(.+?)\*\*/g);
+  return partes.map((x, i) => i % 2 ? <b key={i}>{x}</b> : x);
+}
+
 function seccionActual(pathname) {
   const p = pathname || "";
   if (/\/obra$/.test(p)) return "obra";
@@ -1724,6 +1895,23 @@ export default function Asistente() {
     if (!texto) return;
     setInput("");
     setMsgs((m) => [...m, { from: "user", texto }]);
+
+    // Si preguntó por un dato del estudio, se contesta con la cifra. Un
+    // secretario no te manda a buscar el número: te lo dice.
+    const pd = preguntaDeDatos(texto);
+    if (pd) {
+      setMsgs((m) => [...m, { from: "bot", texto: "Un segundo, lo miro…", cargando: true }]);
+      try {
+        const r = await api.get("/asistente/datos");
+        const res = pd.responder(r.data);
+        setMsgs((m) => [...m.filter(x => !x.cargando),
+          { from: "bot", texto: res.texto, route: res.ir, routeLabel: res.irLabel }]);
+      } catch (e) {
+        setMsgs((m) => [...m.filter(x => !x.cargando),
+          { from: "bot", texto: "No pude traer los números ahora. Probá de nuevo en un momento." }]);
+      }
+      return;
+    }
     await ensureData();
     // Si es una pregunta de USO y la base de conocimiento tiene una respuesta
     // firme, contesta la base. La capa de datos queda para las preguntas de
@@ -1810,7 +1998,7 @@ export default function Asistente() {
                   boxShadow: m.from === "bot" ? "0 1px 2px rgba(0,0,0,0.04)" : "none",
                 }}>
                   {m.titulo && <div style={{ fontWeight: 700, marginBottom: 6 }}>{m.titulo}</div>}
-                  {m.texto && <div style={{ whiteSpace: "pre-wrap" }}>{m.texto}</div>}
+                  {m.texto && <div style={{ whiteSpace: "pre-wrap" }}>{conNegritas(m.texto)}</div>}
                   {m.lineas && (
                     <div style={{ margin: "6px 0 0", display: "flex", flexDirection: "column", gap: 3 }}>
                       {m.lineas.map((l, j) => <div key={j} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5 }}>{l}</div>)}
