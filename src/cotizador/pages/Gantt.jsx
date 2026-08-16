@@ -50,6 +50,10 @@ export default function Gantt() {
   // cuanto se le pago. Es lo que convierte al Gantt en un tablero de decision
   // durante la obra, en vez de solo un calendario.
   const [estadoLineas, setEstadoLineas] = useState({});
+  // La plata de la obra sobre la misma linea de tiempo del plazo: lo cobrado,
+  // lo pagado, y lo que se espera. Mirando el Gantt se ve que pasa con la caja
+  // si una tarea se corre.
+  const [plata, setPlata] = useState(null);
   const [cargarAvanceEn, setCargarAvanceEn] = useState(null);   // tarea abierta
   const [pctNuevo, setPctNuevo] = useState("");
   // Los dias que la obra no avanzo. Se pintan en la grilla y corren el plazo.
@@ -171,7 +175,8 @@ export default function Gantt() {
         api.get(`/presupuestos/${id}/gantt/tareas`).then(r => ({data: r.data})),
         api.get(`/presupuestos/${id}/gantt/config`).catch(() => ({data: {}})),
         api.get(`/presupuestos/${id}/gantt/vinculos`).catch(() => ({data: []})),
-        api.get(`/presupuestos/${id}/lineas/estado`).then(r => {
+        api.get(`/presupuestos/${id}/plata`).then(r => setPlata(r.data)).catch(() => {}),
+      api.get(`/presupuestos/${id}/lineas/estado`).then(r => {
         setEstadoLineas(Object.fromEntries((r.data?.lineas || []).map(l => [l.linea_id, l])));
       }).catch(() => {}),
       api.get(`/presupuestos/${id}/gantt/plan`).catch(e => ({data: null, err: e})),
@@ -969,6 +974,56 @@ export default function Gantt() {
                   );
                 })}
               </div>
+
+              {/* ── LA PLATA, sobre la misma linea de tiempo ── */}
+              {plata && plata.eventos.length > 0 && (() => {
+                // Se agrupa por dia: en una obra caen varios movimientos el mismo dia
+                // y superpuestos no se leen.
+                const porDia = {};
+                plata.eventos.forEach(e => { (porDia[e.fecha] = porDia[e.fecha] || []).push(e); });
+                return (
+                  <div style={{ height: 46, position: 'relative', borderBottom: '1px solid var(--border)',
+                                background: 'var(--surface2)' }}>
+                    <div style={{ position: 'absolute', left: 6, top: 3, zIndex: 2, pointerEvents: 'none',
+                                  display: 'flex', alignItems: 'center', gap: 10, fontSize: 9,
+                                  background: 'var(--surface2)', paddingRight: 8 }}>
+                      <span style={{ letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--muted)' }}>Plata</span>
+                      <span style={{ color: '#10b981' }}>■ cobrado ${Math.round(plata.totales.cobrado).toLocaleString('es-AR')}</span>
+                      <span style={{ color: '#10b981' }}>□ por cobrar ${Math.round(plata.totales.por_cobrar).toLocaleString('es-AR')}</span>
+                      <span style={{ color: '#f87171' }}>■ pagado ${Math.round(plata.totales.pagado).toLocaleString('es-AR')}</span>
+                      <span style={{ color: '#f87171' }}>□ por pagar ${Math.round(plata.totales.por_pagar).toLocaleString('es-AR')}</span>
+                    </div>
+                    {Object.entries(porDia).map(([fecha, evs]) => {
+                      const off = diasEntre(fechaMin, fecha);
+                      if (off < 0 || off >= totalDias) return null;
+                      const cobros = evs.filter(e => e.tipo === 'cobro');
+                      const pagos  = evs.filter(e => e.tipo === 'pago');
+                      const suma   = a => a.reduce((x, e) => x + e.monto, 0);
+                      const previsto = evs.some(e => e.estado === 'previsto');
+                      const detalle = evs.map(e =>
+                        `${e.tipo === 'cobro' ? '+' : '−'} $${Math.round(e.monto).toLocaleString('es-AR')}  ${e.concepto}` +
+                        (e.estado === 'previsto' ? '  (previsto)' : '')).join('\n');
+                      return (
+                        <div key={fecha} title={`${fecha}\n${detalle}`}
+                          style={{ position: 'absolute', left: off * PX_DIA, top: 0, width: PX_DIA,
+                                   height: '100%', display: 'flex', flexDirection: 'column',
+                                   alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'help' }}>
+                          {cobros.length > 0 && (
+                            <div style={{ width: 12, height: 12, borderRadius: 3, flexShrink: 0,
+                                          background: previsto ? 'transparent' : '#10b981',
+                                          border: '2px solid #10b981' }} />
+                          )}
+                          {pagos.length > 0 && (
+                            <div style={{ width: 12, height: 12, borderRadius: 3, flexShrink: 0,
+                                          background: previsto ? 'transparent' : '#f87171',
+                                          border: '2px solid #f87171' }} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* Filas */}
               {filas.map(t => {
