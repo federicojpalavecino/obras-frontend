@@ -654,3 +654,17 @@ html, body {
     max-height: 100dvh;
   }
 }
+
+/* Sin aire de más en la barra de totales del celular: es una banda fija que
+   se lleva pantalla a todas las obras. */
+@media (max-width: 900px) {
+  .totales-bar {
+    padding: 4px 10px !important;
+    gap: 8px !important;
+    font-size: 11px;
+  }
+  .totales-bar > div[style*="width: 1px"],
+  .totales-bar > div[style*="width:1px"] {
+    display: none;
+  }
+}

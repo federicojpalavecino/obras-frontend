@@ -243,6 +243,13 @@ export default function Gantt() {
     return () => mq.removeEventListener('change', f);
   }, []);
   const [verDiagrama, setVerDiagrama] = useState(false);
+  // La columna fija de nombres se comía 260 px de ancho repitiendo lo que ya
+  // dice cada barra. Se puede sacar y dejar el diagrama solo; queda un botón
+  // para traerla de vuelta.
+  const [verNombres, setVerNombres] = useState(() => localStorage.getItem('obras_gantt_nombres') === '1');
+  const alternarNombres = () => {
+    setVerNombres(v => { localStorage.setItem('obras_gantt_nombres', v ? '0' : '1'); return !v; });
+  };
   const [gastoEn, setGastoEn] = useState(null);      // tarea a la que se le carga
   const [gastoForm, setGastoForm] = useState({ monto: '', proveedor: '', nota: '' });
   const [guardandoGasto, setGuardandoGasto] = useState(false);
@@ -969,6 +976,13 @@ export default function Gantt() {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {tareas.length > 0 && (
+            <button className="btn btn-secondary btn-sm" onClick={alternarNombres}
+              title={verNombres ? 'Sacar la columna de nombres: el nombre ya está en cada barra'
+                                : 'Mostrar la columna de nombres a la izquierda'}>
+              {verNombres ? '⇤ Sin lista' : '⇥ Con lista'}
+            </button>
+          )}
+          {tareas.length > 0 && (
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden' }}>
               {[['entra', 'Entra todo'], ['mes', 'Mes'], ['semana', 'Semana'], ['dia', 'Día']].map(([v, l]) => (
                 <button key={v} onClick={() => elegirEscala(v)}
@@ -1044,8 +1058,9 @@ export default function Gantt() {
           </div>
           <MobileMenu actions={[
             { label: 'Nueva tarea', icon: '+', onClick: () => setEditando({}) },
+            { label: `Días que no se trabajó${diasPerdidos.length ? ` (${diasPerdidos.length})` : ''}`,
+              icon: '☂', onClick: () => setPanelDias(true), color: diasPerdidos.length ? 'var(--warn)' : undefined },
             { label: 'Cómo se trabaja', icon: '⚙', onClick: () => setPanelConfig(true) },
-            { label: 'Imprimir el diagrama', icon: '🖨', onClick: imprimirGantt },
             ...(tareas.length > 1 ? [
               { label: 'Traer horas del análisis', icon: '⏱', onClick: cargarHoras },
               { label: 'Encadenar tareas en orden', icon: '⛓', onClick: encadenarTodo },
@@ -1188,7 +1203,7 @@ export default function Gantt() {
            usar: no entra, no se lee y no se toca. En obra lo que hace falta es
            ver qué tarea viene, cuánto lleva, y poder cargar el gasto en el
            momento, parado en la obra. El diagrama queda a un toque. */
-        <div style={{ padding: '10px 12px 90px' }}>
+        <div style={{ padding: '8px 10px 80px' }}>
           {filas.map(t => {
             const avLinea = t.linea_id && avancePorLinea[t.linea_id];
             const pct = Math.min(100, Math.max(0, avLinea != null ? avLinea : (t.progreso || 0)));
@@ -1200,14 +1215,14 @@ export default function Gantt() {
               <div key={t.id}
                 style={{ background: enCurso ? 'rgba(16,185,129,.06)' : 'var(--surface)',
                          border: `1px solid ${enCurso ? 'var(--accent)' : t.critica && verCritico ? '#f8717188' : 'var(--border)'}`,
-                         borderLeft: `4px solid ${t.color}`, borderRadius: 12, padding: '12px 14px', marginBottom: 10 }}>
+                         borderLeft: `4px solid ${t.color}`, borderRadius: 10, padding: '8px 11px', marginBottom: 6 }}>
                 <div onClick={() => {
                     if (t.linea_id) {
                       setCargarAvanceEn(t);
                       setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0)));
                     } else setEditando(t);
                   }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.25 }}>
                     {t.nombre}
                     {t.es_adicional && (
                       <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 4,
@@ -1215,7 +1230,7 @@ export default function Gantt() {
                                      border: '1px solid rgba(251,146,60,.5)', verticalAlign: 'middle' }}>AD</span>
                     )}
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <span>{fmtFecha(t.fecha_inicio)} → {fmtFecha(t.fecha_fin)}</span>
                     <span>{t.dur_calc ?? t.duracion_dias} días</span>
                     {t.tramos?.length > 1 && <span>✂ {t.tramos.length} partes</span>}
@@ -1223,10 +1238,10 @@ export default function Gantt() {
                     {t.critica && verCritico && <span style={{ color: '#f87171', fontWeight: 700 }}>crítica</span>}
                   </div>
                   {/* Barra de avance: es lo único del diagrama que sí sirve acá */}
-                  <div style={{ height: 6, borderRadius: 3, background: 'var(--surface2)', marginTop: 9, overflow: 'hidden' }}>
+                  <div style={{ height: 4, borderRadius: 2, background: 'var(--surface2)', marginTop: 6, overflow: 'hidden' }}>
                     <div style={{ width: `${pct}%`, height: '100%', background: t.color, transition: 'width .3s' }} />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, fontSize: 11 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, fontSize: 10.5 }}>
                     <span style={{ color: terminada && pct < 100 ? '#d97706' : enCurso ? 'var(--accent)' : 'var(--muted)',
                                    fontWeight: enCurso ? 700 : 400 }}>
                       {terminada && pct < 100 ? 'debería estar terminada'
@@ -1236,7 +1251,7 @@ export default function Gantt() {
                     <span style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>{Math.round(pct)}%</span>
                   </div>
                   {e?.subcontrato && (
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+                    <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 3 }}>
                       {e.subcontrato.contratista}
                       {e.subcontrato.pendiente > 0 && (
                         <b style={{ color: '#d97706' }}> · le debés {fmt(e.subcontrato.pendiente)}</b>
@@ -1244,10 +1259,10 @@ export default function Gantt() {
                     </div>
                   )}
                 </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
+                <div style={{ display: 'flex', gap: 7, marginTop: 8 }}>
                   <button onClick={() => { setGastoEn(t); setGastoForm({ monto: '', proveedor: '', nota: '' }); }}
-                    style={{ flex: 1, padding: '11px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-                             fontSize: 13.5, fontWeight: 700, background: 'var(--accent)', border: 'none', color: '#fff' }}>
+                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                             fontSize: 12.5, fontWeight: 700, background: 'var(--accent)', border: 'none', color: '#fff' }}>
                     Cargar gasto
                   </button>
                   {t.linea_id && (
@@ -1255,8 +1270,8 @@ export default function Gantt() {
                         setCargarAvanceEn(t);
                         setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0)));
                       }}
-                      style={{ flex: 1, padding: '11px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-                               fontSize: 13.5, fontWeight: 700, background: 'transparent',
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                               fontSize: 12.5, fontWeight: 700, background: 'transparent',
                                border: '1px solid var(--border)', color: 'var(--text)' }}>
                       Avance
                     </button>
@@ -1269,7 +1284,8 @@ export default function Gantt() {
       ) : (
         <div style={{ display: 'flex', overflow: 'hidden' }}>
           {/* Labels */}
-          <div style={{ width: LABEL_W, flexShrink: 0, borderRight: '1px solid var(--border)' }}>
+          <div style={{ width: verNombres ? LABEL_W : 0, flexShrink: 0, overflow: 'hidden',
+                        borderRight: verNombres ? '1px solid var(--border)' : 'none' }}>
             <div style={{ height: 50, borderBottom: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
               Tarea
             </div>
@@ -1940,7 +1956,7 @@ export default function Gantt() {
                   onChange={e => setFormSuspender({ motivo: e.target.value })}
                   style={{ width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8,
                            background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13 }} />
-                <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
+                <div style={{ display: 'flex', gap: 7, marginTop: 8 }}>
                   <button onClick={() => setFormSuspender(null)}
                     style={{ flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
                              fontSize: 13, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)' }}>

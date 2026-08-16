@@ -1254,7 +1254,7 @@ ${firma}
                 )}
               </div>
 
-              <div className="tabla-presupuesto-wrapper" style={{ flex: 1, overflow: 'auto', paddingBottom: 80 }}>
+              <div className="tabla-presupuesto-wrapper" style={{ flex: 1, overflow: 'auto', paddingBottom: 8 }}>
                 {data?.es_adicional && data?.presupuesto_base_id && (
                   <div style={{ margin: 10, padding: '7px 12px', background: 'rgba(110,231,183,0.06)', border: '1px solid rgba(110,231,183,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ display:'flex', alignItems:'center', gap:4 }}><FileText size={11} strokeWidth={1.5} /> Adicional de obra</span>
@@ -1489,7 +1489,7 @@ ${firma}
                 </table>
               </div>
 
-              <div className="totales-bar" style={{ position: 'sticky', bottom: 0, background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '8px 12px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div className="totales-bar" style={{ position: 'sticky', bottom: 0, background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '5px 12px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 {[
                   { label: 'Costo Ejec', val: totales?.total_ejecucion, color: 'var(--ejec)', size: 13 },
                   { label: 'Precio s/IVA', val: totales?.total_precio_sin_iva, color: 'var(--precio)', size: 13 },
@@ -1498,23 +1498,26 @@ ${firma}
                   { label: 'Margen', extra: `${totales?.margen_pct?.toFixed(1)}%`, color: 'var(--warn)', size: 14 },
                 ].map((t, i) => (
                   <React.Fragment key={t.label}>
-                    {i > 0 && <div style={{ width: 1, height: 28, background: 'var(--border)' }}></div>}
-                    <div>
-                      <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--muted)' }}>{t.label}</div>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: t.size, fontWeight: 600, color: t.color }}>{t.extra || fmt(t.val)}</div>
+                    {i > 0 && <div style={{ width: 1, height: 20, background: 'var(--border)' }}></div>}
+                    {/* La etiqueta al lado del número, no arriba: la barra baja
+                        de dos renglones a uno y se recupera media pulgada de
+                        pantalla en cada obra. */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                      <span style={{ fontSize: 9, letterSpacing: .6, textTransform: 'uppercase', color: 'var(--muted)' }}>{t.label}</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: t.size, fontWeight: 700, color: t.color }}>{t.extra || fmt(t.val)}</span>
                     </div>
                   </React.Fragment>
                 ))}
                 {totalAdic > 0 && <>
-                  <div style={{ width: 1, height: 28, background: 'rgba(167,139,250,0.4)' }}></div>
-                  <div>
-                    <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--accent2)' }}>Adicionales</div>
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 600, color: 'var(--accent2)' }}>{fmt(totalAdic)}</div>
+                  <div style={{ width: 1, height: 20, background: 'rgba(167,139,250,0.4)' }}></div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                    <span style={{ fontSize: 9, letterSpacing: .6, textTransform: 'uppercase', color: 'var(--accent2)' }}>Adicionales</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--accent2)' }}>{fmt(totalAdic)}</span>
                   </div>
-                  <div style={{ width: 1, height: 28, background: 'rgba(167,139,250,0.4)' }}></div>
-                  <div>
-                    <div style={{ fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--accent2)' }}>Total obra</div>
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 700, color: 'var(--accent2)' }}>{fmt((totales?.total_precio_con_iva || 0) + totalAdic)}</div>
+                  <div style={{ width: 1, height: 20, background: 'rgba(167,139,250,0.4)' }}></div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                    <span style={{ fontSize: 9, letterSpacing: .6, textTransform: 'uppercase', color: 'var(--accent2)' }}>Total obra</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 800, color: 'var(--accent2)' }}>{fmt((totales?.total_precio_con_iva || 0) + totalAdic)}</span>
                   </div>
                 </>}
               </div>
