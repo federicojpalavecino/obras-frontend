@@ -934,6 +934,18 @@ export default function Gantt() {
                   </button>
                 </div>
                 {t.padre_id && <span style={{ width: 14, flexShrink: 0 }} />}
+                {/* Acceso visible al panel de la tarea. Antes solo se abria con
+                    boton derecho sobre la barra, que no lo encuentra nadie. */}
+                {t.linea_id ? (
+                  <button title="Avance, quién la ejecuta, dividir o suspender"
+                    onClick={e => { e.stopPropagation();
+                      setCargarAvanceEn(t);
+                      setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0))); }}
+                    style={{ width: 18, height: 18, flexShrink: 0, borderRadius: 5, cursor: 'pointer',
+                             border: '1px solid var(--border)', background: 'var(--surface2)',
+                             color: 'var(--muted)', fontSize: 11, lineHeight: 1, padding: 0,
+                             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⋯</button>
+                ) : <span style={{ width: 18, flexShrink: 0 }} />}
                 <div style={{ width: 10, height: 10, borderRadius: t.es_resumen ? 0 : 2, background: t.critica && verCritico ? '#f87171' : t.color, flexShrink: 0 }} />
                 <div style={{ flex: 1, overflow: 'hidden' }} onClick={() => modoVincular ? clickVincular(t) : setEditando(t)}>
                   <div style={{ fontSize: 12, fontWeight: t.es_resumen ? 800 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textTransform: t.es_resumen ? 'uppercase' : 'none', letterSpacing: t.es_resumen ? 0.4 : 0 }}>
