@@ -283,9 +283,15 @@ export default function Gantt() {
   };
   useAtajoDeshacer(hacerDeshacer);
 
-  const PX_DIA = 28;
+  // El ancho de un día era fijo en 28 px, así que un plan de seis meses medía
+  // cinco metros: había que arrastrar y arrastrar, y nunca se veía la obra
+  // entera. Ahora se elige la escala, y «Entra todo» la calcula para que el
+  // plan completo entre en el ancho que hay.
+  const [escala, setEscala] = useState(() => localStorage.getItem('obras_gantt_escala') || 'entra');
+  const [anchoUtil, setAnchoUtil] = useState(900);
+  const elegirEscala = (e) => { setEscala(e); localStorage.setItem('obras_gantt_escala', e); };
   const ROW_H = 40;
-  const LABEL_W = 260;
+  const LABEL_W = esCelular ? 130 : 260;
 
   useEffect(() => { cargar(); }, [id]);
 
@@ -325,6 +331,15 @@ export default function Gantt() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    const medir = () => {
+      if (scrollRef.current) setAnchoUtil(Math.max(240, scrollRef.current.clientWidth - 4));
+    };
+    medir();
+    window.addEventListener('resize', medir);
+    return () => window.removeEventListener('resize', medir);
+  }, [esCelular]);
 
   useEffect(() => {
     if (yaCentre.current || !scrollRef.current || !colHoyRef.current) return;
@@ -783,6 +798,19 @@ export default function Gantt() {
 
 
   // Generar cabecera de fechas
+  // Cuántos píxeles mide un día según la escala elegida.
+  const PX_DIA = (() => {
+    if (escala === 'dia') return 28;
+    if (escala === 'semana') return 10;
+    if (escala === 'mes') return 4;
+    // «Entra todo»: el plan completo en el ancho disponible, con un mínimo
+    // para que no se vuelva una raya y un máximo para que no quede ridículo.
+    return Math.max(2.2, Math.min(28, anchoUtil / Math.max(1, totalDias)));
+  })();
+  // Con días muy finitos no se puede dibujar una columna por día: ni se ven,
+  // ni el navegador aguanta miles de divs por fila.
+  const detalleDiario = PX_DIA >= 14;
+
   const diasHeader = [];
   for (let i = 0; i <= totalDias; i++) {
     diasHeader.push(addDias(fechaMin, i));
@@ -936,6 +964,20 @@ export default function Gantt() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {tareas.length > 0 && (
+            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden' }}>
+              {[['entra', 'Entra todo'], ['mes', 'Mes'], ['semana', 'Semana'], ['dia', 'Día']].map(([v, l]) => (
+                <button key={v} onClick={() => elegirEscala(v)}
+                  title={v === 'entra' ? 'Que la obra entera entre en la pantalla' : `Escala por ${l.toLowerCase()}`}
+                  style={{ padding: '4px 9px', fontSize: 11, border: 'none', cursor: 'pointer',
+                           fontFamily: 'inherit', fontWeight: escala === v ? 700 : 400,
+                           background: escala === v ? 'var(--accent)' : 'transparent',
+                           color: escala === v ? '#fff' : 'var(--muted)' }}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
           {esCelular && tareas.length > 0 && (
             <button className="btn btn-secondary btn-sm" onClick={() => setVerDiagrama(v => !v)}
               title={verDiagrama ? 'Volver a la lista' : 'Ver el diagrama de barras'}>
@@ -1359,7 +1401,35 @@ export default function Gantt() {
             <div style={{ width: totalDias * PX_DIA, position: 'relative' }}>
               {/* Header fechas */}
               <div style={{ height: 50, borderBottom: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex', alignItems: 'flex-end', position: 'sticky', top: 0, zIndex: 10 }}>
-                {diasHeader.map((dia) => {
+                {/* Con la escala achicada no entra un cartelito por día: se
+                    muestran los meses, que es lo que sirve para ubicarse. */}
+                {!detalleDiario && (() => {
+                  const meses = [];
+                  diasHeader.forEach((dia, i) => {
+                    const d = new Date(dia + 'T12:00:00');
+                    const clave = d.getFullYear() + '-' + d.getMonth();
+                    const ult = meses[meses.length - 1];
+                    if (!ult || ult.clave !== clave) meses.push({ clave, desde: i, dias: 1, d });
+                    else ult.dias++;
+                  });
+                  return (
+                    <div style={{ position: 'absolute', left: 0, top: 0, height: 50, display: 'flex' }}>
+                      {meses.map(m => (
+                        <div key={m.clave} style={{ width: m.dias * PX_DIA, flexShrink: 0, height: '100%',
+                                                    borderLeft: '1px solid var(--border)', overflow: 'hidden',
+                                                    display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+                                                    padding: '0 4px 6px' }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                            {m.dias * PX_DIA > 42
+                              ? m.d.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' })
+                              : m.d.toLocaleDateString('es-AR', { month: 'narrow' })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+                {detalleDiario && diasHeader.map((dia) => {
                   const d = new Date(dia + 'T12:00:00');
                   const esLunes = d.getDay() === 1;
                   const franco = !esLaborable(dia);
@@ -1449,8 +1519,16 @@ export default function Gantt() {
                 const pct = Math.min(100, Math.max(0, avLinea != null ? avLinea : (t.progreso || 0)));
                 return (
                   <div key={t.id} style={{ height: ROW_H, borderBottom: '1px solid var(--border2)', position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    {/* Columnas de fondo */}
-                    {diasHeader.map(dia => {
+                    {/* Columnas de fondo. Con la escala achicada se pinta el
+                        fondo de una sola vez: mil divs por fila no se ven y
+                        dejan el navegador de rodillas. */}
+                    {!detalleDiario && (
+                      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
+                                    background: `repeating-linear-gradient(90deg,
+                                      transparent 0 ${PX_DIA * 7}px,
+                                      rgba(74,74,88,.13) ${PX_DIA * 7}px ${PX_DIA * 7 + Math.max(1, PX_DIA * 2)}px)` }} />
+                    )}
+                    {detalleDiario && diasHeader.map(dia => {
                       const d = new Date(dia + 'T12:00:00');
                       // Se sombrea lo que NO se trabaja según la configuración,
                       // no el fin de semana fijo: si la obra trabaja los sábados,
@@ -1609,6 +1687,12 @@ export default function Gantt() {
               {/* Línea de hoy */}
               {hoy >= fechaMin && hoy <= fechaMax && (
                 <>
+                  {!detalleDiario && (
+                    <div style={{ position: 'absolute', left: diasEntre(fechaMin, hoy) * PX_DIA, top: 2,
+                                  transform: 'translateX(-50%)', zIndex: 12, background: 'var(--accent)',
+                                  color: '#fff', fontSize: 8.5, fontWeight: 800, letterSpacing: .6,
+                                  padding: '1px 5px', borderRadius: 4, pointerEvents: 'none' }}>HOY</div>
+                  )}
                   {/* La columna de hoy, pintada de arriba abajo. */}
                   <div style={{ position: 'absolute', left: diasEntre(fechaMin, hoy) * PX_DIA, top: 50, bottom: 0,
                                 width: PX_DIA, background: 'rgba(16,185,129,.10)', pointerEvents: 'none', zIndex: 1 }} />

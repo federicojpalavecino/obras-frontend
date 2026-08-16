@@ -488,3 +488,108 @@ html, body {
 @media (max-width: 900px) {
   .solo-escritorio { display: none !important; }
 }
+
+/* ═══════════════════════════════════════
+   PRESUPUESTO — QUE SE PUEDA LEER
+   ═══════════════════════════════════════ */
+
+/* Los números tienen que alinearse en columna. Con una fuente de ancho
+   variable, 1.111.111 ocupa menos que 8.888.888 y las cifras quedan
+   desparejas: es imposible comparar dos filas de un vistazo. */
+.tabla-presupuesto td, .tabla-presupuesto th {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Una fila sí y una no con fondo apenas distinto: el ojo no se pierde de
+   renglón cuando la tabla es ancha. */
+.tabla-presupuesto tbody tr.fila-item:nth-child(2n) {
+  background: rgba(127, 127, 145, 0.045);
+}
+.tabla-presupuesto tbody tr.fila-item:hover {
+  background: rgba(16, 185, 129, 0.07);
+}
+
+/* El precio es la columna que se mira: que pese más que las de al lado. */
+.tabla-presupuesto .celda-precio {
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+/* La cabecera queda pegada arriba al scrollear una obra de cien ítems. */
+.tabla-presupuesto thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surface);
+}
+
+/* El encabezado de rubro también, un escalón más abajo. */
+.tabla-presupuesto tr.fila-rubro td {
+  position: sticky;
+  top: 29px;
+  z-index: 2;
+}
+
+@media (max-width: 900px) {
+  /* En el celular la tabla se lee como fichas: el nombre arriba, y abajo
+     cantidad y precio grandes. Una tabla de ocho columnas en una pantalla de
+     seis pulgadas no se lee, se adivina. */
+  .tabla-presupuesto, .tabla-presupuesto tbody, .tabla-presupuesto tr, .tabla-presupuesto td {
+    display: block;
+    width: 100%;
+  }
+  .tabla-presupuesto thead { display: none; }
+
+  .tabla-presupuesto tr.fila-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin: 0 8px 8px;
+    padding: 10px 12px;
+    width: auto;
+    background: var(--surface);
+  }
+  .tabla-presupuesto tr.fila-item td {
+    padding: 0;
+    border: none;
+  }
+  /* El nombre, entero y sin cortar */
+  .tabla-presupuesto tr.fila-item td.celda-nombre {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: normal;
+    margin-bottom: 7px;
+  }
+  /* Cantidad y precio, uno al lado del otro y grandes */
+  .tabla-presupuesto tr.fila-item td.celda-cant,
+  .tabla-presupuesto tr.fila-item td.celda-precio {
+    display: inline-block;
+    width: auto;
+    font-size: 14px;
+  }
+  .tabla-presupuesto tr.fila-item td.celda-cant {
+    color: var(--muted);
+    font-size: 12.5px;
+    text-align: left !important;
+  }
+  /* El campo de cantidad, cómodo para el dedo */
+  .tabla-presupuesto tr.fila-item td.celda-cant input {
+    width: 80px !important;
+    padding: 7px 8px !important;
+  }
+  .tabla-presupuesto tr.fila-item td.celda-precio {
+    float: right;
+    text-align: right;
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .tabla-presupuesto tr.fila-item td.celda-acciones {
+    clear: both;
+  }
+
+  .tabla-presupuesto tr.fila-rubro td {
+    position: static;
+    margin: 12px 8px 6px;
+    border-radius: 8px;
+  }
+}

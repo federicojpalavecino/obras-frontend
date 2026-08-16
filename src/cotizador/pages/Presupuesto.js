@@ -1300,7 +1300,7 @@ ${firma}
                   <tbody>
                     {data.rubros?.map(rubro => (
                       <React.Fragment key={rubro.numero}>
-                        <tr>
+                        <tr className="fila-rubro">
                           <td colSpan={12} style={{ padding: '7px 12px', background: 'var(--surface2)', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: 'var(--muted)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
                             {editandoRubroNum === rubro.numero ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => e.stopPropagation()}>
@@ -1341,12 +1341,10 @@ ${firma}
                         {rubro.lineas?.map(linea => {
                           const isSelected = lineaSeleccionada?.id === linea.id;
                           return (
-                            <tr key={linea.id}
-                              style={{ borderBottom: '1px solid rgba(46,46,56,0.6)', background: isSelected ? 'rgba(167,139,250,0.08)' : 'transparent' }}
-                              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
-                              onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
+                            <tr key={linea.id} className="fila-item"
+                              style={{ borderBottom: '1px solid rgba(46,46,56,0.6)', background: isSelected ? 'rgba(167,139,250,0.08)' : undefined }}>
                               <td style={{ ...td, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }} className="col-cod">{linea.tipo === 'libre' ? '—' : linea.item_obra_id}</td>
-                              <td style={td}>
+                              <td style={td} className="celda-nombre">
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     {editandoNombreId === linea.id ? (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => e.stopPropagation()}>
@@ -1400,10 +1398,18 @@ ${firma}
                                 {linea.tipo === 'libre' && <div style={{ fontSize: 9, color: (linea.costo_mat || linea.costo_mo || linea.costo_maq) ? 'var(--warn)' : 'var(--accent2)', fontFamily: 'var(--mono)' }}>{(linea.costo_mat || linea.costo_mo || linea.costo_maq) ? 'desglosado' : 'subcontrato'}</div>}
                               </td>
                               <td style={{ ...td, textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }} className="col-unid">{linea.unidad_item || linea.unidad_libre}</td>
-                              <td style={{ ...td, textAlign: 'right' }}>
+                              <td style={{ ...td, textAlign: 'right' }} className="celda-cant">
+                                {/* Cerrado no se edita: mostrar un campo de
+                                    formulario gris confunde y ocupa lugar. */}
+                                {cerrado ? (
+                                  <span style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>
+                                    {linea.cantidad} {linea.unidad_item || linea.unidad_libre || ''}
+                                  </span>
+                                ) : (
                                 <input key={`cant-${linea.id}-${linea.cantidad}`} type="number" min="0" step="0.01" defaultValue={linea.cantidad} disabled={cerrado}
                                   style={{ width: 55, background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 4, padding: '3px 5px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'right' }}
                                   onBlur={e => handleCantidad(linea.id, e.target.value)} />
+                                )}
                                 {!cerrado && (
                                   <div
                                     onClick={e => { e.stopPropagation(); setComputoLinea(computoLinea?.id === linea.id ? null : linea); setLineaSeleccionada(null); }}
@@ -1421,17 +1427,17 @@ ${firma}
                                 <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ejec)', fontWeight: 500 }} className="col-ejec">{fmt(linea.total_ejecucion)}</td>
                               </>}
                               {(vista === 'ambos' || vista === 'comercial') && <>
-                                <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)' }}>
-                                  <div style={{ fontSize: 12, color: 'var(--precio)', fontWeight: 600 }}>{fmt(linea.precio_venta_con_iva)}</div>
-                                  <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 1 }}>
-                                    {fmt(linea.cantidad > 0 ? linea.precio_venta_con_iva / linea.cantidad : 0)}/{linea.unidad_item || linea.unidad_libre || 'u'}
+                                <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)' }} className="celda-precio">
+                                  <div style={{ color: 'var(--precio)' }}>{fmt(linea.precio_venta_con_iva)}</div>
+                                  <div style={{ fontSize: 9.5, color: 'var(--muted)', marginTop: 1, fontWeight: 400 }}>
+                                    {fmt(linea.cantidad > 0 ? linea.precio_venta_con_iva / linea.cantidad : 0)} por {linea.unidad_item || linea.unidad_libre || 'u'}
                                   </div>
                                 </td>
                                 <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }} className="col-pct">
                                   {totales.total_precio_con_iva > 0 ? (linea.precio_venta_con_iva / totales.total_precio_con_iva * 100).toFixed(1) + '%' : '—'}
                                 </td>
                               </>}
-                              <td style={td}>
+                              <td style={td} className="celda-acciones">
                                 {!cerrado && (
                                   <button onClick={() => handleEliminar(linea.id)}
                                     style={{ background: 'none', border: 'none', color: 'var(--border2)', fontSize: 15, cursor: 'pointer', padding: '1px 5px', borderRadius: 4 }}
