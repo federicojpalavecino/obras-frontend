@@ -1309,6 +1309,7 @@ export default function Gantt() {
                       ? tramos.map(tr => ({
                           left: (diasEntre(fechaMin, tr.inicio) + desfase) * PX_DIA,
                           width: diasCalendarioDeTramo(tr) * PX_DIA - 2,
+                          hecho: !!tr.hecho,
                         }))
                       : [{ left, width }];
                     const iAncho = segs.reduce((m, s, i2) => s.width > segs[m].width ? i2 : m, 0);
@@ -1322,7 +1323,7 @@ export default function Gantt() {
                     {segs.map((s, si) => (
                     <div key={si} title={`${t.nombre}\n${fmtFechaLarga(t.fecha_inicio)} → ${fmtFechaLarga(t.fecha_fin)}${tramos ? `\n✂ Se hace en ${tramos.length} partes` : ''}${t.holgura != null ? `\nHolgura: ${t.holgura} día(s)` : ''}${t.critica ? '\n⚠ Camino crítico' : ''}${t.no_antes_de ? `\n📌 Fijada al ${fmtFecha(t.no_antes_de)}` : ''}`}
                       style={{ position: 'absolute', left: s.left, top: 6, width: s.width, height: ROW_H - 12, borderRadius: 6,
-                        background: (t.critica && verCritico ? '#f87171' : t.color) + '33',
+                        background: (t.critica && verCritico ? '#f87171' : t.color) + (tramos && !s.hecho ? '1a' : '33'),
                         border: predSel?.id === t.id ? '2px solid #fff'
                               : `${t.es_adicional ? '1px dashed' : '1px solid'} ${(t.critica && verCritico ? '#f87171' : t.color)}${t.critica && verCritico ? 'cc' : (t.es_adicional ? 'cc' : '66')}`,
                         cursor: 'pointer', overflow: 'hidden', zIndex: 4,
@@ -1589,11 +1590,15 @@ export default function Gantt() {
               ) : cargarAvanceEn.tramos?.length > 1 ? (<>
                 <div style={{ marginTop: 10, padding: '11px 13px', borderRadius: 10, fontSize: 12.5,
                               background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-                  <div style={{ fontWeight: 700, marginBottom: 7 }}>Se hace en {cargarAvanceEn.tramos.length} partes</div>
+                  <div style={{ fontWeight: 700, marginBottom: 3 }}>Se hace en {cargarAvanceEn.tramos.length} partes</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 8, lineHeight: 1.5 }}>
+                    Las partes con ✓ ya se hicieron y quedan como fueron. Si sumás gente
+                    a la tarea, se acorta lo que falta, no lo que ya pasó.
+                  </div>
                   {cargarAvanceEn.tramos.map((tr, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                       <span style={{ color: 'var(--muted)', flexShrink: 0 }}>
-                        {i + 1}ª · {tr.dias} día{tr.dias !== 1 ? 's' : ''}
+                        {tr.hecho ? '✓' : '○'} {i + 1}ª · {tr.dias} día{tr.dias !== 1 ? 's' : ''}
                       </span>
                       {i === 0 ? (
                         <span style={{ color: 'var(--muted)' }}>desde el {fmtFechaLarga(tr.inicio)}</span>
