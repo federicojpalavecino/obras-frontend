@@ -151,6 +151,25 @@ export default function Gantt() {
     } catch (e) { setAvisoTarea(e.response?.data?.detail || "No se pudo"); }
   };
 
+  // Qué fecha proponer para retomar. Para una tarea que ya está en curso, hoy;
+  // para una que todavía no arrancó, hoy no significa nada: lo que corresponde
+  // es el día en que seguiría de largo si no se partiera, y desde ahí el
+  // estudio la reprograma.
+  const fechaQueSigue = (tarea, pct) => {
+    const partido = tarea?.tramos?.length > 1;
+    const desde = partido ? tarea.tramos[tarea.tramos.length - 1].inicio : (tarea?.fecha_inicio || hoy);
+    const dur = partido ? (tarea.tramos[tarea.tramos.length - 1].dias || 1)
+                        : (tarea?.dur_calc || tarea?.duracion_dias || 1);
+    const n = parseFloat(pct);
+    const hecho = Math.max(1, Math.round((dur * (isNaN(n) ? 50 : n)) / 100));
+    // Día siguiente al que termina la parte que se hace ahora, salteando lo
+    // que no se trabaja.
+    let d = addDias(desde, diasCalendarioDeTramo({ inicio: desde, dias: hecho }));
+    for (let i = 0; i < 30 && !esLaborable(d); i++) d = addDias(d, 1);
+    // Si la tarea ya venía corriendo, lo natural es retomarla de hoy en más.
+    return d > hoy ? d : hoy;
+  };
+
   const guardarAvanceLinea = async () => {
     if (!cargarAvanceEn?.linea_id) return;
     try {
@@ -1559,7 +1578,10 @@ export default function Gantt() {
                       </div>
                       <div style={{ position: 'relative' }}>
                         <input type="number" min="1" max="99" value={formPartir.pct} autoFocus
-                          onChange={e => setFormPartir({ ...formPartir, pct: e.target.value })}
+                          onChange={e => setFormPartir(f => ({
+                            ...f, pct: e.target.value,
+                            fecha: f.tocada ? f.fecha : fechaQueSigue(cargarAvanceEn, e.target.value),
+                          }))}
                           style={{ width: '100%', padding: '8px 26px 8px 10px', border: '1px solid var(--border)', borderRadius: 8,
                                    background: 'var(--surface)', color: 'var(--text)', fontFamily: "'IBM Plex Mono',monospace",
                                    fontSize: 14, textAlign: 'right' }} />
@@ -1567,9 +1589,11 @@ export default function Gantt() {
                       </div>
                     </div>
                     <div style={{ flex: 1.3 }}>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Se retoma el</div>
-                      <input type="date" value={formPartir.fecha}
-                        onChange={e => setFormPartir({ ...formPartir, fecha: e.target.value })}
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
+                        Se retoma el{!formPartir.tocada && <span style={{ opacity: .7 }}> · seguido</span>}
+                      </div>
+                      <input type="date" value={formPartir.fecha} min={cargarAvanceEn.fecha_inicio}
+                        onChange={e => setFormPartir({ ...formPartir, fecha: e.target.value, tocada: true })}
                         style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8,
                                  background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13 }} />
                     </div>
@@ -1623,7 +1647,7 @@ export default function Gantt() {
                 {/* Una obra se puede frenar una vez o cinco: no hay tope de
                     partes. Lo que se parte siempre es lo que queda. */}
                 {cargarAvanceEn.tramos[cargarAvanceEn.tramos.length - 1].dias > 1 && (
-                  <button onClick={() => { setAvisoTarea(''); setFormPartir({ pct: '50', fecha: hoy }); }}
+                  <button onClick={() => { setAvisoTarea(''); setFormPartir({ pct: '50', fecha: fechaQueSigue(cargarAvanceEn, 50) }); }}
                     style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
                              fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: 'transparent',
                              border: '1px solid var(--accent)', color: 'var(--accent)' }}>
@@ -1631,7 +1655,7 @@ export default function Gantt() {
                   </button>
                 )}
               </>) : (
-                <button onClick={() => { setAvisoTarea(''); setFormPartir({ pct: '50', fecha: hoy }); }}
+                <button onClick={() => { setAvisoTarea(''); setFormPartir({ pct: '50', fecha: fechaQueSigue(cargarAvanceEn, 50) }); }}
                   style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
                            fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: 'transparent',
                            border: '1px solid var(--accent)', color: 'var(--accent)' }}>
