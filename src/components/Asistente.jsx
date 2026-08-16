@@ -606,8 +606,22 @@ const BASE = [
       "Elegí el período: Semana, Quincena o Mes.",
       "Cargá los Ingresos, los Egresos y el Personal (sueldos) del período.",
       "El resultado (ingresos − egresos − personal) se calcula automáticamente.",
+      "Ojo: solo suma lo que ya se cobró o se pagó. Lo que está PENDIENTE no entra al resultado y lo ves en la pestaña Previsión.",
     ],
     route: "/finanzas", routeLabel: "Ir a Control Financiero",
+  },
+  {
+    id: "cf-prevision", sec: "finanzas",
+    titulo: "Por qué lo pendiente ya no suma al resultado",
+    kw: "pendiente prevision previsión no suma desaparecio desapareció bajo bajó resultado cambio cambió me falta plata deuda debo deben cuenta corriente proyeccion proyección futuro",
+    pasos: [
+      "El Control Financiero ahora muestra caja: solo la plata que se movió de verdad. Si una fila está en PENDIENTE, todavía no entró ni salió, así que no suma al resultado del período.",
+      "No se perdió nada. Todo lo pendiente está en la pestaña “Previsión”, que muestra lo que vas a cobrar y lo que vas a pagar según lo ya pactado.",
+      "En Previsión lo podés leer de tres formas: por fecha (entradas y salidas separadas), por obra, o por persona — quién te debe y a quién le debés, con el detalle de por qué.",
+      "Cuando marcás una fila como COBRADO o PAGADO, entra al resultado del período y desaparece sola de Previsión. No hay que cargarla dos veces.",
+      "Lo mismo vale para la obra: un desembolso, un certificado, lo certificado a un contratista o una compra con saldo aparecen en Previsión hasta que la plata se mueve.",
+    ],
+    route: "/finanzas", routeLabel: "Ver la Previsión",
   },
   {
     id: "importar-obra", sec: "finanzas",
