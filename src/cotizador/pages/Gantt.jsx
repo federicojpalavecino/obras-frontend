@@ -188,6 +188,11 @@ export default function Gantt() {
   const [predSel, setPredSel] = useState(null);    // tarea elegida como predecesora
   const [verCritico, setVerCritico] = useState(true);
   const [panelVinculos, setPanelVinculos] = useState(false);
+  // En una obra de 40 items la lista entera de vinculos es ilegible. Se filtra
+  // por tarea, y si se llego tocando una flecha arranca mostrando solo los de
+  // esa tarea.
+  const [filtroVinc, setFiltroVinc] = useState('');
+  const [soloDeLaTarea, setSoloDeLaTarea] = useState(true);
   const [vinculoSel, setVinculoSel] = useState(null);   // el resaltado al tocar la flecha
   const [arrastre, setArrastre] = useState(null);   // {id, dx} mientras se arrastra
   const scrollRef = useRef(null);
@@ -221,16 +226,20 @@ export default function Gantt() {
     api.get(`/presupuestos/${id}/dias-no-trabajados`).then(r => setDiasPerdidos(r.data || [])).catch(() => {});
     setLoading(true);
     try {
+      // Ojo con el orden: estas cuatro se desestructuran por posición. La plata
+      // y el estado por línea NO van acá — se pisaban con el plan y `planRes`
+      // quedaba undefined: la carga explotaba justo antes de setear el plan y
+      // el Gantt se dibujaba con las fechas guardadas en vez de las calculadas.
+      api.get(`/presupuestos/${id}/plata`).then(r => setPlata(r.data)).catch(() => {});
+      api.get(`/presupuestos/${id}/lineas/estado`).then(r => {
+        setEstadoLineas(Object.fromEntries((r.data?.lineas || []).map(l => [l.linea_id, l])));
+      }).catch(() => {});
       const [pRes, tRes, cRes, vRes, planRes] = await Promise.all([
         api.get(`/presupuestos/${id}`).then(r => r.data),
         api.get(`/presupuestos/${id}/gantt/tareas`).then(r => ({data: r.data})),
         api.get(`/presupuestos/${id}/gantt/config`).catch(() => ({data: {}})),
         api.get(`/presupuestos/${id}/gantt/vinculos`).catch(() => ({data: []})),
-        api.get(`/presupuestos/${id}/plata`).then(r => setPlata(r.data)).catch(() => {}),
-      api.get(`/presupuestos/${id}/lineas/estado`).then(r => {
-        setEstadoLineas(Object.fromEntries((r.data?.lineas || []).map(l => [l.linea_id, l])));
-      }).catch(() => {}),
-      api.get(`/presupuestos/${id}/gantt/plan`).catch(e => ({data: null, err: e})),
+        api.get(`/presupuestos/${id}/gantt/plan`).catch(e => ({data: null, err: e})),
       ]);
       setPresupuesto(pRes);
       // Extraer lineas desde rubros
@@ -239,9 +248,12 @@ export default function Gantt() {
       setTareas(Array.isArray(tRes.data) ? tRes.data : []);
       if (cRes.data && Object.keys(cRes.data).length) setConfig(c => ({...c, ...cRes.data}));
       setVinculos(Array.isArray(vRes.data) ? vRes.data : []);
-      setPlan(planRes.data || null);
-      setErrorPlan(planRes.data ? '' : (planRes.err?.response?.data?.detail || ''));
-    } catch (e) { console.error(e); }
+      setPlan(planRes?.data || null);
+      setErrorPlan(planRes?.data ? '' : (planRes?.err?.response?.data?.detail || ''));
+    } catch (e) {
+      console.error(e);
+      setErrorPlan('No se pudo cargar el Gantt. Recargá la página.');
+    }
     setLoading(false);
   };
 
@@ -632,6 +644,21 @@ export default function Gantt() {
     .filter(l => !lineasConTarea.has(l.linea_id))
     .sort((a, b) => (b.es_adicional ? 1 : 0) - (a.es_adicional ? 1 : 0));
 
+  const vinculoSelObj = vinculos.find(v => v.id === vinculoSel);
+  const tareaDelVinculoSel = vinculoSelObj
+    ? tareas.find(t => t.id === vinculoSelObj.predecesora_id) || null : null;
+  const vinculosVisibles = (() => {
+    const q = filtroVinc.trim().toLowerCase();
+    const nom = i => ((tareas.find(t => t.id === i) || {}).nombre || '').toLowerCase();
+    let lista = vinculos;
+    if (soloDeLaTarea && tareaDelVinculoSel) {
+      const tid2 = tareaDelVinculoSel.id;
+      lista = lista.filter(v => v.predecesora_id === tid2 || v.sucesora_id === tid2);
+    }
+    if (q) lista = lista.filter(v => nom(v.predecesora_id).includes(q) || nom(v.sucesora_id).includes(q));
+    return lista;
+  })();
+
   const planificarLinea = async (l) => {
     setPlanificando(l.linea_id);
     try {
@@ -950,12 +977,32 @@ export default function Gantt() {
         <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '10px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Vínculos entre tareas</span>
+            <input value={filtroVinc} onChange={e => { setFiltroVinc(e.target.value); setSoloDeLaTarea(false); }}
+              placeholder="Filtrar por tarea…"
+              style={{ background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 6,
+                       color: 'var(--text)', fontSize: 11, padding: '4px 9px', fontFamily: 'inherit', width: 190 }} />
+            {tareaDelVinculoSel && (
+              <button onClick={() => setSoloDeLaTarea(v => !v)}
+                style={{ background: soloDeLaTarea ? 'rgba(110,231,183,.14)' : 'none',
+                         border: '1px solid var(--border2)', borderRadius: 12, color: 'var(--text)',
+                         cursor: 'pointer', fontSize: 10.5, padding: '3px 10px', fontFamily: 'inherit' }}>
+                {soloDeLaTarea ? `Solo «${tareaDelVinculoSel.nombre}» · ver todos` : 'Ver solo la tarea elegida'}
+              </button>
+            )}
+            <span style={{ fontSize: 10, color: 'var(--muted)' }}>
+              También podés desvincular abriendo la tarea: te muestra de qué depende y qué la sigue.
+            </span>
+            <div style={{ flex: 1 }} />
             <button className="btn btn-secondary btn-sm" onClick={borrarTodosLosVinculos}
               style={{ fontSize: 10 }}>Desvincular todo</button>
-            <span style={{ fontSize: 10, color: 'var(--muted)' }}>FS: una empieza al terminar la otra · el desfasaje son días de espera (+) o de solape (−)</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 190, overflowY: 'auto' }}>
-            {vinculos.map(v => {
+            {vinculosVisibles.length === 0 && (
+              <div style={{ fontSize: 11, color: 'var(--muted)', padding: '6px 2px' }}>
+                Ningún vínculo con ese nombre.
+              </div>
+            )}
+            {vinculosVisibles.map(v => {
               const a = porId[v.predecesora_id], b = porId[v.sucesora_id];
               return (
                 <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, background: vinculoSel === v.id ? 'rgba(110,231,183,.10)' : 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 8px' }}>
@@ -1358,7 +1405,7 @@ export default function Gantt() {
                           el trazo real es de 1,4 px y es imposible de tocar. */}
                       <path d={d} fill="none" stroke="transparent" strokeWidth={12}
                         style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
-                        onClick={() => { setVinculoSel(v.id); setPanelVinculos(true); }}>
+                        onClick={() => { setVinculoSel(v.id); setPanelVinculos(true); setSoloDeLaTarea(true); setFiltroVinc(''); }}>
                         <title>{`${a.nombre} → ${b.nombre} — tocá para ver o desvincular`}</title>
                       </path>
                       <path d={d} fill="none" stroke={sel ? '#6ee7b7' : col} strokeWidth={sel ? 2.6 : (critico ? 2 : 1.4)}
