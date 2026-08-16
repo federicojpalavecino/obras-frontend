@@ -102,6 +102,21 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
     setImportando(false);
   };
 
+  // En obra nunca rinde el 100%: se corta, se rompe, sobra recorte. El
+  // desperdicio va por material y no por ítem, porque el ladrillo no
+  // desperdicia lo mismo que el hierro, y cada estudio lo sabe por experiencia
+  // propia.
+  const guardarDesperdicio = async (matLineaId, pct) => {
+    const n = parseFloat(String(pct).replace(',', '.'));
+    if (isNaN(n) || n < 0 || n > 100) return;
+    try {
+      await api.patch(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/material/${matLineaId}`,
+        { desperdicio_pct: n });
+      await cargar();
+      onCostoChange && onCostoChange();
+    } catch (e) { /* el panel ya muestra el valor viejo */ }
+  };
+
   // Materiales
   const handleAgregarMat = async () => {
     if (!addMat.material_id) return;
@@ -230,11 +245,13 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                   val1: l.cantidad, label1: 'Cant',
                   val2: l.precio_unitario, label2: 'P.Unit',
                   val2_manual: l.precio_manual,
+                  desperdicio: l.desperdicio_pct || 0,
                   subtotal: l.subtotal,
                 }))}
                 editando={editando} setEditando={setEditando}
                 onEditar={(id, campo, val) => handleEditarMat(id, campo, val)}
                 onEliminar={handleEliminarMat}
+                onDesperdicio={guardarDesperdicio}
                 campo1="cantidad" campo2="precio_manual"
               />
               <FilaAgregar>
@@ -389,7 +406,7 @@ function Seccion({ titulo, color, children }) {
   );
 }
 
-function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, campo1, campo2 }) {
+function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, campo1, campo2, onDesperdicio }) {
   const [editVal, setEditVal] = useState('');
 
   if (lineas.length === 0)
@@ -406,6 +423,30 @@ function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, camp
               <td style={{ padding: '5px 0', fontSize: 11, lineHeight: 1.3 }}>
                 <div>{l.nombre}</div>
                 {l.sub && <div style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{l.sub}</div>}
+                {onDesperdicio && (
+                  editando?.id === l.id && editando?.campo === 'desperdicio' ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                      <span style={{ fontSize: 9, color: 'var(--muted)' }}>Desperdicio</span>
+                      <input type="text" inputMode="decimal" autoFocus value={editVal}
+                        onChange={e => setEditVal(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') { onDesperdicio(l.id, editVal); setEditando(null); } }}
+                        style={{ width: 38, background: 'var(--bg)', border: '1px solid var(--accent2)', borderRadius: 3,
+                                 padding: '1px 3px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 10, textAlign: 'right' }} />
+                      <span style={{ fontSize: 9, color: 'var(--muted)' }}>%</span>
+                      <button style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer', padding: 0 }}
+                        onClick={() => { onDesperdicio(l.id, editVal); setEditando(null); }}><Check size={10} /></button>
+                      <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 0 }}
+                        onClick={() => setEditando(null)}><X size={9} /></button>
+                    </div>
+                  ) : (
+                    <div onClick={() => { setEditando({ id: l.id, campo: 'desperdicio' }); setEditVal(String(l.desperdicio || 0)); }}
+                      title="Lo que se pierde en obra: recortes, roturas. Encarece el material sin cambiar lo que se coloca."
+                      style={{ fontSize: 9, marginTop: 1, cursor: 'pointer', display: 'inline-block',
+                               color: l.desperdicio > 0 ? 'var(--warn)' : 'var(--border2)' }}>
+                      {l.desperdicio > 0 ? `+${l.desperdicio}% desperdicio` : '+ desperdicio'}
+                    </div>
+                  )
+                )}
               </td>
               {/* Campo 1 (cantidad/horas) */}
               <td style={{ padding: '5px 4px', textAlign: 'right', width: 70 }}>

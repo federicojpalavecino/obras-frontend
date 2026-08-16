@@ -98,6 +98,11 @@ export default function Obra() {
   const [pagoSubForm, setPagoSubForm] = useState({ monto: "", fecha: today(), concepto: "Pago parcial", forma_pago: "transferencia", pct_avance_al_pagar: "" });
   const [showContrato, setShowContrato] = useState(false);
   const [certificados, setCertificados] = useState([]);
+  // Lo que está físicamente en esta obra: herramientas del pañol y material
+  // que salió del depósito. Se carga aparte porque no todos los estudios lo
+  // usan y no vale la pena demorar la pantalla por eso.
+  const [panolObra, setPanolObra] = useState({ en_obra: [], devueltas: [] });
+  const [stockObra, setStockObra] = useState([]);
   const [showVincularCobro, setShowVincularCobro] = useState(null); // cert id
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
@@ -120,6 +125,8 @@ export default function Obra() {
       setCompras(Array.isArray(r5) ? r5 : []);
       const certsData = r6?.certificados || (Array.isArray(r6) ? r6 : []);
       setCertificados(certsData);
+      api.get(`/presupuestos/${id}/panol`).then(r => setPanolObra(r.data)).catch(() => {});
+      api.get(`/presupuestos/${id}/stock`).then(r => setStockObra(r.data || [])).catch(() => {});
 
       // Cuenta corriente
       const cc = await api.get(`/presupuestos/${id}/cuenta-corriente`).then(r => r.data);
@@ -589,6 +596,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <option value="cobros">Cobros</option>
             <option value="subcontratos">Subcontratos</option>
             <option value="compras">Compras</option>
+            <option value="panol">Pañol</option>
             {!porDesembolsos && <option value="certificados">Certificados</option>}
           </select>
         </div>
@@ -600,6 +608,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <TabBtn id="cobros" label="Cobros" />
             <TabBtn id="subcontratos" label="Subcontratos" />
             <TabBtn id="compras" label="Compras" />
+            <TabBtn id="panol" label="Pañol" />
             <TabBtn id="avance" label="Avance" />
             <TabBtn id="planos" label="Planos" />
             {!porDesembolsos && <TabBtn id="certificados" label="Certificados" />}
@@ -1311,6 +1320,89 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
         )}
 
         {/* ── COMPRAS ── */}
+        {tab === "panol" && (
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Lo que hay en la obra</div>
+            <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>
+              Herramientas del pañol y material que salió del depósito. Se maneja desde
+              <button onClick={() => navigate("/panol")}
+                style={{ background: "none", border: "none", padding: "0 4px", cursor: "pointer",
+                         color: C.accent, font: "inherit", textDecoration: "underline" }}>Pañol y depósito</button>.
+            </div>
+
+            <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: .6,
+                          color: C.muted, marginBottom: 8 }}>Herramientas acá</div>
+            {panolObra.en_obra.length === 0 ? (
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
+                Ninguna herramienta del pañol está asignada a esta obra.
+              </div>
+            ) : panolObra.en_obra.map(h => (
+              <div key={h.asignacion_id}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 7,
+                         borderRadius: 10, background: C.surface, border: `1px solid ${C.border}` }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>{h.nombre}</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginTop: 1 }}>
+                    {h.desde ? `Desde el ${new Date(h.desde + "T12:00:00").toLocaleDateString("es-AR")}` : ""}
+                    {h.quien ? ` · ${h.quien}` : ""}{h.nota ? ` · ${h.nota}` : ""}
+                  </div>
+                </div>
+                <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700, flexShrink: 0 }}>
+                  {h.cantidad} {h.unidad}
+                </div>
+                <button onClick={async () => {
+                    try {
+                      await api.post(`/panol/asignaciones/${h.asignacion_id}/devolver`, { hasta: today() });
+                      const r = await api.get(`/presupuestos/${id}/panol`);
+                      setPanolObra(r.data);
+                      showToast("✓ Volvió al pañol");
+                    } catch (e) { showToast("⚠ No se pudo"); }
+                  }}
+                  style={{ flexShrink: 0, padding: "5px 11px", borderRadius: 8, cursor: "pointer",
+                           font: "inherit", fontSize: 12, background: "transparent",
+                           border: `1px solid ${C.border}`, color: C.text }}>Volvió</button>
+              </div>
+            ))}
+
+            <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: .6,
+                          color: C.muted, margin: "20px 0 8px" }}>Material que se llevó del depósito</div>
+            {stockObra.length === 0 ? (
+              <div style={{ fontSize: 13, color: C.muted }}>
+                Esta obra todavía no retiró material del depósito.
+              </div>
+            ) : stockObra.map(m => (
+              <div key={m.stock_id}
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                         padding: "10px 12px", marginBottom: 7, borderRadius: 10,
+                         background: C.surface, border: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 13.5, fontWeight: 600 }}>{m.nombre}</span>
+                <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700 }}>
+                  {m.cantidad} {m.unidad}
+                </span>
+              </div>
+            ))}
+
+            {panolObra.devueltas.length > 0 && (
+              <>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: .6,
+                              color: C.muted, margin: "20px 0 8px" }}>Ya volvieron al pañol</div>
+                {panolObra.devueltas.map(h => (
+                  <div key={h.asignacion_id}
+                    style={{ display: "flex", justifyContent: "space-between", padding: "7px 12px",
+                             marginBottom: 5, borderRadius: 8, background: C.surface2, fontSize: 12.5, color: C.muted }}>
+                    <span>{h.cantidad} {h.nombre}</span>
+                    <span>
+                      {h.desde ? new Date(h.desde + "T12:00:00").toLocaleDateString("es-AR") : "—"}
+                      {" → "}
+                      {h.hasta ? new Date(h.hasta + "T12:00:00").toLocaleDateString("es-AR") : ""}
+                    </span>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
         {tab === "compras" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
