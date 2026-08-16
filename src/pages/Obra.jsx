@@ -85,7 +85,10 @@ export default function Obra() {
   const [showCobro, setShowCobro] = useState(false);
   const [cobForm, setCobForm] = useState({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null, desembolso_id: null });
   const [showSub, setShowSub] = useState(false);
-  const [subForm, setSubForm] = useState({ nombre_contratista: "", cuit_contratista: "", tipo: "empresa", descripcion_trabajo: "", monto_total: "", fecha_inicio: today(), tipo_pago: "por_avance", estado: "activo", notas: "" });
+  // `lineas_ids`: que items del presupuesto cubre este contratista. Un subcontrato
+  // suele cubrir varios —"instalacion electrica" son varias lineas— y sin esto no
+  // se sabe quien ejecuta cada parte de la obra, ni el Gantt lo puede mostrar.
+  const [subForm, setSubForm] = useState({ nombre_contratista: "", cuit_contratista: "", tipo: "empresa", descripcion_trabajo: "", monto_total: "", fecha_inicio: today(), tipo_pago: "por_avance", estado: "activo", notas: "", lineas_ids: [] });
   const [showCompra, setShowCompra] = useState(false);
   const [compraForm, setCompraForm] = useState({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "", destino: "interna" });
   const [showPagoSub, setShowPagoSub] = useState(null); // subcontrato id
@@ -333,7 +336,7 @@ export default function Obra() {
   const crearSubcontrato = async () => {
     if (!subForm.nombre_contratista) return;
     await api.post(`/presupuestos/${id}/subcontratos`, { ...subForm, monto_total: parseFloat(subForm.monto_total) || 0 });
-    setShowSub(false); setSubForm({ nombre_contratista: "", cuit_contratista: "", tipo: "empresa", descripcion_trabajo: "", monto_total: "", fecha_inicio: today(), tipo_pago: "por_avance", estado: "activo", notas: "" });
+    setShowSub(false); setSubForm({ nombre_contratista: "", cuit_contratista: "", tipo: "empresa", descripcion_trabajo: "", monto_total: "", fecha_inicio: today(), tipo_pago: "por_avance", estado: "activo", notas: "", lineas_ids: [] });
     showToast("✓ Subcontrato creado"); cargar();
   };
 
@@ -1501,6 +1504,37 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                   <option value="al_terminar">Al terminar</option>
                 </select>
               </div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 6 }}>
+                ¿Qué ítems del presupuesto hace? <span style={{ color: C.muted }}>(opcional, se puede elegir más de uno)</span>
+              </label>
+              {lineasObra.length === 0 ? (
+                <div style={{ fontSize: 12, color: C.muted }}>Este presupuesto todavía no tiene ítems cargados.</div>
+              ) : (
+                <div style={{ maxHeight: 168, overflowY: "auto", border: `1px solid ${C.border}`, borderRadius: 8 }}>
+                  {lineasObra.map(l => {
+                    const elegida = subForm.lineas_ids.includes(l.id);
+                    return (
+                      <div key={l.id} onClick={() => setSubForm(p => ({ ...p,
+                          lineas_ids: elegida ? p.lineas_ids.filter(x => x !== l.id) : [...p.lineas_ids, l.id] }))}
+                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 11px", cursor: "pointer",
+                                 borderBottom: `1px solid ${C.border}`, background: elegida ? "#f0fdf4" : "transparent" }}>
+                        <input type="checkbox" readOnly checked={elegida} style={{ pointerEvents: "none", flexShrink: 0 }} />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.nombre_override || l.nombre_libre || l.nombre}</div>
+                          <div style={{ fontSize: 10.5, color: C.muted }}>{l.rubro}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {subForm.lineas_ids.length > 0 && (
+                <div style={{ fontSize: 11.5, color: C.accent, marginTop: 6 }}>
+                  {subForm.lineas_ids.length} ítem{subForm.lineas_ids.length > 1 ? "s" : ""} asignado{subForm.lineas_ids.length > 1 ? "s" : ""} · el Gantt va a mostrar quién los ejecuta
+                </div>
+              )}
             </div>
             <button onClick={crearSubcontrato} style={{ ...btn(C.accent), width: "100%", padding: 12 }}>Crear subcontrato</button>
           </div>
