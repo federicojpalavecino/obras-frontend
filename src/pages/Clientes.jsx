@@ -92,7 +92,7 @@ export default function Clientes({ user }) {
   const proyectosFiltrados = proyectos.filter((p) => p.nombre?.toLowerCase().includes(busqueda.toLowerCase()) || (p.cliente_nombre || p.cliente || "").toLowerCase().includes(busqueda.toLowerCase()));
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif", paddingBottom: 40 }}>
+    <div style={{ minHeight: "100dvh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif", paddingBottom: 40 }}>
       {/* TABS */}
       <div style={{ position: "sticky", top: 64, background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", zIndex: 40 }}>
         {[["clientes", Users, "Clientes"], ["proyectos", Building2, "Proyectos / Obras"]].map(([id, Icon, label]) => (

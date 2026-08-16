@@ -63,7 +63,7 @@ export default function AccesosClientes({ user }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Syne', sans-serif", paddingBottom: 40 }}>
+    <div style={{ minHeight: "100dvh", background: C.bg, fontFamily: "'Syne', sans-serif", paddingBottom: 40 }}>
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "24px 16px" }}>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>Portal de clientes</div>

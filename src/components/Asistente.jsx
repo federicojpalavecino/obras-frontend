@@ -1774,7 +1774,7 @@ export default function Asistente() {
         <div
           style={{
             position: "fixed", bottom: 0, right: 0, zIndex: 1000,
-            width: "min(380px, 100vw)", height: "min(600px, 100vh)",
+            width: "min(380px, 100vw)", height: "min(600px, 100dvh)",
             display: "flex", flexDirection: "column",
             background: C.surface, fontFamily: "'Syne', sans-serif",
             border: `1px solid ${C.border}`, borderRadius: "16px 16px 0 0",

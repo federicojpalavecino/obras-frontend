@@ -5,6 +5,7 @@ import api from '../api';
 import { ArrowLeft, Search, ChevronDown, ChevronRight, Check, X, Plus, Copy, Trash2, Printer, Download } from 'lucide-react';
 import { coincide } from '../buscar';
 
+import { imprimirHTML } from '../../utils/imprimir';
 const fmtU = (n) => n ? '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '—';
 const fmtP = (n) => n ? '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
 
@@ -187,7 +188,6 @@ export default function Materiales() {
   <div class="head">
     <div><div class="t">Lista de materiales — solicitud de precios</div>
     <div class="sub">${tenantNombre} · ${fecha} · ${base.length} materiales</div></div>
-    <button class="noprint" onclick="window.print()">Imprimir / Guardar PDF</button>
   </div>
   <div class="instr">Complete las columnas <b>Precio nuevo</b> y <b>Proveedor / Obs.</b> y devuélvanos esta planilla. El <b>precio actual</b> es solo de referencia (puede estar desactualizado).</div>
   <table>
@@ -198,10 +198,7 @@ export default function Materiales() {
     <tbody>${cuerpo}</tbody>
   </table>
 </body></html>`;
-    const win = window.open('', '_blank');
-    if (!win) { alert('Permití las ventanas emergentes para exportar la lista.'); return; }
-    win.document.write(html);
-    win.document.close();
+    imprimirHTML(html, { titulo: 'Materiales' });
   };
 
   // Descarga la lista en CSV (se abre en Excel/Sheets) para que el proveedor

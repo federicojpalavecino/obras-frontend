@@ -187,7 +187,8 @@ export default function Menu() {
       {/* Mobile drawer */}
       {menuMobileOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300 }} onClick={() => setMenuMobileOpen(false)}>
-          <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 260, background: 'var(--surface)', boxShadow: '-4px 0 24px rgba(0,0,0,0.2)', padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}
+          <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 'min(260px, 86vw)', background: 'var(--surface)', boxShadow: '-4px 0 24px rgba(0,0,0,0.2)', padding: 20, display: 'flex', flexDirection: 'column', gap: 8,
+                        overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <span style={{ fontWeight: 700, fontSize: 14 }}>Maestros</span>

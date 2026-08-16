@@ -313,7 +313,7 @@ export default function DemoPortal() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8f9fa", fontFamily: "'Syne', sans-serif", color: "#1a1a2e" }}>
+    <div style={{ minHeight: "100dvh", background: "#f8f9fa", fontFamily: "'Syne', sans-serif", color: "#1a1a2e" }}>
       <BarraDemo />
 
       {/* Header — en el portal real acá va el logo del estudio */}

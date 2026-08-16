@@ -834,7 +834,7 @@ ${firma}
 
   return (
     <>
-      <div className="no-print" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <div className="no-print" style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
 
         {/* HEADER — responsive */}
         <div className="header" style={{ flexWrap: 'wrap', gap: 6, minHeight: 'auto', padding: '10px 14px' }}>
@@ -1686,7 +1686,8 @@ ${firma}
         {modalCierre && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 16 }}
             onClick={() => setModalCierre(false)}>
-            <div style={{ width: 'min(560px, 100%)', background: 'var(--surface)', borderRadius: 14, padding: 24, boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}
+            <div style={{ width: 'min(560px, 100%)', background: 'var(--surface)', borderRadius: 14, padding: 24,
+                          maxHeight: '90dvh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}
               onClick={e => e.stopPropagation()}>
               <div style={{ fontWeight: 800, fontSize: 17 }}>Cerrar el presupuesto</div>
               <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6, lineHeight: 1.5 }}>
@@ -1722,7 +1723,7 @@ ${firma}
         {modalAdicional && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', zIndex: 200 }}
             onClick={() => { setModalAdicional(null); setLineaSeleccionadaAdic(null); setComputoAdicLinea(null); }}>
-            <div style={{ width: 'min(900px, 100vw)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 32px rgba(0,0,0,0.4)', position: 'relative' }}
+            <div style={{ width: 'min(900px, 100vw)', maxHeight: '100dvh', background: 'var(--surface)', display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 32px rgba(0,0,0,0.4)', position: 'relative' }}
               onClick={e => e.stopPropagation()}>
 
               {/* Header */}

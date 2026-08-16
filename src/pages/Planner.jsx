@@ -496,7 +496,7 @@ export default function Planner({ user }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Syne', sans-serif", color: C.text }}>
+    <div style={{ minHeight: "100dvh", background: C.bg, fontFamily: "'Syne', sans-serif", color: C.text }}>
 
       {/* ── TOOLBAR ── */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", position: "sticky", top: 0, zIndex: 50 }}>

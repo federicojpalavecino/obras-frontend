@@ -510,7 +510,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
   };
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Syne',sans-serif", color: C.muted }}>
+    <div style={{ minHeight: "100dvh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Syne',sans-serif", color: C.muted }}>
       Cargando...
     </div>
   );
@@ -537,7 +537,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif" }}>
+    <div style={{ minHeight: "100dvh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif" }}>
       {/* Header */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "12px 20px" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>

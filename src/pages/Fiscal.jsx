@@ -280,7 +280,7 @@ export default function Fiscal({ user }) {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Syne', sans-serif", color: C.text }}>
+    <div style={{ minHeight: "100dvh", background: C.bg, fontFamily: "'Syne', sans-serif", color: C.text }}>
       {/* TABS */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", position: "sticky", top: 0, zIndex: 50, overflowX: "auto" }}>
         <TabBtn id="facturas" label="Facturas" />

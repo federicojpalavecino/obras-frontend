@@ -659,7 +659,7 @@ export default function ControlFinanciero({ user }) {
   const resumenFiltrado = resumenObraFiltro ? resumenObras.filter(r => (r.ref_nombre || "").toLowerCase().includes(resumenObraFiltro.toLowerCase())) : resumenObras;
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif" }}>
+    <div style={{ minHeight: "100dvh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif" }}>
 
       {/* ── HEADER TABS ── */}
       {isMobile ? (

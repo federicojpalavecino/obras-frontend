@@ -9,6 +9,7 @@ import { registrar, limpiar, deshacerUltima, useAtajoDeshacer } from '../deshace
 
 import api from '../api';
 
+import { imprimirHTML } from '../../utils/imprimir';
 const COLORES = ['#6ee7b7','#a78bfa','#38bdf8','#fbbf24','#f87171','#fb923c','#e879f9','#a3e635','#34d399','#60a5fa'];
 
 const addDias = (fecha, dias) => {
@@ -691,7 +692,7 @@ export default function Gantt() {
   };
 
   // ── CÁLCULOS DEL GANTT ──
-  if (loading) return <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontFamily: 'var(--sans)' }}>Cargando...</div>;
+  if (loading) return <div style={{ background: 'var(--bg)', minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontFamily: 'var(--sans)' }}>Cargando...</div>;
 
   // El plan del backend manda: trae las fechas que salen de las dependencias,
   // más holgura y camino crítico. Si falla (p.ej. dependencia circular), caemos
@@ -805,8 +806,7 @@ export default function Gantt() {
     if (config.sabado) trabaja.push('sábados');
     if (config.domingo) trabaja.push('domingos');
 
-    const win = window.open('', '_blank');
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+    imprimirHTML(`<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>Gantt — ${esc(presupuesto?.nombre_obra || '')}</title>
 <style>
   @page{size:A4 landscape;margin:10mm}
@@ -861,14 +861,11 @@ export default function Gantt() {
   <span><span class="sw" style="background:rgba(0,0,0,.28)"></span>Avance</span>
 </div>
 <footer><span>${esc(tenantNombre())}</span><span>${localidadYFecha(new Date().toLocaleDateString('es-AR'))}</span></footer>
-</body></html>`);
-    win.document.close();
-    win.focus();
-    win.print();
+</body></html>`, { titulo: 'Gantt' });
   };
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--text)', fontFamily: 'var(--sans)' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100dvh', color: 'var(--text)', fontFamily: 'var(--sans)' }}>
       {/* HEADER */}
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1871,7 +1868,8 @@ export default function Gantt() {
 
       {editando !== null && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: '#ffffff', borderRadius: 16, padding: 24, maxWidth: 480, width: '100%', border: '1px solid #e0e0e8', color: '#1a1a2e' }}>
+          <div style={{ background: '#ffffff', borderRadius: 16, padding: 24, maxWidth: 480, width: '100%',
+                        maxHeight: '90dvh', overflowY: 'auto', border: '1px solid #e0e0e8', color: '#1a1a2e' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e' }}>{editando.id ? 'Editar tarea' : 'Nueva tarea'}</div>
               <button onClick={() => setEditando(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 22 }}>×</button>

@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { coincide } from '../buscar';
 
+import { imprimirHTML } from '../../utils/imprimir';
 const fmt = n => '$ ' + Math.round(n || 0).toLocaleString('es-AR');
 const fmtCant = n => Number(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
 
@@ -177,8 +178,7 @@ export default function ListadoMateriales() {
     `).join('');
 
     const total = mats.reduce((a, m) => a + m.subtotal, 0);
-    const win = window.open('', '_blank');
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Listado de Materiales</title>
+    imprimirHTML(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Listado de Materiales</title>
     <style>body{font-family:Arial,sans-serif;padding:24px;color:#111;font-size:10pt}
     h1{font-size:16pt;margin:0}h2{font-size:9pt;color:#666;margin:4px 0 20px}
     table{width:100%;border-collapse:collapse}th{background:#1a1a1a;color:#fff;padding:5px 8px;text-align:left;font-size:8pt;text-transform:uppercase;letter-spacing:.5px}
@@ -193,8 +193,7 @@ export default function ListadoMateriales() {
     </tbody></table>
     <div class="footer"><span>${(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}')||{};if(s?.tenant?.nombre)return s.tenant.nombre;}catch(e){}return 'FAIM OBRAS'})()}  — ${data?.obra}</span><span>${hoy}</span></div>
     </body></html>`);
-    win.document.close();
-    setTimeout(() => win.print(), 500);
+
   };
 
   const imprimirPedido = (soloSeleccionados = false) => {
@@ -222,8 +221,7 @@ export default function ListadoMateriales() {
       }).join('')}
     `).join('');
 
-    const win = window.open('', '_blank');
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pedido de Materiales</title>
+    imprimirHTML(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pedido de Materiales</title>
     <style>body{font-family:Arial,sans-serif;padding:24px;color:#111;font-size:10pt}
     h1{font-size:16pt;margin:0}h2{font-size:9pt;color:#666;margin:4px 0 8px}
     .aviso{background:#fff8e1;border:1px solid #f0c040;border-radius:4px;padding:8px 12px;font-size:9pt;color:#666;margin-bottom:16px}
@@ -239,8 +237,7 @@ export default function ListadoMateriales() {
     <tbody>${filasHTML}</tbody></table>
     <div class="footer"><span>${(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}')||{};if(s?.tenant?.nombre)return s.tenant.nombre;}catch(e){}return 'FAIM OBRAS'})()}  — ${data?.obra}</span><span>${hoy}</span></div>
     </body></html>`);
-    win.document.close();
-    setTimeout(() => win.print(), 500);
+
   };
 
   const copiarParaProveedor = () => {
@@ -386,7 +383,8 @@ export default function ListadoMateriales() {
       </div>
     {modalAgregar && (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => { setModalAgregar(false); setBusquedaCatalogo(''); setCatalogoResultados([]); setMatSeleccionado(null); setCantidadAgregar(''); }}>
-        <div style={{ background: '#1a1a24', border: '1px solid #2a2a3a', borderRadius: 12, padding: 24, width: '100%', maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+        <div style={{ background: '#1a1a24', border: '1px solid #2a2a3a', borderRadius: 12, padding: 24, width: '100%', maxWidth: 460,
+                      maxHeight: '90dvh', overflowY: 'auto', }} onClick={e => e.stopPropagation()}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 16, color: '#f0f0f5' }}>Agregar material del catálogo</div>
             <button onClick={() => setModalAgregar(false)} style={{ background: 'none', border: 'none', color: '#8888aa', cursor: 'pointer', fontSize: 20 }}>✕</button>

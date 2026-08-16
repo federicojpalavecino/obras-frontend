@@ -425,3 +425,60 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CELULARES Y TABLETS
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* iOS hace zoom sobre cualquier campo con letra menor a 16px, y después deja
+   la pantalla corrida: se cargaba un dato y había que volver a acomodar todo
+   a mano. Con 16px el zoom no se dispara. */
+@media (max-width: 900px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  /* Los campos numéricos quedan cómodos para el dedo sin verse enormes. */
+  input[type="number"], input[type="date"] {
+    min-height: 40px;
+  }
+}
+
+/* Las ventanas que se abren adentro de otra —certificados, avances, cargar un
+   material— crecían más que la pantalla y los botones de Guardar quedaban
+   abajo de todo, fuera de alcance. Se topean contra el alto REAL de la
+   pantalla (dvh, que descuenta la barra del navegador) y scrollean adentro. */
+@media (max-width: 900px) {
+  .modal, .modal-content, .modal-box, .ventana, .panel-flotante {
+    max-height: 90dvh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Las tablas anchas —cómputo, materiales, certificados— desbordaban la página
+   entera y movían todo de costado. Ahora scrollean adentro de su caja. */
+@media (max-width: 900px) {
+  .tabla-scroll, .table-wrap, table {
+    max-width: 100%;
+  }
+  .tabla-scroll, .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Un dedo no es un mouse: los botones chicos de las filas eran imposibles de
+   acertar. */
+@media (max-width: 900px) {
+  button, [role="button"] {
+    touch-action: manipulation;
+  }
+  .btn-sm {
+    min-height: 34px;
+  }
+}
+
+/* Nada de rebote horizontal en toda la aplicación. */
+html, body {
+  overscroll-behavior-x: none;
+}

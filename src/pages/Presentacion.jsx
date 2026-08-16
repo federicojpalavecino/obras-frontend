@@ -19,7 +19,7 @@ const CSS = `
   --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
   background:var(--ground); color:var(--ink); font-family:var(--body);
   font-size:16.5px; line-height:1.62; -webkit-font-smoothing:antialiased;
-  min-height:100vh; overflow-x:hidden;
+  min-height:100dvh; overflow-x:hidden;
 }
 .pv *{box-sizing:border-box}
 .pv .wrap{max-width:1080px;margin:0 auto;padding:0 26px}

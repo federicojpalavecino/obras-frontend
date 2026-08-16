@@ -75,7 +75,7 @@ export default function PersonalPortal({ user, userInfo, onLogout }) {
   const tenantColor = (() => { try { const t = JSON.parse(localStorage.getItem("obras_tenant") || "null"); return t?.color_primario || C.accent; } catch { return C.accent; } })();
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Syne', sans-serif", color: C.text }}>
+    <div style={{ minHeight: "100dvh", background: C.bg, fontFamily: "'Syne', sans-serif", color: C.text }}>
       {/* Header */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

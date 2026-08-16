@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Copy } from 'lucide-react';
 import api from '../api';
 import { parseNum } from '../num';
 
+import { imprimirHTML } from '../../utils/imprimir';
 // Detectar tipo de fórmula según unidad
 function detectarTipo(unidad) {
   if (!unidad) return 'u';
@@ -149,7 +150,6 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
 
   const imprimir = () => {
     const nombre = linea?.nombre_override || linea?.nombre_item || linea?.nombre_libre || 'Ítem';
-    const win = window.open('', '_blank');
     const rows = filas.map((f, i) => {
       const val = calcFila(tipo, f);
       const campos = [];
@@ -166,7 +166,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
         <td style="text-align:right;font-family:monospace">${val.toFixed(3)}</td>
       </tr>`;
     }).join('');
-    win.document.write(`<!DOCTYPE html><html><head><title>Cómputo — ${nombre}</title>
+    imprimirHTML(`<!DOCTYPE html><html><head><title>Cómputo — ${nombre}</title>
     <style>
       body { font-family: Arial, sans-serif; font-size: 11pt; padding: 20px; }
       h2 { font-size: 14pt; margin-bottom: 4px; }
@@ -184,9 +184,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
       <tr class="total-row"><td colspan="3">TOTAL</td><td style="text-align:right;font-family:monospace">${total.toFixed(3)} ${unidad}</td></tr>
       </tbody>
     </table>
-    </body></html>`);
-    win.document.close();
-    win.print();
+    </body></html>`, { titulo: 'Cómputo' });
   };
 
   const inp = {

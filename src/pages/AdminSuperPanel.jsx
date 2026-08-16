@@ -743,7 +743,7 @@ export default function AdminPanel() {
   });
 
   if (!token) return (
-    <div style={{ minHeight:"100vh", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Syne',sans-serif" }}>
+    <div style={{ minHeight:"100dvh", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Syne',sans-serif" }}>
       <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:48, width:320, boxShadow:"0 4px 24px rgba(0,0,0,0.06)" }}>
         <div style={{ fontSize:22, fontWeight:800, color:C.accent, marginBottom:4 }}>FAIM OBRAS</div>
         <div style={{ fontSize:11, color:C.muted, marginBottom:32, fontFamily:"'IBM Plex Mono',monospace", letterSpacing:"2px" }}>PANEL DE ADMINISTRACIÓN</div>
@@ -766,7 +766,7 @@ export default function AdminPanel() {
   );
 
   return (
-    <div style={{ minHeight:"100vh", background:C.bg, fontFamily:"'Syne',sans-serif" }}>
+    <div style={{ minHeight:"100dvh", background:C.bg, fontFamily:"'Syne',sans-serif" }}>
       {/* Header */}
       <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"12px 24px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
         <div style={{ display:"flex", alignItems:"center", gap:16 }}>

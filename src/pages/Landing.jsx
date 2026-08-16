@@ -31,7 +31,7 @@ export default function Landing() {
   const goApp = () => navigate('/');
 
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', color: C.text, fontFamily: "'Syne', sans-serif" }}>
+    <div style={{ background: C.bg, minHeight: '100dvh', color: C.text, fontFamily: "'Syne', sans-serif" }}>
 
       {/* NAV */}
       <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 48px', borderBottom: `1px solid ${C.border}`, background: C.surface, position: 'sticky', top: 0, zIndex: 100 }}>

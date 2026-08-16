@@ -176,7 +176,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   }, [seccionesVisibles]);
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8f9fa" }}>
+    <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8f9fa" }}>
       <div style={{ textAlign: "center" }}>
         {tenantLogo ? <img src={tenantLogo} alt="logo" style={{ height: 48, objectFit: "contain", marginBottom: 16 }} /> : <div style={{ fontSize: 24, fontWeight: 900, color: tenantColor, marginBottom: 8 }}>{tenantNombre}</div>}
         <div style={{ color: "#6b7280", fontSize: 14 }}>Cargando...</div>
@@ -185,7 +185,7 @@ export default function ClientePortal({ user, clienteId, clienteNombre, onLogout
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8f9fa", fontFamily: "'Syne', sans-serif", color: "#1a1a2e" }}>
+    <div style={{ minHeight: "100dvh", background: "#f8f9fa", fontFamily: "'Syne', sans-serif", color: "#1a1a2e" }}>
       {/* Header */}
       <div style={{ background: "#fff", borderBottom: "1px solid #e0e0e8", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

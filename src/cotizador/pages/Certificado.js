@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, FileText, Printer, Trash2, Edit2 } from 'lucide-react'
 import { localidadYFecha } from '../tenant';
 import '../print.css';
 
+import { imprimirHTML } from '../../utils/imprimir';
 const fmt = (n) => n ? '$ ' + Math.round(n).toLocaleString('es-AR') : '$ 0';
 const fmtPct = (n) => (n != null ? Number(n).toFixed(1) + '%' : '0.0%');
 
@@ -389,10 +390,7 @@ ${certEg ? `
 </div>
 <footer><span>${_tn} — Certificado Nº ${d.certificado?.numero} — ${hoyStr}</span><span>${presupuesto?.nombre_obra}</span></footer>
 </body></html>`;
-    const blob = new Blob([html], {type:'text/html'});
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url,'_blank');
-    setTimeout(()=>{ win.print(); URL.revokeObjectURL(url); }, 800);
+    imprimirHTML(html, { titulo: 'Certificado', esperar: 600 });
   };
 
   const guardarCertEgresos = async (sel, total, vinculadoNum) => {
@@ -419,44 +417,43 @@ ${certEg ? `
        "</td></tr>"].join("")
     ).join("");
     const totalFmt = Math.round(total).toLocaleString("es-AR");
-    const win = window.open("","_blank");
-    win.document.open();
-    win.document.write("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Cert. Egresos</title>");
-    win.document.write("<style>");
-    win.document.write("html,body{background:#fff;color:#111;font-family:Arial,sans-serif;font-size:10pt;margin:0;padding:20px 28px}");
-    win.document.write(".top{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px}");
-    win.document.write(".empresa{font-size:18pt;font-weight:900}");
-    win.document.write(".titulo{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#444;margin-top:2px}");
-    win.document.write(".datos{font-size:8.5pt;color:#555;margin-top:5px}");
-    win.document.write(".meta{font-size:8.5pt;color:#555;text-align:right;line-height:1.7}");
-    win.document.write("table{width:100%;border-collapse:collapse;margin-bottom:14px}");
-    win.document.write("th{background:#1a1a1a;color:#fff;padding:5px 8px;font-size:7.5pt;text-transform:uppercase;letter-spacing:.8px;text-align:left}");
-    win.document.write("th.r{text-align:right}");
-    win.document.write("td{padding:5px 8px;border-bottom:1px solid #e5e5e5;font-size:9pt;color:#111}");
-    win.document.write("tr:nth-child(even) td{background:#f9f9f9}");
-    win.document.write(".n{text-align:right;font-family:monospace}.b{font-weight:700}");
-    win.document.write(".total-row{font-weight:700;background:#f5f5f5}");
-    win.document.write(".firmas{display:flex;justify-content:space-between;margin-top:50px;padding:0 10px}");
-    win.document.write(".firma{width:200px;text-align:center}");
-    win.document.write(".firma div{border-top:1px solid #333;padding-top:7px;font-size:9pt;color:#444}");
-    win.document.write("footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;justify-content:space-between;font-size:8pt;color:#888}");
-    win.document.write("</style></head><body>");
-    win.document.write("<div class=\"top\"><div>");
+    let _html = '';
+    _html += "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Cert. Egresos</title>";
+    _html += "<style>";
+    _html += "html,body{background:#fff;color:#111;font-family:Arial,sans-serif;font-size:10pt;margin:0;padding:20px 28px}";
+    _html += ".top{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px}";
+    _html += ".empresa{font-size:18pt;font-weight:900}";
+    _html += ".titulo{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#444;margin-top:2px}";
+    _html += ".datos{font-size:8.5pt;color:#555;margin-top:5px}";
+    _html += ".meta{font-size:8.5pt;color:#555;text-align:right;line-height:1.7}";
+    _html += "table{width:100%;border-collapse:collapse;margin-bottom:14px}";
+    _html += "th{background:#1a1a1a;color:#fff;padding:5px 8px;font-size:7.5pt;text-transform:uppercase;letter-spacing:.8px;text-align:left}";
+    _html += "th.r{text-align:right}";
+    _html += "td{padding:5px 8px;border-bottom:1px solid #e5e5e5;font-size:9pt;color:#111}";
+    _html += "tr:nth-child(even) td{background:#f9f9f9}";
+    _html += ".n{text-align:right;font-family:monospace}.b{font-weight:700}";
+    _html += ".total-row{font-weight:700;background:#f5f5f5}";
+    _html += ".firmas{display:flex;justify-content:space-between;margin-top:50px;padding:0 10px}";
+    _html += ".firma{width:200px;text-align:center}";
+    _html += ".firma div{border-top:1px solid #333;padding-top:7px;font-size:9pt;color:#444}";
+    _html += "footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;justify-content:space-between;font-size:8pt;color:#888}";
+    _html += "</style></head><body>";
+    _html += "<div class=\"top\"><div>";
     const __tenantNombre = (()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');if(s?.tenant?.nombre)return s.tenant.nombre;const t=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(t?.nombre)return t.nombre;}catch(e){}return 'FAIM OBRAS';})();
-    win.document.write("<div class=\"empresa\">" + __tenantNombre + "</div>");
-    win.document.write("<div class=\"titulo\">Certificado de Egresos / Materiales " + certNumLabel + "</div>");
-    win.document.write("<div class=\"datos\"><strong>Obra:</strong> " + obraNombre + "</div>");
-    win.document.write("<div class=\"datos\"><strong>Fecha:</strong> " + now + "</div>");
-    win.document.write("</div><div class=\"meta\"><div>" + localidadYFecha(now) + "</div></div></div>");
-    win.document.write("<table><thead><tr><th>Concepto</th><th class=\"r\">Monto</th><th>Semana</th><th>Estado</th></tr></thead><tbody>");
-    win.document.write(filas);
-    win.document.write("<tr class=\"total-row\"><td>Total</td><td class=\"n\">$" + totalFmt + "</td><td></td><td></td></tr>");
-    win.document.write("</tbody></table>");
-    win.document.write("<div class=\"firmas\"><div class=\"firma\"><div>Firma dirección de obra</div></div><div class=\"firma\"><div>Firma comitente</div></div></div>");
-    win.document.write("<footer><span>" + __tenantNombre2 + " — Cert. Egresos " + certNumLabel + " — " + now + "</span><span>" + obraNombre + "</span></footer>");
-    win.document.write("</body></html>");
-    win.document.close();
-    setTimeout(function(){ win.document.body.style.background="white"; win.print(); }, 600);
+    _html += "<div class=\"empresa\">" + __tenantNombre + "</div>";
+    _html += "<div class=\"titulo\">Certificado de Egresos / Materiales " + certNumLabel + "</div>";
+    _html += "<div class=\"datos\"><strong>Obra:</strong> " + obraNombre + "</div>";
+    _html += "<div class=\"datos\"><strong>Fecha:</strong> " + now + "</div>";
+    _html += "</div><div class=\"meta\"><div>" + localidadYFecha(now) + "</div></div></div>";
+    _html += "<table><thead><tr><th>Concepto</th><th class=\"r\">Monto</th><th>Semana</th><th>Estado</th></tr></thead><tbody>";
+    _html += filas;
+    _html += "<tr class=\"total-row\"><td>Total</td><td class=\"n\">$" + totalFmt + "</td><td></td><td></td></tr>";
+    _html += "</tbody></table>";
+    _html += "<div class=\"firmas\"><div class=\"firma\"><div>Firma dirección de obra</div></div><div class=\"firma\"><div>Firma comitente</div></div></div>";
+    _html += "<footer><span>" + __tenantNombre2 + " — Cert. Egresos " + certNumLabel + " — " + now + "</span><span>" + obraNombre + "</span></footer>";
+    _html += "</body></html>";
+    imprimirHTML(_html, { titulo: 'Certificado de egresos' });
+
   };
 
   if (loading) return <div className="loading">Cargando...</div>;

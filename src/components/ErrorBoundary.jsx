@@ -33,7 +33,7 @@ export default class ErrorBoundary extends React.Component {
 
     const C = { bg: "#f8f9fa", surface: "#ffffff", border: "#e0e0e8", text: "#1a1a2e", muted: "#6b7280", accent: "#059669", red: "#ef4444" };
     return (
-      <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ minHeight: "100dvh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "28px 30px", maxWidth: 620, width: "100%" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
             <AlertTriangle size={22} strokeWidth={1.5} color={C.red} />

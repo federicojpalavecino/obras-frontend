@@ -53,7 +53,7 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
     setLoading(false);
   };
   return (
-    <div style={{ background: C.bg, height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Syne', sans-serif" }}>
+    <div style={{ background: C.bg, height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Syne', sans-serif" }}>
       <div style={{ width: "100%", maxWidth: 440, background: C.surface, border: "1px solid " + C.border, borderRadius: 16, padding: 40, boxShadow: "0 4px 24px rgba(0,0,0,0.06)", textAlign: "center" }}>
         <Lock size={36} strokeWidth={1} color={C.accent} style={{ marginBottom: 16 }} />
         <div style={{ fontSize: 24, fontWeight: 800, color: C.accent, letterSpacing: "-1px", marginBottom: 4 }}>FAIM OBRAS</div>
@@ -237,7 +237,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   const currentModule = modules.find(m => location.pathname.startsWith(m.path));
 
   return (
-    <div style={{minHeight:"100vh", background:C.bg, color:C.text, fontFamily:"'Syne', sans-serif"}}>
+    <div style={{minHeight:"100dvh", background:C.bg, color:C.text, fontFamily:"'Syne', sans-serif"}}>
       {!isCotizador && (
         <div className="header" style={{borderBottom:"1px solid " + C.border, background:C.surface, padding:"0 clamp(16px,4vw,32px)", height:52, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
           <div onClick={()=>navigate("/")} style={{cursor:"pointer", display:"flex", alignItems:"center", gap:8}}>
@@ -564,7 +564,7 @@ export default function App() {
   }
 
   if (loading) return (
-    <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#059669",fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800}}>
+    <div style={{background:"#f8f9fa",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",color:"#059669",fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800}}>
       FAIM OBRAS
     </div>
   );
@@ -573,7 +573,7 @@ export default function App() {
   // Show landing if accessing root without being logged in
   if (!user && window.location.pathname === '/landing') return <BrowserRouter><Landing /></BrowserRouter>;
   if (!user) return (
-    <div style={{background:"#f8f9fa",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Syne',sans-serif"}}>
+    <div style={{background:"#f8f9fa",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Syne',sans-serif"}}>
       <div style={{width:"100%",maxWidth:360}}>
         <div style={{fontSize:42,fontWeight:800,color:"#059669",letterSpacing:"-1px",marginBottom:4}}>FAIM OBRAS</div>
         <div style={{fontSize:12,color:"#6b7280",marginBottom:32,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"2px"}}>GESTIÓN PARA ESTUDIOS Y EMPRESAS</div>
