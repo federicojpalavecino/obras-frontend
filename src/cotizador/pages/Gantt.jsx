@@ -27,6 +27,7 @@ const diasEntre = (a, b) => {
   return Math.round((db - da) / (1000 * 60 * 60 * 24));
 };
 
+const fmt = n => '$ ' + Math.round(n || 0).toLocaleString('es-AR');
 const fmtFecha = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '—';
 const fmtFechaLarga = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
@@ -957,7 +958,19 @@ export default function Gantt() {
           </div>
 
           {/* Grid */}
-          <div ref={scrollRef} style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+          {plata && plata.eventos.length > 0 && (
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', padding: '6px 10px',
+                          fontSize: 10.5, borderBottom: '1px solid var(--border)',
+                          background: 'var(--surface2)', color: 'var(--muted)' }}>
+              <span>Las marcas verticales son plata, en su fecha:</span>
+              <span style={{ color: '#10b981' }}>▎cobrado {fmt(plata.totales.cobrado)}</span>
+              <span style={{ color: '#10b981', opacity: .75 }}>┊ por cobrar {fmt(plata.totales.por_cobrar)}</span>
+              <span style={{ color: '#f87171' }}>▎pagado {fmt(plata.totales.pagado)}</span>
+              <span style={{ color: '#f87171', opacity: .75 }}>┊ por pagar {fmt(plata.totales.por_pagar)}</span>
+            </div>
+          )}
+          <div ref={scrollRef} style={{ overflowX: 'auto', overflowY: 'hidden' }}>
             <div style={{ width: totalDias * PX_DIA, position: 'relative' }}>
               {/* Header fechas */}
               <div style={{ height: 50, borderBottom: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex', alignItems: 'flex-end', position: 'sticky', top: 0, zIndex: 10 }}>
@@ -975,49 +988,43 @@ export default function Gantt() {
                 })}
               </div>
 
-              {/* ── LA PLATA, sobre la misma linea de tiempo ── */}
+
+
+              {/* ── LA PLATA, ubicada en su fecha sobre la planificacion ──
+                  No va en una banda aparte: son marcas verticales que cruzan las
+                  barras, para ver contra que tarea cae cada cobro y cada pago. */}
               {plata && plata.eventos.length > 0 && (() => {
-                // Se agrupa por dia: en una obra caen varios movimientos el mismo dia
-                // y superpuestos no se leen.
                 const porDia = {};
                 plata.eventos.forEach(e => { (porDia[e.fecha] = porDia[e.fecha] || []).push(e); });
                 return (
-                  <div style={{ height: 46, position: 'relative', borderBottom: '1px solid var(--border)',
-                                background: 'var(--surface2)' }}>
-                    <div style={{ position: 'absolute', left: 6, top: 3, zIndex: 2, pointerEvents: 'none',
-                                  display: 'flex', alignItems: 'center', gap: 10, fontSize: 9,
-                                  background: 'var(--surface2)', paddingRight: 8 }}>
-                      <span style={{ letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--muted)' }}>Plata</span>
-                      <span style={{ color: '#10b981' }}>■ cobrado ${Math.round(plata.totales.cobrado).toLocaleString('es-AR')}</span>
-                      <span style={{ color: '#10b981' }}>□ por cobrar ${Math.round(plata.totales.por_cobrar).toLocaleString('es-AR')}</span>
-                      <span style={{ color: '#f87171' }}>■ pagado ${Math.round(plata.totales.pagado).toLocaleString('es-AR')}</span>
-                      <span style={{ color: '#f87171' }}>□ por pagar ${Math.round(plata.totales.por_pagar).toLocaleString('es-AR')}</span>
-                    </div>
+                  <div style={{ position: 'absolute', top: 50, bottom: 0, left: 0, right: 0,
+                                pointerEvents: 'none', zIndex: 4 }}>
                     {Object.entries(porDia).map(([fecha, evs]) => {
                       const off = diasEntre(fechaMin, fecha);
                       if (off < 0 || off >= totalDias) return null;
-                      const cobros = evs.filter(e => e.tipo === 'cobro');
-                      const pagos  = evs.filter(e => e.tipo === 'pago');
-                      const suma   = a => a.reduce((x, e) => x + e.monto, 0);
-                      const previsto = evs.some(e => e.estado === 'previsto');
+                      const entra = evs.filter(e => e.tipo === 'cobro').reduce((a, e) => a + e.monto, 0);
+                      const sale  = evs.filter(e => e.tipo === 'pago').reduce((a, e) => a + e.monto, 0);
+                      const soloPrevisto = evs.every(e => e.estado === 'previsto');
+                      const color = entra >= sale ? '#10b981' : '#f87171';
                       const detalle = evs.map(e =>
                         `${e.tipo === 'cobro' ? '+' : '−'} $${Math.round(e.monto).toLocaleString('es-AR')}  ${e.concepto}` +
                         (e.estado === 'previsto' ? '  (previsto)' : '')).join('\n');
+                      const neto = entra - sale;
                       return (
                         <div key={fecha} title={`${fecha}\n${detalle}`}
-                          style={{ position: 'absolute', left: off * PX_DIA, top: 0, width: PX_DIA,
-                                   height: '100%', display: 'flex', flexDirection: 'column',
-                                   alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'help' }}>
-                          {cobros.length > 0 && (
-                            <div style={{ width: 12, height: 12, borderRadius: 3, flexShrink: 0,
-                                          background: previsto ? 'transparent' : '#10b981',
-                                          border: '2px solid #10b981' }} />
-                          )}
-                          {pagos.length > 0 && (
-                            <div style={{ width: 12, height: 12, borderRadius: 3, flexShrink: 0,
-                                          background: previsto ? 'transparent' : '#f87171',
-                                          border: '2px solid #f87171' }} />
-                          )}
+                          style={{ position: 'absolute', left: off * PX_DIA + PX_DIA / 2 - 1, top: 0, bottom: 0,
+                                   width: 2, background: soloPrevisto
+                                     ? `repeating-linear-gradient(180deg, ${color} 0 5px, transparent 5px 10px)`
+                                     : color,
+                                   opacity: soloPrevisto ? .65 : .85, pointerEvents: 'auto', cursor: 'help' }}>
+                          <div style={{ position: 'absolute', top: 2, left: 4, whiteSpace: 'nowrap',
+                                        fontSize: 9.5, fontWeight: 700, color,
+                                        fontFamily: "'IBM Plex Mono',monospace",
+                                        background: 'var(--surface)', padding: '1px 5px', borderRadius: 4,
+                                        border: `1px solid ${color}`, opacity: soloPrevisto ? .8 : 1 }}>
+                            {neto >= 0 ? '+' : '−'}{Math.abs(Math.round(neto)).toLocaleString('es-AR')}
+                            {soloPrevisto ? '?' : ''}
+                          </div>
                         </div>
                       );
                     })}
@@ -1171,6 +1178,7 @@ export default function Gantt() {
                 <div style={{ position: 'absolute', left: diasEntre(fechaMin, hoy) * PX_DIA + PX_DIA / 2, top: 0, bottom: 0, width: 2, background: '#6ee7b7', opacity: .5, pointerEvents: 'none', zIndex: 5 }} />
               )}
             </div>
+          </div>
           </div>
         </div>
       )}

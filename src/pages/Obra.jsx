@@ -92,7 +92,7 @@ export default function Obra() {
   const [showCompra, setShowCompra] = useState(false);
   // `lineas_ids`: para que items de la obra es esta compra. Sin esto el Gantt no
   // puede decir si una tarea ya tiene sus materiales comprados.
-  const [compraForm, setCompraForm] = useState({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "", destino: "interna", lineas_ids: [] });
+  const [compraForm, setCompraForm] = useState({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "", destino: "interna", lineas_ids: [], items: [] });
   const [showPagoSub, setShowPagoSub] = useState(null); // subcontrato id
   const [pagoSubForm, setPagoSubForm] = useState({ monto: "", fecha: today(), concepto: "Pago parcial", forma_pago: "transferencia", pct_avance_al_pagar: "" });
   const [showContrato, setShowContrato] = useState(false);
@@ -393,11 +393,15 @@ export default function Obra() {
     if (!compraForm.proveedor_nombre) return;
     const r = await api.post(`/presupuestos/${id}/compras`, {
       ...compraForm,
-      monto_total: parseFloat(compraForm.monto_total) || 0,
+      // Si se cargaron materiales, el total sale de ellos: escribirlo aparte
+      // invita a que los dos numeros no coincidan.
+      monto_total: compraForm.items.length
+        ? compraForm.items.reduce((a, it) => a + (parseFloat(it.cantidad) || 0) * (parseFloat(it.precio_unitario) || 0), 0)
+        : (parseFloat(compraForm.monto_total) || 0),
       // Solo la compra hecha mueve plata: una solicitud todavia no se pago.
       monto_pagado: compraForm.destino === "compra" ? (parseFloat(compraForm.monto_total) || 0) : 0,
     });
-    setShowCompra(false); setCompraForm({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "", destino: "interna", lineas_ids: [] });
+    setShowCompra(false); setCompraForm({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "", destino: "interna", lineas_ids: [], items: [] });
     showToast(r.data?.en_control_financiero ? "✓ Compra registrada · ya está en el control financiero" : "✓ Registrado");
     cargar();
   };
@@ -1694,9 +1698,46 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 {["pedido", "entregado_parcial", "entregado", "pagado"].map(o => <option key={o}>{o}</option>)}
               </select>
             </div>
+            <div style={{ margin: "14px 0 6px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <label style={{ fontSize: 11, color: C.muted }}>
+                  Materiales <span style={{ color: C.muted }}>(opcional — si los cargás, el total sale de acá)</span>
+                </label>
+                <button type="button" onClick={() => setCompraForm(p => ({ ...p,
+                    items: [...p.items, { material_nombre: "", unidad: "u", cantidad: "", precio_unitario: "", linea_id: "" }] }))}
+                  style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.accent}`, background: "transparent",
+                           color: C.accent, fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Material</button>
+              </div>
+              {compraForm.items.map((it, i) => (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 62px 88px 1fr 26px", gap: 5, marginBottom: 5, alignItems: "center" }}>
+                  <input style={{ ...inp, fontSize: 12.5 }} placeholder="Material" value={it.material_nombre}
+                    onChange={e => setCompraForm(p => { const a = [...p.items]; a[i] = { ...a[i], material_nombre: e.target.value }; return { ...p, items: a }; })} />
+                  <input style={{ ...inp, fontSize: 12.5, textAlign: "center" }} type="number" placeholder="Cant." value={it.cantidad}
+                    onChange={e => setCompraForm(p => { const a = [...p.items]; a[i] = { ...a[i], cantidad: e.target.value }; return { ...p, items: a }; })} />
+                  <input style={{ ...inp, fontSize: 12.5, textAlign: "right" }} type="number" placeholder="$ unit." value={it.precio_unitario}
+                    onChange={e => setCompraForm(p => { const a = [...p.items]; a[i] = { ...a[i], precio_unitario: e.target.value }; return { ...p, items: a }; })} />
+                  {/* Acá está la precisión: cada material dice a qué parte de la
+                      obra va, en vez de repartir el total en partes iguales. */}
+                  <select style={{ ...inp, fontSize: 12 }} value={it.linea_id}
+                    onChange={e => setCompraForm(p => { const a = [...p.items]; a[i] = { ...a[i], linea_id: e.target.value }; return { ...p, items: a }; })}>
+                    <option value="">— ¿para qué ítem? —</option>
+                    {lineasObra.map(l => <option key={l.id} value={l.id}>{l.nombre_override || l.nombre_libre || l.nombre}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setCompraForm(p => ({ ...p, items: p.items.filter((_, j) => j !== i) }))}
+                    style={{ padding: "4px 0", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6,
+                             color: C.red, cursor: "pointer", fontSize: 14, lineHeight: 1 }}>×</button>
+                </div>
+              ))}
+              {compraForm.items.length > 0 && (
+                <div style={{ fontSize: 12.5, textAlign: "right", marginTop: 6, fontFamily: "'IBM Plex Mono',monospace" }}>
+                  Total: <b style={{ color: C.accent }}>{fmt(compraForm.items.reduce((a, it) => a + (parseFloat(it.cantidad) || 0) * (parseFloat(it.precio_unitario) || 0), 0))}</b>
+                </div>
+              )}
+            </div>
+
             <div style={{ margin: "14px 0 16px" }}>
               <label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 6 }}>
-                ¿Para qué ítems de la obra? <span style={{ color: C.muted }}>(opcional)</span>
+                ¿Para qué ítems de la obra? <span style={{ color: C.muted }}>(lo que no tenga material asignado arriba)</span>
               </label>
               {lineasObra.length === 0 ? (
                 <div style={{ fontSize: 12, color: C.muted }}>Este presupuesto todavía no tiene ítems cargados.</div>
