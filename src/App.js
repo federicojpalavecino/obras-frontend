@@ -5,6 +5,7 @@ import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
 import Panol from './pages/Panol';
+import Personal from './pages/Personal';
 import Planner from "./pages/Planner";
 import Fiscal from "./pages/Fiscal";
 import Gantt from "./cotizador/pages/Gantt";
@@ -230,6 +231,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
     { id:"finanzas",  path:"/finanzas",  Icon:TrendingUp,    label:"Control Financiero",    desc:"Ingresos, egresos y distribución semanal",               color:C.accent },
     { id:"planner",   path:"/planner",   Icon:Calendar,      label:"Planner",               desc:"Tablero de tareas y calendario",                         color:C.warn },
     { id:"panol",     path:"/panol",     Icon:Package,       label:"Pañol y depósito",      desc:"Herramientas, materiales y en qué obra está cada cosa",  color:C.warn },
+    { id:"personal",  path:"/personal",  Icon:Users,         label:"Personal",              desc:"Quién vino, cuántos días y cuánto hay que pagarle",      color:C.accent },
     { id:"clientes",  path:"/clientes",  Icon:Users,         label:"Clientes y Proyectos",  desc:"Gestión de clientes, obras y contactos",                 color:C.green },
     { id:"accesos",   path:"/accesos-clientes", Icon:Lock,   label:"Accesos de clientes",   desc:"Gestionar portal de clientes",                           color:C.accent2 },
     { id:"config",    path:"/config",    Icon:Settings,      label:"Configuración",         desc:"Logo, nombre y datos del estudio",                       color:C.muted, soloAdmin:true },
@@ -294,6 +296,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
         <Route path="/soporte" element={<PaginaSoporte />}/>
         <Route path="/finanzas/*" element={<ControlFinanciero user={user} />}/>
         <Route path="/panol" element={<Panol />}/>
+        <Route path="/personal" element={<Personal />}/>
         <Route path="/cotizador" element={<Menu />}/>
         <Route path="/cotizador/presupuesto/:id" element={<Presupuesto />}/>
         <Route path="/cotizador/materiales" element={<Materiales />}/>
