@@ -72,6 +72,32 @@ export default function Gantt() {
     await cargar();
   };
 
+  // Suspender una tarea no es lo mismo que un dia de lluvia: la lluvia para la
+  // obra entera, esto para una sola. Al retomarla, los dias que estuvo parada se
+  // suman a su duracion y todo lo que dependia de ella se corre solo.
+  const [suspendiendo, setSuspendiendo] = useState(false);
+  const alternarSuspension = async (tarea) => {
+    const parar = !tarea.suspendida;
+    let motivo = "";
+    if (parar) {
+      motivo = window.prompt("¿Por qué se suspende? (falta material, decisión del cliente, se cayó el contratista…)") || "";
+    } else if (!window.confirm("Retomar la tarea? Los días que estuvo parada se suman a su duración.")) {
+      return;
+    }
+    setSuspendiendo(true);
+    try {
+      const r = await api.patch(`/presupuestos/${id}/gantt/tareas/${tarea.id}/suspender`,
+        { suspender: parar, motivo });
+      const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
+      setTareas(t.data);
+      setCargarAvanceEn(null);
+      if (!parar && r.data?.dias_parada) {
+        alert(`Retomada. Estuvo parada ${r.data.dias_parada} día${r.data.dias_parada !== 1 ? "s" : ""}, que se sumaron al plazo.`);
+      }
+    } catch (e) { alert(e.response?.data?.detail || "No se pudo"); }
+    setSuspendiendo(false);
+  };
+
   const guardarAvanceLinea = async () => {
     if (!cargarAvanceEn?.linea_id) return;
     try {
@@ -1109,6 +1135,14 @@ export default function Gantt() {
               {cargarAvanceEn.personas ? ` · ${cargarAvanceEn.personas} personas` : ''}
             </div>
 
+            {cargarAvanceEn.suspendida && (
+              <div style={{ marginTop: 12, padding: '10px 13px', borderRadius: 9, fontSize: 12.5,
+                            background: 'rgba(217,119,6,.12)', border: '1px solid rgba(217,119,6,.4)', color: '#b45309' }}>
+                <b>Suspendida</b> desde el {fmtFechaLarga(cargarAvanceEn.suspendida_desde)}
+                {cargarAvanceEn.motivo_suspension ? ` · ${cargarAvanceEn.motivo_suspension}` : ''}
+              </div>
+            )}
+
             {(() => {
               const e = estadoLineas[cargarAvanceEn.linea_id];
               if (!e) return null;
@@ -1136,6 +1170,15 @@ export default function Gantt() {
                 </div>
               );
             })()}
+
+            <button onClick={() => alternarSuspension(cargarAvanceEn)} disabled={suspendiendo}
+              style={{ marginTop: 14, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
+                       fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+                       border: `1px solid ${cargarAvanceEn.suspendida ? 'var(--accent)' : '#d97706'}`,
+                       background: 'transparent',
+                       color: cargarAvanceEn.suspendida ? 'var(--accent)' : '#d97706' }}>
+              {suspendiendo ? '…' : cargarAvanceEn.suspendida ? 'Retomar la tarea' : 'Suspender la tarea'}
+            </button>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>

@@ -90,7 +90,9 @@ export default function Obra() {
   // se sabe quien ejecuta cada parte de la obra, ni el Gantt lo puede mostrar.
   const [subForm, setSubForm] = useState({ nombre_contratista: "", cuit_contratista: "", tipo: "empresa", descripcion_trabajo: "", monto_total: "", fecha_inicio: today(), tipo_pago: "por_avance", estado: "activo", notas: "", lineas_ids: [] });
   const [showCompra, setShowCompra] = useState(false);
-  const [compraForm, setCompraForm] = useState({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "", destino: "interna" });
+  // `lineas_ids`: para que items de la obra es esta compra. Sin esto el Gantt no
+  // puede decir si una tarea ya tiene sus materiales comprados.
+  const [compraForm, setCompraForm] = useState({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "", destino: "interna", lineas_ids: [] });
   const [showPagoSub, setShowPagoSub] = useState(null); // subcontrato id
   const [pagoSubForm, setPagoSubForm] = useState({ monto: "", fecha: today(), concepto: "Pago parcial", forma_pago: "transferencia", pct_avance_al_pagar: "" });
   const [showContrato, setShowContrato] = useState(false);
@@ -361,7 +363,7 @@ export default function Obra() {
       // Solo la compra hecha mueve plata: una solicitud todavia no se pago.
       monto_pagado: compraForm.destino === "compra" ? (parseFloat(compraForm.monto_total) || 0) : 0,
     });
-    setShowCompra(false); setCompraForm({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "", destino: "interna" });
+    setShowCompra(false); setCompraForm({ proveedor_nombre: "", fecha_pedido: today(), estado: "pedido", monto_total: "", nota: "", destino: "interna", lineas_ids: [] });
     showToast(r.data?.en_control_financiero ? "✓ Compra registrada · ya está en el control financiero" : "✓ Registrado");
     cargar();
   };
@@ -1618,6 +1620,32 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               <select style={inp} value={compraForm.estado} onChange={e => setCompraForm(p => ({ ...p, estado: e.target.value }))}>
                 {["pedido", "entregado_parcial", "entregado", "pagado"].map(o => <option key={o}>{o}</option>)}
               </select>
+            </div>
+            <div style={{ margin: "14px 0 16px" }}>
+              <label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 6 }}>
+                ¿Para qué ítems de la obra? <span style={{ color: C.muted }}>(opcional)</span>
+              </label>
+              {lineasObra.length === 0 ? (
+                <div style={{ fontSize: 12, color: C.muted }}>Este presupuesto todavía no tiene ítems cargados.</div>
+              ) : (
+                <div style={{ maxHeight: 150, overflowY: "auto", border: `1px solid ${C.border}`, borderRadius: 8 }}>
+                  {lineasObra.map(l => {
+                    const elegida = (compraForm.lineas_ids || []).includes(l.id);
+                    return (
+                      <div key={l.id} onClick={() => setCompraForm(p => ({ ...p,
+                          lineas_ids: elegida ? p.lineas_ids.filter(x => x !== l.id) : [...(p.lineas_ids || []), l.id] }))}
+                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 11px", cursor: "pointer",
+                                 borderBottom: `1px solid ${C.border}`, background: elegida ? "#f0fdf4" : "transparent" }}>
+                        <input type="checkbox" readOnly checked={elegida} style={{ pointerEvents: "none", flexShrink: 0 }} />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.nombre_override || l.nombre_libre || l.nombre}</div>
+                          <div style={{ fontSize: 10.5, color: C.muted }}>{l.rubro}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <button onClick={crearCompra} style={{ ...btn(C.accent), width: "100%", padding: 12 }}>Registrar compra</button>
           </div>
