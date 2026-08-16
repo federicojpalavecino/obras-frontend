@@ -90,12 +90,18 @@ function costoHerramienta(row) {
   return (parseFloat(row.costoTotal) || 0) * cant;
 }
 
+// Una fila PENDIENTE es plata que todavia no se movio: una factura que no se
+// pago, un cobro que no entro, o un gasto que puso otro de su bolsillo. El
+// control financiero es caja, asi que no suma hasta que la plata sale o entra.
+// Mientras tanto vive en la prevision, como deuda o como cobro por venir.
+const seMovio = (row) => String(row?.estado || "").toUpperCase() !== "PENDIENTE";
+
 function calcPeriod(week, cfg) {
-  const totalIng = (week.ingresos || []).reduce((a, b) => a + (parseFloat(b.monto) || 0), 0);
+  const totalIng = (week.ingresos || []).filter(seMovio).reduce((a, b) => a + (parseFloat(b.monto) || 0), 0);
   // Las herramientas son un egreso mas: alquilar un martillo neumatico sale
   // plata igual que comprar cemento, y hasta ahora no entraba en el resultado.
   const totalHerram = (week.herramientas || []).reduce((a, b) => a + costoHerramienta(b), 0);
-  const totalEg = (week.egresos || []).reduce((a, b) => a + (parseFloat(b.monto) || 0), 0) + totalHerram;
+  const totalEg = (week.egresos || []).filter(seMovio).reduce((a, b) => a + (parseFloat(b.monto) || 0), 0) + totalHerram;
   const totalPersonal = (week.personal || []).reduce((a, b) => a + (parseFloat(b.total) || 0), 0);
   const resultado = totalIng - totalEg - totalPersonal;
   // El `h &&` no sobra: una version anterior de la edicion de honorarios podia
@@ -750,10 +756,18 @@ export default function ControlFinanciero({ user }) {
             {/* Ingresos */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
               <SectionHeader label="Ingresos" total={calc.totalIng} onAdd={addIngreso} />
+              {(week.ingresos.some(r => !seMovio(r)) || week.egresos.some(r => !seMovio(r))) && (
+                <div style={{ fontSize: 11.5, color: C.warn, marginBottom: 9, lineHeight: 1.45 }}>
+                  Las filas en amarillo están pendientes: todavía no suman al resultado.
+                  Las vas a encontrar en <b>Previsión</b>, con quién te debe o a quién le debés.
+                </div>
+              )}
               {week.ingresos.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin ingresos — tocá Agregar</div>}
               {week.ingresos.map((row, i) => (
-                <div key={i} style={{ ...rowGrid, ...(row.origen === "obra" ? { opacity: .82 } : {}) }}
-                  title={row.origen === "obra" ? "Viene de la obra: se edita desde ahí" : undefined}>
+                <div key={i} style={{ ...rowGrid, ...(row.origen === "obra" ? { opacity: .82 } : {}),
+                                      ...(!seMovio(row) ? { background: "#fffbeb", borderRadius: 8 } : {}) }}
+                  title={row.origen === "obra" ? "Viene de la obra: se edita desde ahí"
+                         : !seMovio(row) ? "Pendiente: todavía no suma. Aparece en Previsión." : undefined}>
                   <input style={{ ...inp, ...conceptoSpan, ...(row.origen === "obra" ? { background: "var(--surface2)" } : {}) }}
                     placeholder="Concepto" value={row.concepto || ""} readOnly={row.origen === "obra"}
                     onChange={e => updIngreso(i, "concepto", e.target.value)} />
@@ -775,8 +789,10 @@ export default function ControlFinanciero({ user }) {
               <SectionHeader label="Egresos" total={calc.totalEg} onAdd={addEgreso} />
               {week.egresos.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin egresos</div>}
               {week.egresos.map((row, i) => (
-                <div key={i} style={{ ...rowGrid, ...(row.origen === "obra" ? { opacity: .82 } : {}) }}
-                  title={row.origen === "obra" ? "Viene de la obra: se edita desde ahí" : undefined}>
+                <div key={i} style={{ ...rowGrid, ...(row.origen === "obra" ? { opacity: .82 } : {}),
+                                      ...(!seMovio(row) ? { background: "#fffbeb", borderRadius: 8 } : {}) }}
+                  title={row.origen === "obra" ? "Viene de la obra: se edita desde ahí"
+                         : !seMovio(row) ? "Pendiente: todavía no suma. Aparece en Previsión." : undefined}>
                   <input style={{ ...inp, ...conceptoSpan, ...(row.origen === "obra" ? { background: "var(--surface2)" } : {}) }}
                     placeholder="Concepto" value={row.concepto || ""} readOnly={row.origen === "obra"}
                     onChange={e => updEgreso(i, "concepto", e.target.value)} />
