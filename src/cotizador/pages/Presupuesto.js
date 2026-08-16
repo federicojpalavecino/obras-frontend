@@ -11,6 +11,7 @@ import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer,
 import PrintPresupuesto from './PrintPresupuesto';
 import PanelAnalisis from './PanelAnalisis';
 import PanelComputo from './PanelComputo';
+import PanelEntregables from './PanelEntregables';
 import MobileMenu from './MobileMenu';
 import { coincide } from '../buscar';
 import { parseNum } from '../num';
@@ -611,6 +612,9 @@ export default function Presupuesto() {
     cargar(true);
   };
 
+  // Un nombre con < o & rompe el HTML de la impresión si va crudo.
+  const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
   const handleImprimir = (modo) => {
     if (!data) return;
     const { totales, coeficientes, rubros } = data;
@@ -763,6 +767,18 @@ ${adicionales.length > 0 ? adicionales.map(adic => {
     <div class="blk"><div class="lbl">TOTAL GENERAL</div><div class="val precio" style="font-size:16pt">${fmt((totales?.total_precio_con_iva || 0) + totalAdicImpresion)}</div></div>
   </div>
 </div>` : ''}
+${(servicio?.total > 0) ? `
+<div style="margin-top:22px">
+  <h3 style="font-size:11pt;margin:0 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px">Qué incluye este servicio</h3>
+  ${(servicio.etapas || []).filter(e => e.entregables.length).map(e => `
+    <div style="margin-bottom:10px">
+      <div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#444">${esc(e.nombre)}</div>
+      <ul style="margin:3px 0 0 16px;padding:0;font-size:9pt;line-height:1.5">
+        ${e.entregables.map(x => `<li>${esc(x.nombre)}</li>`).join('')}
+      </ul>
+    </div>`).join('')}
+  ${(servicio.sueltos || []).length ? `<ul style="margin:3px 0 0 16px;padding:0;font-size:9pt;line-height:1.5">${servicio.sueltos.map(x => `<li>${esc(x.nombre)}</li>`).join('')}</ul>` : ''}
+</div>` : ''}
 ${firma}
 <footer><span>${_pN} — ${hoy}</span><span>${data.nombre_obra}${data.ubicacion ? ' · ' + data.ubicacion : ''}</span></footer>
 </body></html>`;
@@ -813,6 +829,13 @@ ${firma}
   // inversion: mostrarle esas pantallas es ofrecerle herramientas de una
   // obra que no esta haciendo.
   const esServicio = data?.tipo === 'servicio';
+  // Lo que se entrega va en el presupuesto que ve el cliente: es la parte que
+  // más le importa de un encargo de proyecto, más que el número.
+  const [servicio, setServicio] = useState(null);
+  useEffect(() => {
+    if (!esServicio) return;
+    api.get(`/presupuestos/${id}/servicio`).then(r => setServicio(r.data)).catch(() => {});
+  }, [esServicio, id]);
   const honorarioCalculado = (() => {
     const m = data?.monto_obra_ref || 0;
     const k = data?.valor_k_usado || arancel?.valor_k || 0;
@@ -1274,6 +1297,15 @@ ${firma}
                 {cerrado && (
                   <div style={{ margin: 10, padding: '7px 12px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--warn)', textAlign: 'center' }}>
                     <Lock size={10} strokeWidth={2} style={{ display:'inline', verticalAlign:'middle', marginRight:4 }} />Precios congelados al {new Date(data.fecha_cierre).toLocaleDateString('es-AR')}
+                  </div>
+                )}
+
+                {/* En un servicio lo que importa no es el cómputo: es qué se
+                    entrega. Va arriba de todo, porque es lo primero que se
+                    define y lo que después se certifica. */}
+                {esServicio && (
+                  <div style={{ margin: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10 }}>
+                    <PanelEntregables presupuestoId={id} cerrado={cerrado} />
                   </div>
                 )}
 

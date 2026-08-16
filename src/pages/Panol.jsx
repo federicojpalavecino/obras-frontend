@@ -89,15 +89,20 @@ export default function Panol() {
 
   const guardarMovimiento = async () => {
     try {
-      await api.post(`/stock/${mover.item.id}/movimientos`, {
+      const r = await api.post(`/stock/${mover.item.id}/movimientos`, {
         tipo: mover.tipo,
         cantidad: parseFloat(mover.cantidad) || 0,
         presupuesto_id: mover.tipo === "retiro" ? (mover.presupuesto_id || null) : null,
+        precio_unitario: mover.tipo === "ingreso" ? (parseFloat(mover.precio) || null) : null,
+        proveedor: mover.proveedor,
         fecha: mover.fecha, nota: mover.nota,
       });
       setMover(null); cargar();
-      avisar(mover.tipo === "ingreso" ? "✓ Entró al depósito"
-            : mover.tipo === "retiro" ? "✓ Salió del depósito" : "✓ Ajustado");
+      avisar(mover.tipo === "ingreso"
+        ? (r.data?.en_control_financiero
+            ? "✓ Entró al depósito · la compra ya está en el control financiero"
+            : "✓ Entró al depósito")
+        : mover.tipo === "retiro" ? "✓ Salió del depósito" : "✓ Ajustado");
     } catch (e) { avisar("⚠ " + (e.response?.data?.detail || "No se pudo guardar")); }
   };
 
@@ -355,6 +360,24 @@ export default function Panol() {
           pie={`Hoy hay ${fmtNum(mover.item.disponible)} ${mover.item.unidad} en el depósito`}>
           <Campo label="Cuánto" tipo="number" valor={mover.cantidad} autoFocus
             onChange={v => setMover(f => ({ ...f, cantidad: v }))} />
+          {mover.tipo === "ingreso" && (
+            <>
+              <div style={{ display: "flex", gap: 9 }}>
+                <div style={{ flex: 1 }}>
+                  <Campo label="Cuánto salió cada uno" tipo="number" valor={mover.precio}
+                    onChange={v => setMover(f => ({ ...f, precio: v }))} />
+                </div>
+                <div style={{ flex: 1.2 }}>
+                  <Campo label="A quién" valor={mover.proveedor} placeholder="Corralón, ferretería…"
+                    onChange={v => setMover(f => ({ ...f, proveedor: v }))} />
+                </div>
+              </div>
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: -4, marginBottom: 12, lineHeight: 1.5 }}>
+                Si ponés el precio, la compra queda registrada y entra al control financiero.
+                Si no, solo se anota que entró material.
+              </div>
+            </>
+          )}
           {mover.tipo === "retiro" && (
             <div style={{ marginBottom: 12 }}>
               <label style={lbl}>Para qué obra</label>
