@@ -4,6 +4,7 @@ import api from "../cotizador/api";
 import MenuAcciones from "../shared/MenuAcciones";
 import NumeroInput from "../cotizador/NumeroInput";
 
+import { imprimirHTML } from '../utils/imprimir';
 // ── Hook detección mobile ──────────────────────────────────────────────────────
 function useIsMobile(bp = 720) {
   const [m, setM] = useState(typeof window !== "undefined" && window.innerWidth <= bp);
@@ -235,10 +236,7 @@ ${period.herramientas?.length ? `<section>
 
 </body></html>`;
 
-  const win = window.open("", "_blank");
-  win.document.write(html);
-  win.document.close();
-  setTimeout(() => win.print(), 400);
+  imprimirHTML(html, { titulo: "Control financiero" });
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Calendar } from "lucide-react";
 import api from "../cotizador/api";
 
+import { imprimirHTML } from '../utils/imprimir';
 // ── Google Calendar ───────────────────────────────────────────────────────────
 const GCAL_CLIENT_ID = "289602384269-rc91am6518mhnec4kr6ju0i19qq18ih4.apps.googleusercontent.com";
 const GCAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
@@ -471,8 +472,7 @@ export default function Planner({ user }) {
       ${lista.map(t => `<tr><td>${t.titulo || ""}</td><td>${nombreProy(t.proyecto_id)}</td><td>${t.asignado_a || "—"}</td><td>${t.fecha_fin || "—"}</td></tr>`).join("")}
       </tbody></table>`;
     const hoy = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
-    const w = window.open("", "_blank");
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Planificación</title>
+    imprimirHTML(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Planificación</title>
       <style>
         body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;padding:26px;color:#141916}
         h1{margin:0 0 2px;font-size:19pt} .sub{color:#6b7280;font-size:9pt;margin-bottom:20px}
@@ -490,9 +490,8 @@ export default function Planner({ user }) {
       ${bloque("Pendientes", porEstado.pendiente)}
       ${bloque("Completadas", porEstado.completado)}
       ${sinPlanificar.length ? `<div class="pend"><b>Sin planificar (${sinPlanificar.length}):</b> ${sinPlanificar.map(p => p.nombre_obra || p.nombre).join(" · ")}</div>` : ""}
-      </body></html>`);
-    w.document.close();
-    setTimeout(() => w.print(), 400);
+      </body></html>`, { titulo: 'Planificación' });
+
   };
 
   return (

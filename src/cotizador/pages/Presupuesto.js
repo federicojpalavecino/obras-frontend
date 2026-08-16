@@ -7,7 +7,7 @@ import {
   getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea
 } from '../api';
 import api from '../api';
-import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings } from 'lucide-react';
+import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye } from 'lucide-react';
 import PrintPresupuesto from './PrintPresupuesto';
 import PanelAnalisis from './PanelAnalisis';
 import PanelComputo from './PanelComputo';
@@ -19,6 +19,7 @@ import BarraDeshacer from '../BarraDeshacer';
 import { registrar, limpiar, deshacerUltima, useAtajoDeshacer } from '../deshacer';
 import '../print.css';
 
+import { imprimirHTML } from '../../utils/imprimir';
 const fmt = (n) => {
   if (!n && n !== 0) return '—';
   if (n === 0) return '$ 0';
@@ -33,7 +34,12 @@ export default function Presupuesto() {
   const [items, setItems] = useState([]);
   const [catSeleccionada, setCatSeleccionada] = useState(null);
   const [busqueda, setBusqueda] = useState('');
-  const [vista, setVista] = useState('ambos');
+  // En una pantalla de celular las tres columnas de ejecución no entran: se
+  // arranca por el precio, que es lo que se mira en obra, y el resto queda en
+  // el menú de los tres puntos.
+  const [vista, setVista] = useState(
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches
+      ? 'comercial' : 'ambos');
   const [loading, setLoading] = useState(true);
   const [modalLibre, setModalLibre] = useState(false);
   const [itemLibre, setItemLibre] = useState({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1 });
@@ -452,8 +458,6 @@ export default function Presupuesto() {
       alert('No hay cómputos cargados en ningún ítem de este presupuesto.');
       return;
     }
-
-    const win = window.open('', '_blank');
     const unidLabel = (l) => l.unidad_item || l.unidad_libre || 'u';
 
     // parseNum, no parseFloat: los valores se cargan con coma decimal
@@ -543,8 +547,6 @@ export default function Presupuesto() {
       + '</body></html>';
 
     win.document.write(html);
-    win.document.close();
-    win.print();
   };
 
     const handleCantidad = async (linea_id, cant, esDeshacer = false) => {
@@ -765,10 +767,7 @@ ${firma}
 <footer><span>${_pN} — ${hoy}</span><span>${data.nombre_obra}${data.ubicacion ? ' · ' + data.ubicacion : ''}</span></footer>
 </body></html>`;
 
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, '_blank');
-    setTimeout(() => { win.print(); URL.revokeObjectURL(url); }, 800);
+    imprimirHTML(html, { titulo: data.nombre_obra || 'Presupuesto', esperar: 600 });
   };
   const toggleLinea = (linea) => { setLineaSeleccionada(lineaSeleccionada?.id === linea.id ? null : linea); };
 
@@ -901,6 +900,11 @@ ${firma}
           {/* Mobile action buttons */}
           <div className="header-actions-mobile" style={{ gap: 6 }}>
             <MobileMenu actions={[
+              { label: `Ver: ${vista === 'comercial' ? 'Precio' : vista === 'ejec' ? 'Ejecución' : 'Ejec + Precio'}`,
+                icon: <Eye size={18} strokeWidth={1.5} />,
+                onClick: () => setVista(v => v === 'comercial' ? 'ejec' : v === 'ejec' ? 'ambos' : 'comercial') },
+              { label: esServicio ? 'Honorarios' : 'Coeficientes', icon: <Settings size={18} strokeWidth={1.5} />,
+                onClick: () => { setSidebarOpen(true); setCoefsOpen(true); } },
               { label: 'Imprimir — Cliente', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('comercial') },
               { label: 'Imprimir — Interno', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('interno') },
               ...(cerrado ? [
@@ -1228,7 +1232,7 @@ ${firma}
           <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div className="toolbar-presupuesto" style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+                <div className="solo-escritorio" style={{ display: 'flex', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
                   {[['ambos', 'Ejec + Precio'], ['ejec', 'Ejecución'], ['comercial', 'Precio']].map(([v, l]) => (
                     <button key={v} onClick={() => setVista(v)}
                       style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'var(--sans)',
@@ -1245,12 +1249,6 @@ ${firma}
                     <Plus size={13} /> Agregar ítem
                   </button>
                 )}
-                {/* Mobile: botón dedicado de coeficientes — abre el drawer con la sección expandida */}
-                <button className="btn btn-secondary btn-sm sidebar-toggle-btn"
-                  style={{ display: 'none', fontSize: 11 }}
-                  onClick={() => { setSidebarOpen(true); setCoefsOpen(true); }}>
-                  <Settings size={12} strokeWidth={1.5} /> Coeficientes
-                </button>
                 {lineaSeleccionada && (
                   <span style={{ fontSize: 11, color: 'var(--accent2)', fontFamily: 'var(--mono)', display:'flex', alignItems:'center', gap:4 }}><Settings size={11} strokeWidth={1.5} /> {lineaSeleccionada.nombre_item}</span>
                 )}
@@ -1742,9 +1740,7 @@ ${firma}
                       const filas = (r.lineas||[]).map(l => `<tr><td>${l.nombre_override||l.nombre_item||l.nombre_libre||''}</td><td style="text-align:center">${l.unidad_item||l.unidad_libre||''}</td><td style="text-align:right">${l.cantidad}</td><td style="text-align:right;color:#5b21b6">${fmt2(l.total_ejecucion)}</td><td style="text-align:right;color:#065f46;font-weight:700">${fmt2(l.precio_venta_con_iva)}</td></tr>`).join('');
                       return `<tr style="background:#f0f0f0"><td colspan="5" style="font-weight:700;padding:5px 8px">${r.numero} — ${r.nombre}</td></tr>${filas}`;
                     }).join('');
-                    const win = window.open('','_blank');
-                    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${adicData.nombre_obra}</title><style>body{font-family:Arial,sans-serif;font-size:10pt;padding:20px}table{width:100%;border-collapse:collapse}th{background:#1a1a1a;color:#fff;padding:5px 8px;text-align:left;font-size:8pt}td{padding:4px 8px;border-bottom:1px solid #eee}h2{margin-bottom:4px}h3{color:#666;font-size:9pt;margin-bottom:16px}@media print{@page{margin:1.5cm}}</style></head><body><h2>${adicData.nombre_obra}</h2><h3>Adicional de obra</h3><table><thead><tr><th>Ítem</th><th>Unid.</th><th>Cant.</th><th>Total Ejec.</th><th>Precio c/IVA</th></tr></thead><tbody>${rubrosHTML2}</tbody></table><div style="margin-top:16px;text-align:right;font-size:13pt;font-weight:700">Total: ${fmt2(adicData.totales?.total_precio_con_iva || adicData.total_precio_con_iva)}</div></body></html>`);
-                    win.document.close(); setTimeout(()=>win.print(),500);
+                    imprimirHTML(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${adicData.nombre_obra}</title><style>body{font-family:Arial,sans-serif;font-size:10pt;padding:20px}table{width:100%;border-collapse:collapse}th{background:#1a1a1a;color:#fff;padding:5px 8px;text-align:left;font-size:8pt}td{padding:4px 8px;border-bottom:1px solid #eee}h2{margin-bottom:4px}h3{color:#666;font-size:9pt;margin-bottom:16px}@media print{@page{margin:1.5cm}}</style></head><body><h2>${adicData.nombre_obra}</h2><h3>Adicional de obra</h3><table><thead><tr><th>Ítem</th><th>Unid.</th><th>Cant.</th><th>Total Ejec.</th><th>Precio c/IVA</th></tr></thead><tbody>${rubrosHTML2}</tbody></table><div style="margin-top:16px;text-align:right;font-size:13pt;font-weight:700">Total: ${fmt2(adicData.totales?.total_precio_con_iva || adicData.total_precio_con_iva)}</div></body></html>`, { titulo: 'Adicional' });
                   }} style={{display:'flex',alignItems:'center',gap:4}}><Printer size={12} strokeWidth={1.5}/>Imprimir</button>
                   {modalAdicional.estado === 'abierto' ? (
                     <button onClick={cerrarAdicional} className="btn btn-warn btn-sm"><Lock size={12} /> Cerrar</button>

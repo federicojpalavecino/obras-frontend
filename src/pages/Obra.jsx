@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Printer, TrendingUp, Award, BarChart2, FileText, DollarSign, Users, ShoppingCart, CheckCircle } from "lucide-react";
 import api from "../cotizador/api";
 import MenuAcciones from "../shared/MenuAcciones";
+import { imprimirHTML } from '../utils/imprimir';
 const fmt = (n) => "$" + Math.round(n || 0).toLocaleString("es-AR");
 const today = () => new Date().toISOString().split("T")[0];
 
@@ -503,10 +504,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
   Emitido con FAIM OBRAS · ${new Date().toLocaleDateString("es-AR")}
 </div>
 </body></html>`;
-    const win = window.open("", "_blank");
-    win.document.write(html);
-    win.document.close();
-    setTimeout(() => win.print(), 400);
+    imprimirHTML(html, { titulo: "Obra" });
   };
 
   if (loading) return (

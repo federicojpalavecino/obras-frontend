@@ -482,3 +482,9 @@ body {
 html, body {
   overscroll-behavior-x: none;
 }
+
+/* Cosas que en una pantalla chica solo estorban: pasan al menú de los tres
+   puntos, donde no ocupan lugar. */
+@media (max-width: 900px) {
+  .solo-escritorio { display: none !important; }
+}

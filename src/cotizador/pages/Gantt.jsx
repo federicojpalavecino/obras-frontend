@@ -171,6 +171,36 @@ export default function Gantt() {
     return d > hoy ? d : hoy;
   };
 
+  // Un gasto de obra cargado desde el Gantt. Va como compra pagada atada a la
+  // línea del ítem, así que entra sola al control financiero del período y
+  // queda imputada a la tarea que la generó.
+  const guardarGasto = async () => {
+    const monto = parseFloat(String(gastoForm.monto).replace(',', '.'));
+    if (!(monto > 0)) { showToast('⚠ Poné cuánto se gastó'); return; }
+    setGuardandoGasto(true);
+    try {
+      const r = await api.post(`/presupuestos/${id}/compras`, {
+        proveedor_nombre: gastoForm.proveedor || 'Gasto de obra',
+        fecha_pedido: hoy,
+        estado: 'pagado',
+        monto_total: monto,
+        monto_pagado: monto,
+        nota: gastoForm.nota || `Cargado desde el Gantt · ${gastoEn?.nombre || ''}`,
+        destino: 'compra',
+        lineas_ids: gastoEn?.linea_id ? [gastoEn.linea_id] : [],
+      });
+      setGastoEn(null);
+      setGastoForm({ monto: '', proveedor: '', nota: '' });
+      showToast(r.data?.en_control_financiero
+        ? `✓ $ ${Math.round(monto).toLocaleString('es-AR')} · ya está en el control financiero`
+        : `✓ Gasto guardado por $ ${Math.round(monto).toLocaleString('es-AR')}`);
+      cargar();
+    } catch (e) {
+      showToast('⚠ ' + (e.response?.data?.detail || 'No se pudo guardar el gasto'));
+    }
+    setGuardandoGasto(false);
+  };
+
   const guardarAvanceLinea = async () => {
     if (!cargarAvanceEn?.linea_id) return;
     try {
@@ -202,6 +232,21 @@ export default function Gantt() {
   const [vinculos, setVinculos] = useState([]);
   const [plan, setPlan] = useState(null);          // fechas + holguras + camino crítico
   const [errorPlan, setErrorPlan] = useState('');
+  // En un celular el diagrama de barras no se puede usar: la obra se mira y se
+  // carga desde una lista. El diagrama queda a un toque para el que lo quiera.
+  const [esCelular, setEsCelular] = useState(
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 900px)');
+    const f = e => setEsCelular(e.matches);
+    mq.addEventListener('change', f);
+    return () => mq.removeEventListener('change', f);
+  }, []);
+  const [verDiagrama, setVerDiagrama] = useState(false);
+  const [gastoEn, setGastoEn] = useState(null);      // tarea a la que se le carga
+  const [gastoForm, setGastoForm] = useState({ monto: '', proveedor: '', nota: '' });
+  const [guardandoGasto, setGuardandoGasto] = useState(false);
+
   const [panelFalta, setPanelFalta] = useState(false);
   const [planificando, setPlanificando] = useState(null);
   const [modoVincular, setModoVincular] = useState(false);
@@ -879,6 +924,12 @@ export default function Gantt() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {esCelular && tareas.length > 0 && (
+            <button className="btn btn-secondary btn-sm" onClick={() => setVerDiagrama(v => !v)}
+              title={verDiagrama ? 'Volver a la lista' : 'Ver el diagrama de barras'}>
+              {verDiagrama ? '☰ Lista' : '▤ Diagrama'}
+            </button>
+          )}
           <div className="header-actions-desktop" style={{ gap: 8 }}>
             <button className="btn btn-secondary btn-sm" onClick={() => setEditando({})}>+ Tarea</button>
             {faltaPlanificar.length > 0 && (
@@ -1089,6 +1140,85 @@ export default function Gantt() {
           <button className="btn btn-primary" onClick={generarDesdePresupuesto} disabled={generando}>
             {generando ? 'Generando...' : '⚡ Generar desde presupuesto'}
           </button>
+        </div>
+      ) : esCelular && !verDiagrama ? (
+        /* ── EN EL CELULAR: LA OBRA COMO LISTA ──────────────────────────────
+           Un diagrama de barras en una pantalla de 6 pulgadas no se puede
+           usar: no entra, no se lee y no se toca. En obra lo que hace falta es
+           ver qué tarea viene, cuánto lleva, y poder cargar el gasto en el
+           momento, parado en la obra. El diagrama queda a un toque. */
+        <div style={{ padding: '10px 12px 90px' }}>
+          {filas.map(t => {
+            const avLinea = t.linea_id && avancePorLinea[t.linea_id];
+            const pct = Math.min(100, Math.max(0, avLinea != null ? avLinea : (t.progreso || 0)));
+            const e = estadoLineas[t.linea_id];
+            const arrancada = t.fecha_inicio <= hoy;
+            const terminada = t.fecha_fin < hoy;
+            return (
+              <div key={t.id}
+                style={{ background: 'var(--surface)', border: `1px solid ${t.critica && verCritico ? '#f8717188' : 'var(--border)'}`,
+                         borderLeft: `4px solid ${t.color}`, borderRadius: 12, padding: '12px 14px', marginBottom: 10 }}>
+                <div onClick={() => {
+                    if (t.linea_id) {
+                      setCargarAvanceEn(t);
+                      setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0)));
+                    } else setEditando(t);
+                  }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>
+                    {t.nombre}
+                    {t.es_adicional && (
+                      <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 4,
+                                     background: 'rgba(251,146,60,.18)', color: '#c2410c',
+                                     border: '1px solid rgba(251,146,60,.5)', verticalAlign: 'middle' }}>AD</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <span>{fmtFecha(t.fecha_inicio)} → {fmtFecha(t.fecha_fin)}</span>
+                    <span>{t.dur_calc ?? t.duracion_dias} días</span>
+                    {t.tramos?.length > 1 && <span>✂ {t.tramos.length} partes</span>}
+                    {t.suspendida && <span style={{ color: '#d97706', fontWeight: 700 }}>suspendida</span>}
+                    {t.critica && verCritico && <span style={{ color: '#f87171', fontWeight: 700 }}>crítica</span>}
+                  </div>
+                  {/* Barra de avance: es lo único del diagrama que sí sirve acá */}
+                  <div style={{ height: 6, borderRadius: 3, background: 'var(--surface2)', marginTop: 9, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: t.color, transition: 'width .3s' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, fontSize: 11 }}>
+                    <span style={{ color: 'var(--muted)' }}>
+                      {terminada && pct < 100 ? 'debería estar terminada' : arrancada ? 'en curso' : 'no arrancó'}
+                    </span>
+                    <span style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>{Math.round(pct)}%</span>
+                  </div>
+                  {e?.subcontrato && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+                      {e.subcontrato.contratista}
+                      {e.subcontrato.pendiente > 0 && (
+                        <b style={{ color: '#d97706' }}> · le debés {fmt(e.subcontrato.pendiente)}</b>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
+                  <button onClick={() => { setGastoEn(t); setGastoForm({ monto: '', proveedor: '', nota: '' }); }}
+                    style={{ flex: 1, padding: '11px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                             fontSize: 13.5, fontWeight: 700, background: 'var(--accent)', border: 'none', color: '#fff' }}>
+                    Cargar gasto
+                  </button>
+                  {t.linea_id && (
+                    <button onClick={() => {
+                        setCargarAvanceEn(t);
+                        setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0)));
+                      }}
+                      style={{ flex: 1, padding: '11px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                               fontSize: 13.5, fontWeight: 700, background: 'transparent',
+                               border: '1px solid var(--border)', color: 'var(--text)' }}>
+                      Avance
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div style={{ display: 'flex', overflow: 'hidden' }}>
@@ -1808,6 +1938,61 @@ export default function Gantt() {
                   ))}
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {gastoEn && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 320,
+                      display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+          onClick={() => setGastoEn(null)}>
+          {/* Pegado abajo: en obra se usa con una mano y el pulgar no llega
+              arriba de la pantalla. */}
+          <div style={{ background: 'var(--surface)', borderRadius: '16px 16px 0 0', padding: '20px 18px 26px',
+                        width: 'min(520px, 100%)', maxHeight: '90dvh', overflowY: 'auto',
+                        border: '1px solid var(--border)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>Cargar un gasto</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3, marginBottom: 16, lineHeight: 1.5 }}>
+              Se imputa a «{gastoEn.nombre}» y entra hoy mismo al control financiero.
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>Cuánto</div>
+            <div style={{ position: 'relative', marginBottom: 13 }}>
+              <span style={{ position: 'absolute', left: 13, top: 13, fontSize: 18, color: 'var(--muted)' }}>$</span>
+              <input type="number" inputMode="decimal" min="0" step="any" autoFocus
+                value={gastoForm.monto} onChange={e => setGastoForm(f => ({ ...f, monto: e.target.value }))}
+                style={{ width: '100%', padding: '12px 12px 12px 30px', border: '1px solid var(--border)',
+                         borderRadius: 10, background: 'var(--surface2)', color: 'var(--text)',
+                         fontFamily: "'IBM Plex Mono',monospace", fontSize: 20, textAlign: 'right' }} />
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>A quién</div>
+            <input value={gastoForm.proveedor} placeholder="Corralón, ferretería, flete…"
+              onChange={e => setGastoForm(f => ({ ...f, proveedor: e.target.value }))}
+              style={{ width: '100%', padding: '11px 12px', border: '1px solid var(--border)', borderRadius: 10,
+                       background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 14,
+                       marginBottom: 13, boxSizing: 'border-box' }} />
+
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>Detalle (opcional)</div>
+            <input value={gastoForm.nota} placeholder="20 bolsas de cemento"
+              onChange={e => setGastoForm(f => ({ ...f, nota: e.target.value }))}
+              style={{ width: '100%', padding: '11px 12px', border: '1px solid var(--border)', borderRadius: 10,
+                       background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 14,
+                       boxSizing: 'border-box' }} />
+
+            <div style={{ display: 'flex', gap: 9, marginTop: 18 }}>
+              <button onClick={() => setGastoEn(null)}
+                style={{ flex: 1, padding: '13px 0', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                         fontSize: 14, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)' }}>
+                Cancelar
+              </button>
+              <button onClick={guardarGasto} disabled={guardandoGasto}
+                style={{ flex: 1.6, padding: '13px 0', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                         fontSize: 14, fontWeight: 700, background: 'var(--accent)', border: 'none', color: '#fff' }}>
+                {guardandoGasto ? 'Guardando…' : 'Guardar gasto'}
+              </button>
             </div>
           </div>
         </div>
