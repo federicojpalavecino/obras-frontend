@@ -46,6 +46,10 @@ export default function Gantt() {
   // certifico o se midio es la verdad, y tener dos numeros para lo mismo
   // garantiza que uno quede viejo.
   const [avanceObra, setAvanceObra] = useState(null);
+  // El estado real de cada linea: quien la ejecuta, cuanto se le certifico y
+  // cuanto se le pago. Es lo que convierte al Gantt en un tablero de decision
+  // durante la obra, en vez de solo un calendario.
+  const [estadoLineas, setEstadoLineas] = useState({});
   const [cargarAvanceEn, setCargarAvanceEn] = useState(null);   // tarea abierta
   const [pctNuevo, setPctNuevo] = useState("");
   // Los dias que la obra no avanzo. Se pintan en la grilla y corren el plazo.
@@ -141,7 +145,10 @@ export default function Gantt() {
         api.get(`/presupuestos/${id}/gantt/tareas`).then(r => ({data: r.data})),
         api.get(`/presupuestos/${id}/gantt/config`).catch(() => ({data: {}})),
         api.get(`/presupuestos/${id}/gantt/vinculos`).catch(() => ({data: []})),
-        api.get(`/presupuestos/${id}/gantt/plan`).catch(e => ({data: null, err: e})),
+        api.get(`/presupuestos/${id}/lineas/estado`).then(r => {
+        setEstadoLineas(Object.fromEntries((r.data?.lineas || []).map(l => [l.linea_id, l])));
+      }).catch(() => {}),
+      api.get(`/presupuestos/${id}/gantt/plan`).catch(e => ({data: null, err: e})),
       ]);
       setPresupuesto(pRes);
       // Extraer lineas desde rubros
@@ -1101,6 +1108,34 @@ export default function Gantt() {
               {cargarAvanceEn.horas_totales ? ` · ${cargarAvanceEn.horas_totales} h` : ''}
               {cargarAvanceEn.personas ? ` · ${cargarAvanceEn.personas} personas` : ''}
             </div>
+
+            {(() => {
+              const e = estadoLineas[cargarAvanceEn.linea_id];
+              if (!e) return null;
+              const sc = e.subcontrato;
+              return (
+                <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10,
+                              background: 'var(--surface2)', border: '1px solid var(--border)', fontSize: 12.5 }}>
+                  {sc ? (
+                    <>
+                      <div style={{ fontWeight: 700, marginBottom: 5 }}>Lo ejecuta {sc.contratista}</div>
+                      <div style={{ color: 'var(--muted)', lineHeight: 1.6 }}>
+                        Contrato ${Math.round(sc.monto).toLocaleString('es-AR')} ·
+                        pagado ${Math.round(sc.pagado).toLocaleString('es-AR')}
+                        {sc.pendiente > 0 && <> · <b style={{ color: '#d97706' }}>le debés ${Math.round(sc.pendiente).toLocaleString('es-AR')}</b></>}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ color: 'var(--muted)' }}>Sin contratista asignado — lo hace el estudio.</div>
+                  )}
+                  {e.certificado > 0 && (
+                    <div style={{ color: 'var(--muted)', marginTop: 5 }}>
+                      Certificado al cliente: ${Math.round(e.certificado).toLocaleString('es-AR')}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>
