@@ -47,6 +47,7 @@ export default function Personal() {
   const [aviso, setAviso] = useState("");
   const [ficha, setFicha] = useState(null);      // alta o edición
   const [obraDelDia, setObraDelDia] = useState("");
+  const [pagando, setPagando] = useState(null);   // { persona, monto }
 
   const avisar = (m) => { setAviso(m); setTimeout(() => setAviso(""), 3500); };
   const dias = Array.from({ length: 7 }, (_, i) => sumarDias(semana, i));
@@ -92,6 +93,29 @@ export default function Personal() {
       api.get(`/personal/a-pagar?desde=${semana}&hasta=${finSemana}`)
         .then(x => setPagar(x.data)).catch(() => {});
     } catch (e) { avisar("⚠ " + (e.response?.data?.detail || "No se pudo marcar")); }
+  };
+
+  // Registrar el pago cierra el circuito: hasta acá el resumen decía cuánto,
+  // ahora queda anotado y entra como egreso del control financiero, en el
+  // período en que se paga.
+  const registrarPago = async () => {
+    const m = parseFloat(String(pagando.monto).replace(",", "."));
+    if (!(m > 0)) { avisar("⚠ Poné el monto"); return; }
+    try {
+      const r = await api.post("/personal/pagar", {
+        personal_id: pagando.persona.id,
+        monto: m,
+        desde: semana, hasta: finSemana,
+        fecha_pago: hoy(),
+        detalle: pagando.persona.detalle,
+      });
+      setPagando(null);
+      const x = await api.get(`/personal/a-pagar?desde=${semana}&hasta=${finSemana}`);
+      setPagar(x.data);
+      avisar(r.data?.en_control_financiero
+        ? `✓ Pagado · ya está en el control financiero`
+        : "✓ Pago registrado");
+    } catch (e) { avisar("⚠ " + (e.response?.data?.detail || "No se pudo registrar")); }
   };
 
   const guardarFicha = async () => {
@@ -293,8 +317,19 @@ export default function Personal() {
                       <div style={{ fontSize: 13.5, fontWeight: 600 }}>{x.nombre}</div>
                       <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{x.detalle}</div>
                     </div>
-                    <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700, fontSize: 14,
-                                  flexShrink: 0, color: x.monto > 0 ? C.text : C.muted }}>{fmt(x.monto)}</div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700, fontSize: 14,
+                                    color: x.queda > 0 ? C.text : C.muted }}>{fmt(x.queda ?? x.monto)}</div>
+                      {x.ya_pagado > 0 && (
+                        <div style={{ fontSize: 10, color: C.accent }}>ya cobró {fmt(x.ya_pagado)}</div>
+                      )}
+                    </div>
+                    {(x.queda ?? x.monto) > 0 && (
+                      <button onClick={() => setPagando({ persona: x, monto: String(Math.round(x.queda ?? x.monto)) })}
+                        style={{ flexShrink: 0, padding: "7px 13px", borderRadius: 8, cursor: "pointer",
+                                 fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+                                 background: C.accent, border: "none", color: "#fff" }}>Pagar</button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -337,6 +372,44 @@ export default function Personal() {
           </>
         )}
       </div>
+
+      {pagando && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", zIndex: 420,
+                      display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+          onClick={() => setPagando(null)}>
+          <div style={{ background: C.surface, borderRadius: "16px 16px 0 0", padding: "20px 18px 26px",
+                        width: "min(500px,100%)", maxHeight: "90dvh", overflowY: "auto" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>Pagarle a {pagando.persona.nombre}</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 3, marginBottom: 16, lineHeight: 1.5 }}>
+              {pagando.persona.detalle} · entra hoy al control financiero.
+            </div>
+            <label style={lbl}>Cuánto le pagás</label>
+            <div style={{ position: "relative", marginBottom: 16 }}>
+              <span style={{ position: "absolute", left: 13, top: 13, fontSize: 18, color: C.muted }}>$</span>
+              <input type="number" inputMode="decimal" autoFocus value={pagando.monto}
+                onChange={e => setPagando(p => ({ ...p, monto: e.target.value }))}
+                style={{ ...inp, padding: "12px 12px 12px 30px", fontSize: 20,
+                         fontFamily: "'IBM Plex Mono',monospace", textAlign: "right" }} />
+            </div>
+            <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 16 }}>
+              Si le pagás menos, la diferencia sigue apareciendo como pendiente.
+            </div>
+            <div style={{ display: "flex", gap: 9 }}>
+              <button onClick={() => setPagando(null)}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                         fontSize: 14, background: "transparent", border: `1px solid ${C.border}`, color: C.muted }}>
+                Cancelar
+              </button>
+              <button onClick={registrarPago}
+                style={{ flex: 1.6, padding: "12px 0", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                         fontSize: 14, fontWeight: 700, background: C.accent, border: "none", color: "#fff" }}>
+                Registrar el pago
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Ficha */}
       {ficha && (

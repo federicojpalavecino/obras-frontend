@@ -325,6 +325,14 @@ export default function Planner({ user }) {
   const [proyectos, setProyectos] = useState([]);
   const [presupuestos, setPresupuestos] = useState([]);
   const [vista, setVista] = useState("kanban");
+  // El Gantt de una obra sirve para ejecutarla; este sirve para lo otro: ver
+  // cuántas obras se pisan en el mismo mes y dónde está parado el estudio en
+  // conjunto. Cada obra es una barra.
+  const [ganttObras, setGanttObras] = useState(null);
+  useEffect(() => {
+    if (vista !== "obras" || ganttObras) return;
+    api.get("/planner/gantt").then(r => setGanttObras(r.data)).catch(() => setGanttObras({ obras: [] }));
+  }, [vista, ganttObras]);
   // Modo reunion: letra grande y sin cromo, para proyectar en una pantalla y
   // repasar la semana entre varios. Se sale con Escape.
   const [modoReunion, setModoReunion] = useState(false);
@@ -501,7 +509,7 @@ export default function Planner({ user }) {
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", position: "sticky", top: 0, zIndex: 50 }}>
         {/* Vista */}
         <div style={{ display: "flex", gap: 2, background: C.surface2, borderRadius: 8, padding: 3, flexShrink: 0 }}>
-          {[["kanban", "Kanban"], ["semana", "Semana"], ["lista", "Lista"]].map(([v, label]) => (
+          {[["kanban", "Kanban"], ["semana", "Semana"], ["lista", "Lista"], ["obras", "Obras"]].map(([v, label]) => (
             <button key={v} onClick={() => setVista(v)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: vista === v ? C.surface : "transparent", color: vista === v ? C.text : C.muted, fontSize: 12, fontWeight: vista === v ? 600 : 400, cursor: "pointer", fontFamily: "inherit", boxShadow: vista === v ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>
               {label}
             </button>
@@ -622,6 +630,101 @@ export default function Planner({ user }) {
 
         {loading ? (
           <div style={{ textAlign: "center", color: C.muted, padding: 60 }}>Cargando...</div>
+        ) : vista === "obras" ? (
+          (() => {
+            if (!ganttObras) return <div style={{ color: C.muted, fontSize: 13 }}>Cargando obras…</div>;
+            const obras = ganttObras.obras || [];
+            if (!obras.length) {
+              return (
+                <div style={{ background: C.surface, border: `1px dashed ${C.border}`, borderRadius: 12,
+                              padding: "26px 20px", textAlign: "center" }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Ninguna obra tiene su plan armado.</div>
+                  <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.55, maxWidth: 420, margin: "0 auto" }}>
+                    Acá aparecen las obras que ya tienen tareas en el Gantt, una barra cada una,
+                    para ver cuáles se pisan en el mismo mes.
+                  </div>
+                </div>
+              );
+            }
+            const hoyISO = new Date().toISOString().split("T")[0];
+            const dias = (a, b) => Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000);
+            const desde = ganttObras.desde || obras[0].inicio;
+            const hasta = ganttObras.hasta || obras[obras.length - 1].fin || desde;
+            const total = Math.max(1, dias(desde, hasta) + 1);
+            const pos = (f) => Math.max(0, Math.min(100, (dias(desde, f) / total) * 100));
+            const colores = ["#059669", "#7c3aed", "#0891b2", "#d97706", "#db2777", "#65a30d"];
+            // Los meses que abarca el conjunto, para poder ubicarse.
+            const meses = [];
+            let cur = new Date(desde + "T12:00:00");
+            cur.setDate(1);
+            const fin = new Date(hasta + "T12:00:00");
+            while (cur <= fin && meses.length < 48) {
+              const iniMes = cur.toISOString().split("T")[0];
+              meses.push({ iso: iniMes, label: cur.toLocaleDateString("es-AR", { month: "short" }), d: new Date(cur) });
+              cur.setMonth(cur.getMonth() + 1);
+            }
+            return (
+              <div>
+                <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>
+                  {obras.length} obra{obras.length !== 1 ? "s" : ""} con plan ·{" "}
+                  {new Date(desde + "T12:00:00").toLocaleDateString("es-AR")} al{" "}
+                  {new Date(hasta + "T12:00:00").toLocaleDateString("es-AR")}
+                </div>
+
+                {/* Meses */}
+                <div style={{ position: "relative", height: 18, marginBottom: 4, marginLeft: 4 }}>
+                  {meses.map(m => (
+                    <div key={m.iso} style={{ position: "absolute", left: `${pos(m.iso)}%`, fontSize: 10,
+                                              color: C.muted, borderLeft: `1px solid ${C.border}`,
+                                              paddingLeft: 3, whiteSpace: "nowrap" }}>
+                      {m.label}
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ position: "relative" }}>
+                  {/* Hoy */}
+                  {hoyISO >= desde && hoyISO <= hasta && (
+                    <div style={{ position: "absolute", left: `${pos(hoyISO)}%`, top: -4, bottom: 0, width: 2,
+                                  background: C.accent, opacity: .8, zIndex: 3, pointerEvents: "none" }}>
+                      <span style={{ position: "absolute", top: -16, left: "50%", transform: "translateX(-50%)",
+                                     background: C.accent, color: "#fff", fontSize: 8.5, fontWeight: 800,
+                                     padding: "1px 5px", borderRadius: 4 }}>HOY</span>
+                    </div>
+                  )}
+                  {obras.map((o, i) => {
+                    const izq = pos(o.inicio);
+                    const der = pos(o.fin || o.inicio);
+                    const col = colores[i % colores.length];
+                    return (
+                      <div key={o.presupuesto_id}
+                        onClick={() => navigate(`/cotizador/gantt/${o.presupuesto_id}`)}
+                        style={{ position: "relative", height: 44, cursor: "pointer",
+                                 borderBottom: `1px solid ${C.border}` }}>
+                        <div title={`${o.obra}\n${o.tareas} tareas · ${o.duracion_dias} días hábiles`}
+                          style={{ position: "absolute", left: `${izq}%`, width: `${Math.max(1.5, der - izq)}%`,
+                                   top: 9, height: 22, borderRadius: 6, background: col + "33",
+                                   border: `1px solid ${col}`, overflow: "hidden" }}>
+                          <div style={{ width: `${o.avance_pct}%`, height: "100%", background: col + "66" }} />
+                        </div>
+                        <div style={{ position: "absolute", left: `${der}%`, top: 0, height: 44,
+                                      display: "flex", alignItems: "center", paddingLeft: 8,
+                                      whiteSpace: "nowrap", pointerEvents: "none" }}>
+                          <span style={{ fontSize: 11.5, fontWeight: 600 }}>{o.obra}</span>
+                          <span style={{ fontSize: 10.5, color: C.muted, marginLeft: 6 }}>
+                            {o.cliente ? o.cliente + " · " : ""}{Math.round(o.avance_pct)}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 12 }}>
+                  Tocá una barra para abrir el Gantt de esa obra.
+                </div>
+              </div>
+            );
+          })()
         ) : vista === "kanban" ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
             {ESTADOS.map(estado => (
