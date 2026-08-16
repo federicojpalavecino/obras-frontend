@@ -919,7 +919,12 @@ export default function Gantt() {
             </div>
             {filas.map(t => (
               <div key={t.id} style={{ height: ROW_H, borderBottom: '1px solid var(--border2)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, cursor: 'pointer' }}
-                onClick={() => setEditando(t)}>
+                onClick={() => {
+                  if (t.linea_id) {
+                    setCargarAvanceEn(t);
+                    setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0)));
+                  } else setEditando(t);
+                }}>
                 {/* Indentar / desindentar: arma la jerarquía sin salir de la pantalla */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0, marginRight: 1 }}>
                     <button
@@ -947,7 +952,15 @@ export default function Gantt() {
                              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⋯</button>
                 ) : <span style={{ width: 18, flexShrink: 0 }} />}
                 <div style={{ width: 10, height: 10, borderRadius: t.es_resumen ? 0 : 2, background: t.critica && verCritico ? '#f87171' : t.color, flexShrink: 0 }} />
-                <div style={{ flex: 1, overflow: 'hidden' }} onClick={() => modoVincular ? clickVincular(t) : setEditando(t)}>
+                <div style={{ flex: 1, overflow: 'hidden' }} onClick={() => {
+                    if (modoVincular) return clickVincular(t);
+                    if (t.linea_id) {
+                      setCargarAvanceEn(t);
+                      setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0)));
+                      return;
+                    }
+                    setEditando(t);
+                  }}>
                   <div style={{ fontSize: 12, fontWeight: t.es_resumen ? 800 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textTransform: t.es_resumen ? 'uppercase' : 'none', letterSpacing: t.es_resumen ? 0.4 : 0 }}>
                     {t.nombre}
                     {/* Arrastrar la barra fija la tarea. El chinche la suelta
@@ -1125,7 +1138,11 @@ export default function Gantt() {
                         if (modoVincular) return clickVincular(t);
                         // Alt+click hace lo mismo que el boton derecho, para
                         // el que usa trackpad.
-                        if (e.altKey && t.linea_id) {
+                        // El click izquierdo abre el panel completo de la
+                        // tarea. Antes abria solo el formulario de editar, y
+                        // todo lo demas —avance, contratista, dividir,
+                        // suspender— quedaba escondido en el boton derecho.
+                        if (t.linea_id) {
                           setCargarAvanceEn(t);
                           setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0)));
                           return;
@@ -1267,9 +1284,16 @@ export default function Gantt() {
               );
             })()}
 
+            <button onClick={() => { const t = cargarAvanceEn; setCargarAvanceEn(null); setEditando(t); }}
+              style={{ marginTop: 14, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
+                       fontFamily: 'inherit', fontSize: 13, fontWeight: 600, background: 'transparent',
+                       border: '1px solid var(--border)', color: 'var(--muted)' }}>
+              Editar nombre, fechas y color
+            </button>
+
             {!cargarAvanceEn.suspendida && (
               <button onClick={() => dividirTarea(cargarAvanceEn)}
-                style={{ marginTop: 14, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
+                style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
                          fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: 'transparent',
                          border: '1px solid var(--accent)', color: 'var(--accent)' }}>
                 Hacer una parte y reprogramar el resto
