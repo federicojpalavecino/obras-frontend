@@ -80,47 +80,56 @@ export default function Gantt() {
   // Suspender una tarea no es lo mismo que un dia de lluvia: la lluvia para la
   // obra entera, esto para una sola. Al retomarla, los dias que estuvo parada se
   // suman a su duracion y todo lo que dependia de ella se corre solo.
+  // Los formularios de partir y suspender van adentro del panel de la tarea.
+  // Nada de window.prompt: no se puede escribir una fecha en un cuadro del
+  // navegador, y encima corta la pantalla del sistema.
   const [suspendiendo, setSuspendiendo] = useState(false);
-  const alternarSuspension = async (tarea) => {
+  const [formSuspender, setFormSuspender] = useState(null);   // { motivo }
+  const [formPartir, setFormPartir] = useState(null);         // { pct, fecha }
+  const [avisoTarea, setAvisoTarea] = useState("");
+
+  const alternarSuspension = async (tarea, motivo = "") => {
     const parar = !tarea.suspendida;
-    let motivo = "";
-    if (parar) {
-      motivo = window.prompt("¿Por qué se suspende? (falta material, decisión del cliente, se cayó el contratista…)") || "";
-    } else if (!window.confirm("Retomar la tarea? Los días que estuvo parada se suman a su duración.")) {
-      return;
-    }
     setSuspendiendo(true);
     try {
       const r = await api.patch(`/presupuestos/${id}/gantt/tareas/${tarea.id}/suspender`,
         { suspender: parar, motivo });
       const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
       setTareas(t.data);
-      setCargarAvanceEn(null);
-      if (!parar && r.data?.dias_parada) {
-        alert(`Retomada. Estuvo parada ${r.data.dias_parada} día${r.data.dias_parada !== 1 ? "s" : ""}, que se sumaron al plazo.`);
-      }
-    } catch (e) { alert(e.response?.data?.detail || "No se pudo"); }
+      setFormSuspender(null);
+      setCargarAvanceEn(t.data.find(x => x.id === tarea.id) || null);
+      setAvisoTarea(parar ? "Tarea suspendida." :
+        `Retomada. Estuvo parada ${r.data?.dias_parada || 0} día${r.data?.dias_parada !== 1 ? "s" : ""}, que se sumaron al plazo.`);
+    } catch (e) { setAvisoTarea(e.response?.data?.detail || "No se pudo"); }
     setSuspendiendo(false);
   };
 
-  // Dividir: distinto de suspender. Suspender es la misma tarea parada un
-  // tiempo; esto cierra la parte que se hizo y manda el resto a otra fecha,
-  // como tarea aparte que hereda el item, el color y la cuadrilla.
-  const dividirTarea = async (tarea) => {
-    const pct = window.prompt("¿Qué porcentaje de la tarea ya se hizo? (1 a 99)", "50");
-    if (!pct) return;
+  // Partir no es suspender. Suspender es la tarea entera parada un tiempo;
+  // partir es hacer un pedazo ahora y el resto más adelante. Sigue siendo UNA
+  // tarea, una sola fila: lo que se corta es la barra.
+  const partirTarea = async (tarea, pct, fecha) => {
     const n = parseFloat(pct);
-    if (!(n > 0 && n < 100)) { alert("Tiene que ser entre 1 y 99."); return; }
-    const fecha = window.prompt("¿Desde qué fecha se retoma el resto? (AAAA-MM-DD)", hoy);
-    if (!fecha) return;
+    if (!(n > 0 && n < 100)) { setAvisoTarea("La parte hecha tiene que estar entre 1 y 99%."); return; }
+    if (!fecha) { setAvisoTarea("Falta la fecha en la que se retoma."); return; }
     try {
       const r = await api.post(`/presupuestos/${id}/gantt/tareas/${tarea.id}/dividir`,
         { pct_hecho: n, fecha_reanuda: fecha });
       const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
       setTareas(t.data);
-      setCargarAvanceEn(null);
-      alert(`Dividida: ${r.data.dias_hecho} día(s) hechos y ${r.data.dias_resto} para el resto, desde el ${fecha}.`);
-    } catch (e) { alert(e.response?.data?.detail || "No se pudo dividir"); }
+      setFormPartir(null);
+      setCargarAvanceEn(t.data.find(x => x.id === tarea.id) || null);
+      setAvisoTarea(`Partida: ${r.data.dias_hecho} día(s) ahora y ${r.data.dias_resto} desde el ${fmtFechaLarga(fecha)}.`);
+    } catch (e) { setAvisoTarea(e.response?.data?.detail || "No se pudo partir"); }
+  };
+
+  const unirTarea = async (tarea) => {
+    try {
+      await api.post(`/presupuestos/${id}/gantt/tareas/${tarea.id}/dividir`, { unir: true });
+      const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
+      setTareas(t.data);
+      setCargarAvanceEn(t.data.find(x => x.id === tarea.id) || null);
+      setAvisoTarea("La tarea vuelve a ir de corrido.");
+    } catch (e) { setAvisoTarea(e.response?.data?.detail || "No se pudo"); }
   };
 
   const guardarAvanceLinea = async () => {
@@ -532,6 +541,23 @@ export default function Gantt() {
   const esLaborable = (fecha) => {
     const lab = config.laborables || [0, 1, 2, 3, 4];
     return lab.includes(A_WEEKDAY[new Date(fecha + 'T12:00:00').getDay()]);
+  };
+
+  // Cuántos días de calendario ocupa un tramo de N días de trabajo: la grilla
+  // va en días corridos y la duración en hábiles, así que un tramo de 3 días
+  // que arranca un viernes se dibuja de viernes a martes.
+  const diasCalendarioDeTramo = (tr) => {
+    const habilesPedidos = Math.max(1, tr.dias || 1);
+    const d = new Date(tr.inicio + 'T12:00:00');
+    let habiles = 0, corridos = 0;
+    while (corridos < 400) {
+      const iso = d.toISOString().slice(0, 10);
+      corridos++;
+      if (esLaborable(iso)) habiles++;
+      if (habiles >= habilesPedidos) break;
+      d.setDate(d.getDate() + 1);
+    }
+    return Math.max(1, corridos);
   };
 
   // ── CÁLCULOS DEL GANTT ──
@@ -1117,15 +1143,35 @@ export default function Gantt() {
                         style={{ position: 'absolute', left: left + PX_DIA / 2 - 8, top: ROW_H / 2 - 8, width: 16, height: 16,
                           background: t.critica && verCritico ? '#f87171' : t.color, transform: 'rotate(45deg)',
                           cursor: 'pointer', zIndex: 4, border: predSel?.id === t.id ? '2px solid #fff' : 'none' }} />
-                    ) : (
-                    <div title={`${t.nombre}\n${fmtFechaLarga(t.fecha_inicio)} → ${fmtFechaLarga(t.fecha_fin)}${t.holgura != null ? `\nHolgura: ${t.holgura} día(s)` : ''}${t.critica ? '\n⚠ Camino crítico' : ''}${t.no_antes_de ? `\n📌 Fijada al ${fmtFecha(t.no_antes_de)}` : ''}`}
-                      style={{ position: 'absolute', left, top: 6, width, height: ROW_H - 12, borderRadius: 6,
+                    ) : (() => {
+                    // Una tarea que se hace por partes sigue siendo una sola
+                    // fila: se dibuja un pedazo de barra por tramo, con el hueco
+                    // de los días en que no se trabajó y una línea punteada que
+                    // los une para que se lea como la misma tarea.
+                    const tramos = Array.isArray(t.tramos) && t.tramos.length > 1 ? t.tramos : null;
+                    const segs = tramos
+                      ? tramos.map(tr => ({
+                          left: diasEntre(fechaMin, tr.inicio) * PX_DIA,
+                          width: diasCalendarioDeTramo(tr) * PX_DIA - 2,
+                        }))
+                      : [{ left, width }];
+                    const iAncho = segs.reduce((m, s, i2) => s.width > segs[m].width ? i2 : m, 0);
+                    return <>
+                    {tramos && (
+                      <div style={{ position: 'absolute', left: segs[0].left + segs[0].width,
+                                    width: segs[segs.length - 1].left - (segs[0].left + segs[0].width),
+                                    top: ROW_H / 2 - 1, height: 2, zIndex: 3, pointerEvents: 'none',
+                                    background: `repeating-linear-gradient(90deg, ${t.color}88 0 4px, transparent 4px 8px)` }} />
+                    )}
+                    {segs.map((s, si) => (
+                    <div key={si} title={`${t.nombre}\n${fmtFechaLarga(t.fecha_inicio)} → ${fmtFechaLarga(t.fecha_fin)}${tramos ? `\n✂ Se hace en ${tramos.length} partes` : ''}${t.holgura != null ? `\nHolgura: ${t.holgura} día(s)` : ''}${t.critica ? '\n⚠ Camino crítico' : ''}${t.no_antes_de ? `\n📌 Fijada al ${fmtFecha(t.no_antes_de)}` : ''}`}
+                      style={{ position: 'absolute', left: s.left, top: 6, width: s.width, height: ROW_H - 12, borderRadius: 6,
                         background: (t.critica && verCritico ? '#f87171' : t.color) + '33',
                         border: predSel?.id === t.id ? '2px solid #fff'
                               : `1px solid ${(t.critica && verCritico ? '#f87171' : t.color)}${t.critica && verCritico ? 'cc' : '66'}`,
                         cursor: 'pointer', overflow: 'hidden', zIndex: 4,
                         boxShadow: modoVincular ? '0 0 0 1px rgba(255,255,255,.15)' : 'none' }}
-                      onMouseDown={e => iniciarArrastre(e, t)}
+                      onMouseDown={e => { if (!tramos) iniciarArrastre(e, t); }}
                       onContextMenu={e => {
                         // Boton derecho sobre la barra: cargar avance sin salir
                         // del Gantt, que es donde se mira como viene la obra.
@@ -1154,12 +1200,14 @@ export default function Gantt() {
                       {/* Label */}
                       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '0 8px' }}>
                         <span style={{ fontSize: 11, fontWeight: 600, color: t.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {width > 60 ? t.nombre : ''}
-                          {pct > 0 && width > 80 ? ` (${pct}%)` : ''}
+                          {si === iAncho && s.width > 60 ? t.nombre : ''}
+                          {si === iAncho && pct > 0 && s.width > 80 ? ` (${pct}%)` : ''}
                         </span>
                       </div>
                     </div>
-                    )}
+                    ))}
+                    </>;
+                    })()}
                   </div>
                 );
               })}
@@ -1237,7 +1285,7 @@ export default function Gantt() {
       {cargarAvanceEn && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 600,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-          onClick={() => setCargarAvanceEn(null)}>
+          onClick={() => { setCargarAvanceEn(null); setFormPartir(null); setFormSuspender(null); setAvisoTarea(''); }}>
           <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 22, width: 'min(430px,100%)',
                         maxHeight: '88vh', overflowY: 'auto',
                         border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
@@ -1291,23 +1339,124 @@ export default function Gantt() {
               Editar nombre, fechas y color
             </button>
 
-            {!cargarAvanceEn.suspendida && (
-              <button onClick={() => dividirTarea(cargarAvanceEn)}
-                style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
-                         fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: 'transparent',
-                         border: '1px solid var(--accent)', color: 'var(--accent)' }}>
-                Hacer una parte y reprogramar el resto
-              </button>
+            {avisoTarea && (
+              <div style={{ marginTop: 10, padding: '9px 12px', borderRadius: 9, fontSize: 12.5,
+                            background: 'rgba(5,150,105,.1)', border: '1px solid rgba(5,150,105,.35)', color: 'var(--accent)' }}>
+                {avisoTarea}
+              </div>
             )}
 
-            <button onClick={() => alternarSuspension(cargarAvanceEn)} disabled={suspendiendo}
-              style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
-                       fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
-                       border: `1px solid ${cargarAvanceEn.suspendida ? 'var(--accent)' : '#d97706'}`,
-                       background: 'transparent',
-                       color: cargarAvanceEn.suspendida ? 'var(--accent)' : '#d97706' }}>
-              {suspendiendo ? '…' : cargarAvanceEn.suspendida ? 'Retomar la tarea' : 'Suspender la tarea'}
-            </button>
+            {/* Partir la tarea — el formulario va acá adentro, no en un cuadro
+                del navegador: hay que poder elegir una fecha en un calendario. */}
+            {!cargarAvanceEn.suspendida && !formSuspender && (
+              formPartir ? (
+                <div style={{ marginTop: 10, padding: '13px 14px', borderRadius: 10,
+                              background: 'var(--surface2)', border: '1px solid var(--accent)' }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>Hacer una parte ahora y el resto después</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 11, lineHeight: 1.5 }}>
+                    Sigue siendo la misma tarea: la barra queda cortada, con el hueco de los días en que se para.
+                  </div>
+                  <div style={{ display: 'flex', gap: 9 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Se hace ahora</div>
+                      <div style={{ position: 'relative' }}>
+                        <input type="number" min="1" max="99" value={formPartir.pct} autoFocus
+                          onChange={e => setFormPartir({ ...formPartir, pct: e.target.value })}
+                          style={{ width: '100%', padding: '8px 26px 8px 10px', border: '1px solid var(--border)', borderRadius: 8,
+                                   background: 'var(--surface)', color: 'var(--text)', fontFamily: "'IBM Plex Mono',monospace",
+                                   fontSize: 14, textAlign: 'right' }} />
+                        <span style={{ position: 'absolute', right: 9, top: 9, fontSize: 12, color: 'var(--muted)' }}>%</span>
+                      </div>
+                    </div>
+                    <div style={{ flex: 1.3 }}>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Se retoma el</div>
+                      <input type="date" value={formPartir.fecha}
+                        onChange={e => setFormPartir({ ...formPartir, fecha: e.target.value })}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8,
+                                 background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13 }} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <button onClick={() => setFormPartir(null)}
+                      style={{ flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                               fontSize: 13, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)' }}>
+                      Cancelar
+                    </button>
+                    <button onClick={() => partirTarea(cargarAvanceEn, formPartir.pct, formPartir.fecha)}
+                      style={{ flex: 1.4, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                               fontSize: 13, fontWeight: 700, background: 'var(--accent)', border: 'none', color: '#fff' }}>
+                      Partir la tarea
+                    </button>
+                  </div>
+                </div>
+              ) : cargarAvanceEn.tramos?.length > 1 ? (
+                <div style={{ marginTop: 10, padding: '11px 13px', borderRadius: 10, fontSize: 12.5,
+                              background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontWeight: 700, marginBottom: 5 }}>Se hace en {cargarAvanceEn.tramos.length} partes</div>
+                  {cargarAvanceEn.tramos.map((tr, i) => (
+                    <div key={i} style={{ color: 'var(--muted)', lineHeight: 1.7 }}>
+                      {i + 1}ª · desde el {fmtFechaLarga(tr.inicio)} · {tr.dias} día{tr.dias !== 1 ? 's' : ''}
+                    </div>
+                  ))}
+                  <button onClick={() => unirTarea(cargarAvanceEn)}
+                    style={{ marginTop: 9, width: '100%', padding: '8px 0', borderRadius: 8, cursor: 'pointer',
+                             fontFamily: 'inherit', fontSize: 12.5, background: 'transparent',
+                             border: '1px solid var(--border)', color: 'var(--muted)' }}>
+                    Volver a hacerla de corrido
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => { setAvisoTarea(''); setFormPartir({ pct: '50', fecha: hoy }); }}
+                  style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
+                           fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: 'transparent',
+                           border: '1px solid var(--accent)', color: 'var(--accent)' }}>
+                  Hacer una parte y reprogramar el resto
+                </button>
+              )
+            )}
+
+            {/* Suspender: el motivo también se escribe acá. */}
+            {formSuspender ? (
+              <div style={{ marginTop: 10, padding: '13px 14px', borderRadius: 10,
+                            background: 'var(--surface2)', border: '1px solid #d97706' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>Suspender la tarea</div>
+                <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5 }}>
+                  Queda parada hasta que la retomes. Los días que esté parada se suman al plazo y se corre todo lo que depende de ella.
+                </div>
+                <input value={formSuspender.motivo} autoFocus
+                  placeholder="Falta material, decisión del cliente, se cayó el contratista…"
+                  onChange={e => setFormSuspender({ motivo: e.target.value })}
+                  style={{ width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8,
+                           background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13 }} />
+                <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
+                  <button onClick={() => setFormSuspender(null)}
+                    style={{ flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                             fontSize: 13, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)' }}>
+                    Cancelar
+                  </button>
+                  <button onClick={() => alternarSuspension(cargarAvanceEn, formSuspender.motivo)} disabled={suspendiendo}
+                    style={{ flex: 1.4, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                             fontSize: 13, fontWeight: 700, background: '#d97706', border: 'none', color: '#fff' }}>
+                    {suspendiendo ? '…' : 'Suspender'}
+                  </button>
+                </div>
+              </div>
+            ) : !formPartir && (
+              <button
+                onClick={() => {
+                  setAvisoTarea('');
+                  if (cargarAvanceEn.suspendida) alternarSuspension(cargarAvanceEn);
+                  else setFormSuspender({ motivo: '' });
+                }}
+                disabled={suspendiendo}
+                style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
+                         fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+                         border: `1px solid ${cargarAvanceEn.suspendida ? 'var(--accent)' : '#d97706'}`,
+                         background: 'transparent',
+                         color: cargarAvanceEn.suspendida ? 'var(--accent)' : '#d97706' }}>
+                {suspendiendo ? '…' : cargarAvanceEn.suspendida ? 'Retomar la tarea' : 'Suspender la tarea'}
+              </button>
+            )}
 
             <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>
