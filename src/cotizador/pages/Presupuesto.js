@@ -1727,7 +1727,7 @@ ${firma}
         {modalAdicional && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', zIndex: 200 }}
             onClick={() => { setModalAdicional(null); setLineaSeleccionadaAdic(null); setComputoAdicLinea(null); }}>
-            <div style={{ width: 'min(900px, 100vw)', maxHeight: '100dvh', background: 'var(--surface)', display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 32px rgba(0,0,0,0.4)', position: 'relative' }}
+            <div className="panel-adicional" style={{ width: 'min(900px, 100vw)', maxHeight: '100dvh', background: 'var(--surface)', display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 32px rgba(0,0,0,0.4)', position: 'relative' }}
               onClick={e => e.stopPropagation()}>
 
               {/* Header */}

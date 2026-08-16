@@ -165,7 +165,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
   if (!linea) return null;
 
   return (
-    <div style={{
+    <div className="panel-lateral" style={{
       width: 420, borderLeft: '1px solid var(--border)', background: 'var(--surface)',
       display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0,
     }}>

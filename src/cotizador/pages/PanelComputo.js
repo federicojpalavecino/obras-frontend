@@ -195,7 +195,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
   const numProps = { type: 'text', inputMode: 'decimal' };
 
   return (
-    <div style={{
+    <div className="panel-lateral" style={{
       width: 420, borderLeft: '1px solid var(--border)', background: 'var(--surface)',
       display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0,
     }}>

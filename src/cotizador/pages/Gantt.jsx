@@ -247,6 +247,7 @@ export default function Gantt() {
   const [gastoForm, setGastoForm] = useState({ monto: '', proveedor: '', nota: '' });
   const [guardandoGasto, setGuardandoGasto] = useState(false);
 
+  const [panelConfig, setPanelConfig] = useState(false);
   const [panelFalta, setPanelFalta] = useState(false);
   const [planificando, setPlanificando] = useState(null);
   const [modoVincular, setModoVincular] = useState(false);
@@ -290,7 +291,9 @@ export default function Gantt() {
   const [escala, setEscala] = useState(() => localStorage.getItem('obras_gantt_escala') || 'entra');
   const [anchoUtil, setAnchoUtil] = useState(900);
   const elegirEscala = (e) => { setEscala(e); localStorage.setItem('obras_gantt_escala', e); };
-  const ROW_H = 40;
+  // Filas bajas: en una obra de treinta ítems, con 40 px de alto solo se veían
+  // ocho y había que scrollear para entender el plan.
+  const ROW_H = 30;
   const LABEL_W = esCelular ? 130 : 260;
 
   useEffect(() => { cargar(); }, [id]);
@@ -499,6 +502,7 @@ export default function Gantt() {
     const antes = (tareas.find(t => t.id === tareaId) || {}).personas ?? 1;
     try {
       const r = await api.patch(`/presupuestos/${id}/gantt/tareas/${tareaId}/cuadrilla`, { personas });
+      setCargarAvanceEn(prev => prev && prev.id === tareaId ? { ...prev, personas } : prev);
       setPlan(r.data); setErrorPlan('');
       const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
       setTareas(t.data || []);
@@ -1040,6 +1044,8 @@ export default function Gantt() {
           </div>
           <MobileMenu actions={[
             { label: 'Nueva tarea', icon: '+', onClick: () => setEditando({}) },
+            { label: 'Cómo se trabaja', icon: '⚙', onClick: () => setPanelConfig(true) },
+            { label: 'Imprimir el diagrama', icon: '🖨', onClick: imprimirGantt },
             ...(tareas.length > 1 ? [
               { label: 'Traer horas del análisis', icon: '⏱', onClick: cargarHoras },
               { label: 'Encadenar tareas en orden', icon: '⛓', onClick: encadenarTodo },
@@ -1149,40 +1155,21 @@ export default function Gantt() {
         </div>
       )}
 
-      {/* CONFIG BAR */}
-      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Inicio obra</label>
-          <input type="date" value={config.fecha_inicio_obra} onChange={e => setConfig(c => ({ ...c, fecha_inicio_obra: e.target.value }))}
-            style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 6, color: 'var(--text)', padding: '4px 8px', fontSize: 12, fontFamily: 'inherit' }} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Hs/día</label>
-          <input type="number" value={config.horas_dia} onChange={e => setConfig(c => ({ ...c, horas_dia: e.target.value }))}
-            style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 6, color: 'var(--text)', padding: '4px 8px', fontSize: 12, width: 60, fontFamily: 'inherit' }} />
-        </div>
-        {/* Fin de semana: de lunes a viernes siempre se trabaja; el sábado y el
-            domingo se definen por obra. Cambia la duración de todo el plan. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Se trabaja</label>
-          {[['sabado', 'Sáb'], ['domingo', 'Dom']].map(([campo, label]) => (
-            <button key={campo} onClick={() => cambiarFinDeSemana(campo, !config[campo])}
-              title={config[campo] ? `Se trabaja el ${campo}. Tocá para dejar de contarlo.` : `No se trabaja el ${campo}. Tocá para sumarlo al plan.`}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 14, cursor: 'pointer',
-                border: `1px solid ${config[campo] ? 'var(--accent)' : 'var(--border2)'}`,
-                background: config[campo] ? 'rgba(110,231,183,.14)' : 'var(--surface2)',
-                color: config[campo] ? 'var(--accent)' : 'var(--muted)', fontSize: 11, fontFamily: 'inherit' }}>
-              {config[campo] ? '✓' : '—'} {label}
-            </button>
-          ))}
-        </div>
-        <button className="btn btn-secondary btn-sm" onClick={() => guardarConfig(config)}>Guardar config</button>
-        {tareas.length > 0 && (
-          <button className="btn btn-secondary btn-sm" onClick={imprimirGantt} title="Imprimir el diagrama con su calendario">🖨 Imprimir</button>
-        )}
-        <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted)' }}>
-          {tareas.length} tareas · {fmtFechaLarga(fechaMin)} → {fmtFechaLarga(fechaMax)}
-        </div>
+      {/* Solo el resumen: la configuración se abre desde el menú, no vive
+          ocupando una franja de la pantalla que se mira todos los días. */}
+      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)',
+                    padding: '6px 16px', fontSize: 11.5, color: 'var(--muted)',
+                    display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span>{tareas.length} tareas</span>
+        <span>·</span>
+        <span>{fmtFechaLarga(fechaMin)} → {fmtFechaLarga(fechaMax)}</span>
+        {plan?.duracion_dias > 0 && <><span>·</span><span>{plan.duracion_dias} días hábiles</span></>}
+        <button onClick={() => setPanelConfig(true)}
+          style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)',
+                   borderRadius: 12, padding: '2px 10px', fontSize: 11, cursor: 'pointer',
+                   color: 'var(--muted)', fontFamily: 'inherit' }}>
+          ⚙ {config.horas_dia}h/día{config.sabado ? ' · sáb' : ''}{config.domingo ? ' · dom' : ''}
+        </button>
       </div>
 
       {/* GANTT */}
@@ -1361,25 +1348,12 @@ export default function Gantt() {
                       : (t.holgura ? `holgura ${t.holgura}d` : '')}
                   </div>
                 </div>
-                {/* Cuadrilla: cuántas personas trabajan.
-                    Antes solo aparecía si la tarea tenía horas cargadas, y como
-                    las horas hay que traerlas a mano con "⏱ Horas", en la
-                    práctica no lo veía nadie. Ahora se muestra siempre: con
-                    horas, mover la cuadrilla recalcula la duración; sin horas,
-                    el número igual queda guardado. */}
-                {!t.es_resumen && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0, opacity: t.horas_totales > 0 ? 1 : 0.55 }}
-                    title={t.horas_totales > 0
-                      ? `${t.personas || 1} persona(s) · ${Math.round(t.horas_totales)} h — cambiar la cuadrilla recalcula la duración`
-                      : 'Personas en esta tarea. Para que el plazo se recalcule solo, traé las horas con “⏱ Horas”.'}>
-                    <button onClick={e => { e.stopPropagation(); cambiarCuadrilla(t.id, Math.max(1, (t.personas || 1) - 1), t.horas_totales); }}
-                      style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--muted)', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1, padding: 0 }}>−</button>
-                    <span style={{ fontSize: 10, fontFamily: 'var(--mono)', minWidth: 14, textAlign: 'center' }}>👷{t.personas || 1}</span>
-                    <button onClick={e => { e.stopPropagation(); cambiarCuadrilla(t.id, (t.personas || 1) + 1, t.horas_totales); }}
-                      style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--muted)', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1, padding: 0 }}>+</button>
-                  </div>
-                )}
-                <div style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0, minWidth: 22, textAlign: 'right' }}>{t.dur_calc ?? t.duracion_dias}d</div>
+                {/* La cuadrilla se maneja desde el panel de la tarea. Un par
+                    de botoncitos de 16 px por fila comían ancho, sumaban alto y
+                    se tocaban sin querer al querer abrir la tarea. */}
+                <div style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  {(t.personas || 1) > 1 ? `👷${t.personas} · ` : ''}{t.dur_calc ?? t.duracion_dias}d
+                </div>
               </div>
             ))}
           </div>
@@ -1577,6 +1551,18 @@ export default function Gantt() {
                                     top: ROW_H / 2 - 1, height: 2, zIndex: 3, pointerEvents: 'none',
                                     background: `repeating-linear-gradient(90deg, ${t.color}88 0 4px, transparent 4px 8px)` }} />
                     )}
+                    {/* Y al costado cuando no entra: con la escala achicada
+                        las barras son de dos milímetros y sin esto el diagrama
+                        es una hilera de rayitas sin nombre. */}
+                    {segs[iAncho].width <= 70 && (
+                      <div style={{ position: 'absolute', left: segs[iAncho].left + segs[iAncho].width + 5,
+                                    top: 0, height: ROW_H, display: 'flex', alignItems: 'center',
+                                    pointerEvents: 'none', zIndex: 5, whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted)' }}>
+                          {t.nombre}{pct > 0 ? ` · ${pct}%` : ''}
+                        </span>
+                      </div>
+                    )}
                     {segs.map((s, si) => (
                     <div key={si} title={`${t.nombre}\n${fmtFechaLarga(t.fecha_inicio)} → ${fmtFechaLarga(t.fecha_fin)}${tramos ? `\n✂ Se hace en ${tramos.length} partes` : ''}${t.holgura != null ? `\nHolgura: ${t.holgura} día(s)` : ''}${t.critica ? '\n⚠ Camino crítico' : ''}${t.no_antes_de ? `\n📌 Fijada al ${fmtFecha(t.no_antes_de)}` : ''}`}
                       style={{ position: 'absolute', left: s.left, top: 6, width: s.width, height: ROW_H - 12, borderRadius: 6,
@@ -1611,11 +1597,11 @@ export default function Gantt() {
                       }}>
                       {/* Progreso */}
                       <div style={{ width: `${pct}%`, height: '100%', background: t.color + '55', transition: 'width .3s' }} />
-                      {/* Label */}
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '0 8px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: t.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {si === iAncho && s.width > 60 ? t.nombre : ''}
-                          {si === iAncho && pct > 0 && s.width > 80 ? ` (${pct}%)` : ''}
+                      {/* El nombre adentro de la barra cuando entra. */}
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '0 7px' }}>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: t.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {si === iAncho && s.width > 70 ? t.nombre : ''}
+                          {si === iAncho && pct > 0 && s.width > 110 ? ` ${pct}%` : ''}
                         </span>
                       </div>
                     </div>
@@ -1765,6 +1751,33 @@ export default function Gantt() {
                 </div>
               );
             })()}
+
+            {!cargarAvanceEn.es_resumen && (
+              <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10,
+                            background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700 }}>Cuántos trabajan</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      {cargarAvanceEn.horas_totales > 0
+                        ? `${Math.round(cargarAvanceEn.horas_totales)} h de mano de obra — sumar gente acorta el plazo`
+                        : 'Sin horas cargadas: el plazo no se recalcula solo'}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <button onClick={() => cambiarCuadrilla(cargarAvanceEn.id, Math.max(1, (cargarAvanceEn.personas || 1) - 1), cargarAvanceEn.horas_totales)}
+                      style={{ width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 17, lineHeight: 1,
+                               background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}>−</button>
+                    <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 16, fontWeight: 700, minWidth: 22, textAlign: 'center' }}>
+                      {cargarAvanceEn.personas || 1}
+                    </span>
+                    <button onClick={() => cambiarCuadrilla(cargarAvanceEn.id, (cargarAvanceEn.personas || 1) + 1, cargarAvanceEn.horas_totales)}
+                      style={{ width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 17, lineHeight: 1,
+                               background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}>+</button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <button onClick={() => { const t = cargarAvanceEn; setCargarAvanceEn(null); setEditando(t); }}
               style={{ marginTop: 14, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
@@ -2062,6 +2075,63 @@ export default function Gantt() {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {panelConfig && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 310,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setPanelConfig(false)}>
+          <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 22, width: 'min(420px,100%)',
+                        maxHeight: '90dvh', overflowY: 'auto', border: '1px solid var(--border)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 3 }}>Cómo se trabaja en esta obra</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16, lineHeight: 1.5 }}>
+              Cambia la duración de todo el plan: las tareas se cuentan en días de trabajo.
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>Arranque de la obra</div>
+            <input type="date" value={config.fecha_inicio_obra}
+              onChange={e => setConfig(c => ({ ...c, fecha_inicio_obra: e.target.value }))}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 9, fontSize: 14, marginBottom: 14,
+                       background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)',
+                       fontFamily: 'inherit', boxSizing: 'border-box' }} />
+
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>Horas por día</div>
+            <input type="number" value={config.horas_dia}
+              onChange={e => setConfig(c => ({ ...c, horas_dia: e.target.value }))}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 9, fontSize: 14, marginBottom: 14,
+                       background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)',
+                       fontFamily: "'IBM Plex Mono',monospace", boxSizing: 'border-box' }} />
+
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 7 }}>
+              Fines de semana — de lunes a viernes se trabaja siempre
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+              {[['sabado', 'Sábados'], ['domingo', 'Domingos']].map(([campo, label]) => (
+                <button key={campo} onClick={() => cambiarFinDeSemana(campo, !config[campo])}
+                  style={{ flex: 1, padding: '10px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+                    border: `1px solid ${config[campo] ? 'var(--accent)' : 'var(--border)'}`,
+                    background: config[campo] ? 'rgba(16,185,129,.12)' : 'transparent',
+                    color: config[campo] ? 'var(--accent)' : 'var(--muted)',
+                    fontWeight: config[campo] ? 700 : 400 }}>
+                  {config[campo] ? '✓ ' : ''}{label}
+                </button>
+              ))}
+            </div>
+
+            <button onClick={() => { guardarConfig(config); setPanelConfig(false); }}
+              style={{ width: '100%', padding: '12px 0', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                       fontSize: 14, fontWeight: 700, background: 'var(--accent)', border: 'none', color: '#fff' }}>
+              Guardar
+            </button>
+            <button onClick={() => setPanelConfig(false)}
+              style={{ width: '100%', marginTop: 8, padding: '10px 0', borderRadius: 10, cursor: 'pointer',
+                       fontFamily: 'inherit', fontSize: 13, background: 'transparent',
+                       border: '1px solid var(--border)', color: 'var(--muted)' }}>
+              Cerrar
+            </button>
           </div>
         </div>
       )}

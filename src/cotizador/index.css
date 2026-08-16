@@ -542,9 +542,9 @@ html, body {
 
   .tabla-presupuesto tr.fila-item {
     border: 1px solid var(--border);
-    border-radius: 10px;
-    margin: 0 8px 8px;
-    padding: 10px 12px;
+    border-radius: 9px;
+    margin: 0 8px 5px;
+    padding: 7px 10px;
     width: auto;
     background: var(--surface);
   }
@@ -554,11 +554,17 @@ html, body {
   }
   /* El nombre, entero y sin cortar */
   .tabla-presupuesto tr.fila-item td.celda-nombre {
-    font-size: 13.5px;
+    font-size: 12.5px;
     font-weight: 600;
-    line-height: 1.35;
+    line-height: 1.25;
     white-space: normal;
-    margin-bottom: 7px;
+    margin-bottom: 3px;
+    /* Dos renglones como máximo: un nombre de catálogo puede tener sesenta
+       caracteres y una sola ficha se comía la pantalla. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   /* Cantidad y precio, uno al lado del otro y grandes */
   .tabla-presupuesto tr.fila-item td.celda-cant,
@@ -580,8 +586,13 @@ html, body {
   .tabla-presupuesto tr.fila-item td.celda-precio {
     float: right;
     text-align: right;
-    font-size: 15px;
+    font-size: 13.5px;
     font-weight: 800;
+    line-height: 1.2;
+  }
+  /* El precio por unidad, en chiquito debajo del total */
+  .tabla-presupuesto tr.fila-item td.celda-precio div:last-child {
+    font-size: 9px !important;
   }
   .tabla-presupuesto tr.fila-item td.celda-acciones {
     clear: both;
@@ -589,7 +600,57 @@ html, body {
 
   .tabla-presupuesto tr.fila-rubro td {
     position: static;
-    margin: 12px 8px 6px;
+    margin: 10px 8px 5px;
     border-radius: 8px;
+    padding: 5px 10px !important;
+  }
+}
+
+/* Los paneles de análisis de precios y de cómputo son una columna de 420 px
+   pegada a la derecha. En un celular esa columna deja la tabla en 20 px de
+   ancho: no se ve ni una cosa ni la otra. Ahí abajo pasan a ser una hoja que
+   sube desde el borde inferior, que es donde llega el pulgar. */
+@media (max-width: 900px) {
+  .panel-lateral {
+    position: fixed !important;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: auto !important;
+    max-height: 82dvh;
+    z-index: 260;
+    border-left: none !important;
+    border-top: 1px solid var(--border);
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.35);
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Una manija para que se lea que se puede cerrar tirando o con la ✕ */
+  .panel-lateral::before {
+    content: '';
+    display: block;
+    width: 38px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border2, #4a4a58);
+    margin: 8px auto 2px;
+    flex-shrink: 0;
+  }
+  /* Las tablas de adentro scrollean solas y no empujan la hoja de costado */
+  .panel-lateral table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* El panel de adicionales entra desde la derecha ocupando 900 px; en el
+   celular tiene que ocupar la pantalla entera. */
+@media (max-width: 900px) {
+  .panel-adicional {
+    width: 100% !important;
+    max-height: 100dvh;
   }
 }
