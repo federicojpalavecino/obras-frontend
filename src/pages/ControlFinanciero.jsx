@@ -358,7 +358,8 @@ export default function ControlFinanciero({ user }) {
           setEditingIdSynced(current.id);
         }
       }
-    } catch (e) { console.error("loadPeriods", e); }
+      return parsed;
+    } catch (e) { console.error("loadPeriods", e); return null; }
   };
 
   const cfgParaCalc = { ...config, ...(week.config || {}), honorarios: week.config?.honorarios?.length ? week.config.honorarios : (config.honorarios || []), pctReserva: week.config?.pctReserva ?? config.pctReserva ?? 10 };
@@ -417,9 +418,16 @@ export default function ControlFinanciero({ user }) {
         origen: f.origen, origen_id: f.origen_id, monto: f.monto,
         presupuesto_id: f.presupuesto_id, fecha: new Date().toISOString().slice(0, 10),
       });
-      showToast(f.tipo === "entra" ? "✓ Cobrado · ya está en el período" : "✓ Pagado · ya está en el período");
       const r = await api.get('/cf/prevision'); setPrevision(r.data);
-      loadPeriods();
+      // Recargar tambien el periodo abierto: sin esto el movimiento queda
+      // guardado pero la pantalla sigue mostrando la version vieja, y parece
+      // que no paso nada.
+      const lista = await loadPeriods();
+      const abierta = lista && editingIdRef.current
+        ? lista.find(s => s.id === editingIdRef.current) : null;
+      if (abierta) setWeek({ ...abierta });
+      const donde = abierta ? ` (${periodLabel(abierta)})` : "";
+      showToast((f.tipo === "entra" ? "✓ Cobrado" : "✓ Pagado") + " · ya está en el período" + donde);
     } catch (e) { showToast(e.response?.data?.detail || "No se pudo registrar"); }
     setSaldando(null);
   };
