@@ -539,14 +539,36 @@ export default function Gantt() {
 
   const guardarTarea = async (tarea) => {
     const data = { ...tarea };
-    if (tarea.id) {
-      await api.put(`/presupuestos/${id}/gantt/tareas/${tarea.id}`, data);
-    } else {
-      const res = await api.post(`/presupuestos/${id}/gantt/tareas`, { ...data, presupuesto_id: parseInt(id) }); tarea.id = res.data.id;
+    try {
+      if (tarea.id) {
+        await api.put(`/presupuestos/${id}/gantt/tareas/${tarea.id}`, data);
+        showToast('✓ Guardado');
+      } else if (data.es_adicional) {
+        // No es una barra más: crea la línea en el adicional de la obra y ata
+        // la tarea a esa línea, así el trabajo ya tiene precio y viaja a la
+        // curva, a los certificados y al control financiero.
+        const r = await api.post(`/presupuestos/${id}/gantt/tareas/adicional`, {
+          nombre: data.nombre,
+          fecha_inicio: data.fecha_inicio,
+          color: data.color,
+          cantidad: parseFloat(data.cantidad) || 1,
+          unidad_libre: data.unidad_libre || 'un',
+          costo_directo_libre: parseFloat(data.costo_directo_libre) || 0,
+          sin_precio: !!data.sin_precio,
+        });
+        showToast(r.data?.sin_precio
+          ? `✓ Adicional cargado sin precio — queda para valorizar en «${r.data.adicional_nombre}»`
+          : `✓ Adicional cargado en «${r.data.adicional_nombre}»`);
+      } else {
+        const res = await api.post(`/presupuestos/${id}/gantt/tareas`, { ...data, presupuesto_id: parseInt(id) });
+        tarea.id = res.data.id;
+        showToast('✓ Guardado');
+      }
+      setEditando(null);
+      cargar();
+    } catch (e) {
+      showToast('⚠ ' + (e.response?.data?.detail || 'No se pudo guardar'));
     }
-    setEditando(null);
-    showToast('✓ Guardado');
-    cargar();
   };
 
   const eliminarTarea = async (tid) => {
@@ -1029,6 +1051,13 @@ export default function Gantt() {
                     {t.nombre}
                     {/* Arrastrar la barra fija la tarea. El chinche la suelta
                         y la devuelve al mando de sus dependencias. */}
+                    {t.es_adicional && (
+                      <span title="Adicional — no estaba en el contrato original"
+                        style={{ marginLeft: 5, fontSize: 8.5, fontWeight: 800, letterSpacing: .5,
+                                 padding: '1px 4px', borderRadius: 4, verticalAlign: 'middle',
+                                 background: 'rgba(251,146,60,.18)', color: '#c2410c',
+                                 border: '1px solid rgba(251,146,60,.5)' }}>AD</span>
+                    )}
                     {t.no_antes_de && (
                       <span role="button" tabIndex={0}
                         title={`Fijada al ${fmtFecha(t.no_antes_de)} — tocá para soltarla y que vuelva a seguir sus dependencias`}
@@ -1211,7 +1240,7 @@ export default function Gantt() {
                       style={{ position: 'absolute', left: s.left, top: 6, width: s.width, height: ROW_H - 12, borderRadius: 6,
                         background: (t.critica && verCritico ? '#f87171' : t.color) + '33',
                         border: predSel?.id === t.id ? '2px solid #fff'
-                              : `1px solid ${(t.critica && verCritico ? '#f87171' : t.color)}${t.critica && verCritico ? 'cc' : '66'}`,
+                              : `${t.es_adicional ? '1px dashed' : '1px solid'} ${(t.critica && verCritico ? '#f87171' : t.color)}${t.critica && verCritico ? 'cc' : (t.es_adicional ? 'cc' : '66')}`,
                         cursor: 'pointer', overflow: 'hidden', zIndex: 4,
                         boxShadow: modoVincular ? '0 0 0 1px rgba(255,255,255,.15)' : 'none' }}
                       onMouseDown={e => { if (!tramos) iniciarArrastre(e, t); }}
@@ -1332,7 +1361,15 @@ export default function Gantt() {
           <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 22, width: 'min(430px,100%)',
                         maxHeight: '88vh', overflowY: 'auto',
                         border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 15, fontWeight: 800 }}>{cargarAvanceEn.nombre}</div>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>
+              {cargarAvanceEn.nombre}
+              {cargarAvanceEn.es_adicional && (
+                <span style={{ marginLeft: 7, fontSize: 9, fontWeight: 800, letterSpacing: .5,
+                               padding: '2px 5px', borderRadius: 4, verticalAlign: 'middle',
+                               background: 'rgba(251,146,60,.18)', color: '#c2410c',
+                               border: '1px solid rgba(251,146,60,.5)' }}>ADICIONAL</span>
+              )}
+            </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
               {fmtFechaLarga(cargarAvanceEn.fecha_inicio)} → {fmtFechaLarga(cargarAvanceEn.fecha_fin)}
               {cargarAvanceEn.horas_totales ? ` · ${cargarAvanceEn.horas_totales} h` : ''}
@@ -1711,6 +1748,56 @@ function EditarTarea({ tarea, onSave, onDelete, presupuestoId }) {
           <input style={inpStyle} type="number" min={0} max={100} value={form.progreso}
             onChange={e => upd('progreso', e.target.value)} />
         </div>
+        {/* En obra sale algo que no estaba presupuestado. Se carga acá, donde
+            uno está parado, y el presupuesto se entera solo: la tarea nace
+            atada a una línea del adicional, con plata adentro. */}
+        {!tarea.id && (
+          <div style={{ gridColumn: 'span 2', padding: '12px 14px', borderRadius: 10,
+                        background: form.es_adicional ? 'rgba(251,146,60,.10)' : '#f8f9fa',
+                        border: `1px solid ${form.es_adicional ? '#fb923c' : '#e0e0e8'}` }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+              <input type="checkbox" checked={!!form.es_adicional}
+                onChange={e => upd('es_adicional', e.target.checked)} style={{ width: 16, height: 16 }} />
+              Esto es un adicional — se le cobra al cliente
+            </label>
+            {form.es_adicional && (
+              <>
+                <div style={{ fontSize: 11.5, color: '#6b7280', margin: '7px 0 11px', lineHeight: 1.5 }}>
+                  Se suma al adicional en borrador de esta obra. Cuando lo quieras cobrar,
+                  lo cerrás y lo mandás a aprobar como cualquier presupuesto.
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 9 }}>
+                  <div>
+                    <label style={lblStyle}>Cantidad</label>
+                    <input style={inpStyle} type="number" min="0" step="any" value={form.cantidad ?? 1}
+                      onChange={e => upd('cantidad', e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={lblStyle}>Unidad</label>
+                    <input style={inpStyle} value={form.unidad_libre ?? 'un'} placeholder="m2, un, gl"
+                      onChange={e => upd('unidad_libre', e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={lblStyle}>Costo por unidad</label>
+                    <input style={{ ...inpStyle, opacity: form.sin_precio ? .45 : 1 }} type="number" min="0" step="any"
+                      disabled={form.sin_precio} value={form.sin_precio ? '' : (form.costo_directo_libre ?? '')}
+                      onChange={e => upd('costo_directo_libre', e.target.value)} />
+                  </div>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                                fontSize: 12, color: '#6b7280', marginTop: 10 }}>
+                  <input type="checkbox" checked={!!form.sin_precio}
+                    onChange={e => upd('sin_precio', e.target.checked)} />
+                  Todavía no sé cuánto — lo valorizo después
+                </label>
+                <div style={{ fontSize: 11, color: '#6b7280', marginTop: 7 }}>
+                  El costo va sin gastos generales, beneficio ni IVA: se le aplican los mismos de la obra.
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         <div style={{ gridColumn: 'span 2' }}>
           <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Color</label>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
