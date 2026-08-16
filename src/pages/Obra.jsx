@@ -335,6 +335,40 @@ export default function Obra() {
     showToast("Cobro eliminado"); cargar();
   };
 
+  // Ajustar una etapa pactada: pasa seguido que se renegocia, se le suma un
+  // adicional o se le descuenta algo. Antes habia que rehacer el contrato.
+  const [ajustando, setAjustando] = useState(null);
+  const [ajusteForm, setAjusteForm] = useState({ monto: "", descripcion: "", fecha_vencimiento: "" });
+  const abrirAjuste = (d) => {
+    setAjusteForm({ monto: String(Math.round(d.monto || 0)), descripcion: d.descripcion || "",
+                    fecha_vencimiento: d.fecha_vencimiento || "" });
+    setAjustando(d);
+  };
+  const guardarAjuste = async () => {
+    await api.patch(`/presupuestos/${id}/desembolsos/${ajustando.id}`, {
+      monto: parseFloat(ajusteForm.monto) || 0,
+      descripcion: ajusteForm.descripcion,
+      fecha_vencimiento: ajusteForm.fecha_vencimiento || null,
+    });
+    setAjustando(null); showToast("✓ Etapa ajustada"); cargar();
+  };
+
+  // Un anticipo o adelanto no corresponde a ninguna etapa: es plata a cuenta.
+  const registrarAnticipo = async () => {
+    const txt = window.prompt("¿De cuánto es el anticipo?");
+    if (!txt) return;
+    const monto = parseFloat(String(txt).replace(/\./g, "").replace(",", "."));
+    if (!monto || monto <= 0) { showToast("Monto inválido"); return; }
+    const r = await api.post(`/presupuestos/${id}/cobros`, {
+      monto, fecha: today(), forma_pago: "transferencia",
+      nota: "Anticipo", es_anticipo: true,
+    });
+    showToast(r.data?.en_control_financiero
+      ? "✓ Anticipo registrado · ya está en el control financiero"
+      : "✓ Anticipo registrado");
+    cargar();
+  };
+
   const crearSubcontrato = async () => {
     if (!subForm.nombre_contratista) return;
     await api.post(`/presupuestos/${id}/subcontratos`, { ...subForm, monto_total: parseFloat(subForm.monto_total) || 0 });
@@ -893,9 +927,17 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
         {tab === "cobros" && (
           <>
           {/* Las etapas pendientes, a la vista y cobrables de a varias */}
-          {porDesembolsos && desembolsos.some(d => d.saldo > 0) && (
+          {desembolsos.some(d => d.saldo > 0) && (
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>Etapas por cobrar</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>Etapas por cobrar</div>
+                <button onClick={registrarAnticipo}
+                  style={{ padding: "5px 12px", borderRadius: 7, border: `1px solid ${C.accent}`,
+                           background: "transparent", color: C.accent, fontSize: 12, fontWeight: 700,
+                           cursor: "pointer", fontFamily: "inherit" }}>
+                  + Anticipo / adelanto
+                </button>
+              </div>
               <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3, marginBottom: 10, lineHeight: 1.5 }}>
                 Tildá las que te pagaron y registralas juntas. Cada una queda como su propio
                 cobro, y entran solas al control financiero.
@@ -916,6 +958,10 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                       </span>
                     </span>
                     <span style={{ fontWeight: 700, fontFamily: "'IBM Plex Mono',monospace", fontSize: 13.5 }}>{fmt(d.saldo)}</span>
+                    <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); abrirAjuste(d); }}
+                      style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
+                               background: "transparent", color: C.muted, fontSize: 11.5,
+                               cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Ajustar</button>
                   </label>
                 );
               })}
@@ -1539,6 +1585,33 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               )}
             </div>
             <button onClick={crearSubcontrato} style={{ ...btn(C.accent), width: "100%", padding: 12 }}>Crear subcontrato</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL AJUSTAR ETAPA ── */}
+      {ajustando && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 620,
+                      display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => setAjustando(null)}>
+          <div style={{ background: C.surface, borderRadius: 14, padding: 22, width: "min(420px,100%)",
+                        border: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 3 }}>Ajustar etapa {ajustando.numero}</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>
+              Si se renegoció, se le sumó un adicional o se le descontó algo.
+              {ajustando.cobrado > 0 && <> Ya se cobró {fmt(ajustando.cobrado)} de esta etapa.</>}
+            </div>
+            {[["Monto pactado", "monto", "number"], ["Descripción", "descripcion", "text"], ["Vence", "fecha_vencimiento", "date"]].map(([lab, key, tipo]) => (
+              <div key={key} style={{ marginBottom: 11 }}>
+                <label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>{lab}</label>
+                <input style={inp} type={tipo} value={ajusteForm[key]}
+                  onChange={e => setAjusteForm(p => ({ ...p, [key]: e.target.value }))} />
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setAjustando(null)} style={{ ...btn(C.surface2), flex: 1, padding: 11, color: C.text }}>Cancelar</button>
+              <button onClick={guardarAjuste} style={{ ...btn(C.accent), flex: 2, padding: 11 }}>Guardar</button>
+            </div>
           </div>
         </div>
       )}
