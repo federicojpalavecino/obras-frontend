@@ -1260,16 +1260,23 @@ ${firma}
                 {/* «Ejec + Precio / Ejecución / Precio» no lo entiende nadie que
                     no haya visto el sistema antes. Se dice con todas las
                     letras qué muestra cada opción. */}
-                <div className="solo-escritorio" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <label style={{ fontSize: 11, color: 'var(--muted)' }}>Mostrar</label>
-                  <select value={vista} onChange={e => setVista(e.target.value)}
-                    style={{ padding: '4px 8px', fontSize: 12, borderRadius: 6, cursor: 'pointer',
-                             fontFamily: 'inherit', background: 'var(--surface2)',
-                             border: '1px solid var(--border)', color: 'var(--text)' }}>
-                    <option value="comercial">Lo que le cobro al cliente</option>
-                    <option value="ejec">Lo que me cuesta hacerlo</option>
-                    <option value="ambos">Las dos cosas y el margen</option>
-                  </select>
+                {/* Los tres botones pegados se veían bien y se entienden de un
+                    vistazo: lo que no se entendía eran las etiquetas. Antes
+                    decían «Ejec + Precio», que no significa nada para quien no
+                    vio el sistema antes. */}
+                <div className="solo-escritorio" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <label style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: .8 }}>Mostrar</label>
+                  <div style={{ display: 'flex', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+                    {[['comercial', 'Precio al cliente', 'Solo lo que se le cobra al cliente'],
+                      ['ejec', 'Costo de ejecución', 'Solo lo que cuesta hacerlo: materiales, mano de obra y máquinas'],
+                      ['ambos', 'Los dos y el margen', 'Costo y precio uno al lado del otro, con la diferencia']].map(([v, l, t]) => (
+                      <button key={v} onClick={() => setVista(v)} title={t}
+                        style={{ padding: '4px 11px', fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'var(--sans)',
+                          background: vista === v ? 'var(--accent2)' : 'transparent', color: vista === v ? 'white' : 'var(--muted)' }}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 {/* Mobile: botón para abrir sidebar */}
                 {!cerrado && (
