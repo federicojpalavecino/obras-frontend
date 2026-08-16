@@ -261,6 +261,10 @@ export default function Gantt() {
   const [vinculoSel, setVinculoSel] = useState(null);   // el resaltado al tocar la flecha
   const [arrastre, setArrastre] = useState(null);   // {id, dx} mientras se arrastra
   const scrollRef = useRef(null);
+  // Al abrir el Gantt de una obra larga, la vista arrancaba en el primer día
+  // del plan y había que arrastrar semanas para llegar a donde está la obra.
+  const colHoyRef = useRef(null);
+  const yaCentre = useRef(false);
 
   const showToast = msg => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
@@ -321,6 +325,14 @@ export default function Gantt() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (yaCentre.current || !scrollRef.current || !colHoyRef.current) return;
+    const cont = scrollRef.current;
+    const x = colHoyRef.current.offsetLeft - cont.clientWidth / 3;
+    cont.scrollLeft = Math.max(0, x);
+    yaCentre.current = true;
+  });
 
   // Recalcula el plan (fechas, holguras, camino crítico) sin recargar todo
   const refrescarPlan = async () => {
@@ -1154,9 +1166,11 @@ export default function Gantt() {
             const e = estadoLineas[t.linea_id];
             const arrancada = t.fecha_inicio <= hoy;
             const terminada = t.fecha_fin < hoy;
+            const enCurso = arrancada && !terminada;
             return (
               <div key={t.id}
-                style={{ background: 'var(--surface)', border: `1px solid ${t.critica && verCritico ? '#f8717188' : 'var(--border)'}`,
+                style={{ background: enCurso ? 'rgba(16,185,129,.06)' : 'var(--surface)',
+                         border: `1px solid ${enCurso ? 'var(--accent)' : t.critica && verCritico ? '#f8717188' : 'var(--border)'}`,
                          borderLeft: `4px solid ${t.color}`, borderRadius: 12, padding: '12px 14px', marginBottom: 10 }}>
                 <div onClick={() => {
                     if (t.linea_id) {
@@ -1184,8 +1198,11 @@ export default function Gantt() {
                     <div style={{ width: `${pct}%`, height: '100%', background: t.color, transition: 'width .3s' }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, fontSize: 11 }}>
-                    <span style={{ color: 'var(--muted)' }}>
-                      {terminada && pct < 100 ? 'debería estar terminada' : arrancada ? 'en curso' : 'no arrancó'}
+                    <span style={{ color: terminada && pct < 100 ? '#d97706' : enCurso ? 'var(--accent)' : 'var(--muted)',
+                                   fontWeight: enCurso ? 700 : 400 }}>
+                      {terminada && pct < 100 ? 'debería estar terminada'
+                        : enCurso ? 'HOY se trabaja acá'
+                        : arrancada ? 'en curso' : 'no arrancó'}
                     </span>
                     <span style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>{Math.round(pct)}%</span>
                   </div>
@@ -1348,9 +1365,25 @@ export default function Gantt() {
                   const franco = !esLaborable(dia);
                   const esHoyDia = dia === hoy;
                   return (
-                    <div key={dia} style={{ width: PX_DIA, flexShrink: 0, height: '100%', borderLeft: esLunes ? '1px solid #3a3a48' : '1px solid #2e2e3822', background: esHoyDia ? 'rgba(110,231,183,.08)' : franco ? 'rgba(74,74,88,.3)' : 'transparent', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 2px 4px' }}>
-                      {esLunes && <div style={{ fontSize: 9, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</div>}
-                      <div style={{ fontSize: 9, color: esHoyDia ? '#6ee7b7' : franco ? '#4a4a58' : 'var(--muted2, #4a4a58)' }}>{DIA_LETRA[d.getDay()]}{d.getDate()}</div>
+                    <div key={dia} ref={esHoyDia ? colHoyRef : null}
+                      style={{ width: PX_DIA, flexShrink: 0, height: '100%', position: 'relative',
+                        borderLeft: esHoyDia ? '2px solid var(--accent)' : esLunes ? '1px solid #3a3a48' : '1px solid #2e2e3822',
+                        background: esHoyDia ? 'rgba(16,185,129,.20)' : franco ? 'rgba(74,74,88,.3)' : 'transparent',
+                        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 2px 4px' }}>
+                      {/* Sin este cartel hay que contar columnas para saber dónde
+                          está uno parado. */}
+                      {esHoyDia && (
+                        <div style={{ position: 'absolute', top: 2, left: '50%', transform: 'translateX(-50%)',
+                                      background: 'var(--accent)', color: '#fff', fontSize: 8.5, fontWeight: 800,
+                                      letterSpacing: .6, padding: '1px 5px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+                          HOY
+                        </div>
+                      )}
+                      {esLunes && !esHoyDia && <div style={{ fontSize: 9, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</div>}
+                      <div style={{ fontSize: 9, fontWeight: esHoyDia ? 800 : 400,
+                                    color: esHoyDia ? 'var(--accent)' : franco ? '#4a4a58' : 'var(--muted2, #4a4a58)' }}>
+                        {DIA_LETRA[d.getDay()]}{d.getDate()}
+                      </div>
                     </div>
                   );
                 })}
@@ -1575,7 +1608,13 @@ export default function Gantt() {
 
               {/* Línea de hoy */}
               {hoy >= fechaMin && hoy <= fechaMax && (
-                <div style={{ position: 'absolute', left: diasEntre(fechaMin, hoy) * PX_DIA + PX_DIA / 2, top: 0, bottom: 0, width: 2, background: '#6ee7b7', opacity: .5, pointerEvents: 'none', zIndex: 5 }} />
+                <>
+                  {/* La columna de hoy, pintada de arriba abajo. */}
+                  <div style={{ position: 'absolute', left: diasEntre(fechaMin, hoy) * PX_DIA, top: 50, bottom: 0,
+                                width: PX_DIA, background: 'rgba(16,185,129,.10)', pointerEvents: 'none', zIndex: 1 }} />
+                  <div style={{ position: 'absolute', left: diasEntre(fechaMin, hoy) * PX_DIA + PX_DIA / 2 - 1, top: 0, bottom: 0,
+                                width: 2, background: 'var(--accent)', opacity: .85, pointerEvents: 'none', zIndex: 7 }} />
+                </>
               )}
             </div>
           </div>

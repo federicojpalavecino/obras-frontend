@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMenu, getClientes, crearCliente, crearPresupuesto, duplicarPresupuesto, actualizarPresupuesto } from '../api';
 import api from '../api';
-import { Plus, Copy, FolderOpen, Lock, User, Package, BarChart2, Edit2, Trash2, X, Check, Menu as MenuIcon, Wrench } from 'lucide-react';
+import { Plus, Copy, FolderOpen, Lock, User, Package, BarChart2, Edit2, Trash2, X, Check, Menu as MenuIcon, Wrench, Search } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 
 const fmt = (n) => n ? '$ ' + Math.round(n).toLocaleString('es-AR') : '$ 0';
@@ -23,6 +23,23 @@ export default function Menu() {
   const [formPresupuesto, setFormPresupuesto] = useState({ nombre_obra: '', ubicacion: '', cliente_id: '', proyecto_id: '', tipo: 'obra' });
   const [proyectosCliente, setProyectosCliente] = useState([]);
   const [menuMobileOpen, setMenuMobileOpen] = useState(false);
+
+  // La lista se acomodaba sola por fecha y un cliente viejo se hundía sin
+  // manera de traerlo arriba. Ahora se busca, se elige el orden, y se puede
+  // fijar arriba a los que se están trabajando.
+  const [busca, setBusca] = useState('');
+  const [orden, setOrden] = useState(() => localStorage.getItem('obras_menu_orden') || 'reciente');
+  const [fijados, setFijados] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('obras_menu_fijados') || '[]'); } catch (e) { return []; }
+  });
+  const cambiarOrden = (o) => { setOrden(o); localStorage.setItem('obras_menu_orden', o); };
+  const fijar = (cid) => {
+    setFijados(prev => {
+      const n = prev.includes(cid) ? prev.filter(x => x !== cid) : [...prev, cid];
+      localStorage.setItem('obras_menu_fijados', JSON.stringify(n));
+      return n;
+    });
+  };
 
   useEffect(() => { cargar(); }, []);
 
@@ -61,6 +78,32 @@ export default function Menu() {
     } catch (e) { console.error(e); }
     setLoading(false);
   };
+
+  // Lo que se ve: filtrado por lo que se escribió y ordenado como se pidió.
+  // Los fijados van siempre arriba, en el orden en que se fijaron.
+  const q = busca.trim().toLowerCase();
+  const menuVisible = menu
+    .map(c => {
+      if (!q) return c;
+      const clienteCoincide = (c.nombre || '').toLowerCase().includes(q) ||
+                              (c.email || '').toLowerCase().includes(q);
+      const presups = (c.presupuestos || []).filter(p =>
+        (p.nombre_obra || '').toLowerCase().includes(q) ||
+        (p.ubicacion || '').toLowerCase().includes(q));
+      // Si el que coincide es el cliente, se muestran todas sus obras.
+      if (clienteCoincide) return c;
+      return presups.length ? { ...c, presupuestos: presups } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      const fa = fijados.indexOf(a.id), fb = fijados.indexOf(b.id);
+      if (fa !== fb) return (fa === -1 ? 1e9 : fa) - (fb === -1 ? 1e9 : fb);
+      if (orden === 'nombre') return (a.nombre || '').localeCompare(b.nombre || '', 'es');
+      if (orden === 'cantidad') return (b.presupuestos?.length || 0) - (a.presupuestos?.length || 0);
+      const af = a.presupuestos?.[0]?.created_at ? new Date(a.presupuestos[0].created_at).getTime() : 0;
+      const bf = b.presupuestos?.[0]?.created_at ? new Date(b.presupuestos[0].created_at).getTime() : 0;
+      return bf - af;
+    });
 
   const handleCrearCliente = async () => {
     if (!formCliente.nombre) return;
@@ -204,6 +247,45 @@ export default function Menu() {
         </div>
       )}
 
+      {/* Buscar y ordenar. Con veinte clientes y cien presupuestos, sin esto
+          hay que scrollear a ciegas. */}
+      {menu.length > 0 && (
+        <div style={{ padding: '12px 12px 0', maxWidth: 900, margin: '0 auto' }}>
+          <div style={{ position: 'relative', marginBottom: 9 }}>
+            <Search size={15} color="var(--muted)"
+              style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
+            <input value={busca} onChange={e => setBusca(e.target.value)}
+              placeholder="Buscar cliente u obra…"
+              style={{ width: '100%', padding: '10px 12px 10px 34px', borderRadius: 10, fontSize: 14,
+                       border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)',
+                       fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            {busca && (
+              <button onClick={() => setBusca('')}
+                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                         background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 18 }}>×</button>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: 'var(--muted)' }}>Ordenar por</span>
+            {[['reciente', 'Lo último'], ['nombre', 'Nombre'], ['cantidad', 'Más obras']].map(([v, l]) => (
+              <button key={v} onClick={() => cambiarOrden(v)}
+                style={{ padding: '4px 11px', borderRadius: 14, fontSize: 11.5, cursor: 'pointer',
+                         fontFamily: 'inherit', fontWeight: orden === v ? 700 : 400,
+                         border: `1px solid ${orden === v ? 'var(--accent)' : 'var(--border)'}`,
+                         background: orden === v ? 'rgba(16,185,129,.12)' : 'transparent',
+                         color: orden === v ? 'var(--accent)' : 'var(--muted)' }}>
+                {l}
+              </button>
+            ))}
+            {fijados.length > 0 && (
+              <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 'auto' }}>
+                ★ {fijados.length} fijado{fijados.length !== 1 ? 's' : ''} arriba
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       <div style={{ padding: '16px 12px', maxWidth: 900, margin: '0 auto' }}>
         {menu.length === 0 ? (
           <div className="empty">
@@ -211,14 +293,25 @@ export default function Menu() {
             <p>Creá un cliente y luego un presupuesto para empezar</p>
           </div>
         ) : (
-          menu.map(cliente => (
+          menuVisible.length === 0 ? (
+            <div className="empty">
+              <h3>Nada con «{busca}»</h3>
+              <p>Probá con otra parte del nombre del cliente o de la obra</p>
+            </div>
+          ) : menuVisible.map(cliente => (
             <div key={cliente.id} className="card" style={{ marginBottom: 12 }}>
               {/* HEADER CLIENTE */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
                 onClick={() => toggleCliente(cliente.id)}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <User size={15} color="var(--muted)" />
-                </div>
+                <button onClick={e => { e.stopPropagation(); fijar(cliente.id); }}
+                  title={fijados.includes(cliente.id) ? 'Sacar de arriba' : 'Fijar arriba de todo'}
+                  style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, cursor: 'pointer',
+                           display: 'flex', alignItems: 'center', justifyContent: 'center',
+                           background: fijados.includes(cliente.id) ? 'rgba(16,185,129,.14)' : 'var(--surface2)',
+                           border: fijados.includes(cliente.id) ? '1px solid var(--accent)' : '1px solid transparent',
+                           color: fijados.includes(cliente.id) ? 'var(--accent)' : 'var(--muted)', fontSize: 14 }}>
+                  {fijados.includes(cliente.id) ? '★' : <User size={15} color="var(--muted)" />}
+                </button>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {editandoCliente === cliente.id ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} onClick={e => e.stopPropagation()}>
