@@ -626,12 +626,6 @@ export default function ControlFinanciero({ user }) {
   // backend ya entiende las cuatro imputaciones, respeta el rango de fechas y
   // traduce las filas viejas que solo guardaban el nombre.
 
-  // ── Cert-egresos: sincronizar egresos del CF como cert-egresos ────────────
-  // Los egresos del CF se vinculan automáticamente: cuando se crea un cert-egresos,
-  // el sistema lee los egresos del CF del período correspondiente al presupuesto.
-  // Aquí mostramos los egresos disponibles para vincular.
-  const egresosParaCert = week.egresos.filter(e => e.concepto && e.monto);
-
   // ── Render ────────────────────────────────────────────────────────────────
   const TabBtn = ({ id, label }) => (
     <button onClick={() => setTab(id)} style={{ padding: "10px 16px", background: "none", border: "none", borderBottom: `2px solid ${tab === id ? C.accent : "transparent"}`, color: tab === id ? C.accent : C.muted, fontWeight: tab === id ? 700 : 500, cursor: "pointer", fontSize: 13, fontFamily: "inherit", whiteSpace: "nowrap" }}>
@@ -791,12 +785,6 @@ export default function ControlFinanciero({ user }) {
                     : <button onClick={() => delEgreso(i)} style={{ padding: "5px 9px", background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>}
                 </div>
               ))}
-              {/* Indicador de egresos disponibles para cert */}
-              {egresosParaCert.length > 0 && (
-                <div style={{ fontSize: 11, color: C.accent, marginTop: 6, padding: "5px 10px", background: "#f0fdf4", borderRadius: 6, border: "1px solid #bbf7d0" }}>
-                  ✓ {egresosParaCert.length} egreso{egresosParaCert.length > 1 ? "s" : ""} disponible{egresosParaCert.length > 1 ? "s" : ""} para vincular en certificados de egresos del cotizador
-                </div>
-              )}
             </div>
 
             {/* Personal */}
