@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X } from "lucide-react";
+import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X, Package } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
+import Panol from './pages/Panol';
 import Planner from "./pages/Planner";
 import Fiscal from "./pages/Fiscal";
 import Gantt from "./cotizador/pages/Gantt";
@@ -228,6 +229,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
     { id:"cotizador", path:"/cotizador", Icon:FileText,      label:"Presupuestos y obras",  desc:"Presupuestos, obras, certificados y análisis de costos", color:C.accent2 },
     { id:"finanzas",  path:"/finanzas",  Icon:TrendingUp,    label:"Control Financiero",    desc:"Ingresos, egresos y distribución semanal",               color:C.accent },
     { id:"planner",   path:"/planner",   Icon:Calendar,      label:"Planner",               desc:"Tablero de tareas y calendario",                         color:C.warn },
+    { id:"panol",     path:"/panol",     Icon:Package,       label:"Pañol y depósito",      desc:"Herramientas, materiales y en qué obra está cada cosa",  color:C.warn },
     { id:"clientes",  path:"/clientes",  Icon:Users,         label:"Clientes y Proyectos",  desc:"Gestión de clientes, obras y contactos",                 color:C.green },
     { id:"accesos",   path:"/accesos-clientes", Icon:Lock,   label:"Accesos de clientes",   desc:"Gestionar portal de clientes",                           color:C.accent2 },
     { id:"config",    path:"/config",    Icon:Settings,      label:"Configuración",         desc:"Logo, nombre y datos del estudio",                       color:C.muted, soloAdmin:true },
@@ -291,6 +293,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
         }/>
         <Route path="/soporte" element={<PaginaSoporte />}/>
         <Route path="/finanzas/*" element={<ControlFinanciero user={user} />}/>
+        <Route path="/panol" element={<Panol />}/>
         <Route path="/cotizador" element={<Menu />}/>
         <Route path="/cotizador/presupuesto/:id" element={<Presupuesto />}/>
         <Route path="/cotizador/materiales" element={<Materiales />}/>
