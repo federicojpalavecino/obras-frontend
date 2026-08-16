@@ -181,6 +181,8 @@ export default function Gantt() {
   const [vinculos, setVinculos] = useState([]);
   const [plan, setPlan] = useState(null);          // fechas + holguras + camino crítico
   const [errorPlan, setErrorPlan] = useState('');
+  const [panelFalta, setPanelFalta] = useState(false);
+  const [planificando, setPlanificando] = useState(null);
   const [modoVincular, setModoVincular] = useState(false);
   const [predSel, setPredSel] = useState(null);    // tarea elegida como predecesora
   const [verCritico, setVerCritico] = useState(true);
@@ -551,6 +553,7 @@ export default function Gantt() {
           nombre: data.nombre,
           fecha_inicio: data.fecha_inicio,
           color: data.color,
+          item_global_id: data.item_global_id || null,
           cantidad: parseFloat(data.cantidad) || 1,
           unidad_libre: data.unidad_libre || 'un',
           costo_directo_libre: parseFloat(data.costo_directo_libre) || 0,
@@ -618,6 +621,26 @@ export default function Gantt() {
       d.setDate(d.getDate() + 1);
     }
     return Math.max(1, corridos);
+  };
+
+  // Lo que está presupuestado pero todavía no está en el plan. Incluye los
+  // ítems de los adicionales de la obra: un adicional aprobado vive en otro
+  // presupuesto y si no, no aparecería nunca en el Gantt.
+  const lineasConTarea = new Set(tareas.map(t => t.linea_id).filter(Boolean));
+  const faltaPlanificar = Object.values(estadoLineas)
+    .filter(l => !lineasConTarea.has(l.linea_id))
+    .sort((a, b) => (b.es_adicional ? 1 : 0) - (a.es_adicional ? 1 : 0));
+
+  const planificarLinea = async (l) => {
+    setPlanificando(l.linea_id);
+    try {
+      const r = await api.post(`/presupuestos/${id}/gantt/tareas/desde-linea`, { linea_id: l.linea_id });
+      await cargar();
+      showToast(`✓ «${r.data.nombre}» entró al plan · ${r.data.duracion_dias} día${r.data.duracion_dias !== 1 ? 's' : ''}`);
+    } catch (e) {
+      showToast('⚠ ' + (e.response?.data?.detail || 'No se pudo planificar'));
+    }
+    setPlanificando(null);
   };
 
   // ── CÁLCULOS DEL GANTT ──
@@ -814,6 +837,13 @@ export default function Gantt() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <div className="header-actions-desktop" style={{ gap: 8 }}>
             <button className="btn btn-secondary btn-sm" onClick={() => setEditando({})}>+ Tarea</button>
+            {faltaPlanificar.length > 0 && (
+              <button className={`btn btn-sm ${faltaPlanificar.some(l => l.es_adicional) ? 'btn-warn' : 'btn-secondary'}`}
+                onClick={() => setPanelFalta(true)}
+                title="Ítems del presupuesto y de los adicionales que todavía no están en el plan">
+                📋 Falta planificar ({faltaPlanificar.length})
+              </button>
+            )}
             {tareas.length > 1 && (
               <button className={`btn btn-sm ${modoVincular ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => { setModoVincular(m => !m); setPredSel(null); }}
@@ -1419,6 +1449,33 @@ export default function Gantt() {
               Editar nombre, fechas y color
             </button>
 
+            {(() => {
+              const antes = vinculos.filter(v => v.sucesora_id === cargarAvanceEn.id);
+              const despues = vinculos.filter(v => v.predecesora_id === cargarAvanceEn.id);
+              if (!antes.length && !despues.length) return null;
+              const nom = i => (tareas.find(t => t.id === i) || {}).nombre || 'otra tarea';
+              const fila = (v, txt) => (
+                <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
+                  <span style={{ flex: 1, minWidth: 0, color: 'var(--muted)', overflow: 'hidden',
+                                 textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{txt}</span>
+                  <button onClick={() => borrarVinculo(v.id)} title="Desvincular"
+                    style={{ flexShrink: 0, padding: '3px 9px', borderRadius: 6, cursor: 'pointer',
+                             fontFamily: 'inherit', fontSize: 11.5, background: 'transparent',
+                             border: '1px solid rgba(239,68,68,.45)', color: '#ef4444' }}>
+                    Desvincular
+                  </button>
+                </div>
+              );
+              return (
+                <div style={{ marginTop: 12, padding: '11px 13px', borderRadius: 10, fontSize: 12.5,
+                              background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontWeight: 700, marginBottom: 2 }}>Depende de / la siguen</div>
+                  {antes.map(v => fila(v, `Va después de «${nom(v.predecesora_id)}»`))}
+                  {despues.map(v => fila(v, `Antes de «${nom(v.sucesora_id)}»`))}
+                </div>
+              );
+            })()}
+
             {avisoTarea && (
               <div style={{ marginTop: 10, padding: '9px 12px', borderRadius: 9, fontSize: 12.5,
                             background: 'rgba(5,150,105,.1)', border: '1px solid rgba(5,150,105,.35)', color: 'var(--accent)' }}>
@@ -1676,6 +1733,59 @@ export default function Gantt() {
         </div>
       )}
 
+      {panelFalta && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 300,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setPanelFalta(false)}>
+          <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 22, width: 'min(520px,100%)',
+                        maxHeight: '88vh', overflowY: 'auto', border: '1px solid var(--border)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>Falta planificar</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3, marginBottom: 14, lineHeight: 1.5 }}>
+              Está presupuestado pero todavía no tiene lugar en el plan. Tocá para meterlo,
+              con las horas y la duración que le corresponden.
+            </div>
+            {faltaPlanificar.length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>Está todo planificado.</div>
+            )}
+            {faltaPlanificar.map(l => (
+              <div key={l.linea_id}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', marginBottom: 7,
+                         borderRadius: 9, background: 'var(--surface2)',
+                         border: `1px solid ${l.es_adicional ? 'rgba(251,146,60,.5)' : 'var(--border)'}` }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {l.nombre}
+                    {l.es_adicional && (
+                      <span style={{ marginLeft: 6, fontSize: 8.5, fontWeight: 800, letterSpacing: .5,
+                                     padding: '1px 4px', borderRadius: 4, verticalAlign: 'middle',
+                                     background: 'rgba(251,146,60,.18)', color: '#c2410c',
+                                     border: '1px solid rgba(251,146,60,.5)' }}>AD</span>
+                    )}
+                  </div>
+                  {l.subcontrato && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      Lo ejecuta {l.subcontrato.contratista}
+                    </div>
+                  )}
+                </div>
+                <button onClick={() => planificarLinea(l)} disabled={planificando === l.linea_id}
+                  style={{ padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                           fontSize: 12.5, fontWeight: 700, background: 'var(--accent)', border: 'none', color: '#fff' }}>
+                  {planificando === l.linea_id ? '…' : 'Al plan'}
+                </button>
+              </div>
+            ))}
+            <button onClick={() => setPanelFalta(false)}
+              style={{ marginTop: 12, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
+                       fontFamily: 'inherit', fontSize: 13, background: 'transparent',
+                       border: '1px solid var(--border)', color: 'var(--muted)' }}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
       {editando !== null && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#ffffff', borderRadius: 16, padding: 24, maxWidth: 480, width: '100%', border: '1px solid #e0e0e8', color: '#1a1a2e' }}>
@@ -1718,6 +1828,20 @@ function EditarTarea({ tarea, onSave, onDelete, presupuestoId }) {
     }
     setForm(f);
   };
+
+  // Buscador del catálogo, para que un adicional se cotice con su análisis de
+  // precio y no a ojo.
+  const [busca, setBusca] = useState('');
+  const [resultados, setResultados] = useState([]);
+  useEffect(() => {
+    if (!form.es_adicional || busca.trim().length < 3) { setResultados([]); return; }
+    const t = setTimeout(() => {
+      api.get(`/maestros/items?q=${encodeURIComponent(busca.trim())}`)
+        .then(r => setResultados((r.data || []).slice(0, 8)))
+        .catch(() => setResultados([]));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [busca, form.es_adicional]);
 
   const inpStyle = { background: '#f8f9fa', border: '1px solid #e0e0e8', borderRadius: 8, color: '#1a1a2e', padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', width: '100%', outline: 'none', boxSizing: 'border-box' };
 
@@ -1766,7 +1890,57 @@ function EditarTarea({ tarea, onSave, onDelete, presupuestoId }) {
                   Se suma al adicional en borrador de esta obra. Cuando lo quieras cobrar,
                   lo cerrás y lo mandás a aprobar como cualquier presupuesto.
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 9 }}>
+                {/* Del catalogo sale con su analisis de precio y sus horas de
+                    mano de obra: el adicional queda cotizado igual que el
+                    contrato, no a ojo. */}
+                {form.item_global_id ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 11px',
+                                borderRadius: 8, background: '#fff7ed', border: '1px solid #fdba74',
+                                marginBottom: 11 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, overflow: 'hidden',
+                                    textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{form.item_nombre}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>
+                        Del catálogo · se cotiza con su análisis de precio
+                      </div>
+                    </div>
+                    <button onClick={() => { const f = { ...form }; f.item_global_id = null; f.item_nombre = ''; setForm(f); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 18 }}>×</button>
+                  </div>
+                ) : (
+                  <div style={{ position: 'relative', marginBottom: 11 }}>
+                    <label style={lblStyle}>Buscar en el catálogo</label>
+                    <input style={inpStyle} value={busca} placeholder="mampostería, contrapiso, pintura…"
+                      onChange={e => setBusca(e.target.value)} />
+                    {resultados.length > 0 && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 5,
+                                    maxHeight: 190, overflowY: 'auto', background: '#fff',
+                                    border: '1px solid #e0e0e8', borderRadius: 8, marginTop: 3,
+                                    boxShadow: '0 6px 18px rgba(0,0,0,.12)' }}>
+                        {resultados.map(it => (
+                          <div key={it.id} onClick={() => {
+                              const f = { ...form, item_global_id: it.id, item_nombre: it.nombre,
+                                          unidad_libre: it.unidad_ejecucion || 'un' };
+                              if (!f.nombre) f.nombre = it.nombre;
+                              setForm(f); setBusca(''); setResultados([]);
+                            }}
+                            style={{ padding: '8px 11px', cursor: 'pointer', fontSize: 12.5,
+                                     borderBottom: '1px solid #f1f3f5' }}>
+                            <div style={{ fontWeight: 600 }}>{it.nombre}</div>
+                            <div style={{ fontSize: 10.5, color: '#6b7280' }}>
+                              {it.codigo} · {it.unidad_ejecucion} · {it.categoria_nombre}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 5 }}>
+                      O dejalo vacío y cargalo a mano acá abajo.
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: form.item_global_id ? '1fr 1fr' : '1fr 1fr 1.4fr', gap: 9 }}>
                   <div>
                     <label style={lblStyle}>Cantidad</label>
                     <input style={inpStyle} type="number" min="0" step="any" value={form.cantidad ?? 1}
@@ -1774,24 +1948,28 @@ function EditarTarea({ tarea, onSave, onDelete, presupuestoId }) {
                   </div>
                   <div>
                     <label style={lblStyle}>Unidad</label>
-                    <input style={inpStyle} value={form.unidad_libre ?? 'un'} placeholder="m2, un, gl"
+                    <input style={{ ...inpStyle, opacity: form.item_global_id ? .55 : 1 }}
+                      disabled={!!form.item_global_id}
+                      value={form.unidad_libre ?? 'un'} placeholder="m2, un, gl"
                       onChange={e => upd('unidad_libre', e.target.value)} />
                   </div>
-                  <div>
+                  {!form.item_global_id && <div>
                     <label style={lblStyle}>Costo por unidad</label>
                     <input style={{ ...inpStyle, opacity: form.sin_precio ? .45 : 1 }} type="number" min="0" step="any"
                       disabled={form.sin_precio} value={form.sin_precio ? '' : (form.costo_directo_libre ?? '')}
                       onChange={e => upd('costo_directo_libre', e.target.value)} />
-                  </div>
+                  </div>}
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                {!form.item_global_id && <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
                                 fontSize: 12, color: '#6b7280', marginTop: 10 }}>
                   <input type="checkbox" checked={!!form.sin_precio}
                     onChange={e => upd('sin_precio', e.target.checked)} />
                   Todavía no sé cuánto — lo valorizo después
-                </label>
+                </label>}
                 <div style={{ fontSize: 11, color: '#6b7280', marginTop: 7 }}>
-                  El costo va sin gastos generales, beneficio ni IVA: se le aplican los mismos de la obra.
+                  {form.item_global_id
+                    ? 'La duración sale de las horas de mano de obra del análisis del ítem.'
+                    : 'El costo va sin gastos generales, beneficio ni IVA: se le aplican los mismos de la obra.'}
                 </div>
               </>
             )}
