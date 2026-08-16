@@ -96,6 +96,7 @@ export default function Gantt() {
         { suspender: parar, motivo });
       const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
       setTareas(t.data);
+      await refrescarPlan();
       setFormSuspender(null);
       setCargarAvanceEn(t.data.find(x => x.id === tarea.id) || null);
       setAvisoTarea(parar ? "Tarea suspendida." :
@@ -116,6 +117,7 @@ export default function Gantt() {
         { pct_hecho: n, fecha_reanuda: fecha });
       const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
       setTareas(t.data);
+      await refrescarPlan();
       setFormPartir(null);
       setCargarAvanceEn(t.data.find(x => x.id === tarea.id) || null);
       setAvisoTarea(`Partida: ${r.data.dias_hecho} día(s) ahora y ${r.data.dias_resto} desde el ${fmtFechaLarga(fecha)}.`);
@@ -131,6 +133,7 @@ export default function Gantt() {
         { mover_tramo: idx, fecha });
       const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
       setTareas(t.data);
+      await refrescarPlan();
       setCargarAvanceEn(t.data.find(x => x.id === tarea.id) || null);
       setAvisoTarea(`Se retoma el ${fmtFechaLarga(fecha)}.`);
     } catch (e) { setAvisoTarea(e.response?.data?.detail || "No se pudo mover"); }
@@ -141,6 +144,7 @@ export default function Gantt() {
       await api.post(`/presupuestos/${id}/gantt/tareas/${tarea.id}/dividir`, { unir: true });
       const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
       setTareas(t.data);
+      await refrescarPlan();
       setCargarAvanceEn(t.data.find(x => x.id === tarea.id) || null);
       setAvisoTarea("La tarea vuelve a ir de corrido.");
     } catch (e) { setAvisoTarea(e.response?.data?.detail || "No se pudo"); }
@@ -1163,9 +1167,14 @@ export default function Gantt() {
                     // de los días en que no se trabajó y una línea punteada que
                     // los une para que se lea como la misma tarea.
                     const tramos = Array.isArray(t.tramos) && t.tramos.length > 1 ? t.tramos : null;
+                    // Si una dependencia corrió la tarea, el plan manda: los
+                    // tramos se mueven todos juntos, manteniendo los huecos.
+                    // Si no, la barra queda dibujada en un lado y la flecha
+                    // apuntando a otro.
+                    const desfase = tramos ? diasEntre(tramos[0].inicio, t.fecha_inicio) : 0;
                     const segs = tramos
                       ? tramos.map(tr => ({
-                          left: diasEntre(fechaMin, tr.inicio) * PX_DIA,
+                          left: (diasEntre(fechaMin, tr.inicio) + desfase) * PX_DIA,
                           width: diasCalendarioDeTramo(tr) * PX_DIA - 2,
                         }))
                       : [{ left, width }];
