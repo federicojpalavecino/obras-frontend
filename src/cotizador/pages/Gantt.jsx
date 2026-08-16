@@ -122,6 +122,20 @@ export default function Gantt() {
     } catch (e) { setAvisoTarea(e.response?.data?.detail || "No se pudo partir"); }
   };
 
+  // Correr la fecha en que se retoma: es lo unico de una tarea partida que se
+  // toca seguido, porque la obra se destraba antes o despues de lo previsto.
+  const moverTramo = async (tarea, idx, fecha) => {
+    if (!fecha) return;
+    try {
+      await api.post(`/presupuestos/${id}/gantt/tareas/${tarea.id}/dividir`,
+        { mover_tramo: idx, fecha });
+      const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
+      setTareas(t.data);
+      setCargarAvanceEn(t.data.find(x => x.id === tarea.id) || null);
+      setAvisoTarea(`Se retoma el ${fmtFechaLarga(fecha)}.`);
+    } catch (e) { setAvisoTarea(e.response?.data?.detail || "No se pudo mover"); }
+  };
+
   const unirTarea = async (tarea) => {
     try {
       await api.post(`/presupuestos/${id}/gantt/tareas/${tarea.id}/dividir`, { unir: true });
@@ -1392,10 +1406,23 @@ export default function Gantt() {
               ) : cargarAvanceEn.tramos?.length > 1 ? (
                 <div style={{ marginTop: 10, padding: '11px 13px', borderRadius: 10, fontSize: 12.5,
                               background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-                  <div style={{ fontWeight: 700, marginBottom: 5 }}>Se hace en {cargarAvanceEn.tramos.length} partes</div>
+                  <div style={{ fontWeight: 700, marginBottom: 7 }}>Se hace en {cargarAvanceEn.tramos.length} partes</div>
                   {cargarAvanceEn.tramos.map((tr, i) => (
-                    <div key={i} style={{ color: 'var(--muted)', lineHeight: 1.7 }}>
-                      {i + 1}ª · desde el {fmtFechaLarga(tr.inicio)} · {tr.dias} día{tr.dias !== 1 ? 's' : ''}
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <span style={{ color: 'var(--muted)', flexShrink: 0 }}>
+                        {i + 1}ª · {tr.dias} día{tr.dias !== 1 ? 's' : ''}
+                      </span>
+                      {i === 0 ? (
+                        <span style={{ color: 'var(--muted)' }}>desde el {fmtFechaLarga(tr.inicio)}</span>
+                      ) : (
+                        // La fecha de retomar se edita acá nomás: es la que da
+                        // el juego para reacomodar el plan.
+                        <input type="date" defaultValue={tr.inicio} key={tr.inicio}
+                          onChange={e => moverTramo(cargarAvanceEn, i, e.target.value)}
+                          title="Cambiar la fecha en que se retoma"
+                          style={{ flex: 1, padding: '6px 9px', border: '1px solid var(--accent)', borderRadius: 7,
+                                   background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12.5 }} />
+                      )}
                     </div>
                   ))}
                   <button onClick={() => unirTarea(cargarAvanceEn)}
