@@ -119,8 +119,9 @@ export default function Gantt() {
       setTareas(t.data);
       await refrescarPlan();
       setFormPartir(null);
-      setCargarAvanceEn(t.data.find(x => x.id === tarea.id) || null);
-      setAvisoTarea(`Partida: ${r.data.dias_hecho} día(s) ahora y ${r.data.dias_resto} desde el ${fmtFechaLarga(fecha)}.`);
+      setAvisoTarea('');
+      setCargarAvanceEn(null);
+      showToast(`✂ Partida: ${r.data.dias_hecho} día(s) ahora y ${r.data.dias_resto} desde el ${fmtFechaLarga(fecha)}`);
     } catch (e) { setAvisoTarea(e.response?.data?.detail || "No se pudo partir"); }
   };
 
@@ -1081,6 +1082,12 @@ export default function Gantt() {
                     {t.nombre}
                     {/* Arrastrar la barra fija la tarea. El chinche la suelta
                         y la devuelve al mando de sus dependencias. */}
+                    {t.tramos?.length > 1 && (
+                      <span title={`Se hace en ${t.tramos.length} partes`}
+                        style={{ marginLeft: 5, fontSize: 9.5, color: 'var(--muted)' }}>
+                        ✂ {t.tramos.length} partes
+                      </span>
+                    )}
                     {t.es_adicional && (
                       <span title="Adicional — no estaba en el contrato original"
                         style={{ marginLeft: 5, fontSize: 8.5, fontWeight: 800, letterSpacing: .5,
