@@ -261,7 +261,14 @@ export default function Gantt() {
       const v = await api.get(`/presupuestos/${id}/gantt/vinculos`);
       setVinculos(v.data || []);
       await refrescarPlan();
-      showToast('✓ Tareas vinculadas');
+      // Una tarea fijada con el chinche no se pega a su predecesora: el
+      // vínculo queda hecho pero no mueve nada, y parece que falló.
+      const suc = tareas.find(x => x.id === sucId);
+      if (suc?.no_antes_de) {
+        showToast(`✓ Vinculadas · «${suc.nombre}» está fijada 📌 — soltala para que se acomode sola`);
+      } else {
+        showToast('✓ Tareas vinculadas');
+      }
     } catch (e) {
       showToast('⚠ ' + (e.response?.data?.detail || 'No se pudo vincular'));
     }
@@ -505,14 +512,27 @@ export default function Gantt() {
     }
   };
 
+  // Regenerar rehace el Gantt desde el presupuesto: borra las tareas y con
+  // ellas los vínculos, las tareas partidas y las fechas movidas a mano. Por
+  // eso pregunta una vez antes, en el mismo botón.
+  const [confirmarRegenerar, setConfirmarRegenerar] = useState(false);
   const generarDesdePresupuesto = async () => {
+    if (!confirmarRegenerar && tareas.length) {
+      setConfirmarRegenerar(true);
+      showToast('⚠ Rehace el plan desde cero: se pierden los vínculos y las fechas movidas a mano. Tocá otra vez para confirmar.');
+      setTimeout(() => setConfirmarRegenerar(false), 6000);
+      return;
+    }
+    setConfirmarRegenerar(false);
     setGenerando(true);
     try {
-      await api.post(`/presupuestos/${id}/gantt/generar`);
+      const r = await api.post(`/presupuestos/${id}/gantt/generar`);
       await cargar();
-      showToast('✓ Tareas generadas');
+      const nv = r.data?.vinculos_borrados || 0;
+      showToast(`✓ ${r.data?.tareas_generadas || 0} tareas generadas` +
+                (nv ? ` · se borraron ${nv} vínculo${nv !== 1 ? 's' : ''}` : ''));
     } catch(e) {
-      alert('Error al generar: ' + (e.response?.data?.detail || e.message));
+      showToast('⚠ No se pudo regenerar: ' + (e.response?.data?.detail || e.message));
     }
     setGenerando(false);
   };
@@ -808,7 +828,7 @@ export default function Gantt() {
             )}
             {tareas.length > 0 && (
               <button className="btn btn-warn btn-sm" onClick={generarDesdePresupuesto} disabled={generando}>
-                {generando ? '...' : '↺ Regenerar'}
+                {generando ? '...' : confirmarRegenerar ? '¿Seguro?' : '↺ Regenerar'}
               </button>
             )}
             {tareas.length > 0 && (
