@@ -141,7 +141,7 @@ export default function ManoObra() {
         <div className="mo-layout" style={{ display: 'flex', gap: 24, padding: 24 }}>
 
           {/* PANEL CARGAS SOCIALES */}
-          <div className="mo-panel-cs" style={{ width: 300, flexShrink: 0 }}>
+          <div className="mo-panel-cs" style={{ width: 300, flexShrink: 0, maxWidth: "100%" }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)', marginBottom: 12 }}>
               1) Cargas sociales
             </div>

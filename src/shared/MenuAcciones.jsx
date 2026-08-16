@@ -34,7 +34,10 @@ export default function MenuAcciones({ acciones = [], C = {}, label = "Acciones"
       </button>
       {open && (
         <div style={{ position: "fixed", inset: 0, zIndex: 998, background: "rgba(0,0,0,0.3)" }} onClick={() => setOpen(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: col.surface, borderRadius: "16px 16px 0 0", padding: "16px 16px 32px", boxShadow: "0 -4px 24px rgba(0,0,0,0.15)" }}>
+          <div onClick={e => e.stopPropagation()} style={{ position: "absolute", bottom: 0, left: 0, right: 0,
+                        background: col.surface, borderRadius: "16px 16px 0 0", padding: "16px 16px 32px",
+                        maxHeight: "85dvh", overflowY: "auto", WebkitOverflowScrolling: "touch",
+                        boxShadow: "0 -4px 24px rgba(0,0,0,0.15)" }}>
             <div style={{ width: 40, height: 4, background: col.border2, borderRadius: 2, margin: "0 auto 16px" }} />
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {acciones.map((a, i) => (

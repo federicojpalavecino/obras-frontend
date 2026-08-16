@@ -114,7 +114,8 @@ function ModalNegro({ onSave, onClose }) {
   const [form, setForm] = useState({ tipo: "ingreso", concepto: "", monto: "", fecha: today() });
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: C.surface, borderRadius: 16, padding: 24, maxWidth: 400, width: "100%", border: `1px solid ${C.border2}` }}>
+      <div style={{ background: C.surface, borderRadius: 16, padding: 24, maxWidth: 400, width: "100%",
+                    maxHeight: "90dvh", overflowY: "auto", border: `1px solid ${C.border2}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
           <div style={{ fontSize: 17, fontWeight: 700 }}>Movimiento sin facturar</div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: C.muted }}>×</button>

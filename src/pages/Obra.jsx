@@ -103,6 +103,45 @@ export default function Obra() {
   // usan y no vale la pena demorar la pantalla por eso.
   const [panolObra, setPanolObra] = useState({ en_obra: [], devueltas: [] });
   const [stockObra, setStockObra] = useState([]);
+  // Para poder pedir desde acá hace falta saber qué hay libre del otro lado.
+  const [panolLibre, setPanolLibre] = useState([]);
+  const [stockLibre, setStockLibre] = useState([]);
+  const [pedir, setPedir] = useState(null);   // { tipo:'herramienta'|'material', item, cantidad }
+
+  // Las dos puntas leen lo mismo, así que después de mover algo hay que
+  // refrescar las cuatro listas o una de las dos queda mintiendo.
+  const refrescarPanol = async () => {
+    const [a, b, c, d] = await Promise.all([
+      api.get(`/presupuestos/${id}/panol`).then(r => r.data).catch(() => null),
+      api.get(`/presupuestos/${id}/stock`).then(r => r.data).catch(() => null),
+      api.get(`/panol/herramientas`).then(r => r.data?.herramientas).catch(() => null),
+      api.get(`/stock`).then(r => r.data?.items).catch(() => null),
+    ]);
+    if (a) setPanolObra(a);
+    if (b) setStockObra(b);
+    if (c) setPanolLibre(c);
+    if (d) setStockLibre(d);
+  };
+
+  const confirmarPedido = async () => {
+    const q = parseFloat(String(pedir.cantidad).replace(",", "."));
+    if (!(q > 0)) { showToast("⚠ Poné la cantidad"); return; }
+    try {
+      if (pedir.tipo === "herramienta") {
+        await api.post(`/panol/herramientas/${pedir.item.id}/asignar`, {
+          presupuesto_id: parseInt(id), cantidad: q, desde: today(),
+        });
+        showToast(`✓ ${q} ${pedir.item.nombre} salieron del pañol para esta obra`);
+      } else {
+        await api.post(`/stock/${pedir.item.id}/movimientos`, {
+          tipo: "retiro", cantidad: q, presupuesto_id: parseInt(id), fecha: today(),
+        });
+        showToast(`✓ Se retiraron ${q} ${pedir.item.unidad} de ${pedir.item.nombre}`);
+      }
+      setPedir(null);
+      refrescarPanol();
+    } catch (e) { showToast("⚠ " + (e.response?.data?.detail || "No se pudo")); }
+  };
   const [showVincularCobro, setShowVincularCobro] = useState(null); // cert id
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
@@ -127,6 +166,8 @@ export default function Obra() {
       setCertificados(certsData);
       api.get(`/presupuestos/${id}/panol`).then(r => setPanolObra(r.data)).catch(() => {});
       api.get(`/presupuestos/${id}/stock`).then(r => setStockObra(r.data || [])).catch(() => {});
+      api.get(`/panol/herramientas`).then(r => setPanolLibre(r.data?.herramientas || [])).catch(() => {});
+      api.get(`/stock`).then(r => setStockLibre(r.data?.items || [])).catch(() => {});
 
       // Cuenta corriente
       const cc = await api.get(`/presupuestos/${id}/cuenta-corriente`).then(r => r.data);
@@ -601,7 +642,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
           </select>
         </div>
       ) : (
-        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex" }}>
+        <div className="tabs-scroll" style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex" }}>
           <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", width: "100%" }}>
             <TabBtn id="resumen" label="Resumen" />
             <TabBtn id="contrato" label="Contrato" />
@@ -1330,8 +1371,18 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                          color: C.accent, font: "inherit", textDecoration: "underline" }}>Pañol y depósito</button>.
             </div>
 
-            <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: .6,
-                          color: C.muted, marginBottom: 8 }}>Herramientas acá</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: .6,
+                            color: C.muted }}>Herramientas acá</div>
+              {panolLibre.some(h => h.disponible > 0) && (
+                <button onClick={() => setPedir({ tipo: "herramienta", item: null, cantidad: 1 })}
+                  style={{ marginLeft: "auto", padding: "6px 13px", borderRadius: 8, cursor: "pointer",
+                           font: "inherit", fontSize: 12.5, fontWeight: 700,
+                           background: C.accent, border: "none", color: "#fff" }}>
+                  + Pedir del pañol
+                </button>
+              )}
+            </div>
             {panolObra.en_obra.length === 0 ? (
               <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
                 Ninguna herramienta del pañol está asignada a esta obra.
@@ -1353,8 +1404,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 <button onClick={async () => {
                     try {
                       await api.post(`/panol/asignaciones/${h.asignacion_id}/devolver`, { hasta: today() });
-                      const r = await api.get(`/presupuestos/${id}/panol`);
-                      setPanolObra(r.data);
+                      await refrescarPanol();
                       showToast("✓ Volvió al pañol");
                     } catch (e) { showToast("⚠ No se pudo"); }
                   }}
@@ -1364,8 +1414,18 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               </div>
             ))}
 
-            <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: .6,
-                          color: C.muted, margin: "20px 0 8px" }}>Material que se llevó del depósito</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0 8px" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: .6,
+                            color: C.muted }}>Material que se llevó del depósito</div>
+              {stockLibre.some(m => m.disponible > 0) && (
+                <button onClick={() => setPedir({ tipo: "material", item: null, cantidad: "" })}
+                  style={{ marginLeft: "auto", padding: "6px 13px", borderRadius: 8, cursor: "pointer",
+                           font: "inherit", fontSize: 12.5, fontWeight: 700,
+                           background: C.accent, border: "none", color: "#fff" }}>
+                  + Retirar del depósito
+                </button>
+              )}
+            </div>
             {stockObra.length === 0 ? (
               <div style={{ fontSize: 13, color: C.muted }}>
                 Esta obra todavía no retiró material del depósito.
@@ -1543,6 +1603,76 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
 
         {/* ── TAB CERTIFICADOS ── */}
       </div>
+
+      {pedir && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", zIndex: 520,
+                      display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+          onClick={() => setPedir(null)}>
+          <div style={{ background: C.surface, borderRadius: "16px 16px 0 0", padding: "20px 18px 26px",
+                        width: "min(520px,100%)", maxHeight: "90dvh", overflowY: "auto" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>
+              {pedir.tipo === "herramienta" ? "Traer una herramienta a la obra" : "Retirar material del depósito"}
+            </div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 3, marginBottom: 14, lineHeight: 1.5 }}>
+              Sale del {pedir.tipo === "herramienta" ? "pañol" : "depósito"} y queda anotado acá.
+              Es lo mismo que hacerlo desde Pañol y depósito: son los dos lados de la misma cuenta.
+            </div>
+
+            {!pedir.item ? (
+              <>
+                {(pedir.tipo === "herramienta"
+                  ? panolLibre.filter(h => h.disponible > 0)
+                  : stockLibre.filter(m => m.disponible > 0)
+                ).map(x => (
+                  <button key={x.id} onClick={() => setPedir(p => ({ ...p, item: x, cantidad: p.tipo === "herramienta" ? 1 : "" }))}
+                    style={{ width: "100%", textAlign: "left", display: "flex", justifyContent: "space-between",
+                             alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 6, cursor: "pointer",
+                             font: "inherit", borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface2 }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 600 }}>{x.nombre}</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12.5, color: C.accent, flexShrink: 0 }}>
+                      {x.disponible} {x.unidad} libre{x.disponible !== 1 ? "s" : ""}
+                    </span>
+                  </button>
+                ))}
+              </>
+            ) : (
+              <>
+                <div style={{ padding: "10px 12px", borderRadius: 9, marginBottom: 14,
+                              background: "rgba(5,150,105,.08)", border: `1px solid ${C.accent}` }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{pedir.item.nombre}</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>
+                    Quedan {pedir.item.disponible} {pedir.item.unidad}
+                  </div>
+                </div>
+                <label style={{ fontSize: 11, color: C.muted, display: "block", marginBottom: 4 }}>Cuánto</label>
+                <input type="number" inputMode="decimal" autoFocus value={pedir.cantidad}
+                  onChange={e => setPedir(p => ({ ...p, cantidad: e.target.value }))}
+                  style={{ ...inp, fontFamily: "'IBM Plex Mono',monospace", fontSize: 18, textAlign: "right" }} />
+                <div style={{ display: "flex", gap: 9, marginTop: 16 }}>
+                  <button onClick={() => setPedir(p => ({ ...p, item: null }))}
+                    style={{ flex: 1, padding: "12px 0", borderRadius: 10, cursor: "pointer", font: "inherit",
+                             fontSize: 14, background: "transparent", border: `1px solid ${C.border}`, color: C.muted }}>
+                    Elegir otro
+                  </button>
+                  <button onClick={confirmarPedido}
+                    style={{ flex: 1.6, padding: "12px 0", borderRadius: 10, cursor: "pointer", font: "inherit",
+                             fontSize: 14, fontWeight: 700, background: C.accent, border: "none", color: "#fff" }}>
+                    {pedir.tipo === "herramienta" ? "Traer a la obra" : "Retirar"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {!pedir.item && (
+              <button onClick={() => setPedir(null)}
+                style={{ width: "100%", marginTop: 8, padding: "11px 0", borderRadius: 10, cursor: "pointer",
+                         font: "inherit", fontSize: 13.5, background: "transparent",
+                         border: `1px solid ${C.border}`, color: C.muted }}>Cerrar</button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── MODAL COBRO ── */}
       {showCobro && (

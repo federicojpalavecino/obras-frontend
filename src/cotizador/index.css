@@ -668,3 +668,55 @@ html, body {
     display: none;
   }
 }
+
+/* ═══════════════════════════════════════
+   CELULAR — TODOS LOS MÓDULOS
+   ═══════════════════════════════════════ */
+
+/* Cualquier tabla ancha —control financiero, certificados, materiales, mano
+   de obra, maquinaria, análisis— scrollea adentro de su caja en vez de
+   empujar la página entera de costado. Se aplica al padre directo, para no
+   romper las tablas que ya se convirtieron en fichas. */
+@media (max-width: 900px) {
+  table:not(.tabla-presupuesto) {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    white-space: nowrap;
+  }
+  /* Los encabezados de tabla, más chicos: en el celular ocupaban dos
+     renglones cada uno y la tabla no arrancaba nunca. */
+  table th {
+    font-size: 10px !important;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+  table td {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+}
+
+/* Las barras de pestañas con muchas opciones —gestión de obra tiene ocho—
+   scrollean de costado en vez de amontonarse en tres renglones. */
+@media (max-width: 900px) {
+  .tabs-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs-scroll::-webkit-scrollbar { display: none; }
+}
+
+/* Un encabezado de página con el título gigante se come media pantalla. */
+@media (max-width: 640px) {
+  h1 { font-size: 22px !important; }
+  h2 { font-size: 18px !important; }
+}
+
+/* Los botones flotantes de abajo a la derecha tapaban el último renglón de
+   toda lista larga. Se les deja lugar. */
+@media (max-width: 900px) {
+  .con-boton-flotante { padding-bottom: 92px !important; }
+}
