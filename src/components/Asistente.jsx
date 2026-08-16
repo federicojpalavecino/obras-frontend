@@ -1401,12 +1401,27 @@ export default function Asistente() {
   // Mensaje de bienvenida al abrir por primera vez
   useEffect(() => {
     if (open && msgs.length === 0) {
-      setMsgs([{
+      const inicial = [{
         from: "bot",
         titulo: "¡Hola! Soy el asistente de FAIM OBRAS 👋",
         texto: "Te ayudo con tres cosas:\n• Cómo usar el sistema, paso a paso.\n• Datos de tus obras: precios, materiales, cobros y certificados.\n• Obra y análisis de precios: rendimientos de mano de obra, costo por m², cómo se arma un análisis.\n\nProbá: \"¿cuánto tarda un oficial en un m2 de mampostería?\"",
         chips: [...(esCliente ? [] : ["cuánto tarda un oficial en un m2 de mampostería", "rendimiento de contrapiso", "cómo se arma un análisis de precio unitario", "materiales de un presupuesto"]), ...sugerencias(sec)],
-      }]);
+      }];
+
+      // Aviso de la Previsión, una sola vez por navegador. Un aviso que vuelve
+      // a aparecer cada vez que se abre el asistente deja de leerse enseguida.
+      const AVISO = "aviso_prevision_visto";
+      if (!esCliente && !localStorage.getItem(AVISO)) {
+        inicial.push({
+          from: "bot",
+          titulo: "Nuevo: la pestaña Previsión",
+          texto: "En Control Financiero agregamos Previsión: ahí ves lo que vas a cobrar y lo que vas a pagar según lo que ya tenés pactado — desembolsos, certificados, contratistas y compras. Se lee por fecha, por obra o por persona, así sabés de un vistazo quién te debe y a quién le debés.",
+          chips: ["por qué lo pendiente no suma"],
+          route: "/finanzas", routeLabel: "Ver la Previsión",
+        });
+        try { localStorage.setItem(AVISO, "1"); } catch {}
+      }
+      setMsgs(inicial);
     }
   }, [open]);
 
