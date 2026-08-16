@@ -296,12 +296,6 @@ export default function ControlFinanciero({ user }) {
       return s?.user?.nombre || s?.user?.email || user?.nombre || user?.email || "";
     } catch { return user?.nombre || ""; }
   })();
-  const [showImportCert, setShowImportCert] = useState(false);
-  const [importCertTab, setImportCertTab] = useState("items");
-  const [certDisponibles, setCertDisponibles] = useState([]);
-  const [certEgresosDisponibles, setCertEgresosDisponibles] = useState([]);
-  const [loadingCerts, setLoadingCerts] = useState(false);
-  const [certFiltro, setCertFiltro] = useState("");
   const [resumenObraFiltro, setResumenObraFiltro] = useState("");
   const tenant = getTenant();
 
@@ -398,29 +392,6 @@ export default function ControlFinanciero({ user }) {
     saveConfig({ ...config, honorarios: hs });
   };
 
-  // ── Importar certificado como ingreso ─────────────────────────────────────
-  const abrirImportCert = async () => {
-    setCertFiltro(""); setLoadingCerts(true); setShowImportCert(true); setImportCertTab("items");
-    const [r1, r2] = await Promise.all([
-      api.get('/certificados/todos').then(r => r.data).catch(() => []),
-      api.get('/cf/cert-egresos/todos').then(r => r.data).catch(() => []),
-    ]);
-    setCertDisponibles(Array.isArray(r1) ? r1 : []);
-    setCertEgresosDisponibles(Array.isArray(r2) ? r2 : []);
-    setLoadingCerts(false);
-  };
-
-  const importarCert = (cert) => {
-    const nw = { ...week, ingresos: [...week.ingresos, { concepto: `Certificado Nº ${cert.numero} — ${cert.obra || ""}`, monto: String(Math.round(cert.total_periodo || 0)), estado: "PENDIENTE", obra: cert.obra || "", cliente: cert.cliente || "" }] };
-    setWeek(nw); programarGuardado(nw, 300); setShowImportCert(false);
-  };
-
-  const importarCertEgresos = (ce) => {
-    const label = ce.certificado_num ? ` — Cert. Nº ${ce.certificado_num}` : "";
-    const nw = { ...week, ingresos: [...week.ingresos, { concepto: `Egresos certificados${label} — ${ce.obra || ""}`, monto: String(Math.round(ce.total || 0)), estado: "PENDIENTE", obra: ce.obra || "" }] };
-    setWeek(nw); programarGuardado(nw, 300); setShowImportCert(false);
-  };
-
   // ── CRUD rows ─────────────────────────────────────────────────────────────
   // El resumen se recalcula cuando cambia el periodo elegido. Va contra el
   // backend y no filtrando en memoria porque el corte tiene que ser el mismo
@@ -433,6 +404,25 @@ export default function ControlFinanciero({ user }) {
     api.get(`/cf/resumen${q.length ? '?' + q.join('&') : ''}`)
       .then(r => setResumenImp(r.data)).catch(() => {});
   }, [rango.desde, rango.hasta]);
+
+  // Cobrar o pagar sin salir de aca: es el mismo movimiento que se hace desde
+  // la obra, solo cambia desde donde se dispara. Al volver, la fila ya no esta.
+  const [saldando, setSaldando] = useState(null);
+  const saldarFila = async (f) => {
+    const que = f.tipo === "entra" ? "Cobrar" : "Pagar";
+    if (!window.confirm(`${que} ${fmt(f.monto)} — ${f.concepto}?`)) return;
+    setSaldando(`${f.origen}-${f.origen_id}`);
+    try {
+      await api.post('/cf/prevision/saldar', {
+        origen: f.origen, origen_id: f.origen_id, monto: f.monto,
+        presupuesto_id: f.presupuesto_id, fecha: new Date().toISOString().slice(0, 10),
+      });
+      showToast(f.tipo === "entra" ? "✓ Cobrado · ya está en el período" : "✓ Pagado · ya está en el período");
+      const r = await api.get('/cf/prevision'); setPrevision(r.data);
+      loadPeriods();
+    } catch (e) { showToast(e.response?.data?.detail || "No se pudo registrar"); }
+    setSaldando(null);
+  };
 
   // La prevision no depende del rango del analisis: mira siempre hacia adelante.
   useEffect(() => {
@@ -663,8 +653,6 @@ export default function ControlFinanciero({ user }) {
     return { totalIng: acc.totalIng + c.totalIng, totalEg: acc.totalEg + c.totalEg, totalPersonal: acc.totalPersonal + c.totalPersonal, ganancia: acc.ganancia + c.ganancia };
   }, { totalIng: 0, totalEg: 0, totalPersonal: 0, ganancia: 0 }) : null;
 
-  const certFiltrados = certDisponibles.filter(c => !certFiltro || (c.obra || "").toLowerCase().includes(certFiltro.toLowerCase()) || String(c.numero).includes(certFiltro));
-  const certEgresosFiltrados = certEgresosDisponibles.filter(c => !certFiltro || (c.obra || "").toLowerCase().includes(certFiltro.toLowerCase()));
   const resumenObras = resumenImp?.por_imputacion || [];
   const resumenFiltrado = resumenObraFiltro ? resumenObras.filter(r => (r.ref_nombre || "").toLowerCase().includes(resumenObraFiltro.toLowerCase())) : resumenObras;
 
@@ -684,7 +672,6 @@ export default function ControlFinanciero({ user }) {
               <option value="config">Config</option>
             </select>
             <MenuAcciones C={C} label="Más" acciones={[
-              { label: "Importar certificado", icon: <FileDown size={16} strokeWidth={1.5} />, onClick: abrirImportCert },
               ...(editingId ? [{ label: "Nuevo período", onClick: nuevoPeriodo }] : []),
             ]} />
           </div>
@@ -711,9 +698,6 @@ export default function ControlFinanciero({ user }) {
           </div>
 
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 12, gap: 6 }}>
-            <button onClick={abrirImportCert} style={{ padding: "5px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 11, cursor: "pointer", fontFamily: "inherit", color: C.text, whiteSpace: "nowrap" }}>
-              <FileDown size={13} strokeWidth={1.5} style={{ marginRight: 4, verticalAlign: "middle" }} /> Importar cert.
-            </button>
             {editingId && (
               <button onClick={nuevoPeriodo} style={{ padding: "5px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
                 + Nuevo
@@ -1049,6 +1033,11 @@ export default function ControlFinanciero({ user }) {
                                 <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 600, color: col, whiteSpace: "nowrap" }}>
                                   {fmt(f.monto)}
                                 </div>
+                                <button onClick={() => saldarFila(f)} disabled={saldando === `${f.origen}-${f.origen_id}`}
+                                  style={{ padding: "4px 11px", borderRadius: 7, border: `1px solid ${col}`, background: "transparent",
+                                           color: col, fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
+                                  {saldando === `${f.origen}-${f.origen_id}` ? "…" : (tipo === "entra" ? "Cobrar" : "Pagar")}
+                                </button>
                               </div>
                             ))}
                         </div>
@@ -1098,6 +1087,13 @@ export default function ControlFinanciero({ user }) {
                                           color: f.tipo === "entra" ? C.green : C.red, whiteSpace: "nowrap" }}>
                               {f.tipo === "entra" ? "+" : "–"} {fmt(f.monto)}
                             </div>
+                            <button onClick={() => saldarFila(f)} disabled={saldando === `${f.origen}-${f.origen_id}`}
+                              style={{ padding: "4px 11px", borderRadius: 7, background: "transparent", cursor: "pointer",
+                                       border: `1px solid ${f.tipo === "entra" ? C.green : C.red}`,
+                                       color: f.tipo === "entra" ? C.green : C.red,
+                                       fontSize: 11.5, fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
+                              {saldando === `${f.origen}-${f.origen_id}` ? "…" : (f.tipo === "entra" ? "Cobrar" : "Pagar")}
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -1142,6 +1138,13 @@ export default function ControlFinanciero({ user }) {
                                           color: f.tipo === "entra" ? C.green : C.red, whiteSpace: "nowrap" }}>
                               {f.tipo === "entra" ? "+" : "–"} {fmt(f.monto)}
                             </div>
+                            <button onClick={() => saldarFila(f)} disabled={saldando === `${f.origen}-${f.origen_id}`}
+                              style={{ padding: "4px 11px", borderRadius: 7, background: "transparent", cursor: "pointer",
+                                       border: `1px solid ${f.tipo === "entra" ? C.green : C.red}`,
+                                       color: f.tipo === "entra" ? C.green : C.red,
+                                       fontSize: 11.5, fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
+                              {saldando === `${f.origen}-${f.origen_id}` ? "…" : (f.tipo === "entra" ? "Cobrar" : "Pagar")}
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -1326,55 +1329,6 @@ export default function ControlFinanciero({ user }) {
           </div>
         )}
       </div>
-
-      {/* ── MODAL IMPORTAR CERT ── */}
-      {showImportCert && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: C.surface, borderRadius: 16, padding: 24, width: "100%", maxWidth: 580, maxHeight: "80vh", overflow: "auto", border: `1px solid ${C.border}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>Importar como ingreso</div>
-              <button onClick={() => setShowImportCert(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 22 }}>×</button>
-            </div>
-            <div style={{ display: "flex", gap: 4, marginBottom: 14, background: C.surface2, borderRadius: 8, padding: 4 }}>
-              {[["items", "Certificados de avance"], ["egresos", "Cert. de egresos"]].map(([id, label]) => (
-                <button key={id} onClick={() => setImportCertTab(id)} style={{ flex: 1, padding: "7px", borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, background: importCertTab === id ? C.surface : "transparent", color: importCertTab === id ? C.text : C.muted }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            <input style={{ ...inp, width: "100%", marginBottom: 12 }} placeholder="Filtrar por obra o número..." value={certFiltro} onChange={e => setCertFiltro(e.target.value)} />
-            {loadingCerts ? (
-              <div style={{ textAlign: "center", color: C.muted, padding: 32 }}>Cargando...</div>
-            ) : importCertTab === "items" ? (
-              certFiltrados.length === 0 ? <div style={{ textAlign: "center", color: C.muted, padding: 32 }}>Sin certificados</div> :
-              certFiltrados.map(c => (
-                <div key={c.id} onClick={() => importarCert(c)} style={{ padding: "11px 14px", border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: 6, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = C.accent}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>Cert. Nº {c.numero} — {c.obra}</div>
-                    <div style={{ fontSize: 12, color: C.muted }}>{c.fecha} · Avance {parseFloat(c.avance_total_pct || 0).toFixed(1)}%</div>
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: C.accent, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(c.total_periodo)}</div>
-                </div>
-              ))
-            ) : (
-              certEgresosFiltrados.length === 0 ? <div style={{ textAlign: "center", color: C.muted, padding: 32 }}>Sin certificados de egresos</div> :
-              certEgresosFiltrados.map(c => (
-                <div key={c.id} onClick={() => importarCertEgresos(c)} style={{ padding: "11px 14px", border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: 6, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = C.accent}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{c.certificado_num ? `Cert. Nº ${c.certificado_num}` : "Sin cert."} — {c.obra || "Sin obra"}</div>
-                    <div style={{ fontSize: 12, color: C.muted }}>{c.fecha}</div>
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: C.red, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(c.total)}</div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
 
       {toast && (
         <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: C.text, color: "#fff", borderRadius: 20, padding: "10px 20px", fontSize: 13, zIndex: 999, pointerEvents: "none" }}>
