@@ -920,17 +920,32 @@ ${firma}
                     <FileText size={13} /> Cert.
                   </button>
                   )}
+                  {/* Un proyecto no tiene curva de inversión ni listado de
+                      materiales: no hay materiales que comprar ni desembolsos
+                      de obra que seguir. Lo que tiene es qué entrega y cuándo
+                      cobra. Esto estaba solo en el menú del celular y en la
+                      computadora seguían apareciendo las de obra. */}
+                  {esServicio && (
+                    <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }}
+                      onClick={() => setVerEntregables(true)} title="Qué se entrega, en qué etapa, y cobrar cada una">
+                      <Check size={13} strokeWidth={1.5} /> Entregas
+                    </button>
+                  )}
                   <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => navigate(`/cotizador/gantt/${id}`)}>
-                    <BarChart2 size={13} /> Gantt
+                    <BarChart2 size={13} /> {esServicio ? 'Plan' : 'Gantt'}
                   </button>
-                  <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => navigate(`/cotizador/presupuesto/${id}/curva`)}>
-                    <TrendingUp size={13} strokeWidth={1.5} /> Curva
-                  </button>
-                  <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={() => navigate(`/cotizador/presupuesto/${id}/materiales`)}>
-                    <Package size={13} strokeWidth={1.5} /> Mat.
-                  </button>
+                  {!esServicio && (
+                    <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => navigate(`/cotizador/presupuesto/${id}/curva`)}>
+                      <TrendingUp size={13} strokeWidth={1.5} /> Curva
+                    </button>
+                  )}
+                  {!esServicio && (
+                    <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={() => navigate(`/cotizador/presupuesto/${id}/materiales`)}>
+                      <Package size={13} strokeWidth={1.5} /> Mat.
+                    </button>
+                  )}
                   <button style={{ borderRadius: 0, borderLeft: '2px solid var(--accent)', padding: '4px 12px', background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.3)', color: 'var(--accent)', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => navigate(`/cotizador/presupuesto/${id}/obra`)}>
-                    <Building2 size={13} strokeWidth={1.5} /> Gestión de obra
+                    <Building2 size={13} strokeWidth={1.5} /> {esServicio ? 'Gestión del proyecto' : 'Gestión de obra'}
                   </button>
                 </div>
                 {/* Adicional + Reabrir */}
