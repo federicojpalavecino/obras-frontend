@@ -5,6 +5,7 @@ import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
 import Panol from './pages/Panol';
+import AvisoVersion from './components/AvisoVersion';
 import Personal from './pages/Personal';
 import Planner from "./pages/Planner";
 import Fiscal from "./pages/Fiscal";
@@ -704,6 +705,9 @@ export default function App() {
       <ErrorBoundary>
         <AppInner user={user} tenant={tenant} onLogout={handleLogout} onTenantUpdate={(data) => setTenant(t => ({...t, ...data}))} />
       </ErrorBoundary>
+      {/* Avisa cuando se publicó algo nuevo, para que nadie siga trabajando
+          sobre una versión vieja sin enterarse. */}
+      <AvisoVersion />
     </BrowserRouter>
   );
 }
