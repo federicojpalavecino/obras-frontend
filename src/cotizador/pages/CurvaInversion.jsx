@@ -326,7 +326,7 @@ export default function CurvaInversion() {
 
             {/* Tabla */}
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <table className="tabla-numeros" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: 'var(--surface2)' }}>
                     {['#', 'Período', 'Desembolso', 'Acumulado', '% Avance', 'Distribución'].map(h => (

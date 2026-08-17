@@ -659,7 +659,7 @@ ${certEg ? `
 
                     {certDetalle?.certificado?.numero === cert.numero && (
                       <div className="card" style={{ marginTop: 4, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 'none' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <table className="tabla-numeros" style={{ width: '100%', borderCollapse: 'collapse' }}>
                           <thead>
                             <tr style={{ background: 'var(--surface2)' }}>
                               <th style={th}>Ítem</th>
@@ -732,7 +732,7 @@ ${certEg ? `
                 </div>
               </div>
               <div style={{ maxHeight: 420, overflowY: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table className="tabla-numeros" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'var(--surface2)', position: 'sticky', top: 0 }}>
                       <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: 1 }}>Ítem</th>

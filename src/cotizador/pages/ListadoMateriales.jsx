@@ -313,18 +313,18 @@ export default function ListadoMateriales() {
 
             {expandidos[rubro] && (
               <div style={{ border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table className="tabla-materiales" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'var(--surface)' }}>
                       <th style={th}></th>
-                      <th style={th}>Código</th>
+                      <th style={th} className="col-secundaria">Código</th>
                       <th style={th}>Material</th>
                       <th style={{ ...th, textAlign: 'right' }}>Cantidad</th>
-                      <th style={{ ...th, textAlign: 'right' }}>Unidad</th>
+                      <th style={{ ...th, textAlign: 'right' }} className="col-secundaria">Unidad</th>
                       <th style={{ ...th, textAlign: 'right' }}>P. Unitario</th>
                       <th style={{ ...th, textAlign: 'right', color: 'var(--precio)' }}>Subtotal</th>
-                      <th style={{ ...th, textAlign: 'right', color: 'var(--accent2)' }}>Presentación</th>
-                      <th style={th}>Usado en</th>
+                      <th style={{ ...th, textAlign: 'right', color: 'var(--accent2)' }} className="col-secundaria">Presentación</th>
+                      <th style={th} className="col-secundaria">Usado en</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -338,20 +338,20 @@ export default function ListadoMateriales() {
                             {seleccionados[m.material_id] ? '✓' : ''}
                           </div>
                         </td>
-                        <td style={{ ...td, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>{m.codigo || '—'}</td>
+                        <td className="col-secundaria" style={{ ...td, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>{m.codigo || '—'}</td>
                         <td style={{ ...td, fontSize: 12, fontWeight: 500 }}>{m.nombre}</td>
-                        <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600 }}>{fmtCant(m.cantidad_total)}</td>
-                        <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>{m.unidad || '—'}</td>
+                        <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600 }}>{fmtCant(m.cantidad_total)} <span className="solo-celu" style={{ fontSize: 10, color: 'var(--muted)' }}>{m.unidad || ''}</span></td>
+                        <td className="col-secundaria" style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>{m.unidad || '—'}</td>
                         <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>{fmt(m.precio_unitario)}</td>
                         <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--precio)', fontWeight: 600 }}>{fmt(m.subtotal)}</td>
-                        <td style={{ ...td, fontSize: 11, color: 'var(--accent2)' }}>
+                        <td className="col-secundaria" style={{ ...td, fontSize: 11, color: 'var(--accent2)' }}>
                           {calcPresentacion(m) ? (
                             <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>
                               {calcPresentacion(m).cantPres} {calcPresentacion(m).label}
                             </span>
                           ) : '—'}
                         </td>
-                        <td style={{ ...td, fontSize: 10, color: 'var(--muted)' }}>
+                        <td className="col-secundaria" style={{ ...td, fontSize: 10, color: 'var(--muted)' }}>
                           {m.items_que_lo_usan.slice(0, 2).join(', ')}{m.items_que_lo_usan.length > 2 ? ` +${m.items_que_lo_usan.length - 2}` : ''}
                           {String(m.material_id).startsWith('extra_') && (
                             <button onClick={() => eliminarExtra(m.material_id)} style={{ marginLeft: 8, background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12 }}>✕</button>

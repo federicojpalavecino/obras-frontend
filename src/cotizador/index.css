@@ -720,3 +720,65 @@ html, body {
 @media (max-width: 900px) {
   .con-boton-flotante { padding-bottom: 92px !important; }
 }
+
+/* ═══════════════════════════════════════
+   TABLAS DE NÚMEROS — CERTIFICADOS, CURVA, MATERIALES
+   ═══════════════════════════════════════ */
+
+/* Las cifras se alinean en columna. Con una fuente de ancho variable,
+   1.111.111 ocupa menos que 8.888.888 y comparar dos renglones es imposible:
+   es el mismo problema que tenía el presupuesto. */
+.tabla-numeros, .tabla-materiales {
+  font-variant-numeric: tabular-nums;
+}
+.tabla-numeros td, .tabla-materiales td {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Una fila sí y una no, para no perder el renglón en una tabla de siete
+   columnas de números. */
+.tabla-numeros tbody tr:nth-child(2n),
+.tabla-materiales tbody tr:nth-child(2n) {
+  background: rgba(127, 127, 145, 0.045);
+}
+
+/* La cabecera queda pegada arriba al scrollear un certificado de cien ítems:
+   sin esto, a la tercera pantalla ya no se sabe qué columna es cuál. */
+.tabla-numeros thead th, .tabla-materiales thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+/* La primera columna —el nombre del ítem o del material— queda fija al
+   scrollear de costado. Si no, se ven siete números sin saber de qué son. */
+@media (max-width: 900px) {
+  .tabla-numeros tbody td:first-child,
+  .tabla-numeros thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--surface);
+    max-width: 150px;
+    white-space: normal;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+  }
+  .tabla-numeros thead th:first-child { z-index: 4; }
+
+  /* Las columnas de contexto —código, unidad, presentación, dónde se usa—
+     se esconden: en un celular lo que se mira es qué, cuánto y cuánto sale. */
+  .col-secundaria { display: none !important; }
+
+  .tabla-numeros, .tabla-materiales {
+    font-size: 11.5px;
+  }
+}
+
+/* Lo que solo tiene sentido en pantalla chica: la unidad pegada a la
+   cantidad, porque su columna se escondió. */
+.solo-celu { display: none; }
+@media (max-width: 900px) {
+  .solo-celu { display: inline !important; }
+}
