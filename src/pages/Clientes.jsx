@@ -36,9 +36,19 @@ export default function Clientes({ user }) {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
-  // Cuántas obras tiene cada cliente, para decirlo en su ficha y mandarlo
-  // derecho a Presupuestos, que es donde viven.
-  const obrasDe = (cid) => (presupuestos || []).filter(p => !p.es_adicional && p.cliente_id === cid).length;
+  // Qué le está haciendo el estudio a cada cliente. No es todo lo mismo: un
+  // presupuesto de servicio es un proyecto —anteproyecto, documentación,
+  // dirección— y uno de obra es una obra. Llamarlos a todos "obras" le queda
+  // mal al estudio que solo hace proyectos.
+  const trabajosDe = (cid) => {
+    const suyos = (presupuestos || []).filter(p => !p.es_adicional && p.cliente_id === cid);
+    const proyectos = suyos.filter(p => (p.tipo || "obra") === "servicio").length;
+    const obras = suyos.length - proyectos;
+    const partes = [];
+    if (obras) partes.push(obras + " obra" + (obras !== 1 ? "s" : ""));
+    if (proyectos) partes.push(proyectos + " proyecto" + (proyectos !== 1 ? "s" : ""));
+    return { total: suyos.length, texto: partes.join(" y ") };
+  };
 
 
   useEffect(() => { cargarTodo(); }, []);
@@ -149,13 +159,13 @@ export default function Clientes({ user }) {
                     {c.notas && <div style={{ fontSize: 12, color: C.muted, marginTop: 4, fontStyle: "italic" }}>{c.notas}</div>}
                     {/* Las obras están en Presupuestos: acá solo se dice
                         cuántas tiene y se lleva para allá. */}
-                    {obrasDe(c.id) > 0 && (
+                    {trabajosDe(c.id).total > 0 && (
                       <button onClick={() => navigate("/cotizador")}
                         style={{ marginTop: 7, background: "none", border: "none", padding: 0, cursor: "pointer",
                                  fontFamily: "inherit", fontSize: 12, color: C.accent, display: "flex",
                                  alignItems: "center", gap: 4 }}>
                         <Building2 size={12} strokeWidth={1.5} />
-                        {obrasDe(c.id)} obra{obrasDe(c.id) !== 1 ? "s" : ""} — verlas en Presupuestos
+                        {trabajosDe(c.id).texto} — ver en Presupuestos
                       </button>
                     )}
                     {/* Proyectos vinculados */}

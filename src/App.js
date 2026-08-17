@@ -227,7 +227,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   const colorAccent = tenant?.color_primario || C.accent;
 
   const modules = [
-    { id:"cotizador", path:"/cotizador", Icon:FileText,      label:"Presupuestos y obras",  desc:"Presupuestos, obras, certificados y análisis de costos", color:C.accent2 },
+    { id:"cotizador", path:"/cotizador", Icon:FileText,      label:"Presupuestos",          desc:"Obras y proyectos: cotizar, certificar y ejecutar",       color:C.accent2 },
     { id:"finanzas",  path:"/finanzas",  Icon:TrendingUp,    label:"Control Financiero",    desc:"Ingresos, egresos y distribución semanal",               color:C.accent },
     { id:"planner",   path:"/planner",   Icon:Calendar,      label:"Planner",               desc:"Tablero de tareas y calendario",                         color:C.warn },
     { id:"panol",     path:"/panol",     Icon:Package,       label:"Pañol y depósito",      desc:"Herramientas, materiales y en qué obra está cada cosa",  color:C.warn },
