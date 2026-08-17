@@ -782,3 +782,30 @@ html, body {
 @media (max-width: 900px) {
   .solo-celu { display: inline !important; }
 }
+
+/* ═══════════════════════════════════════
+   PLANNER EN EL CELULAR
+   ═══════════════════════════════════════ */
+
+/* Cuatro columnas fijas en una pantalla de seis pulgadas dan 80 px cada una:
+   no entra ni el título de una tarea. El tablero se desliza de costado con
+   las columnas a un ancho que se pueda leer. */
+@media (max-width: 900px) {
+  .kanban-grid {
+    display: flex !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 6px;
+  }
+  .kanban-grid > * {
+    flex: 0 0 78%;
+    scroll-snap-align: start;
+    min-width: 240px;
+  }
+}
+
+/* El título gigante del Planner se comía media pantalla. */
+@media (max-width: 640px) {
+  .planner-titulo { font-size: 24px !important; }
+}

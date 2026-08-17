@@ -509,7 +509,7 @@ export default function Planner({ user }) {
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", position: "sticky", top: 0, zIndex: 50 }}>
         {/* Vista */}
         <div style={{ display: "flex", gap: 2, background: C.surface2, borderRadius: 8, padding: 3, flexShrink: 0 }}>
-          {[["kanban", "Kanban"], ["semana", "Semana"], ["lista", "Lista"], ["obras", "Obras"]].map(([v, label]) => (
+          {[["kanban", "Kanban"], ["semana", "Semana"], ["lista", "Lista"], ["obras", "Obras y proyectos"]].map(([v, label]) => (
             <button key={v} onClick={() => setVista(v)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: vista === v ? C.surface : "transparent", color: vista === v ? C.text : C.muted, fontSize: 12, fontWeight: vista === v ? 600 : 400, cursor: "pointer", fontFamily: "inherit", boxShadow: vista === v ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>
               {label}
             </button>
@@ -573,7 +573,7 @@ export default function Planner({ user }) {
         <div onClick={() => setModoReunion(false)}
           style={{ position: "fixed", inset: 0, background: "#0e1310", color: "#e6ebe7", zIndex: 900, overflowY: "auto", padding: "40px 48px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 28 }}>
-            <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: -1 }}>Planificación</div>
+            <div className="planner-titulo" style={{ fontSize: 38, fontWeight: 800, letterSpacing: -1 }}>Planificación</div>
             <div style={{ fontSize: 15, opacity: .6 }}>Tocá en cualquier lado para salir</div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 26 }}>
@@ -685,7 +685,7 @@ export default function Planner({ user }) {
                 <div style={{ position: "relative" }}>
                   {/* Hoy */}
                   {hoyISO >= desde && hoyISO <= hasta && (
-                    <div style={{ position: "absolute", left: `${pos(hoyISO)}%`, top: -4, bottom: 0, width: 2,
+                    <div style={{ position: "absolute", left: `${pos(hoyISO)}%`, top: 0, bottom: 0, width: 2,
                                   background: C.accent, opacity: .8, zIndex: 3, pointerEvents: "none" }}>
                       <span style={{ position: "absolute", top: -16, left: "50%", transform: "translateX(-50%)",
                                      background: C.accent, color: "#fff", fontSize: 8.5, fontWeight: 800,
@@ -699,20 +699,25 @@ export default function Planner({ user }) {
                     return (
                       <div key={o.presupuesto_id}
                         onClick={() => navigate(`/cotizador/gantt/${o.presupuesto_id}`)}
-                        style={{ position: "relative", height: 44, cursor: "pointer",
+                        style={{ position: "relative", height: 40, cursor: "pointer",
                                  borderBottom: `1px solid ${C.border}` }}>
                         <div title={`${o.obra}\n${o.tareas} tareas · ${o.duracion_dias} días hábiles`}
                           style={{ position: "absolute", left: `${izq}%`, width: `${Math.max(1.5, der - izq)}%`,
-                                   top: 9, height: 22, borderRadius: 6, background: col + "33",
+                                   top: 16, height: 18, borderRadius: 5, background: col + "33",
                                    border: `1px solid ${col}`, overflow: "hidden" }}>
                           <div style={{ width: `${o.avance_pct}%`, height: "100%", background: col + "66" }} />
                         </div>
-                        <div style={{ position: "absolute", left: `${der}%`, top: 0, height: 44,
-                                      display: "flex", alignItems: "center", paddingLeft: 8,
-                                      whiteSpace: "nowrap", pointerEvents: "none" }}>
-                          <span style={{ fontSize: 11.5, fontWeight: 600 }}>{o.obra}</span>
-                          <span style={{ fontSize: 10.5, color: C.muted, marginLeft: 6 }}>
+                        {/* El nombre a la derecha de la barra se va de la
+                            pantalla cuando la obra termina tarde. Se pone
+                            arriba de la barra, pegado a la izquierda, que
+                            siempre queda a la vista. */}
+                        <div style={{ position: "absolute", left: 0, top: 0, right: 0, height: 12,
+                                      display: "flex", alignItems: "center", gap: 6,
+                                      whiteSpace: "nowrap", overflow: "hidden", pointerEvents: "none" }}>
+                          <span style={{ fontSize: 11, fontWeight: 700 }}>{o.obra}</span>
+                          <span style={{ fontSize: 10, color: C.muted }}>
                             {o.cliente ? o.cliente + " · " : ""}{Math.round(o.avance_pct)}%
+                            {o.tipo === "servicio" ? " · proyecto" : ""}
                           </span>
                         </div>
                       </div>
@@ -726,7 +731,10 @@ export default function Planner({ user }) {
             );
           })()
         ) : vista === "kanban" ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+          /* Cuatro columnas fijas en un celular dan 80 px cada una: no entra ni
+             el título de una tarea. Ahí abajo el tablero se desliza de
+             costado, con las columnas a un ancho que se pueda leer. */
+          <div className="kanban-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
             {ESTADOS.map(estado => (
               <KanbanColumn key={estado} estado={estado} tareas={tareasFiltradas.filter(t => t.estado === estado)} proyectos={proyectos} presupuestos={presupuestos} onEdit={setModalTarea} onDelete={eliminarTarea} onDrop={handleDrop} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onAddTarea={addTareaEnEstado} />
             ))}
