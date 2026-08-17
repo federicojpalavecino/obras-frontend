@@ -346,10 +346,16 @@ export default function Presupuesto() {
     setAgregandoTarea(null);
   };
 
-  const handleCerrar = () => setModalCierre(true);
   const confirmarCierre = async (metodologia) => {
     setModalCierre(false);
     await cerrarPresupuesto(id, metodologia); cargar(true);
+  };
+
+  // Un proyecto se cobra por etapa, siempre: no hay avance físico que
+  // certificar. Preguntarlo era ofrecer una opción que no existe.
+  const handleCerrar = () => {
+    if (esServicio) { confirmarCierre('desembolsos'); return; }
+    setModalCierre(true);
   };
 
   const handleReabrir = async () => {
@@ -955,16 +961,18 @@ ${firma}
                 ...(certifica ? [
                 { label: 'Certificados',        icon: <FileText    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/certificado`) },
                 ] : []),
-                ...(esServicio ? [] : [
+                ...(esServicio ? [
+                /* Un proyecto no tiene curva de inversión ni listado de
+                   materiales: no hay materiales que comprar ni desembolsos que
+                   seguir. Lo que hay es qué se entrega y cuándo se cobra. */
+                { label: 'Qué se entrega y cobros', icon: <Check size={18} strokeWidth={1.5} />, onClick: () => setVerEntregables(true) },
+                ] : [
                 { label: 'Curva de inversión',  icon: <TrendingUp  size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/curva`) },
                 { label: 'Listado de materiales',icon: <Package    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/materiales`) },
                 ]),
-                ...(esServicio ? [
-                { label: 'Qué se entrega y cobros', icon: <Check size={18} strokeWidth={1.5} />, onClick: () => setVerEntregables(true) },
-                ] : []),
-                { label: 'Gantt',               icon: <BarChart2   size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/gantt/${id}`) },
+                { label: esServicio ? 'Plan de trabajo' : 'Gantt', icon: <BarChart2 size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/gantt/${id}`) },
                 { label: esServicio ? 'Gestión del proyecto' : 'Gestión de obra', icon: <Building2 size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/obra`) },
-                { label: creandoAdic ? 'Creando adicional...' : 'Crear adicional', icon: <Plus size={18} strokeWidth={1.5} />, onClick: crearAdicional, disabled: creandoAdic, color: 'var(--accent2)' },
+                { label: creandoAdic ? 'Creando adicional...' : (esServicio ? 'Trabajo adicional' : 'Crear adicional'), icon: <Plus size={18} strokeWidth={1.5} />, onClick: crearAdicional, disabled: creandoAdic, color: 'var(--accent2)' },
                 { label: 'Reabrir presupuesto', icon: <Unlock size={18} strokeWidth={1.5} />, onClick: handleReabrir, color: 'var(--warn)' },
               ] : [
                 { label: 'Cerrar presupuesto',  icon: <Lock size={18} strokeWidth={1.5} />, onClick: handleCerrar, color: 'var(--warn)' },

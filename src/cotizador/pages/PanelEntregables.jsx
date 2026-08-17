@@ -64,6 +64,29 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
     cargar();
   };
 
+  // Tildar o destildar la etapa entera. Armar un encargo es sobre todo decir
+  // qué NO va: destildás una etapa completa y después rescatás lo que sí.
+  const tildarEtapa = async (e, valor) => {
+    for (const x of e.entregables) {
+      if (!!x.incluido === valor) continue;
+      await api.patch(`/presupuestos/${presupuestoId}/servicio/entregables/${x.id}`, { incluido: valor });
+    }
+    cargar();
+  };
+
+  // El croquis preliminar puede ir antes que el anteproyecto, o después: cada
+  // estudio arma su secuencia.
+  const moverEtapa = async (e, delta) => {
+    const orden = data.etapas.map(x => x.id);
+    const i = orden.indexOf(e.id);
+    const j = i + delta;
+    if (j < 0 || j >= orden.length) return;
+    const otra = data.etapas[j];
+    await api.patch(`/presupuestos/${presupuestoId}/servicio/etapas/${e.id}`, { orden: otra.orden });
+    await api.patch(`/presupuestos/${presupuestoId}/servicio/etapas/${otra.id}`, { orden: e.orden });
+    cargar();
+  };
+
   const cobrar = async (e) => {
     try {
       const r = await api.post(`/presupuestos/${presupuestoId}/servicio/etapas/${e.id}/cobrar`, {});
@@ -145,9 +168,10 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
         )}
       </div>
       <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 12, lineHeight: 1.5 }}>
-        Lo que el estudio se comprometió a dar. El tilde violeta de la izquierda dice si
-        entra en el presupuesto; lo que dejes afuera se imprime como «no incluye».
-        Cada etapa se lleva un porcentaje del honorario y se cobra cuando está entregada.
+        Lo que el estudio se comprometió a dar. El tilde violeta dice si entra en el
+        presupuesto —el de la etapa tilda o destilda todo de una— y lo que dejes afuera
+        se imprime como «no incluye». Cada etapa se lleva un porcentaje del honorario y
+        se cobra cuando está entregada. Con las flechitas ordenás las etapas.
       </div>
       {cerrado && (
         <div style={{ padding: "9px 12px", borderRadius: 9, fontSize: 12, marginBottom: 12, lineHeight: 1.55,
@@ -194,9 +218,33 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
         <div key={e.id} style={{ marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0",
                         borderBottom: "2px solid var(--border)", marginBottom: 6, flexWrap: "wrap" }}>
+            {!cerrado && (() => {
+              const dentro = e.entregables.filter(x => x.incluido !== false).length;
+              const todos = dentro === e.entregables.length && e.entregables.length > 0;
+              return (
+                <button onClick={() => tildarEtapa(e, !todos)}
+                  title={todos ? "Sacar toda la etapa del encargo" : "Poner toda la etapa en el encargo"}
+                  style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, cursor: "pointer",
+                           border: `1px solid ${dentro ? "var(--accent2)" : "var(--border2)"}`,
+                           background: todos ? "var(--accent2)" : dentro ? "rgba(124,58,237,.35)" : "transparent",
+                           color: "#fff", fontSize: 10, lineHeight: 1, padding: 0 }}>
+                  {todos ? "✓" : dentro ? "–" : ""}
+                </button>
+              );
+            })()}
             <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: .6 }}>
               {e.nombre}
             </span>
+            {!cerrado && data.etapas.length > 1 && (
+              <span style={{ display: "flex", flexDirection: "column", lineHeight: .7 }}>
+                <button onClick={() => moverEtapa(e, -1)} title="Subir la etapa"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--border2)",
+                           fontSize: 9, padding: 0 }}>▲</button>
+                <button onClick={() => moverEtapa(e, 1)} title="Bajar la etapa"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--border2)",
+                           fontSize: 9, padding: 0 }}>▼</button>
+              </span>
+            )}
             {/* La etapa es a la vez el hito de entrega y el de cobro: se lleva
                 un porcentaje del honorario y se cobra cuando se entregó. */}
             {!cerrado ? (
