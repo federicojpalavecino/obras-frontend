@@ -302,6 +302,10 @@ export default function Gantt() {
   // entera. Ahora se elige la escala, y «Entra todo» la calcula para que el
   // plan completo entre en el ancho que hay.
   const [escala, setEscala] = useState(() => localStorage.getItem('obras_gantt_escala') || 'entra');
+  // Qué tramo de la obra se mira. Una obra de dos años entera no se lee: casi
+  // siempre lo que interesa es lo que está pasando ahora y lo que viene.
+  const [periodo, setPeriodo] = useState(() => localStorage.getItem('obras_gantt_periodo') || 'todo');
+  const elegirPeriodo = (v) => { setPeriodo(v); localStorage.setItem('obras_gantt_periodo', v); };
   const [anchoUtil, setAnchoUtil] = useState(900);
   const elegirEscala = (e) => { setEscala(e); localStorage.setItem('obras_gantt_escala', e); };
   // En el celular las filas van bajas para que entren varias tareas; en una
@@ -807,11 +811,38 @@ export default function Gantt() {
       progreso: p?.progreso ?? t.progreso ?? 0,
     };
   });
-  const porId = {};
-  filas.forEach((f, i) => { porId[f.id] = { ...f, fila: i }; });
 
-  const fechaMin = filas.reduce((a, t) => t.fecha_inicio < a ? t.fecha_inicio : a, filas[0]?.fecha_inicio || config.fecha_inicio_obra);
-  const fechaMax = filas.reduce((a, t) => t.fecha_fin > a ? t.fecha_fin : a, addDias(fechaMin, 30));
+  // El plan completo, de punta a punta.
+  const planDesde = filas.reduce((a, t) => t.fecha_inicio < a ? t.fecha_inicio : a, filas[0]?.fecha_inicio || config.fecha_inicio_obra);
+  const planHasta = filas.reduce((a, t) => t.fecha_fin > a ? t.fecha_fin : a, addDias(planDesde, 30));
+
+  // La ventana elegida, recortada contra el plan: nunca se muestra más allá de
+  // lo que la obra realmente ocupa.
+  const hoyISO = new Date().toISOString().split('T')[0];
+  const ventana = (() => {
+    if (periodo === 'todo') return [planDesde, planHasta];
+    if (periodo === 'futuro') return [hoyISO > planDesde ? hoyISO : planDesde, planHasta];
+    const meses = periodo === 'mes' ? 1 : periodo === '3m' ? 3 : 6;
+    const d = new Date(hoyISO + 'T12:00:00'); d.setDate(d.getDate() - 7);
+    const h = new Date(hoyISO + 'T12:00:00'); h.setMonth(h.getMonth() + meses);
+    const desde = d.toISOString().split('T')[0];
+    const hasta = h.toISOString().split('T')[0];
+    return [desde < planDesde ? planDesde : desde, hasta > planHasta ? planHasta : hasta];
+  })();
+  const fechaMin = ventana[0] <= ventana[1] ? ventana[0] : planDesde;
+  const fechaMax = ventana[1] >= ventana[0] ? ventana[1] : planHasta;
+  // Las tareas que no tocan la ventana no se dibujan: ocupan un renglón para
+  // no mostrar nada.
+  const fueraDeVentana = periodo === 'todo' ? 0
+    : filas.filter(t => t.fecha_fin < fechaMin || t.fecha_inicio > fechaMax).length;
+
+  // Las que se dibujan de verdad. El número de fila sale de acá: si se numera
+  // sobre todas y se dibujan menos, las flechas apuntan al renglón de al lado.
+  const filasVisibles = periodo === 'todo'
+    ? filas
+    : filas.filter(t => t.fecha_fin >= fechaMin && t.fecha_inicio <= fechaMax);
+  const porId = {};
+  filasVisibles.forEach((f, i) => { porId[f.id] = { ...f, fila: i }; });
   const totalDias = Math.max(30, diasEntre(fechaMin, fechaMax) + 7);
 
 
@@ -988,6 +1019,19 @@ export default function Gantt() {
                                 : 'Mostrar la columna de nombres a la izquierda'}>
               {verNombres ? '⇤ Solo diagrama' : '⇥ Con nombres'}
             </button>
+          )}
+          {tareas.length > 0 && (
+            <select value={periodo} onChange={e => elegirPeriodo(e.target.value)}
+              title="Qué tramo de la obra se mira"
+              style={{ padding: '5px 8px', fontSize: 12, borderRadius: 7, cursor: 'pointer',
+                       fontFamily: 'inherit', background: 'var(--surface2)',
+                       border: '1px solid var(--border)', color: 'var(--text)' }}>
+              <option value="todo">La obra entera</option>
+              <option value="mes">Este mes</option>
+              <option value="3m">Próximos 3 meses</option>
+              <option value="6m">Próximos 6 meses</option>
+              <option value="futuro">De hoy en adelante</option>
+            </select>
           )}
           {tareas.length > 0 && (
             <select value={escala} onChange={e => elegirEscala(e.target.value)}
@@ -1184,6 +1228,16 @@ export default function Gantt() {
                     padding: '6px 16px', fontSize: 11.5, color: 'var(--muted)',
                     display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <span>{tareas.length} tareas</span>
+        {fueraDeVentana > 0 && (
+          <>
+            <span>·</span>
+            <button onClick={() => elegirPeriodo('todo')}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                       fontFamily: 'inherit', fontSize: 11.5, color: 'var(--warn)' }}>
+              {fueraDeVentana} fuera del período — ver todo
+            </button>
+          </>
+        )}
         {!plan && <><span>·</span><span>{fmtFecha(fechaMin)} → {fmtFecha(fechaMax)}</span></>}
         {/* En una pantalla grande hay lugar de sobra: la configuración va acá,
             a la vista y a un click. Meterla en el menú era resolver un problema
@@ -1353,7 +1407,7 @@ export default function Gantt() {
             <div style={{ height: 50, borderBottom: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
               Tarea
             </div>
-            {filas.map(t => (
+            {filasVisibles.map(t => (
               <div key={t.id} style={{ height: ROW_H, borderBottom: '1px solid var(--border2)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, cursor: 'pointer' }}
                 onClick={() => {
                   if (t.linea_id) {
@@ -1547,7 +1601,7 @@ export default function Gantt() {
               })()}
 
               {/* Filas */}
-              {filas.map(t => {
+              {filasVisibles.map(t => {
                 const offsetDias = diasEntre(fechaMin, t.fecha_inicio || fechaMin);
                 // La grilla son días corridos y la duración está en días hábiles:
                 // la barra tiene que ir de inicio a fin del plan, no inicio + duración,
@@ -1679,7 +1733,7 @@ export default function Gantt() {
               })}
 
               {/* Flechas de dependencia — se dibujan encima de las barras */}
-              <svg style={{ position: 'absolute', left: 0, top: 50, width: totalDias * PX_DIA, height: filas.length * ROW_H, pointerEvents: 'none', zIndex: 6, overflow: 'visible' }}>
+              <svg style={{ position: 'absolute', left: 0, top: 50, width: totalDias * PX_DIA, height: filasVisibles.length * ROW_H, pointerEvents: 'none', zIndex: 6, overflow: 'visible' }}>
                 <defs>
                   <marker id="flecha" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
                     <polygon points="0 0, 7 3.5, 0 7" fill="var(--muted)" />
