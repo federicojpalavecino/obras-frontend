@@ -243,10 +243,16 @@ export default function Gantt() {
     return () => mq.removeEventListener('change', f);
   }, []);
   const [verDiagrama, setVerDiagrama] = useState(false);
-  // La columna fija de nombres se comía 260 px de ancho repitiendo lo que ya
-  // dice cada barra. Se puede sacar y dejar el diagrama solo; queda un botón
-  // para traerla de vuelta.
-  const [verNombres, setVerNombres] = useState(() => localStorage.getItem('obras_gantt_nombres') === '1');
+  // La columna de nombres es lo normal en una pantalla grande: es donde se lee
+  // la obra de un vistazo. Sacarla sirve en el celular, donde 260 px son media
+  // pantalla — ahí no entra y estorba. Así que arranca visible en la compu y
+  // escondida en el celular, y el que quiera lo cambia.
+  const [verNombres, setVerNombres] = useState(() => {
+    const g = localStorage.getItem('obras_gantt_nombres');
+    if (g === '1') return true;
+    if (g === '0') return false;
+    return !(typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches);
+  });
   const alternarNombres = () => {
     setVerNombres(v => { localStorage.setItem('obras_gantt_nombres', v ? '0' : '1'); return !v; });
   };
@@ -298,9 +304,10 @@ export default function Gantt() {
   const [escala, setEscala] = useState(() => localStorage.getItem('obras_gantt_escala') || 'entra');
   const [anchoUtil, setAnchoUtil] = useState(900);
   const elegirEscala = (e) => { setEscala(e); localStorage.setItem('obras_gantt_escala', e); };
-  // Filas bajas: en una obra de treinta ítems, con 40 px de alto solo se veían
-  // ocho y había que scrollear para entender el plan.
-  const ROW_H = 30;
+  // En el celular las filas van bajas para que entren varias tareas; en una
+  // pantalla grande eso queda apretado y se lee peor, que es lo contrario de
+  // lo que se buscaba.
+  const ROW_H = esCelular ? 30 : 36;
   const LABEL_W = esCelular ? 130 : 260;
 
   useEffect(() => { cargar(); }, [id]);
@@ -977,9 +984,9 @@ export default function Gantt() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {tareas.length > 0 && (
             <button className="btn btn-secondary btn-sm" onClick={alternarNombres}
-              title={verNombres ? 'Sacar la columna de nombres: el nombre ya está en cada barra'
+              title={verNombres ? 'Sacar la columna de nombres y dejarle todo el ancho al diagrama'
                                 : 'Mostrar la columna de nombres a la izquierda'}>
-              {verNombres ? '⇤ Sin lista' : '⇥ Con lista'}
+              {verNombres ? '⇤ Solo diagrama' : '⇥ Con nombres'}
             </button>
           )}
           {tareas.length > 0 && (
@@ -1569,12 +1576,12 @@ export default function Gantt() {
                                     top: ROW_H / 2 - 1, height: 2, zIndex: 3, pointerEvents: 'none',
                                     background: `repeating-linear-gradient(90deg, ${t.color}88 0 4px, transparent 4px 8px)` }} />
                     )}
-                    {/* El nombre va SIEMPRE al lado de la barra, nunca adentro.
-                        Adentro se superpone con el relleno del avance y con el
-                        color de la barra, y termina siendo un texto de color
-                        sobre otro color: ilegible. Al lado, sobre el fondo de
-                        la fila, se lee igual de bien en cualquier escala. */}
-                    <div style={{ position: 'absolute',
+                    {/* El nombre al lado de la barra, pero solo cuando no está
+                        la columna de la izquierda: con las dos cosas se lee el
+                        mismo nombre dos veces y el diagrama queda sucio.
+                        Adentro de la barra nunca, que se superpone con el
+                        relleno del avance y queda color sobre color. */}
+                    {!verNombres && <div style={{ position: 'absolute',
                                   left: segs[segs.length - 1].left + segs[segs.length - 1].width + 6,
                                   top: 0, height: ROW_H, display: 'flex', alignItems: 'center',
                                   pointerEvents: 'none', zIndex: 6, whiteSpace: 'nowrap',
@@ -1584,7 +1591,7 @@ export default function Gantt() {
                                      opacity: .95, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {t.nombre}{pct > 0 ? ` · ${pct}%` : ''}
                       </span>
-                    </div>
+                    </div>}
                     {segs.map((s, si) => (
                     <div key={si} title={`${t.nombre}\n${fmtFechaLarga(t.fecha_inicio)} → ${fmtFechaLarga(t.fecha_fin)}${tramos ? `\n✂ Se hace en ${tramos.length} partes` : ''}${t.holgura != null ? `\nHolgura: ${t.holgura} día(s)` : ''}${t.critica ? '\n⚠ Camino crítico' : ''}${t.no_antes_de ? `\n📌 Fijada al ${fmtFecha(t.no_antes_de)}` : ''}`}
                       style={{ position: 'absolute', left: s.left, top: 6, width: s.width, height: ROW_H - 12, borderRadius: 6,

@@ -232,8 +232,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
     { id:"planner",   path:"/planner",   Icon:Calendar,      label:"Planner",               desc:"Tablero de tareas y calendario",                         color:C.warn },
     { id:"panol",     path:"/panol",     Icon:Package,       label:"Pañol y depósito",      desc:"Herramientas, materiales y en qué obra está cada cosa",  color:C.warn },
     { id:"personal",  path:"/personal",  Icon:Users,         label:"Personal",              desc:"Quién vino, cuántos días y cuánto hay que pagarle",      color:C.accent },
-    { id:"clientes",  path:"/clientes",  Icon:Users,         label:"Clientes y Proyectos",  desc:"Gestión de clientes, obras y contactos",                 color:C.green },
-    { id:"accesos",   path:"/accesos-clientes", Icon:Lock,   label:"Accesos de clientes",   desc:"Gestionar portal de clientes",                           color:C.accent2 },
+    { id:"clientes",  path:"/clientes",  Icon:Users,         label:"Clientes",              desc:"Clientes, obras y el acceso de cada uno a su portal",    color:C.green },
     { id:"config",    path:"/config",    Icon:Settings,      label:"Configuración",         desc:"Logo, nombre y datos del estudio",                       color:C.muted, soloAdmin:true },
     { id:"soporte",   path:"/soporte",   Icon:MessageCircle, label:"Soporte técnico",       desc:"Contacto, ayuda y sugerencias",                          color:C.blue },
   ].filter(m => !m.soloAdmin || esAdmin);

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Users, Building2, Mail, Phone, Hash, MapPin } from "lucide-react";
+import { Users, Building2, Mail, Phone, Hash, MapPin , Lock } from "lucide-react";
 import api from "../cotizador/api";
 
+import AccesosClientes from './AccesosClientes';
 const C = {
   bg: "#f8f9fa", surface: "#ffffff", surface2: "#f1f3f5",
   border: "#e0e0e8", border2: "#d0d0dc",
@@ -95,7 +96,11 @@ export default function Clientes({ user }) {
     <div style={{ minHeight: "100dvh", background: C.bg, color: C.text, fontFamily: "'Syne', sans-serif", paddingBottom: 40 }}>
       {/* TABS */}
       <div style={{ position: "sticky", top: 64, background: C.surface, borderBottom: `1px solid ${C.border}`, display: "flex", zIndex: 40 }}>
-        {[["clientes", Users, "Clientes"], ["proyectos", Building2, "Proyectos / Obras"]].map(([id, Icon, label]) => (
+        {/* El acceso al portal era un módulo aparte en la pantalla de inicio.
+            Es lo mismo que la ficha del cliente vista de otro lado: quién es,
+            qué obras tiene, y si puede entrar a verlas. Acá adentro, una
+            herramienta menos que buscar. */}
+        {[["clientes", Users, "Clientes"], ["proyectos", Building2, "Proyectos / Obras"], ["accesos", Lock, "Acceso al portal"]].map(([id, Icon, label]) => (
           <button key={id} onClick={() => setTab(id)} style={{ flex: 1, padding: "12px 8px", background: "none", border: "none", cursor: "pointer", color: tab === id ? C.accent : C.muted, borderBottom: `2px solid ${tab === id ? C.accent : "transparent"}`, fontSize: 13, fontFamily: "inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
             <Icon size={14} strokeWidth={1.5} />{label}
           </button>
@@ -106,9 +111,9 @@ export default function Clientes({ user }) {
         {/* Búsqueda + agregar */}
         <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center" }}>
           <input style={{ ...inp, flex: 1 }} placeholder={`Buscar ${tab}...`} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
-          <Btn primary small onClick={() => { if (tab === "clientes") { setFormC({ nombre: "", email: "", telefono: "", direccion: "", cuit: "", notas: "" }); setModalCliente({}); } else { setFormP({ nombre: "", cliente_id: null, color: COLORES[0], activo: true, notas: "" }); setModalProyecto({}); } }}>
+          {tab !== "accesos" && <Btn primary small onClick={() => { if (tab === "clientes") { setFormC({ nombre: "", email: "", telefono: "", direccion: "", cuit: "", notas: "" }); setModalCliente({}); } else { setFormP({ nombre: "", cliente_id: null, color: COLORES[0], activo: true, notas: "" }); setModalProyecto({}); } }}>
             + {tab === "clientes" ? "Cliente" : "Proyecto"}
-          </Btn>
+          </Btn>}
         </div>
 
         {/* ── CLIENTES ── */}
@@ -149,6 +154,8 @@ export default function Clientes({ user }) {
         )}
 
         {/* ── PROYECTOS ── */}
+        {tab === "accesos" && <AccesosClientes user={user} embebido />}
+
         {tab === "proyectos" && (
           <div>
             {proyectosFiltrados.length === 0 && <div style={{ textAlign: "center", color: C.muted, padding: 40 }}>Sin proyectos</div>}

@@ -10,7 +10,7 @@ const C = {
 };
 const inp = { background: C.surface2, border: `1px solid ${C.border2}`, borderRadius: 8, color: C.text, padding: "8px 12px", fontSize: 13, fontFamily: "inherit", width: "100%", outline: "none", boxSizing: "border-box" };
 
-export default function AccesosClientes({ user }) {
+export default function AccesosClientes({ user, embebido }) {
   const [accesos, setAccesos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,12 +63,17 @@ export default function AccesosClientes({ user }) {
   };
 
   return (
-    <div style={{ minHeight: "100dvh", background: C.bg, fontFamily: "'Syne', sans-serif", paddingBottom: 40 }}>
-      <div style={{ maxWidth: 700, margin: "0 auto", padding: "24px 16px" }}>
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>Portal de clientes</div>
-          <div style={{ fontSize: 14, color: C.muted }}>Gestioná qué clientes pueden ver sus proyectos y certificados.</div>
-        </div>
+    <div style={embebido
+                 ? { background: "transparent" }
+                 : { minHeight: "100dvh", background: C.bg, fontFamily: "'Syne', sans-serif", paddingBottom: 40 }}>
+      <div style={embebido ? { padding: 0 } : { maxWidth: 700, margin: "0 auto", padding: "24px 16px" }}>
+        {/* Adentro de Clientes el título ya lo puso la pestaña. */}
+        {!embebido && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>Portal de clientes</div>
+            <div style={{ fontSize: 14, color: C.muted }}>Gestioná qué clientes pueden ver sus proyectos y certificados.</div>
+          </div>
+        )}
 
         {/* Info */}
         <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: "#1d4ed8" }}>
