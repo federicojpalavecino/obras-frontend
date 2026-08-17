@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Users, Building2, Mail, Phone, Hash, MapPin , Lock } from "lucide-react";
 import api from "../cotizador/api";
 
@@ -21,9 +22,11 @@ function Btn({ primary, danger, small, onClick, disabled, children, style = {} }
 }
 
 export default function Clientes({ user }) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState("clientes");
   const [clientes, setClientes] = useState([]);
   const [proyectos, setProyectos] = useState([]);
+  const [presupuestos, setPresupuestos] = useState([]);
   const [modalCliente, setModalCliente] = useState(null);
   const [modalProyecto, setModalProyecto] = useState(null);
   const [formC, setFormC] = useState({ nombre: "", email: "", telefono: "", direccion: "", cuit: "", notas: "" });
@@ -33,15 +36,41 @@ export default function Clientes({ user }) {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
+  // Las obras del estudio agrupadas por cliente. Salen de los presupuestos:
+  // un presupuesto ES una obra. Los adicionales no cuentan como obra aparte,
+  // que es lo que son —un agregado de la obra madre—.
+  const obrasPorCliente = (() => {
+    const q = busqueda.trim().toLowerCase();
+    const porCliente = new Map();
+    (presupuestos || []).filter(p => !p.es_adicional).forEach(p => {
+      if (q && !((p.nombre_obra || "").toLowerCase().includes(q) ||
+                 (p.cliente_nombre || "").toLowerCase().includes(q) ||
+                 (p.ubicacion || "").toLowerCase().includes(q))) return;
+      const k = p.cliente_id || 0;
+      if (!porCliente.has(k)) {
+        porCliente.set(k, {
+          cliente: { id: p.cliente_id, nombre: p.cliente_nombre || "Sin cliente" },
+          obras: [],
+        });
+      }
+      porCliente.get(k).obras.push(p);
+    });
+    return [...porCliente.values()].sort((a, b) => b.obras.length - a.obras.length);
+  })();
+
   useEffect(() => { cargarTodo(); }, []);
 
   const cargarTodo = async () => {
-    const [cRes, pRes] = await Promise.all([
+    // Ojo con el orden: se desestructura por posición. Sumar una llamada sin
+    // sumar su variable deja las de abajo apuntando a otra cosa.
+    const [cRes, pRes, presRes] = await Promise.all([
       api.get('/clientes').then(r => r.data).catch(() => []),
       api.get('/proyectos').then(r => r.data).catch(() => []),
+      api.get('/presupuestos').then(r => r.data).catch(() => []),
     ]);
     setClientes(Array.isArray(cRes) ? cRes : (cRes.clientes || []));
     setProyectos(Array.isArray(pRes) ? pRes : []);
+    setPresupuestos(Array.isArray(presRes) ? presRes : []);
   };
 
   const guardarCliente = async (form) => {
@@ -100,7 +129,7 @@ export default function Clientes({ user }) {
             Es lo mismo que la ficha del cliente vista de otro lado: quién es,
             qué obras tiene, y si puede entrar a verlas. Acá adentro, una
             herramienta menos que buscar. */}
-        {[["clientes", Users, "Clientes"], ["proyectos", Building2, "Proyectos / Obras"], ["accesos", Lock, "Acceso al portal"]].map(([id, Icon, label]) => (
+        {[["clientes", Users, "Clientes"], ["proyectos", Building2, "Obras"], ["accesos", Lock, "Acceso al portal"]].map(([id, Icon, label]) => (
           <button key={id} onClick={() => setTab(id)} style={{ flex: 1, padding: "12px 8px", background: "none", border: "none", cursor: "pointer", color: tab === id ? C.accent : C.muted, borderBottom: `2px solid ${tab === id ? C.accent : "transparent"}`, fontSize: 13, fontFamily: "inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
             <Icon size={14} strokeWidth={1.5} />{label}
           </button>
@@ -158,7 +187,63 @@ export default function Clientes({ user }) {
 
         {tab === "proyectos" && (
           <div>
-            {proyectosFiltrados.length === 0 && <div style={{ textAlign: "center", color: C.muted, padding: 40 }}>Sin proyectos</div>}
+            {/* Las obras del estudio son sus presupuestos: cada presupuesto ES
+                una obra, con su cliente, su plata y su plan. La lista de
+                "proyectos" era una segunda lista para lo mismo, que había que
+                mantener a mano — y en la práctica casi nadie la llenaba. Se
+                muestran las obras reales; lo que se cargó como proyecto queda
+                abajo, para no perderlo. */}
+            {obrasPorCliente.length === 0 && (
+              <div style={{ textAlign: "center", color: C.muted, padding: 40 }}>
+                Todavía no hay obras. Se crean desde Presupuestos.
+              </div>
+            )}
+            {obrasPorCliente.map(({ cliente, obras }) => (
+              <div key={cliente.id || "sin"} style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "5px 2px",
+                              borderBottom: `2px solid ${C.border}`, marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: .6 }}>
+                    {cliente.nombre}
+                  </span>
+                  <span style={{ fontSize: 11, color: C.muted }}>
+                    {obras.length} obra{obras.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                {obras.map(o => (
+                  <div key={o.id} onClick={() => navigate(`/cotizador/presupuesto/${o.id}`)}
+                    style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
+                             padding: "10px 13px", marginBottom: 6, display: "flex", alignItems: "center",
+                             gap: 12, cursor: "pointer" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{o.nombre_obra}</div>
+                      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>
+                        {o.ubicacion ? o.ubicacion + " · " : ""}
+                        {o.fecha ? new Date(o.fecha + "T12:00:00").toLocaleDateString("es-AR") : ""}
+                      </div>
+                    </div>
+                    <span style={{ flexShrink: 0, fontSize: 10.5, padding: "2px 9px", borderRadius: 20,
+                                   background: String(o.estado).toUpperCase() === "CERRADO"
+                                     ? "rgba(217,119,6,.14)" : "rgba(52,211,153,.12)",
+                                   color: String(o.estado).toUpperCase() === "CERRADO" ? C.warn : C.accent }}>
+                      {String(o.estado).toUpperCase() === "CERRADO" ? "Cerrado" : "Abierto"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
+
+            {proyectosFiltrados.length > 0 && (
+              <div style={{ marginTop: 22 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: .6,
+                              color: C.muted, padding: "5px 2px", borderBottom: `2px solid ${C.border}`,
+                              marginBottom: 6 }}>
+                  Proyectos cargados a mano
+                </div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 10, lineHeight: 1.5 }}>
+                  Son de una lista aparte que había que mantener a mano. Hoy cada obra sale
+                  sola de su presupuesto, así que esto queda solo para no perder lo que ya
+                  habías escrito.
+                </div>
             {proyectosFiltrados.map((p) => (
               <div key={p.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 14, height: 14, borderRadius: 3, background: p.color || "#6ee7b7", flexShrink: 0 }} />
@@ -177,6 +262,8 @@ export default function Clientes({ user }) {
                 </div>
               </div>
             ))}
+              </div>
+            )}
           </div>
         )}
       </div>
