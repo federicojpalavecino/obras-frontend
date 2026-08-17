@@ -96,7 +96,7 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
 function TrialBanner({ diasRestantes }) {
   if (diasRestantes > 7) return null;
   return (
-    <div style={{ background: diasRestantes <= 2 ? "#fef2f2" : "#fffbeb", borderBottom: `1px solid ${diasRestantes <= 2 ? "#fecaca" : "#fde68a"}`, color: diasRestantes <= 2 ? C.red : C.warn, textAlign: "center", padding: "7px 16px", fontSize: 13, fontFamily: "'Syne', sans-serif" }}>
+    <div className="aviso-arriba" style={{ background: diasRestantes <= 2 ? "#fef2f2" : "#fffbeb", borderBottom: `1px solid ${diasRestantes <= 2 ? "#fecaca" : "#fde68a"}`, color: diasRestantes <= 2 ? C.red : C.warn, textAlign: "center", padding: "7px 16px", fontSize: 13, fontFamily: "'Syne', sans-serif" }}>
       <AlertTriangle size={13} strokeWidth={2} style={{ marginRight: 4, verticalAlign: "middle" }} /> Te {diasRestantes === 1 ? "queda" : "quedan"} <strong>{diasRestantes} día{diasRestantes !== 1 ? "s" : ""}</strong> de prueba gratuita.
       {diasRestantes <= 3 && " Suscribite para no perder el acceso."}
     </div>
@@ -107,7 +107,7 @@ function TrialBanner({ diasRestantes }) {
 function AnuncioBanner({ anuncio, onClose }) {
   if (!anuncio) return null;
   return (
-    <div style={{ background: "#eef2ff", borderBottom: "1px solid #c7d2fe", color: "#3730a3", padding: "8px 40px 8px 16px", fontSize: 13, fontFamily: "'Syne', sans-serif", position: "relative", textAlign: "center" }}>
+    <div className="aviso-arriba" style={{ background: "#eef2ff", borderBottom: "1px solid #c7d2fe", color: "#3730a3", padding: "8px 40px 8px 16px", fontSize: 13, fontFamily: "'Syne', sans-serif", position: "relative", textAlign: "center" }}>
       <Sparkles size={13} strokeWidth={2} style={{ marginRight: 6, verticalAlign: "middle" }} />
       {anuncio.titulo && <strong>{anuncio.titulo} </strong>}
       <span>{anuncio.mensaje}</span>
@@ -236,6 +236,23 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
     { id:"config",    path:"/config",    Icon:Settings,      label:"Configuración",         desc:"Logo, nombre y datos del estudio",                       color:C.muted, soloAdmin:true },
     { id:"soporte",   path:"/soporte",   Icon:MessageCircle, label:"Soporte técnico",       desc:"Contacto, ayuda y sugerencias",                          color:C.blue },
   ].filter(m => !m.soloAdmin || esAdmin);
+
+  // Las pantallas con una barra fija abajo —el presupuesto y su tablero de
+  // precios— piden el alto entero de la ventana. Si arriba hay un anuncio o el
+  // cartel de la prueba, la suma se pasa y el pie de la página queda abajo del
+  // borde: la barra deja de verse. Acá se mide lo que ocupan esos carteles y
+  // se publica, para que esas pantallas lo descuenten.
+  useEffect(() => {
+    const medir = () => {
+      let alto = 0;
+      document.querySelectorAll(".aviso-arriba").forEach(x => { alto += x.offsetHeight; });
+      document.documentElement.style.setProperty("--alto-avisos", alto + "px");
+    };
+    medir();
+    const t = setTimeout(medir, 120);   // por si el cartel entra un instante después
+    window.addEventListener("resize", medir);
+    return () => { clearTimeout(t); window.removeEventListener("resize", medir); };
+  });
 
   const currentModule = modules.find(m => location.pathname.startsWith(m.path));
 

@@ -856,7 +856,7 @@ ${firma}
 
   return (
     <>
-      <div className="no-print" style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
+      <div className="no-print" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - var(--alto-avisos, 0px))' }}>
 
         {/* HEADER — responsive */}
         <div className="header" style={{ flexWrap: 'wrap', gap: 6, minHeight: 'auto', padding: '10px 14px' }}>
