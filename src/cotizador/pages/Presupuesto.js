@@ -1255,7 +1255,7 @@ ${firma}
 
           {/* AREA CENTRAL */}
           <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div className="toolbar-presupuesto" style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 {/* «Ejec + Precio / Ejecución / Precio» no lo entiende nadie que
                     no haya visto el sistema antes. Se dice con todas las
@@ -1291,7 +1291,7 @@ ${firma}
                 )}
               </div>
 
-              <div className="tabla-presupuesto-wrapper" style={{ flex: 1, overflow: 'auto', paddingBottom: 8 }}>
+              <div className="tabla-presupuesto-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'auto', paddingBottom: 8 }}>
                 {data?.es_adicional && data?.presupuesto_base_id && (
                   <div style={{ margin: 10, padding: '7px 12px', background: 'rgba(110,231,183,0.06)', border: '1px solid rgba(110,231,183,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ display:'flex', alignItems:'center', gap:4 }}><FileText size={11} strokeWidth={1.5} /> Adicional de obra</span>
@@ -1535,7 +1535,10 @@ ${firma}
                 </table>
               </div>
 
-              <div className="totales-bar" style={{ position: 'sticky', bottom: 0, background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '5px 12px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div className="totales-bar" style={{ position: 'sticky', bottom: 0, zIndex: 30, flexShrink: 0,
+                            background: 'var(--surface)', borderTop: '1px solid var(--border)',
+                            boxShadow: '0 -2px 10px rgba(0,0,0,0.06)',
+                            padding: '5px 12px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 {[
                   { label: 'Costo Ejec', val: totales?.total_ejecucion, color: 'var(--ejec)', size: 13 },
                   { label: 'Precio s/IVA', val: totales?.total_precio_sin_iva, color: 'var(--precio)', size: 13 },
