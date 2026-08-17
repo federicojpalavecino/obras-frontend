@@ -7,7 +7,7 @@ import {
   getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea
 } from '../api';
 import api from '../api';
-import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye } from 'lucide-react';
+import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check } from 'lucide-react';
 import PrintPresupuesto from './PrintPresupuesto';
 import PanelAnalisis from './PanelAnalisis';
 import PanelComputo from './PanelComputo';
@@ -959,6 +959,9 @@ ${firma}
                 { label: 'Curva de inversión',  icon: <TrendingUp  size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/curva`) },
                 { label: 'Listado de materiales',icon: <Package    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/materiales`) },
                 ]),
+                ...(esServicio ? [
+                { label: 'Qué se entrega y cobros', icon: <Check size={18} strokeWidth={1.5} />, onClick: () => setVerEntregables(true) },
+                ] : []),
                 { label: 'Gantt',               icon: <BarChart2   size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/gantt/${id}`) },
                 { label: esServicio ? 'Gestión del proyecto' : 'Gestión de obra', icon: <Building2 size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/obra`) },
                 { label: creandoAdic ? 'Creando adicional...' : 'Crear adicional', icon: <Plus size={18} strokeWidth={1.5} />, onClick: crearAdicional, disabled: creandoAdic, color: 'var(--accent2)' },

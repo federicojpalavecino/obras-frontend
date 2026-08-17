@@ -14,6 +14,15 @@ const ESTADOS = [
   { v: "entregado", l: "Entregado", color: "var(--accent)" },
 ];
 
+// Cerrar un presupuesto congela el COMPROMISO, no la EJECUCION. Es al reves
+// de como estaba: el encargo se cierra cuando el cliente lo acepta, y recien
+// ahi empieza el trabajo de entregar. Bloquear el avance al cerrar dejaba la
+// pantalla mirando sin poder tocar nada, justo cuando hace falta usarla.
+//
+//   se puede siempre   → marcar entregado, cobrar la etapa
+//   solo con el abierto → el % de cada etapa, qué entra y qué no, borrar
+//   con el cerrado      → sumar cosas, pero entran como extra fuera del
+//                         encargo, que es lo que son
 export default function PanelEntregables({ presupuestoId, cerrado }) {
   const [data, setData] = useState(null);
   const [nuevoEn, setNuevoEn] = useState(null);     // etapa donde se agrega
@@ -81,14 +90,26 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
     }
   };
   const sumarDelCatalogo = async (etapaId, nombre) => {
-    await api.post(`/presupuestos/${presupuestoId}/servicio/entregables`, { items: [nombre], etapa_id: etapaId });
+    const r = await api.post(`/presupuestos/${presupuestoId}/servicio/entregables`,
+      { items: [nombre], etapa_id: etapaId });
+    // Con el encargo cerrado, lo que se suma no estaba pactado: entra afuera.
+    if (cerrado && r.data?.ids) {
+      for (const id of r.data.ids) {
+        await api.patch(`/presupuestos/${presupuestoId}/servicio/entregables/${id}`, { incluido: false });
+      }
+    }
     cargar();
   };
 
   const agregar = async (etapaId) => {
     const items = texto.split("\n").map(x => x.trim()).filter(Boolean);
     if (!items.length) { setNuevoEn(null); return; }
-    await api.post(`/presupuestos/${presupuestoId}/servicio/entregables`, { items, etapa_id: etapaId });
+    const r = await api.post(`/presupuestos/${presupuestoId}/servicio/entregables`, { items, etapa_id: etapaId });
+    if (cerrado && r.data?.ids) {
+      for (const id of r.data.ids) {
+        await api.patch(`/presupuestos/${presupuestoId}/servicio/entregables/${id}`, { incluido: false });
+      }
+    }
     setTexto(""); setNuevoEn(null); cargar();
   };
 
@@ -128,6 +149,14 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
         entra en el presupuesto; lo que dejes afuera se imprime como «no incluye».
         Cada etapa se lleva un porcentaje del honorario y se cobra cuando está entregada.
       </div>
+      {cerrado && (
+        <div style={{ padding: "9px 12px", borderRadius: 9, fontSize: 12, marginBottom: 12, lineHeight: 1.55,
+                      background: "rgba(217,119,6,.08)", border: "1px solid rgba(217,119,6,.3)", color: "var(--warn)" }}>
+          <b>El encargo está cerrado.</b> Lo pactado no se toca —los porcentajes de cada etapa y
+          qué entra y qué no—, pero acá seguís marcando lo que entregás y cobrando las etapas.
+          Lo que sumes ahora entra como <b>extra fuera del encargo</b>.
+        </div>
+      )}
       {aviso && (
         <div style={{ padding: "8px 11px", borderRadius: 8, fontSize: 12.5, marginBottom: 12,
                       background: "rgba(16,185,129,.10)", color: "var(--accent)" }}>{aviso}</div>
@@ -213,11 +242,13 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
             <Fila key={en.id} en={en} cerrado={cerrado} onEstado={cambiarEstado} onBorrar={borrar} onIncluido={alternarIncluido} />
           ))}
 
-          {!cerrado && (
+          {(
             nuevoEn === e.id ? (
               <div style={{ marginTop: 6 }}>
                 <textarea autoFocus value={texto} onChange={ev => setTexto(ev.target.value)}
-                  placeholder={"Uno por renglón:\nPlanta de techos\nPlanilla de locales"}
+                  placeholder={cerrado
+                    ? "Se suma como extra, fuera de lo pactado:\nPlano de detalle del hall"
+                    : "Uno por renglón:\nPlanta de techos\nPlanilla de locales"}
                   rows={3}
                   style={{ width: "100%", padding: "8px 10px", borderRadius: 8, fontSize: 12.5,
                            border: "1px solid var(--accent)", background: "var(--surface2)",
@@ -331,9 +362,9 @@ function Fila({ en, cerrado, onEstado, onBorrar, onIncluido }) {
           {fuera ? "" : "✓"}
         </button>
       )}
-      <button onClick={() => !cerrado && !fuera && onEstado(en)} disabled={cerrado || fuera}
-        title={fuera ? "No entra en el presupuesto" : cerrado ? "" : "Tocá para cambiar el estado"}
-        style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, cursor: cerrado ? "default" : "pointer",
+      <button onClick={() => !fuera && onEstado(en)} disabled={fuera}
+        title={fuera ? "No entra en el encargo" : "Tocá para cambiar el estado"}
+        style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, cursor: fuera ? "default" : "pointer",
                  border: `1px solid ${en.estado === "pendiente" ? "var(--border2)" : est.color}`,
                  background: en.estado === "entregado" ? est.color
                            : en.estado === "en_curso" ? "rgba(217,119,6,.25)" : "transparent",
