@@ -1065,7 +1065,7 @@ export default function Gantt() {
             { label: 'Nueva tarea', icon: '+', onClick: () => setEditando({}) },
             { label: `Días que no se trabajó${diasPerdidos.length ? ` (${diasPerdidos.length})` : ''}`,
               icon: '☂', onClick: () => setPanelDias(true), color: diasPerdidos.length ? 'var(--warn)' : undefined },
-            { label: 'Cómo se trabaja', icon: '⚙', onClick: () => setPanelConfig(true) },
+            ...(esCelular ? [{ label: 'Cómo se trabaja', icon: '⚙', onClick: () => setPanelConfig(true) }] : []),
             ...(tareas.length > 1 ? [
               { label: 'Traer horas del análisis', icon: '⏱', onClick: cargarHoras },
               { label: 'Encadenar tareas en orden', icon: '⛓', onClick: encadenarTodo },
@@ -1185,12 +1185,56 @@ export default function Gantt() {
                     display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <span>{tareas.length} tareas</span>
         {!plan && <><span>·</span><span>{fmtFecha(fechaMin)} → {fmtFecha(fechaMax)}</span></>}
-        <button onClick={() => setPanelConfig(true)}
-          style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)',
-                   borderRadius: 12, padding: '2px 10px', fontSize: 11, cursor: 'pointer',
-                   color: 'var(--muted)', fontFamily: 'inherit' }}>
-          ⚙ {config.horas_dia}h/día{config.sabado ? ' · sáb' : ''}{config.domingo ? ' · dom' : ''}
-        </button>
+        {/* En una pantalla grande hay lugar de sobra: la configuración va acá,
+            a la vista y a un click. Meterla en el menú era resolver un problema
+            del celular a costa de la computadora. */}
+        {!esCelular ? (
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <label style={{ color: 'var(--muted)' }}>Arranca</label>
+              <input type="date" value={config.fecha_inicio_obra}
+                onChange={e => setConfig(c => ({ ...c, fecha_inicio_obra: e.target.value }))}
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 5,
+                         color: 'var(--text)', padding: '2px 6px', fontSize: 11, fontFamily: 'inherit' }} />
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <label style={{ color: 'var(--muted)' }}>Hs/día</label>
+              <input type="number" value={config.horas_dia}
+                onChange={e => setConfig(c => ({ ...c, horas_dia: e.target.value }))}
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 5,
+                         color: 'var(--text)', padding: '2px 5px', fontSize: 11, width: 46,
+                         fontFamily: 'var(--mono)' }} />
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <label style={{ color: 'var(--muted)' }}>Se trabaja</label>
+              {[['sabado', 'Sáb'], ['domingo', 'Dom']].map(([campo, label]) => (
+                <button key={campo} onClick={() => cambiarFinDeSemana(campo, !config[campo])}
+                  title={config[campo] ? `Se trabaja el ${campo}. Tocá para dejar de contarlo.`
+                                       : `No se trabaja el ${campo}. Tocá para sumarlo al plan.`}
+                  style={{ padding: '2px 9px', borderRadius: 11, cursor: 'pointer', fontSize: 11,
+                           fontFamily: 'inherit',
+                           border: `1px solid ${config[campo] ? 'var(--accent)' : 'var(--border)'}`,
+                           background: config[campo] ? 'rgba(16,185,129,.12)' : 'var(--surface)',
+                           color: config[campo] ? 'var(--accent)' : 'var(--muted)' }}>
+                  {config[campo] ? '✓ ' : ''}{label}
+                </button>
+              ))}
+            </span>
+            <button onClick={() => guardarConfig(config)}
+              style={{ padding: '2px 11px', borderRadius: 11, cursor: 'pointer', fontSize: 11,
+                       fontFamily: 'inherit', background: 'var(--surface)',
+                       border: '1px solid var(--border)', color: 'var(--text)' }}>
+              Guardar
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setPanelConfig(true)}
+            style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)',
+                     borderRadius: 12, padding: '2px 10px', fontSize: 11, cursor: 'pointer',
+                     color: 'var(--muted)', fontFamily: 'inherit' }}>
+            ⚙ {config.horas_dia}h/día{config.sabado ? ' · sáb' : ''}{config.domingo ? ' · dom' : ''}
+          </button>
+        )}
       </div>
 
       {/* GANTT */}
