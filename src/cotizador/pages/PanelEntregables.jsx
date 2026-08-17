@@ -69,6 +69,22 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
     }
   };
 
+  // El catálogo de lo que se entrega en un encargo. Se elige de una lista en
+  // vez de escribir cada cosa: son siempre las mismas.
+  const [catalogo, setCatalogo] = useState(null);
+  const [eligiendoEn, setEligiendoEn] = useState(null);
+  const abrirCatalogo = async (etapaId) => {
+    setEligiendoEn(etapaId);
+    if (!catalogo) {
+      try { const r = await api.get("/servicio/catalogo"); setCatalogo(r.data.etapas || []); }
+      catch (e) { setCatalogo([]); }
+    }
+  };
+  const sumarDelCatalogo = async (etapaId, nombre) => {
+    await api.post(`/presupuestos/${presupuestoId}/servicio/entregables`, { items: [nombre], etapa_id: etapaId });
+    cargar();
+  };
+
   const agregar = async (etapaId) => {
     const items = texto.split("\n").map(x => x.trim()).filter(Boolean);
     if (!items.length) { setNuevoEn(null); return; }
@@ -219,13 +235,48 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
                   </button>
                 </div>
               </div>
-            ) : (
-              <button onClick={() => { setNuevoEn(e.id); setTexto(""); }}
-                style={{ marginTop: 4, background: "none", border: "none", padding: "3px 0", cursor: "pointer",
-                         fontFamily: "inherit", fontSize: 11.5, color: "var(--accent)" }}>
-                + Sumar algo a {e.nombre}
-              </button>
-            )
+            ) : (<>
+              <div style={{ display: "flex", gap: 12, marginTop: 4, flexWrap: "wrap" }}>
+                <button onClick={() => abrirCatalogo(eligiendoEn === e.id ? null : e.id)}
+                  style={{ background: "none", border: "none", padding: "3px 0", cursor: "pointer",
+                           fontFamily: "inherit", fontSize: 11.5, color: "var(--accent)" }}>
+                  {eligiendoEn === e.id ? "▴ Cerrar la lista" : "+ Elegir de la lista"}
+                </button>
+                <button onClick={() => { setNuevoEn(e.id); setTexto(""); }}
+                  style={{ background: "none", border: "none", padding: "3px 0", cursor: "pointer",
+                           fontFamily: "inherit", fontSize: 11.5, color: "var(--muted)" }}>
+                  + Escribir uno nuevo
+                </button>
+              </div>
+              {eligiendoEn === e.id && (
+                <div style={{ marginTop: 6, padding: "9px 11px", borderRadius: 9,
+                              background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  {!catalogo && <div style={{ fontSize: 12, color: "var(--muted)" }}>Cargando…</div>}
+                  {(catalogo || []).map(g => {
+                    const yaEstan = new Set(data.etapas.flatMap(x => x.entregables.map(y => y.nombre))
+                      .concat(data.sueltos.map(y => y.nombre)));
+                    const libres = g.items.filter(x => !yaEstan.has(x));
+                    if (!libres.length) return null;
+                    return (
+                      <div key={g.etapa} style={{ marginBottom: 8 }}>
+                        <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase",
+                                      letterSpacing: .5, marginBottom: 4 }}>{g.etapa}</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                          {libres.map(x => (
+                            <button key={x} onClick={() => sumarDelCatalogo(e.id, x)}
+                              style={{ padding: "3px 9px", borderRadius: 12, cursor: "pointer",
+                                       fontFamily: "inherit", fontSize: 11, background: "var(--surface)",
+                                       border: "1px solid var(--border)", color: "var(--text)" }}>
+                              + {x}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>)
           )}
         </div>
       ))}

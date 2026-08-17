@@ -767,9 +767,9 @@ ${adicionales.length > 0 ? adicionales.map(adic => {
     <div class="blk"><div class="lbl">TOTAL GENERAL</div><div class="val precio" style="font-size:16pt">${fmt((totales?.total_precio_con_iva || 0) + totalAdicImpresion)}</div></div>
   </div>
 </div>` : ''}
-${(servicio?.total > 0) ? `
+${((servicio?.etapas || []).length || (servicio?.no_incluye || []).length) ? `
 <div style="margin-top:22px">
-  <h3 style="font-size:11pt;margin:0 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px">Qué incluye este servicio</h3>
+  ${(servicio.total > 0) ? `<h3 style="font-size:11pt;margin:0 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px">Qué incluye este servicio</h3>` : ''}
   ${(servicio.etapas || []).filter(e => e.entregables.some(x => x.incluido !== false)).map(e => `
     <div style="margin-bottom:10px">
       <div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#444">${esc(e.nombre)}</div>
@@ -850,6 +850,7 @@ ${firma}
   // Lo que se entrega va en el presupuesto que ve el cliente: es la parte que
   // más le importa de un encargo de proyecto, más que el número.
   const [servicio, setServicio] = useState(null);
+  const [verEntregables, setVerEntregables] = useState(false);
   useEffect(() => {
     if (!esServicio) return;
     api.get(`/presupuestos/${id}/servicio`).then(r => setServicio(r.data)).catch(() => {});
@@ -1328,9 +1329,47 @@ ${firma}
                 {/* En un servicio lo que importa no es el cómputo: es qué se
                     entrega. Va arriba de todo, porque es lo primero que se
                     define y lo que después se certifica. */}
+                {/* Una tira con lo que importa y un toque para abrir el
+                    detalle. Tenerlo desplegado siempre le comía media pantalla
+                    al presupuesto, que es lo que se está mirando. */}
                 {esServicio && (
-                  <div style={{ margin: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10 }}>
-                    <PanelEntregables presupuestoId={id} cerrado={cerrado} />
+                  <div onClick={() => setVerEntregables(true)}
+                    style={{ margin: 10, padding: '9px 13px', borderRadius: 10, cursor: 'pointer',
+                             background: 'var(--surface)', border: '1px solid var(--border)',
+                             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>Qué se entrega</span>
+                    {servicio?.total > 0 ? (
+                      <>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                          {servicio.etapas.length} etapa{servicio.etapas.length !== 1 ? 's' : ''} ·
+                          {' '}{servicio.entregados} de {servicio.total} entregados
+                          {servicio.no_incluye?.length ? ` · ${servicio.no_incluye.length} no incluido${servicio.no_incluye.length !== 1 ? 's' : ''}` : ''}
+                        </span>
+                        <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 15,
+                                       fontWeight: 800, color: 'var(--accent)' }}>{servicio.avance_pct}%</span>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 'auto' }}>
+                        sin cargar — tocá para armarlo
+                      </span>
+                    )}
+                    <span style={{ color: 'var(--muted)', fontSize: 13 }}>▸</span>
+                  </div>
+                )}
+
+                {verEntregables && (
+                  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 420,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+                    onClick={() => { setVerEntregables(false); api.get(`/presupuestos/${id}/servicio`).then(r => setServicio(r.data)).catch(() => {}); }}>
+                    <div style={{ background: 'var(--surface)', borderRadius: 14, width: 'min(620px,100%)',
+                                  maxHeight: '88dvh', overflowY: 'auto', border: '1px solid var(--border)' }}
+                      onClick={e => e.stopPropagation()}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 10px 0' }}>
+                        <button onClick={() => { setVerEntregables(false); api.get(`/presupuestos/${id}/servicio`).then(r => setServicio(r.data)).catch(() => {}); }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 22 }}>×</button>
+                      </div>
+                      <PanelEntregables presupuestoId={id} cerrado={cerrado} />
+                    </div>
                   </div>
                 )}
 
