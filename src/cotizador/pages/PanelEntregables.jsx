@@ -6,6 +6,8 @@ import api from "../api";
 // pantalla es la lista de lo que el estudio se comprometió a dar, y el avance
 // del encargo sale de ahí: cuánto de lo prometido ya está entregado.
 
+const plata = (n) => "$ " + Math.round(n || 0).toLocaleString("es-AR");
+
 const ESTADOS = [
   { v: "pendiente", l: "Falta", color: "var(--muted)" },
   { v: "en_curso",  l: "En eso", color: "var(--warn)" },
@@ -18,6 +20,7 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
   const [texto, setTexto] = useState("");
   const [nuevaEtapa, setNuevaEtapa] = useState("");
   const [cargando, setCargando] = useState(true);
+  const [aviso, setAviso] = useState("");
 
   const cargar = async () => {
     try {
@@ -35,6 +38,35 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
     const sig = orden[(orden.indexOf(en.estado) + 1) % orden.length];
     await api.patch(`/presupuestos/${presupuestoId}/servicio/entregables/${en.id}`, { estado: sig });
     cargar();
+  };
+
+  const guardarPeso = async (etapaId, v) => {
+    const n = parseFloat(String(v).replace(",", "."));
+    if (isNaN(n) || n < 0 || n > 100) return;
+    await api.patch(`/presupuestos/${presupuestoId}/servicio/etapas/${etapaId}`, { peso_pct: n });
+    cargar();
+  };
+
+  // Lo que queda afuera del encargo no cuenta para el avance y sale impreso
+  // como "no incluye", que es lo que evita la discusión de después.
+  const alternarIncluido = async (en) => {
+    await api.patch(`/presupuestos/${presupuestoId}/servicio/entregables/${en.id}`,
+      { incluido: !en.incluido });
+    cargar();
+  };
+
+  const cobrar = async (e) => {
+    try {
+      const r = await api.post(`/presupuestos/${presupuestoId}/servicio/etapas/${e.id}/cobrar`, {});
+      cargar();
+      setAviso(r.data?.en_control_financiero
+        ? `✓ Cobrado ${plata(r.data.monto)} · ya está en el control financiero`
+        : `✓ Cobrado ${plata(r.data.monto)}`);
+      setTimeout(() => setAviso(""), 4000);
+    } catch (err) {
+      setAviso("⚠ " + (err.response?.data?.detail || "No se pudo cobrar"));
+      setTimeout(() => setAviso(""), 4000);
+    }
   };
 
   const agregar = async (etapaId) => {
@@ -75,10 +107,21 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
           </div>
         )}
       </div>
-      <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 14, lineHeight: 1.5 }}>
-        Lo que el estudio se comprometió a dar. Es lo que ve el cliente en el presupuesto,
-        y de acá sale el avance del encargo.
+      <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 12, lineHeight: 1.5 }}>
+        Lo que el estudio se comprometió a dar. El tilde violeta de la izquierda dice si
+        entra en el presupuesto; lo que dejes afuera se imprime como «no incluye».
+        Cada etapa se lleva un porcentaje del honorario y se cobra cuando está entregada.
       </div>
+      {aviso && (
+        <div style={{ padding: "8px 11px", borderRadius: 8, fontSize: 12.5, marginBottom: 12,
+                      background: "rgba(16,185,129,.10)", color: "var(--accent)" }}>{aviso}</div>
+      )}
+      {data.pesos_suman > 0 && data.pesos_suman !== 100 && !cerrado && (
+        <div style={{ padding: "8px 11px", borderRadius: 8, fontSize: 12, marginBottom: 12,
+                      background: "rgba(217,119,6,.10)", color: "var(--warn)" }}>
+          Los porcentajes de las etapas suman {data.pesos_suman}%. Tendrían que sumar 100.
+        </div>
+      )}
 
       {vacio && (
         <div style={{ background: "var(--surface2)", border: "1px dashed var(--border)", borderRadius: 10,
@@ -104,22 +147,54 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
 
       {data.etapas.map(e => (
         <div key={e.id} style={{ marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "5px 0",
-                        borderBottom: "2px solid var(--border)", marginBottom: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0",
+                        borderBottom: "2px solid var(--border)", marginBottom: 6, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: .6 }}>
               {e.nombre}
             </span>
-            <span style={{ fontSize: 11, color: "var(--muted)" }}>
+            {/* La etapa es a la vez el hito de entrega y el de cobro: se lleva
+                un porcentaje del honorario y se cobra cuando se entregó. */}
+            {!cerrado ? (
+              <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <input type="number" min="0" max="100" defaultValue={e.peso_pct || ""} key={e.peso_pct}
+                  onBlur={ev => guardarPeso(e.id, ev.target.value)}
+                  title="Qué parte del honorario se cobra con esta etapa"
+                  style={{ width: 42, padding: "1px 4px", borderRadius: 4, fontSize: 11,
+                           border: "1px solid var(--border)", background: "var(--surface2)",
+                           color: "var(--text)", fontFamily: "var(--mono)", textAlign: "right" }} />
+                <span style={{ fontSize: 10.5, color: "var(--muted)" }}>% del honorario</span>
+              </span>
+            ) : e.peso_pct > 0 && (
+              <span style={{ fontSize: 10.5, color: "var(--muted)" }}>{e.peso_pct}% del honorario</span>
+            )}
+            {e.monto > 0 && (
+              <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--precio)" }}>
+                {plata(e.monto)}
+              </span>
+            )}
+            <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--muted)" }}>
               {e.entregados}/{e.total}
             </span>
-            <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700,
+            <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700,
                            color: e.avance_pct >= 100 ? "var(--accent)" : "var(--muted)" }}>
               {e.avance_pct}%
             </span>
+            {e.monto > 0 && (
+              e.cobrado ? (
+                <span style={{ fontSize: 10.5, padding: "2px 8px", borderRadius: 12,
+                               background: "rgba(16,185,129,.14)", color: "var(--accent)" }}>✓ cobrado</span>
+              ) : e.avance_pct >= 100 ? (
+                <button onClick={() => cobrar(e)}
+                  style={{ padding: "3px 11px", borderRadius: 12, cursor: "pointer", fontFamily: "inherit",
+                           fontSize: 11, fontWeight: 700, background: "var(--accent)", border: "none", color: "#fff" }}>
+                  Cobrar
+                </button>
+              ) : null
+            )}
           </div>
 
           {e.entregables.map(en => (
-            <Fila key={en.id} en={en} cerrado={cerrado} onEstado={cambiarEstado} onBorrar={borrar} />
+            <Fila key={en.id} en={en} cerrado={cerrado} onEstado={cambiarEstado} onBorrar={borrar} onIncluido={alternarIncluido} />
           ))}
 
           {!cerrado && (
@@ -162,7 +237,7 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
             Sin etapa
           </div>
           {data.sueltos.map(en => (
-            <Fila key={en.id} en={en} cerrado={cerrado} onEstado={cambiarEstado} onBorrar={borrar} />
+            <Fila key={en.id} en={en} cerrado={cerrado} onEstado={cambiarEstado} onBorrar={borrar} onIncluido={alternarIncluido} />
           ))}
         </div>
       )}
@@ -186,13 +261,27 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
   );
 }
 
-function Fila({ en, cerrado, onEstado, onBorrar }) {
+function Fila({ en, cerrado, onEstado, onBorrar, onIncluido }) {
   const est = ESTADOS.find(x => x.v === en.estado) || ESTADOS[0];
+  const fuera = en.incluido === false;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 0",
-                  borderBottom: "1px solid var(--border2)" }}>
-      <button onClick={() => !cerrado && onEstado(en)} disabled={cerrado}
-        title={cerrado ? "" : "Tocá para cambiar el estado"}
+                  borderBottom: "1px solid var(--border2)", opacity: fuera ? .55 : 1 }}>
+      {/* Elegir si esto entra en el encargo o no. Lo que queda afuera se
+          imprime igual, en la lista de "no incluye". */}
+      {!cerrado && onIncluido && (
+        <button onClick={() => onIncluido(en)}
+          title={fuera ? "No entra en el presupuesto — tocá para incluirlo"
+                       : "Entra en el presupuesto — tocá para dejarlo afuera"}
+          style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, cursor: "pointer",
+                   border: `1px solid ${fuera ? "var(--border2)" : "var(--accent2)"}`,
+                   background: fuera ? "transparent" : "var(--accent2)",
+                   color: "#fff", fontSize: 10, lineHeight: 1, padding: 0 }}>
+          {fuera ? "" : "✓"}
+        </button>
+      )}
+      <button onClick={() => !cerrado && !fuera && onEstado(en)} disabled={cerrado || fuera}
+        title={fuera ? "No entra en el presupuesto" : cerrado ? "" : "Tocá para cambiar el estado"}
         style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, cursor: cerrado ? "default" : "pointer",
                  border: `1px solid ${en.estado === "pendiente" ? "var(--border2)" : est.color}`,
                  background: en.estado === "entregado" ? est.color
@@ -205,8 +294,9 @@ function Fila({ en, cerrado, onEstado, onBorrar }) {
                      textDecoration: en.estado === "entregado" ? "line-through" : "none" }}>
         {en.nombre}
       </span>
-      <span style={{ flexShrink: 0, fontSize: 10.5, color: est.color }}>
-        {est.l}{en.fecha_entrega ? ` · ${new Date(en.fecha_entrega + "T12:00:00").toLocaleDateString("es-AR")}` : ""}
+      <span style={{ flexShrink: 0, fontSize: 10.5, color: fuera ? "var(--muted)" : est.color }}>
+        {fuera ? "no incluido" : est.l}
+        {!fuera && en.fecha_entrega ? ` · ${new Date(en.fecha_entrega + "T12:00:00").toLocaleDateString("es-AR")}` : ""}
       </span>
       {!cerrado && (
         <button onClick={() => onBorrar(en)}

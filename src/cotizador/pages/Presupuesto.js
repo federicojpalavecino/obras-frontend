@@ -770,15 +770,33 @@ ${adicionales.length > 0 ? adicionales.map(adic => {
 ${(servicio?.total > 0) ? `
 <div style="margin-top:22px">
   <h3 style="font-size:11pt;margin:0 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px">Qué incluye este servicio</h3>
-  ${(servicio.etapas || []).filter(e => e.entregables.length).map(e => `
+  ${(servicio.etapas || []).filter(e => e.entregables.some(x => x.incluido !== false)).map(e => `
     <div style="margin-bottom:10px">
       <div style="font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#444">${esc(e.nombre)}</div>
       <ul style="margin:3px 0 0 16px;padding:0;font-size:9pt;line-height:1.5">
-        ${e.entregables.map(x => `<li>${esc(x.nombre)}</li>`).join('')}
+        ${e.entregables.filter(x => x.incluido !== false).map(x => `<li>${esc(x.nombre)}</li>`).join('')}
       </ul>
     </div>`).join('')}
-  ${(servicio.sueltos || []).length ? `<ul style="margin:3px 0 0 16px;padding:0;font-size:9pt;line-height:1.5">${servicio.sueltos.map(x => `<li>${esc(x.nombre)}</li>`).join('')}</ul>` : ''}
+  ${(servicio.sueltos || []).filter(x => x.incluido !== false).length ? `<ul style="margin:3px 0 0 16px;padding:0;font-size:9pt;line-height:1.5">${servicio.sueltos.filter(x => x.incluido !== false).map(x => `<li>${esc(x.nombre)}</li>`).join('')}</ul>` : ''}
+</div>
+${(servicio.no_incluye || []).length ? `
+<div style="margin-top:14px;padding:8px 12px;background:#f7f7f7;border-left:3px solid #bbb">
+  <div style="font-size:9pt;font-weight:700;margin-bottom:4px">No incluye</div>
+  <ul style="margin:0 0 0 16px;padding:0;font-size:8.5pt;line-height:1.5;color:#555">
+    ${servicio.no_incluye.map(x => `<li>${esc(x)}</li>`).join('')}
+  </ul>
 </div>` : ''}
+${(servicio.etapas || []).some(e => e.peso_pct > 0) ? `
+<div style="margin-top:16px">
+  <div style="font-size:10pt;font-weight:700;margin-bottom:6px;border-bottom:1px solid #ccc;padding-bottom:4px">Forma de pago</div>
+  <table style="width:100%;border-collapse:collapse;font-size:9pt">
+    ${servicio.etapas.filter(e => e.peso_pct > 0).map(e => `<tr>
+      <td style="padding:3px 0">${esc(e.nombre)}</td>
+      <td style="padding:3px 0;text-align:right;width:60px">${e.peso_pct}%</td>
+      <td style="padding:3px 0;text-align:right;font-family:monospace;width:120px">${fmt(e.monto)}</td>
+    </tr>`).join('')}
+  </table>
+</div>` : ''}` : ''}
 ${firma}
 <footer><span>${_pN} — ${hoy}</span><span>${data.nombre_obra}${data.ubicacion ? ' · ' + data.ubicacion : ''}</span></footer>
 </body></html>`;

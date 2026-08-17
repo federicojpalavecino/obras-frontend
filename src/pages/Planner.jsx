@@ -329,10 +329,21 @@ export default function Planner({ user }) {
   // cuántas obras se pisan en el mismo mes y dónde está parado el estudio en
   // conjunto. Cada obra es una barra.
   const [ganttObras, setGanttObras] = useState(null);
+  // Qué ventana de tiempo se mira. Sin esto, a los tres años la vista trae
+  // obras terminadas hace rato y no se entiende nada.
+  const [ventana, setVentana] = useState(() => localStorage.getItem("obras_planner_ventana") || "6m");
   useEffect(() => {
-    if (vista !== "obras" || ganttObras) return;
-    api.get("/planner/gantt").then(r => setGanttObras(r.data)).catch(() => setGanttObras({ obras: [] }));
-  }, [vista, ganttObras]);
+    if (vista !== "obras") return;
+    const hoyD = new Date();
+    const desde = new Date(hoyD), hasta = new Date(hoyD);
+    if (ventana === "3m") { desde.setMonth(desde.getMonth() - 1); hasta.setMonth(hasta.getMonth() + 2); }
+    else if (ventana === "6m") { desde.setMonth(desde.getMonth() - 2); hasta.setMonth(hasta.getMonth() + 4); }
+    else if (ventana === "12m") { desde.setMonth(desde.getMonth() - 3); hasta.setMonth(hasta.getMonth() + 9); }
+    const q = ventana === "todo" ? "" :
+      `?desde=${desde.toISOString().split("T")[0]}&hasta=${hasta.toISOString().split("T")[0]}`;
+    setGanttObras(null);
+    api.get("/planner/gantt" + q).then(r => setGanttObras(r.data)).catch(() => setGanttObras({ obras: [] }));
+  }, [vista, ventana]);
   // Modo reunion: letra grande y sin cromo, para proyectar en una pantalla y
   // repasar la semana entre varios. Se sale con Escape.
   const [modoReunion, setModoReunion] = useState(false);
@@ -635,16 +646,29 @@ export default function Planner({ user }) {
             if (!ganttObras) return <div style={{ color: C.muted, fontSize: 13 }}>Cargando obras…</div>;
             const obras = ganttObras.obras || [];
             if (!obras.length) {
-              return (
+              return (<>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 11, color: C.muted }}>Ver</span>
+                  {[["3m", "3 meses"], ["6m", "6 meses"], ["12m", "Un año"], ["todo", "Todo"]].map(([v, l]) => (
+                    <button key={v}
+                      onClick={() => { setVentana(v); localStorage.setItem("obras_planner_ventana", v); }}
+                      style={{ padding: "3px 11px", borderRadius: 14, fontSize: 11.5, cursor: "pointer",
+                               fontFamily: "inherit", fontWeight: ventana === v ? 700 : 400,
+                               border: `1px solid ${ventana === v ? C.accent : C.border}`,
+                               background: ventana === v ? "rgba(5,150,105,.10)" : "transparent",
+                               color: ventana === v ? C.accent : C.muted }}>{l}</button>
+                  ))}
+                </div>
                 <div style={{ background: C.surface, border: `1px dashed ${C.border}`, borderRadius: 12,
                               padding: "26px 20px", textAlign: "center" }}>
                   <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Ninguna obra tiene su plan armado.</div>
                   <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.55, maxWidth: 420, margin: "0 auto" }}>
-                    Acá aparecen las obras que ya tienen tareas en el Gantt, una barra cada una,
-                    para ver cuáles se pisan en el mismo mes.
+                    Acá aparecen las obras y los proyectos que ya tienen su plan armado, una
+                    barra cada uno, para ver cuáles se pisan en el mismo mes. Probá ampliando
+                    el período.
                   </div>
                 </div>
-              );
+              </>);
             }
             const hoyISO = new Date().toISOString().split("T")[0];
             const dias = (a, b) => Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000);
@@ -665,6 +689,18 @@ export default function Planner({ user }) {
             }
             return (
               <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 11, color: C.muted }}>Ver</span>
+                  {[["3m", "3 meses"], ["6m", "6 meses"], ["12m", "Un año"], ["todo", "Todo"]].map(([v, l]) => (
+                    <button key={v}
+                      onClick={() => { setVentana(v); localStorage.setItem("obras_planner_ventana", v); }}
+                      style={{ padding: "3px 11px", borderRadius: 14, fontSize: 11.5, cursor: "pointer",
+                               fontFamily: "inherit", fontWeight: ventana === v ? 700 : 400,
+                               border: `1px solid ${ventana === v ? C.accent : C.border}`,
+                               background: ventana === v ? "rgba(5,150,105,.10)" : "transparent",
+                               color: ventana === v ? C.accent : C.muted }}>{l}</button>
+                  ))}
+                </div>
                 <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>
                   {obras.length} obra{obras.length !== 1 ? "s" : ""} con plan ·{" "}
                   {new Date(desde + "T12:00:00").toLocaleDateString("es-AR")} al{" "}
