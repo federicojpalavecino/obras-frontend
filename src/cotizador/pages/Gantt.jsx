@@ -28,6 +28,17 @@ const diasEntre = (a, b) => {
   return Math.round((db - da) / (1000 * 60 * 60 * 24));
 };
 
+// Hoy, en la zona horaria del que mira. `toISOString()` devuelve UTC: en
+// Argentina, que va tres horas atrás, a partir de las 21:00 ya daba el día
+// siguiente y la línea de HOY saltaba una jornada antes de tiempo, con la obra
+// todavía trabajando.
+const hoyLocal = () => {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+};
+
 const fmt = n => '$ ' + Math.round(n || 0).toLocaleString('es-AR');
 const fmtFecha = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '—';
 const fmtFechaLarga = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -58,6 +69,26 @@ export default function Gantt() {
   const [plata, setPlata] = useState(null);
   const [cargarAvanceEn, setCargarAvanceEn] = useState(null);   // tarea abierta
   const [pctNuevo, setPctNuevo] = useState("");
+  // El día de hoy vive en un estado, no en una constante calculada al dibujar:
+  // el tablero de una obra queda abierto días enteros en la pantalla de la
+  // oficina, y si no se recalcula, la línea de HOY se queda clavada en la fecha
+  // en que se abrió la pantalla y el plan parece congelado.
+  const [hoy, setHoy] = useState(hoyLocal);
+  useEffect(() => {
+    const mirar = () => setHoy(actual => {
+      const ahora = hoyLocal();
+      return ahora === actual ? actual : ahora;   // sin cambio, sin redibujar
+    });
+    const reloj = setInterval(mirar, 60000);
+    window.addEventListener('focus', mirar);
+    document.addEventListener('visibilitychange', mirar);
+    return () => {
+      clearInterval(reloj);
+      window.removeEventListener('focus', mirar);
+      document.removeEventListener('visibilitychange', mirar);
+    };
+  }, []);
+
   // Los dias que la obra no avanzo. Se pintan en la grilla y corren el plazo.
   const [diasPerdidos, setDiasPerdidos] = useState([]);
   const [panelDias, setPanelDias] = useState(false);
@@ -818,7 +849,7 @@ export default function Gantt() {
 
   // La ventana elegida, recortada contra el plan: nunca se muestra más allá de
   // lo que la obra realmente ocupa.
-  const hoyISO = new Date().toISOString().split('T')[0];
+  const hoyISO = hoy;
   const ventana = (() => {
     if (periodo === 'todo') return [planDesde, planHasta];
     if (periodo === 'futuro') return [hoyISO > planDesde ? hoyISO : planDesde, planHasta];
@@ -865,8 +896,6 @@ export default function Gantt() {
     diasHeader.push(addDias(fechaMin, i));
   }
 
-  const hoy = new Date().toISOString().split('T')[0];
-
   // ── IMPRIMIR ───────────────────────────────────────────────────────────────
   // Se arma un HTML propio en vez de imprimir la pantalla: el Gantt vive dentro
   // de un contenedor con scroll horizontal y al imprimirlo salía cortado en el
@@ -909,7 +938,12 @@ export default function Gantt() {
     const thDias = Array.from({ length: dias }, (_, i) => {
       const f = addDias(fechaMin, i);
       const d = new Date(f + 'T12:00:00');
-      const cls = !esLaborable(f) ? ' franco' : (f === hoy ? ' hoy' : '');
+      // El día perdido gana sobre el franco: un domingo no se trabaja nunca,
+      // pero un martes de lluvia es un día que se iba a trabajar y se perdió, y
+      // eso es justo lo que hay que poder mostrar en la reunión de obra.
+      const cls = perdidoPorFecha[f] ? ' perdido'
+                : !esLaborable(f) ? ' franco'
+                : (f === hoy ? ' hoy' : '');
       return `<th class="dia${cls}">${anchoDia >= 11 ? d.getDate() : ''}</th>`;
     }).join('');
 
@@ -918,7 +952,7 @@ export default function Gantt() {
       const largo = Math.max(1, diasEntre(t.fecha_inicio, t.fecha_fin) + 1);
       const celdas = Array.from({ length: dias }, (_, i) => {
         const f = addDias(fechaMin, i);
-        const cls = !esLaborable(f) ? ' franco' : '';
+        const cls = perdidoPorFecha[f] ? ' perdido' : !esLaborable(f) ? ' franco' : '';
         if (i !== ini) return `<td class="c${cls}"></td>`;
         const barra = t.es_hito
           ? `<div class="hito"></div>`
@@ -963,6 +997,10 @@ export default function Gantt() {
   th.dia{font-size:6.5pt;font-weight:400;color:#666;background:#fafafa;padding:1px 0;text-align:center}
   th.franco,td.franco{background:#ececec}
   th.hoy{background:#d1fae5;color:#065f46;font-weight:700}
+  /* Rayado y no relleno liso: en blanco y negro un gris más se confunde con el
+     domingo, y la trama se distingue igual. */
+  th.perdido,td.perdido{background:repeating-linear-gradient(45deg,#f3d9ac 0 3px,#fdf1dd 3px 6px)}
+  th.perdido{color:#8a5806;font-weight:700}
   th.hd{background:#efefef;font-size:8pt;padding:3px 5px;text-align:left;white-space:nowrap}
   td.nm{font-size:8.5pt;padding:2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   td.nm.res{font-weight:700;text-transform:uppercase}
@@ -1531,11 +1569,16 @@ export default function Gantt() {
                   const esLunes = d.getDay() === 1;
                   const franco = !esLaborable(dia);
                   const esHoyDia = dia === hoy;
+                  // El día perdido también se marca acá arriba: antes solo se
+                  // pintaba dentro de las filas, donde la barra de la tarea lo
+                  // tapaba justo en los días en que la obra paró.
+                  const perdidoDia = perdidoPorFecha[dia];
                   return (
                     <div key={dia} ref={esHoyDia ? colHoyRef : null}
+                      title={perdidoDia ? `${perdidoDia.motivo}${perdidoDia.nota ? ' · ' + perdidoDia.nota : ''}` : undefined}
                       style={{ width: PX_DIA, flexShrink: 0, height: '100%', position: 'relative',
                         borderLeft: esHoyDia ? '2px solid var(--accent)' : esLunes ? '1px solid #3a3a48' : '1px solid #2e2e3822',
-                        background: esHoyDia ? 'rgba(16,185,129,.20)' : franco ? 'rgba(74,74,88,.3)' : 'transparent',
+                        background: esHoyDia ? 'rgba(16,185,129,.20)' : perdidoDia ? 'rgba(217,119,6,.30)' : franco ? 'rgba(74,74,88,.3)' : 'transparent',
                         display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 2px 4px' }}>
                       {/* Sin este cartel hay que contar columnas para saber dónde
                           está uno parado. */}
@@ -1789,6 +1832,24 @@ export default function Gantt() {
                   );
                 })}
               </svg>
+
+              {/* Días que no se trabajó, de arriba abajo.
+                  Antes se pintaban únicamente dentro de cada fila y solo con
+                  detalle diario: en una obra larga, donde la escala se achica
+                  automáticamente, la lluvia cargada no se veía en ninguna parte.
+                  Acá va sobre toda la grilla, con un ancho mínimo para que no
+                  desaparezca cuando el día mide dos píxeles. */}
+              {diasPerdidos.map(dp => {
+                if (!dp.fecha || dp.fecha < fechaMin || dp.fecha > fechaMax) return null;
+                return (
+                  <div key={'perdido-' + dp.id}
+                    title={`${dp.motivo}${dp.nota ? ' · ' + dp.nota : ''} — no se trabajó`}
+                    style={{ position: 'absolute', left: diasEntre(fechaMin, dp.fecha) * PX_DIA, top: 50, bottom: 0,
+                             width: Math.max(3, PX_DIA), pointerEvents: 'none', zIndex: 6,
+                             background: 'repeating-linear-gradient(45deg, rgba(217,119,6,.34) 0 4px, rgba(217,119,6,.12) 4px 8px)',
+                             borderLeft: '1px solid rgba(217,119,6,.7)', borderRight: '1px solid rgba(217,119,6,.7)' }} />
+                );
+              })}
 
               {/* Línea de hoy */}
               {hoy >= fechaMin && hoy <= fechaMax && (
