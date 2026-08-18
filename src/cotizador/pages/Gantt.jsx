@@ -98,15 +98,22 @@ export default function Gantt() {
   const guardarDiasPerdidos = async () => {
     if (!formDia.desde) return;
     try {
-      await api.post(`/presupuestos/${id}/dias-no-trabajados`, formDia);
+      // El backend replanifica y devuelve la fecha de fin nueva. Sin decirla,
+      // el que carga tres días de lluvia no tiene forma de saber si el plazo
+      // se movió o no: la franja aparece en la grilla igual.
+      const r = await api.post(`/presupuestos/${id}/dias-no-trabajados`, formDia);
       setFormDia({ desde: "", hasta: "", motivo: "lluvia", nota: "" });
       await cargar();
+      const n = r?.data?.creados || 0;
+      if (n) showToast(`☂ ${n} día${n !== 1 ? 's' : ''} sin trabajar` +
+                       (r?.data?.fin ? ` · la obra termina el ${fmtFechaLarga(r.data.fin)}` : ''));
     } catch (e) { alert(e?.response?.data?.detail || 'No se pudo guardar'); }
   };
 
   const borrarDiaPerdido = async (did) => {
-    await api.delete(`/presupuestos/${id}/dias-no-trabajados/${did}`);
+    const r = await api.delete(`/presupuestos/${id}/dias-no-trabajados/${did}`);
     await cargar();
+    if (r?.data?.fin) showToast(`Día quitado · la obra termina el ${fmtFechaLarga(r.data.fin)}`);
   };
 
   // Suspender una tarea no es lo mismo que un dia de lluvia: la lluvia para la
