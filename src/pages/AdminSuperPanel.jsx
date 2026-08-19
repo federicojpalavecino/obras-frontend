@@ -27,7 +27,18 @@ const CS_REF = 65; // % cargas sociales referencia UOCRA construcción Argentina
 
 function fmtFechaCorta(iso) {
   if (!iso) return null;
-  return new Date(iso).toLocaleDateString("es-AR", { day:"2-digit", month:"2-digit", year:"numeric" });
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("es-AR", { day:"2-digit", month:"2-digit", year:"numeric" });
+}
+
+// Una fecha basura en la base no puede tirar abajo el panel entero: toISOString()
+// sobre un Date invalido lanza RangeError y React desmonta todo (pantalla en blanco).
+function aISO(valor) {
+  if (!valor) return "";
+  const d = new Date(valor);
+  if (isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
 }
 
 function PanelMO({ token }) {
@@ -835,7 +846,7 @@ export default function AdminPanel() {
               ) : tenantsFiltrados.map((t, i) => {
                 const precioVal = precioEdit[t.id] !== undefined ? precioEdit[t.id] : String(Math.round(t.precio_mensual || 0));
                 const precioChanged = parseFloat(precioVal || 0) !== Math.round(t.precio_mensual || 0);
-                const trialISO = t.trial_hasta ? new Date(t.trial_hasta).toISOString().slice(0, 10) : "";
+                const trialISO = aISO(t.trial_hasta);
                 return (
                 <div key={t.id} style={{ display:"grid", gridTemplateColumns:"1.6fr 1.8fr 0.9fr 1.3fr 0.6fr 1.4fr auto", gap:0, padding:"12px 16px", borderBottom: i < tenantsFiltrados.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center", background: t.activo===false ? "#fef2f2" : "white" }}>
                   <div style={{ fontWeight:600, fontSize:14, color:C.text }}>{t.nombre}</div>
