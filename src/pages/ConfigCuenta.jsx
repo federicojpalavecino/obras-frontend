@@ -20,6 +20,11 @@ function UsuariosSection() {
   // sistema, así que dos estudios pueden tener cada uno su "juan".
   const [form, setForm] = useState({ nombre:'', email:'', usuario:'', password:'', rol:'admin', modo:'usuario' });
   const [msg, setMsg] = useState('');
+  const [msgErr, setMsgErr] = useState(false);
+  const aviso = (texto, esError=false) => {
+    setMsg(texto); setMsgErr(esError);
+    setTimeout(() => setMsg(''), 4000);
+  };
 
   const cargar = () => {
     api.get('/estudio/usuarios')
@@ -30,27 +35,35 @@ function UsuariosSection() {
   useEffect(() => { cargar(); }, []);
 
   const agregar = async () => {
-    const credencial = form.modo === 'email' ? form.email : form.usuario;
-    if (!form.nombre || !credencial || !form.password) { setMsg('Completá todos los campos'); return; }
+    const credencial = (form.modo === 'email' ? form.email : form.usuario).trim();
+    if (!form.nombre.trim() || !credencial || !form.password) { aviso('Completá todos los campos', true); return; }
+    if (form.modo === 'email' && !credencial.includes('@')) { aviso('Ese email no parece un email', true); return; }
     try {
-      await api.post('/estudio/usuarios', {
-        nombre: form.nombre, password: form.password, rol: form.rol,
-        email: form.modo === 'email' ? form.email : '',
-        usuario: form.modo === 'usuario' ? form.usuario : '',
+      const r = await api.post('/estudio/usuarios', {
+        nombre: form.nombre.trim(), password: form.password, rol: form.rol,
+        email: form.modo === 'email' ? credencial : '',
+        usuario: form.modo === 'usuario' ? credencial : '',
       });
-      setMsg('Usuario creado');
+      aviso(r.data?.reactivado
+        ? `${form.nombre.trim()} vuelve a tener acceso. Entra con ${credencial}.`
+        : `Listo. ${form.nombre.trim()} entra en faimobras.com con ${credencial} y la contraseña que le pusiste.`);
       setForm(f => ({ nombre:'', email:'', usuario:'', password:'', rol:'admin', modo: f.modo }));
       cargar();
-    } catch(err) { setMsg(err.response?.data?.detail || 'Error'); }
-    setTimeout(() => setMsg(''), 3000);
+    } catch(err) {
+      const st = err.response?.status;
+      // 402: el estudio está sin plan activo. El detalle del backend es un
+      // código ("trial_vencido"), no algo para mostrarle a nadie.
+      if (st === 402) aviso('Tu plan está vencido. Activalo para poder sumar gente al estudio.', true);
+      else if (st === 403) aviso('Solo el admin del estudio puede agregar usuarios.', true);
+      else aviso(err.response?.data?.detail || 'No se pudo crear el usuario. Probá de nuevo.', true);
+    }
   };
 
   const cambiarRol = async (u, rol) => {
     try {
       await api.patch(`/estudio/usuarios/${u.id}`, { rol });
-      setMsg(`${u.nombre} ahora es ${rol}`); cargar();
-    } catch(err) { setMsg(err.response?.data?.detail || 'Error'); cargar(); }
-    setTimeout(() => setMsg(''), 3000);
+      aviso(`${u.nombre} ahora es ${rol}`); cargar();
+    } catch(err) { aviso(err.response?.data?.detail || 'Error', true); cargar(); }
   };
 
   const eliminar = async (u) => {
@@ -128,7 +141,7 @@ function UsuariosSection() {
             <option value="personal">Personal — solo cargar egresos y herramientas</option>
           </select>
         </div>
-        {msg && <div style={{ fontSize:13, color: msg.includes('Error') || msg.includes('Completá') ? '#ef4444' : C.accent }}>{msg}</div>}
+        {msg && <div style={{ fontSize:13, color: msgErr ? '#ef4444' : C.accent }}>{msg}</div>}
         <button onClick={agregar} style={{ padding:'9px 16px', background:C.accent, color:'white', border:'none', borderRadius:8, fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'Syne',sans-serif", textAlign:'left' }}>
           + Agregar usuario
         </button>

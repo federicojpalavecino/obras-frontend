@@ -460,7 +460,7 @@ export default function App() {
     });
 
     try {
-      const loginRes = await intentar('/auth/login-cliente', { email: emailLower, password: pass });
+      const loginRes = await intentar('/auth/login-cliente', { email: emailLower, password: pass, estudio: estudioTxt });
       if (loginRes) {
         const data = loginRes.data;
         const ci = { cliente_id: data.cliente_id, nombre: data.nombre, email: data.email };
