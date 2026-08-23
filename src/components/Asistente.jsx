@@ -1408,6 +1408,13 @@ const RE_PIDE_DATO = new RegExp(
 );
 const pideUnDato = (texto) => RE_PIDE_DATO.test(normalizar(texto));
 
+// "acá", "esta obra", "este presupuesto": el que está parado en una obra la
+// señala, no la nombra. normalizar() saca los acentos, por eso va sin ellos.
+const RE_ESTA_OBRA = new RegExp(
+  "\\b(aca|aqui|est[ae] (obra|presupuesto|proyecto)|de aca|en esta|la de aca)\\b"
+);
+const hablaDeEstaObra = (texto) => RE_ESTA_OBRA.test(normalizar(texto));
+
 const SALUDOS = ["hola", "buenas", "buen dia", "buenos dias", "buenas tardes", "que tal", "hey", "holaa"];
 const GRACIAS = ["gracias", "muchas gracias", "genial", "perfecto", "joya", "buenisimo", "ok gracias"];
 
@@ -2286,6 +2293,11 @@ export default function Asistente() {
       if (!presu.length) return null;
       const aca = obraDeLaPantalla();
       if (aca && matchPorNombre(texto, [aca], "nombre_obra")) return aca;
+      // Parado en una obra: "acá" la señala igual que nombrarla, y una
+      // pregunta suelta de obra ("¿y el contrato?", "¿hay adicionales?") es
+      // de la que estás mirando. Salvo que sea un "¿cómo hago…?", que es una
+      // duda de uso y la contesta la ayuda, no los datos.
+      if (aca && !esComoHago(texto) && (hablaDeEstaObra(texto) || subIntencion(texto))) return aca;
       return matchPorNombre(texto, presu, "nombre_obra");
     })();
     if (pd && !deUnaObra) {
@@ -2312,7 +2324,10 @@ export default function Asistente() {
     const kbMuyFirme = kb.length > 0 && kb[0].score >= 6;
     // Una pregunta de dato nunca se la queda la base de conocimiento, por muy
     // fuerte que matchee: el que pregunta "quién" o "cuánto" quiere el número.
-    const dato = pideUnDato(texto);
+    // Si ya sabemos de qué obra habla y qué le está preguntando, es un dato:
+    // "hay adicionales acá" quiere los adicionales de la obra, no el
+    // instructivo de cómo se crea uno.
+    const dato = pideUnDato(texto) || !!(deUnaObra && subIntencion(texto));
     let intent = (!dato && ((esComoHago(texto) && kbFirme) || kbMuyFirme))
       ? null : clasificar(texto);
     // "ambiguo" es la capa de datos diciendo "algo de datos me suena, pero no
