@@ -2050,6 +2050,14 @@ export default function Asistente() {
       const c = matchPorNombre(texto, clientes, "nombre");
       if (c) return { tipo: "cliente", c };
     }
+    // Parado en una obra y nombrandola, gana ESA. Dos obras pueden compartir
+    // una palabra —"Casa Quiroga — Ampliacion quincho" y "Quincho Matias"— y
+    // sin esto ganaba la de nombre mas corto, que cubre mas del nombre con la
+    // misma palabra. Si estas mirando una obra, de esa estas hablando.
+    const aca_ = obraDeLaPantalla();
+    if (aca_ && matchPorNombre(texto, [aca_], "nombre_obra")) {
+      return { tipo: "presupuesto", p: aca_ };
+    }
     // Nombro una obra Y pregunto algo que es de la obra: gana la obra. Sin
     // esto "cuantas horas trabajo Juan en lo de Perez" se lo llevaba la capa
     // de rendimientos del catalogo por la palabra "horas".
