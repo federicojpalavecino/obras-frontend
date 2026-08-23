@@ -87,6 +87,21 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
     cargar();
   };
 
+  // Un reparto parejo no es "el" reparto correcto, pero es un punto de partida
+  // honesto: suma 100 y después el estudio lo mueve. Mejor que siete etapas en
+  // cero, que es lo que quedaba antes.
+  const repartirParejo = async () => {
+    const n = data.etapas.length;
+    if (!n) return;
+    const base = Math.floor((100 / n) * 100) / 100;
+    for (let i = 0; i < n; i++) {
+      const pct = i === n - 1 ? Math.round((100 - base * (n - 1)) * 100) / 100 : base;
+      await api.patch(`/presupuestos/${presupuestoId}/servicio/etapas/${data.etapas[i].id}`,
+                      { peso_pct: pct });
+    }
+    cargar();
+  };
+
   const cobrar = async (e) => {
     try {
       const r = await api.post(`/presupuestos/${presupuestoId}/servicio/etapas/${e.id}/cobrar`, {});
@@ -211,6 +226,30 @@ export default function PanelEntregables({ presupuestoId, cerrado }) {
           <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 9 }}>
             {(data.sugeridos || []).map(g => g.etapa).join(" · ")}
           </div>
+        </div>
+      )}
+
+      {/* El honorario se cobra por etapa: si los pesos no suman 100 queda plata
+          que ninguna etapa va a cobrar. Se avisa acá y no recién al tocar
+          "Cobrar", que es cuando ya no sirve enterarse. */}
+      {data.etapas.length > 0 && !cerrado && data.peso_ok === false && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                      padding: "10px 13px", borderRadius: 9, marginBottom: 12,
+                      background: "rgba(217,119,6,.09)", border: "1px solid rgba(217,119,6,.35)" }}>
+          <div style={{ fontSize: 12.5, flex: 1, minWidth: 200, lineHeight: 1.5 }}>
+            Las etapas suman <b style={{ fontFamily: "var(--mono)" }}>{data.peso_total}%</b> del honorario.
+            {data.sin_repartir > 0
+              ? <> Quedan <b style={{ fontFamily: "var(--mono)" }}>{plata(data.sin_repartir)}</b> sin
+                  asignar a ninguna etapa: así no se pueden cobrar.</>
+              : <> Se repartió más del 100%: alguna etapa va a cobrar de más.</>}
+          </div>
+          {data.etapas.length > 0 && (
+            <button onClick={() => repartirParejo()}
+              style={{ padding: "7px 13px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
+                       fontSize: 12, fontWeight: 700, background: "var(--warn)", border: "none", color: "#fff" }}>
+              Repartir en partes iguales
+            </button>
+          )}
         </div>
       )}
 

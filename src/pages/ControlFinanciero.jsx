@@ -916,14 +916,35 @@ export default function ControlFinanciero({ user }) {
         {tab === "historial" && (
           <div>
             <div style={{ marginBottom: 14, fontSize: 13, color: C.muted }}>{semanas.length} período{semanas.length !== 1 ? "s" : ""} registrado{semanas.length !== 1 ? "s" : ""}</div>
+            {/* Dos períodos que se pisan reparten la misma plata entre los dos:
+                cada movimiento cae en uno solo y ninguno de los dos queda
+                completo. Antes no había manera de darse cuenta — se veía un mes
+                con menos plata de la que hubo y listo. */}
+            {semanas.some(s => (s.se_pisa_con || []).length > 0) && (
+              <div style={{ padding: "12px 15px", borderRadius: 10, marginBottom: 14,
+                            background: "rgba(217,119,6,.09)", border: `1px solid rgba(217,119,6,.35)`,
+                            fontSize: 13, lineHeight: 1.55 }}>
+                <b>Tenés períodos que se pisan.</b> Cuando dos períodos comparten fechas, cada
+                movimiento cae en uno solo de los dos y ninguno muestra el total real. Los de abajo
+                marcados en naranja se superponen: dejá uno solo para cada tramo de tiempo.
+              </div>
+            )}
             {semanas.length === 0 && <div style={{ textAlign: "center", color: C.muted, padding: 60, background: C.surface, borderRadius: 12, border: `1px solid ${C.border}` }}>Sin historial todavía</div>}
             {[...semanas].reverse().map(s => {
               const c = calcPeriod(s, config);
               return (
-                <div key={s.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 8 }}>
+                <div key={s.id} style={{ background: C.surface, borderRadius: 10, padding: "12px 16px", marginBottom: 8,
+                                          border: (s.se_pisa_con || []).length ? "1px solid rgba(217,119,6,.55)" : `1px solid ${C.border}` }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                     <div style={{ flex: 1, minWidth: 140 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>{periodLabel(s)}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>
+                        {periodLabel(s)}
+                        {(s.se_pisa_con || []).length > 0 && (
+                          <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 600, color: C.warn }}>
+                            se pisa con otro{s.se_pisa_con.length !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
                       <div style={{ fontSize: 11, color: C.muted }}>{(s.ingresos || []).length} ing · {(s.egresos || []).length} eg · {(s.personal || []).length} pers.</div>
                     </div>
                     <div style={{ display: "flex", gap: 16 }}>
