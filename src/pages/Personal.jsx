@@ -48,6 +48,10 @@ export default function Personal() {
   const [ficha, setFicha] = useState(null);      // alta o edición
   const [obraDelDia, setObraDelDia] = useState("");
   const [pagando, setPagando] = useState(null);   // { persona, monto }
+  // Detalle de la semana de una persona: jornada, horas y obra, día por día.
+  // El tap del calendario resuelve el caso rápido; esto resuelve el resto.
+  const [detalleSemana, setDetalleSemana] = useState(null);
+  const [guardandoDet, setGuardandoDet] = useState(false);
 
   const avisar = (m) => { setAviso(m); setTimeout(() => setAviso(""), 3500); };
   const dias = Array.from({ length: 7 }, (_, i) => sumarDias(semana, i));
@@ -93,6 +97,54 @@ export default function Personal() {
       api.get(`/personal/a-pagar?desde=${semana}&hasta=${finSemana}`)
         .then(x => setPagar(x.data)).catch(() => {});
     } catch (e) { avisar("⚠ " + (e.response?.data?.detail || "No se pudo marcar")); }
+  };
+
+  // Abre el detalle con lo que ya hay cargado de esa persona en la semana.
+  const abrirDetalle = (persona) => {
+    setDetalleSemana({
+      persona,
+      filas: dias.map(f => {
+        const m = marcado(persona.id, f);
+        return { fecha: f,
+                 jornadas: m ? Number(m.jornadas) || 0 : 0,
+                 horas: m && m.horas ? String(m.horas) : "",
+                 presupuesto_id: m && m.presupuesto_id ? String(m.presupuesto_id) : "" };
+      }),
+    });
+  };
+
+  const guardarDetalle = async () => {
+    setGuardandoDet(true);
+    try {
+      for (const f of detalleSemana.filas) {
+        const previo = marcado(detalleSemana.persona.id, f.fecha);
+        const antes = { j: previo ? Number(previo.jornadas) || 0 : 0,
+                        h: previo && previo.horas ? Number(previo.horas) : 0,
+                        o: previo && previo.presupuesto_id ? String(previo.presupuesto_id) : "" };
+        const ahora = { j: Number(f.jornadas) || 0,
+                        h: f.horas === "" ? 0 : Number(String(f.horas).replace(",", ".")) || 0,
+                        o: f.presupuesto_id || "" };
+        // Solo se manda lo que cambió: así un guardado no reescribe la semana
+        // entera ni pisa lo que cargó otro.
+        if (antes.j === ahora.j && antes.h === ahora.h && antes.o === ahora.o) continue;
+        await api.post("/personal/asistencia", {
+          personal_id: detalleSemana.persona.id,
+          fecha: f.fecha,
+          jornadas: ahora.j,
+          horas: ahora.h,
+          presupuesto_id: ahora.o ? parseInt(ahora.o) : null,
+        });
+      }
+      const r = await api.get(`/personal/asistencia?desde=${semana}&hasta=${finSemana}`);
+      setAsist(r.data || []);
+      api.get(`/personal/a-pagar?desde=${semana}&hasta=${finSemana}`)
+        .then(x => setPagar(x.data)).catch(() => {});
+      setDetalleSemana(null);
+      avisar("✓ Asistencia guardada");
+    } catch (e) {
+      avisar("⚠ " + ((e.response && e.response.data && e.response.data.detail) || "No se pudo guardar"));
+    }
+    setGuardandoDet(false);
   };
 
   // Registrar el pago cierra el circuito: hasta acá el resumen decía cuánto,
@@ -156,7 +208,7 @@ export default function Personal() {
                    cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: C.muted }}>← Volver</button>
         <div style={{ fontSize: 17, fontWeight: 800 }}>Personal</div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-          {[["asistencia", "Asistencia"], ["pagar", "A pagar"], ["gente", "La gente"]].map(([v, l]) => (
+          {[["asistencia", "Asistencia"], ["pagar", "A pagar"], ["gente", "Personal"]].map(([v, l]) => (
             <button key={v} onClick={() => setTab(v)}
               style={{ padding: "6px 13px", borderRadius: 18, cursor: "pointer", fontFamily: "inherit",
                        fontSize: 13, fontWeight: tab === v ? 700 : 400,
@@ -217,7 +269,9 @@ export default function Personal() {
             </div>
 
             <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10, lineHeight: 1.5 }}>
-              Un toque marca el día entero, otro lo deja en medio día, y otro lo borra.
+              Un toque marca el día entero, otro lo deja en medio día, y otro lo borra. Los días
+              que marques se imputan a la obra que elijas arriba. Para poner <b>horas exactas</b> o
+              cambiar la obra de un día suelto, tocá <b>✎</b> al final de la fila.
             </div>
 
             <div style={{ overflowX: "auto" }}>
@@ -236,12 +290,18 @@ export default function Personal() {
                         </th>
                       );
                     })}
-                    <th style={{ width: 44, padding: "0 2px 6px", fontSize: 10, color: C.muted }}>Días</th>
+                    <th style={{ width: 40, padding: "0 2px 6px", fontSize: 10, color: C.muted }}>Días</th>
+                    <th style={{ width: 44, padding: "0 2px 6px", fontSize: 10, color: C.muted }}>Horas</th>
+                    <th style={{ width: 34, padding: "0 2px 6px" }} />
                   </tr>
                 </thead>
                 <tbody>
                   {gente.filter(p => p.modalidad !== "subcontrato").map(p => {
                     const total = dias.reduce((a, f) => a + (marcado(p.id, f)?.jornadas || 0), 0);
+                    const totalHs = dias.reduce((a, f) => a + (marcado(p.id, f)?.horas || 0), 0);
+                    // Las obras de la semana: se muestran abajo del nombre para
+                    // que se vea dónde estuvo sin tener que abrir nada.
+                    const obrasSemana = [...new Set(dias.map(f => marcado(p.id, f)?.obra).filter(Boolean))];
                     return (
                       <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
                         <td style={{ padding: "7px 6px", fontSize: 13 }}>
@@ -249,6 +309,11 @@ export default function Personal() {
                           <div style={{ fontSize: 10.5, color: C.muted }}>
                             {p.funcion ? p.funcion + " · " : ""}{p.modalidad_nombre}
                           </div>
+                          {obrasSemana.length > 0 && (
+                            <div style={{ fontSize: 10.5, color: C.accent, marginTop: 2 }}>
+                              {obrasSemana.join(" · ")}
+                            </div>
+                          )}
                         </td>
                         {dias.map(f => {
                           const m = marcado(p.id, f);
@@ -256,7 +321,8 @@ export default function Personal() {
                           return (
                             <td key={f} style={{ textAlign: "center", padding: "5px 2px" }}>
                               <button onClick={() => tocarDia(p, f)}
-                                title={m?.obra ? `En ${m.obra}` : "Sin obra"}
+                                title={[m?.obra ? `En ${m.obra}` : "Sin obra imputada",
+                                        m?.horas ? `${m.horas} h` : null].filter(Boolean).join(" · ")}
                                 style={{ width: 30, height: 30, borderRadius: 8, cursor: "pointer",
                                          fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, fontWeight: 700,
                                          border: `1px solid ${j ? C.accent : C.border}`,
@@ -269,6 +335,16 @@ export default function Personal() {
                         })}
                         <td style={{ textAlign: "center", fontFamily: "'IBM Plex Mono',monospace",
                                      fontWeight: 700, fontSize: 13 }}>{total || ""}</td>
+                        <td style={{ textAlign: "center", fontFamily: "'IBM Plex Mono',monospace",
+                                     fontWeight: 700, fontSize: 13, color: totalHs ? C.text : C.border }}>
+                          {totalHs ? totalHs + " h" : "—"}
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <button onClick={() => abrirDetalle(p)} title="Horas y obra, día por día"
+                            style={{ width: 26, height: 26, borderRadius: 7, cursor: "pointer",
+                                     background: "transparent", border: `1px solid ${C.border}`,
+                                     color: C.muted, fontSize: 12, fontFamily: "inherit" }}>✎</button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -341,7 +417,7 @@ export default function Personal() {
           </>
         )}
 
-        {/* ══════════ LA GENTE ══════════ */}
+        {/* ══════════ PERSONAL ══════════ */}
         {tab === "gente" && gente.length > 0 && (
           <>
             <button onClick={() => abrirFicha(null)}
@@ -405,6 +481,89 @@ export default function Personal() {
                 style={{ flex: 1.6, padding: "12px 0", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
                          fontSize: 14, fontWeight: 700, background: C.accent, border: "none", color: "#fff" }}>
                 Registrar el pago
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detalle de la semana: jornada, horas y obra, día por día */}
+      {detalleSemana && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", zIndex: 400,
+                      display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+          onClick={() => setDetalleSemana(null)}>
+          <div style={{ background: C.surface, borderRadius: "16px 16px 0 0", padding: "20px 18px 26px",
+                        width: "min(560px,100%)", maxHeight: "90dvh", overflowY: "auto" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>{detalleSemana.persona.nombre}</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>
+              {new Date(semana + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+              {" al "}
+              {new Date(finSemana + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+            </div>
+            <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 14, lineHeight: 1.5 }}>
+              {detalleSemana.persona.modalidad === "hora"
+                ? "Cobra por hora: lo que le toca sale de las horas que cargues acá."
+                : "Las horas son información de la obra; lo que cobra sale de las jornadas."}
+            </div>
+
+            {detalleSemana.filas.map((f, i) => {
+              const d = new Date(f.fecha + "T12:00:00");
+              const set = (campo, valor) => setDetalleSemana(prev => ({
+                ...prev,
+                filas: prev.filas.map((x, j) => j === i ? { ...x, [campo]: valor } : x),
+              }));
+              return (
+                <div key={f.fecha} style={{ display: "flex", alignItems: "center", gap: 7,
+                                            padding: "7px 0", borderTop: `1px solid ${C.border}` }}>
+                  <div style={{ width: 54, fontSize: 12, fontWeight: 600 }}>
+                    {["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][d.getDay()]} {d.getDate()}
+                  </div>
+                  <div style={{ display: "flex", gap: 2 }}>
+                    {[[0, "—"], [0.5, "½"], [1, "1"]].map(([v, txt]) => (
+                      <button key={v} onClick={() => {
+                          set("jornadas", v);
+                          // Sin jornada no hay horas ni obra que imputar.
+                          if (!v) { set("horas", ""); set("presupuesto_id", ""); }
+                        }}
+                        style={{ width: 30, height: 28, borderRadius: 7, cursor: "pointer",
+                                 fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, fontWeight: 700,
+                                 border: `1px solid ${f.jornadas === v ? C.accent : C.border}`,
+                                 background: f.jornadas === v ? C.accent : C.surface,
+                                 color: f.jornadas === v ? "#fff" : C.muted }}>{txt}</button>
+                    ))}
+                  </div>
+                  <input type="number" inputMode="decimal" step="0.5" min="0" max="24"
+                    value={f.horas} disabled={!f.jornadas} placeholder="hs"
+                    onChange={e => set("horas", e.target.value)}
+                    style={{ width: 58, padding: "6px 7px", borderRadius: 7, fontSize: 12.5,
+                             textAlign: "right", fontFamily: "'IBM Plex Mono',monospace",
+                             border: `1px solid ${C.border}`, color: C.text,
+                             background: f.jornadas ? C.surface2 : C.bg, boxSizing: "border-box" }} />
+                  <select value={f.presupuesto_id} disabled={!f.jornadas}
+                    onChange={e => set("presupuesto_id", e.target.value)}
+                    style={{ flex: 1, minWidth: 0, padding: "6px 7px", borderRadius: 7, fontSize: 12,
+                             border: `1px solid ${C.border}`, fontFamily: "inherit", color: C.text,
+                             background: f.jornadas ? C.surface2 : C.bg, boxSizing: "border-box" }}>
+                    <option value="">Sin obra</option>
+                    {obras.map(o => <option key={o.id} value={o.id}>{o.nombre_obra}</option>)}
+                  </select>
+                </div>
+              );
+            })}
+
+            <div style={{ display: "flex", gap: 9, marginTop: 16 }}>
+              <button onClick={() => setDetalleSemana(null)}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                         fontSize: 14, background: "transparent", border: `1px solid ${C.border}`, color: C.muted }}>
+                Cancelar
+              </button>
+              <button onClick={guardarDetalle} disabled={guardandoDet}
+                style={{ flex: 1.4, padding: "12px 0", borderRadius: 10, fontFamily: "inherit",
+                         cursor: guardandoDet ? "not-allowed" : "pointer",
+                         fontSize: 14, fontWeight: 700, background: guardandoDet ? C.border : C.accent,
+                         border: "none", color: "#fff" }}>
+                {guardandoDet ? "Guardando…" : "Guardar"}
               </button>
             </div>
           </div>

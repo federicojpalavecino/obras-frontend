@@ -143,6 +143,9 @@ export default function Obra() {
     } catch (e) { showToast("⚠ " + (e.response?.data?.detail || "No se pudo")); }
   };
   const [showVincularCobro, setShowVincularCobro] = useState(null); // cert id
+  // Quien trabajo aca. Sale de la asistencia que se imputa a esta obra en
+  // Personal; hasta ahora ese dato se cargaba y no se leia en ningun lado.
+  const [personalObra, setPersonalObra] = useState(null);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
@@ -165,6 +168,7 @@ export default function Obra() {
       const certsData = r6?.certificados || (Array.isArray(r6) ? r6 : []);
       setCertificados(certsData);
       api.get(`/presupuestos/${id}/panol`).then(r => setPanolObra(r.data)).catch(() => {});
+      api.get(`/presupuestos/${id}/personal`).then(r => setPersonalObra(r.data)).catch(() => {});
       api.get(`/presupuestos/${id}/stock`).then(r => setStockObra(r.data || [])).catch(() => {});
       api.get(`/panol/herramientas`).then(r => setPanolLibre(r.data?.herramientas || [])).catch(() => {});
       api.get(`/stock`).then(r => setStockLibre(r.data?.items || [])).catch(() => {});
@@ -638,6 +642,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <option value="subcontratos">Subcontratos</option>
             <option value="compras">Compras</option>
             <option value="panol">Pañol</option>
+            <option value="personal">Personal</option>
             {!porDesembolsos && <option value="certificados">Certificados</option>}
           </select>
         </div>
@@ -650,6 +655,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <TabBtn id="subcontratos" label="Subcontratos" />
             <TabBtn id="compras" label="Compras" />
             <TabBtn id="panol" label="Pañol" />
+            <TabBtn id="personal" label="Personal" />
             <TabBtn id="avance" label="Avance" />
             <TabBtn id="planos" label="Planos" />
             {!porDesembolsos && <TabBtn id="certificados" label="Certificados" />}
@@ -1361,6 +1367,95 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
         )}
 
         {/* ── COMPRAS ── */}
+        {tab === "personal" && (
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Quién trabajó acá</div>
+            <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>
+              Sale de la asistencia imputada a esta obra. Se marca desde
+              <button onClick={() => navigate("/personal")}
+                style={{ background: "none", border: "none", padding: "0 4px", cursor: "pointer",
+                         color: C.accent, font: "inherit", textDecoration: "underline" }}>Personal</button>
+              eligiendo la obra antes de marcar los días.
+            </div>
+
+            {!personalObra || (!personalObra.cuantos && !(personalObra.asignados_del_estudio || []).length) ? (
+              <div style={{ padding: "18px 16px", borderRadius: 10, background: C.surface,
+                            border: `1px solid ${C.border}`, fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
+                Todavía nadie tiene jornadas imputadas a esta obra.
+                <div style={{ marginTop: 6 }}>
+                  En Personal → Asistencia, elegí esta obra en el selector de arriba antes de marcar
+                  los días. Con el botón ✎ de cada fila también podés cargar las horas exactas.
+                </div>
+              </div>
+            ) : (
+              <>
+                {personalObra.cuantos > 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                                gap: 12, marginBottom: 20 }}>
+                    {[["Personas", personalObra.cuantos],
+                      ["Jornadas", personalObra.jornadas],
+                      ["Horas", personalObra.horas ? personalObra.horas + " h" : "—"],
+                      ["Esta semana", (personalObra.semana?.jornadas || 0) + " jorn."]].map(([k, v]) => (
+                      <div key={k} style={{ background: C.surface, border: `1px solid ${C.border}`,
+                                            borderRadius: 10, padding: "12px 14px" }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: "uppercase",
+                                      letterSpacing: .6 }}>{k}</div>
+                        <div style={{ fontFamily: "var(--mono, 'IBM Plex Mono', monospace)", fontSize: 19,
+                                      fontWeight: 800, marginTop: 2 }}>{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {(personalObra.semana?.quienes || []).length > 0 && (
+                  <div style={{ padding: "10px 13px", borderRadius: 10, marginBottom: 16,
+                                background: "#f0fdf4", border: "1px solid #bbf7d0", fontSize: 13 }}>
+                    Esta semana están en la obra: <b>{personalObra.semana.quienes.join(", ")}</b>
+                    {personalObra.semana.horas ? ` · ${personalObra.semana.horas} h` : ""}
+                  </div>
+                )}
+
+                {(personalObra.detalle || []).map((p, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                                        marginBottom: 7, borderRadius: 10, background: C.surface,
+                                        border: `1px solid ${C.border}` }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>
+                        {p.nombre}
+                        {!p.activo && <span style={{ fontSize: 11, color: C.muted, fontWeight: 400 }}> · dado de baja</span>}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 1 }}>
+                        {p.funcion ? p.funcion + " · " : ""}
+                        {p.dias} día{p.dias === 1 ? "" : "s"}
+                        {p.primero ? ` · desde el ${new Date(p.primero + "T12:00:00").toLocaleDateString("es-AR")}` : ""}
+                        {p.ultimo ? ` · último ${new Date(p.ultimo + "T12:00:00").toLocaleDateString("es-AR")}` : ""}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right", fontFamily: "var(--mono, 'IBM Plex Mono', monospace)" }}>
+                      <div style={{ fontSize: 14, fontWeight: 700 }}>{p.jornadas} jorn.</div>
+                      {p.horas > 0 && <div style={{ fontSize: 11.5, color: C.muted }}>{p.horas} h</div>}
+                    </div>
+                  </div>
+                ))}
+
+                {(personalObra.asignados_del_estudio || []).length > 0 && (
+                  <>
+                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: .6,
+                                  color: C.muted, margin: "20px 0 8px" }}>Del estudio, asignados a esta obra</div>
+                    {personalObra.asignados_del_estudio.map((a, i) => (
+                      <div key={i} style={{ padding: "9px 12px", marginBottom: 6, borderRadius: 10,
+                                            background: C.surface, border: `1px solid ${C.border}`,
+                                            fontSize: 13.5 }}>
+                        {a.nombre} <span style={{ color: C.muted, fontSize: 11.5 }}>· {a.rol}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {tab === "panol" && (
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Lo que hay en la obra</div>

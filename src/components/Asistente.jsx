@@ -1554,6 +1554,342 @@ const nfmt = (n, d = 2) => Number(n).toLocaleString("es-AR", { minimumFractionDi
 // De "horas por unidad" a "unidades por jornada"
 const porJornada = (h) => (h > 0 ? JORNADA / h : null);
 
+// ── Preguntas sobre UNA obra ─────────────────────────────────────────────────
+// Todas se contestan con la misma llamada a /asistente/obra/{id}: se pide una
+// vez y de ahí salen materiales, avance, contrato, plan, cobros, quién trabaja
+// y adicionales. `kw` son las palabras que la eligen; gana la que más suma.
+const fechaLarga = (f) => f
+  ? new Date(f + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })
+  : "";
+const pct = (n) => (Number(n) || 0).toFixed(1).replace(".0", "") + "%";
+
+const SUB_OBRA = [
+  {
+    id: "materiales",
+    kw: ["material", "materiales", "insumo", "insumos", "comprar", "compra", "computo"],
+    responder: (d, ruta) => {
+      const m = d.materiales || {};
+      const abierto = (d.estado || "").toLowerCase() !== "cerrado";
+      const aviso = abierto
+        ? "⚠️ El presupuesto está ABIERTO: las cantidades y los precios todavía se mueven. La lista firme sale con el presupuesto cerrado."
+        : null;
+      if (!m.cuantos) {
+        return { titulo: `Materiales — ${d.obra}`,
+                 texto: (aviso ? aviso + "\n\n" : "") + "No hay materiales en los análisis de esta obra.",
+                 route: `${ruta}/materiales`, routeLabel: "Abrir el listado" };
+      }
+      return {
+        titulo: `Materiales — ${d.obra}`,
+        texto: (aviso ? aviso + "\n\n" : "") + `**${m.cuantos}** materiales · **${plata(m.total)}** en total`,
+        pasos: (m.top || []).slice(0, 10).map(
+          (x) => `${x.nombre} — ${Math.round(x.cantidad).toLocaleString("es-AR")} ${x.unidad} · ${plata(x.subtotal)}`),
+        route: `${ruta}/materiales`, routeLabel: "Ver el listado completo",
+      };
+    },
+  },
+  {
+    id: "personal",
+    kw: ["quien", "quienes", "personal", "gente", "trabaja", "trabajando", "trabajaron",
+         "obrero", "obreros", "cuadrilla", "jornal", "jornales", "asistencia", "equipo"],
+    responder: (d, ruta) => {
+      const p = d.personal || {};
+      const asig = p.asignados_del_estudio || [];
+      if (!p.cuantos && !asig.length) {
+        return { titulo: `Personal — ${d.obra}`,
+                 texto: "Todavía nadie tiene asistencia imputada a esta obra.\n\nEn Personal → Asistencia, elegí la obra arriba a la derecha antes de marcar los días: así cada jornal queda cargado acá.",
+                 route: "/personal", routeLabel: "Ir a Personal" };
+      }
+      const partes = [];
+      if (p.semana && p.semana.quienes && p.semana.quienes.length) {
+        partes.push(`Esta semana están **${p.semana.quienes.join(", ")}** — ${p.semana.jornadas} jornada${p.semana.jornadas === 1 ? "" : "s"}` +
+                    (p.semana.horas ? ` (${p.semana.horas} h)` : "") + ".");
+      } else if (p.cuantos) {
+        partes.push("Esta semana no hay nadie marcado en esta obra.");
+      }
+      if (p.cuantos) {
+        partes.push(`En total pasaron **${p.cuantos}** persona${p.cuantos === 1 ? "" : "s"}: **${p.jornadas}** jornadas` +
+                    (p.horas ? ` y **${p.horas} h**` : "") + ".");
+      }
+      const lineas = (p.detalle || []).slice(0, 10).map(
+        (x) => `${x.nombre}${x.funcion ? " (" + x.funcion + ")" : ""} — ${x.jornadas} jorn.` +
+               (x.horas ? ` · ${x.horas} h` : "") +
+               (x.ultimo ? ` · último ${fechaCorta(x.ultimo)}` : ""));
+      if (asig.length) {
+        lineas.push("─".repeat(28));
+        asig.forEach((a) => lineas.push(`${a.nombre} — ${a.rol} (del estudio)`));
+      }
+      return { titulo: `Personal — ${d.obra}`, texto: partes.join("\n"), lineas,
+               route: "/personal", routeLabel: "Ir a Personal" };
+    },
+  },
+  {
+    id: "certificado",
+    kw: ["certificado", "certificados", "certificacion", "certifique", "certifico"],
+    responder: (d, ruta) => {
+      const c = d.certificados || {};
+      if (!c.cuantos) {
+        const cerrado = (d.estado || "").toLowerCase() === "cerrado";
+        return { titulo: `Certificados — ${d.obra}`,
+                 texto: "Todavía no hay certificados emitidos." + (cerrado ? "" : "\n\nPara certificar, el presupuesto tiene que estar cerrado."),
+                 route: cerrado ? `${ruta}/certificado` : ruta,
+                 routeLabel: cerrado ? "Emitir el primero" : "Abrir el presupuesto" };
+      }
+      const u = c.ultimo || {};
+      return {
+        titulo: `Último certificado — ${d.obra}`,
+        texto: `El **N° ${u.numero}**, del ${fechaLarga(u.fecha)}.`,
+        lineas: [
+          `  Período          ${fechaCorta(u.desde)} al ${fechaCorta(u.hasta)}`,
+          `  Del período      ${plata(u.del_periodo)}`,
+          `  Acumulado        ${plata(u.acumulado)}`,
+          `  Avance           ${pct(u.avance_pct)}`,
+          "─".repeat(34),
+          `  Emitidos         ${c.cuantos}`,
+        ],
+        route: `${ruta}/certificado`, routeLabel: "Ver los certificados",
+        chips: [`cobros de ${d.obra}`, `avance de ${d.obra}`], chipsHint: "Preguntame también:",
+      };
+    },
+  },
+  {
+    id: "contrato",
+    kw: ["contrato", "contratos", "firma", "firmado", "firmo", "clausula", "clausulas",
+         "anticipo", "desembolso", "desembolsos"],
+    responder: (d, ruta) => {
+      const c = d.contrato || {};
+      if (!c.existe) {
+        return { titulo: `Contrato — ${d.obra}`,
+                 texto: "Esta obra todavía no tiene contrato generado.",
+                 route: `${ruta}/obra`, routeLabel: "Generar el contrato" };
+      }
+      const lineas = [
+        `  Monto            ${plata(c.monto_total)}`,
+        `  Firmado          ${c.fecha_firma ? fechaLarga(c.fecha_firma) : "sin fecha"}`,
+        `  Plazo de obra    ${c.plazo_obra_dias ? c.plazo_obra_dias + " días" : "no cargado"}`,
+        `  Se cobra por     ${c.tipo_pago || "no definido"}`,
+      ];
+      if (c.anticipo > 0) lineas.push(`  Anticipo         ${plata(c.anticipo)}`);
+      if (c.lugar) lineas.push(`  Lugar            ${c.lugar}`);
+      lineas.push(`  Estado           ${(c.estado || "—").toUpperCase()}` +
+                  (c.aceptado_en ? " · aceptado por el cliente" : ""));
+      const des = c.desembolsos || [];
+      if (des.length) {
+        lineas.push("─".repeat(34));
+        des.slice(0, 8).forEach((x) => {
+          const falta = (x.monto || 0) - (x.cobrado || 0);
+          lineas.push(`  ${x.numero}. ${(x.descripcion || "Desembolso").slice(0, 24)}  ${plata(x.monto)}` +
+                      (falta <= 0 ? "  ✓ cobrado" : x.vence ? `  vence ${fechaCorta(x.vence)}` : ""));
+        });
+      }
+      return { titulo: `Contrato — ${d.obra}`, lineas,
+               route: `${ruta}/obra`, routeLabel: "Abrir gestión de obra",
+               chips: [`cuánto me deben en ${d.obra}`], chipsHint: "Preguntame también:" };
+    },
+  },
+  {
+    id: "plan",
+    kw: ["plan", "planificacion", "planificado", "gantt", "cronograma", "tarea", "tareas",
+         "etapa", "etapas", "diagrama"],
+    responder: (d, ruta) => {
+      const pl = d.plan;
+      if (!pl) {
+        return { titulo: `Planificación — ${d.obra}`,
+                 texto: "Esta obra no tiene el plan armado en el Gantt todavía.",
+                 route: `${ruta}/gantt`, routeLabel: "Armar el plan" };
+      }
+      const lineas = [];
+      if (pl.en_curso && pl.en_curso.length) {
+        lineas.push("EN CURSO HOY");
+        pl.en_curso.forEach((t) => lineas.push(`  ${t.nombre} — ${pct(t.progreso)} · hasta ${fechaCorta(t.fin)}`));
+      }
+      if (pl.vencidas && pl.vencidas.length) {
+        lineas.push("PASADAS DE FECHA");
+        pl.vencidas.forEach((t) => lineas.push(`  ${t.nombre} — ${pct(t.progreso)} · vencía ${fechaCorta(t.fin)}`));
+      }
+      if (pl.proximas && pl.proximas.length) {
+        lineas.push("LO QUE VIENE");
+        pl.proximas.slice(0, 4).forEach((t) => lineas.push(`  ${t.nombre} — arranca ${fechaCorta(t.inicio)}`));
+      }
+      return {
+        titulo: `Planificación — ${d.obra}`,
+        texto: `**${pl.tareas}** tareas, del ${fechaLarga(pl.inicio)} al ${fechaLarga(pl.fin)}` +
+               (pl.duracion_dias ? ` · ${pl.duracion_dias} días hábiles` : "") + ".",
+        lineas: lineas.length ? lineas : null,
+        route: `${ruta}/gantt`, routeLabel: "Ver el Gantt",
+        chips: [`cuándo termina ${d.obra}`, `avance de ${d.obra}`], chipsHint: "Preguntame también:",
+      };
+    },
+  },
+  {
+    id: "fin",
+    kw: ["termina", "terminar", "entrega", "entregar", "fin", "finaliza", "vence",
+         "plazo", "cuando", "falta", "restan", "atrasada", "atraso", "demora"],
+    responder: (d, ruta) => {
+      const f = d.fechas || {};
+      if (!f.termina) {
+        return { titulo: `${d.obra}`,
+                 texto: "No puedo decirte cuándo termina: no hay plan en el Gantt ni plazo cargado en el contrato.\n\nArmá el plan y la fecha sale sola de las tareas.",
+                 route: `${ruta}/gantt`, routeLabel: "Armar el plan" };
+      }
+      const dr = f.dias_restantes;
+      const cola = f.atrasada
+        ? `\n\n⚠ Está **pasada de fecha**: tenía que terminar hace ${Math.abs(dr)} día${Math.abs(dr) === 1 ? "" : "s"} y va ${pct((d.avance || {}).pct)}.`
+        : dr != null && dr >= 0
+          ? `\n\nFaltan **${dr} día${dr === 1 ? "" : "s"}** y va ${pct((d.avance || {}).pct)}.`
+          : "";
+      return {
+        titulo: `${d.obra} — cuándo termina`,
+        texto: `Termina el **${fechaLarga(f.termina)}**, según ${f.termina_segun}.${cola}`,
+        route: `${ruta}/gantt`, routeLabel: "Ver el plan",
+        chips: [`planificación de ${d.obra}`, `avance de ${d.obra}`], chipsHint: "Preguntame también:",
+      };
+    },
+  },
+  {
+    id: "inicio",
+    kw: ["arranco", "arrancar", "empezo", "empezar", "comenzo", "comienzo", "inicio",
+         "inicia", "arranca"],
+    responder: (d, ruta) => {
+      const f = d.fechas || {};
+      if (!f.arranco) return { titulo: d.obra, texto: "No tengo fecha de arranque para esta obra." };
+      return {
+        titulo: `${d.obra} — cuándo arrancó`,
+        texto: `Arrancó el **${fechaLarga(f.arranco)}**, según ${f.arranco_segun}.` +
+               (f.termina ? `\n\nY termina el ${fechaLarga(f.termina)} (${f.termina_segun}).` : ""),
+        route: `${ruta}/gantt`, routeLabel: "Ver el plan",
+      };
+    },
+  },
+  {
+    id: "adicionales",
+    kw: ["adicional", "adicionales", "ampliacion", "ampliaciones", "extra", "extras", "demasia"],
+    responder: (d, ruta) => {
+      const a = d.adicionales || {};
+      if (d.es_adicional) {
+        const base = d.adicional_de;
+        return { titulo: `${d.obra}`,
+                 texto: `Esta obra **es un adicional**${base ? ` de «${base.nombre}»` : ""}.`,
+                 route: ruta, routeLabel: "Abrir el presupuesto" };
+      }
+      if (!a.cuantos) {
+        return { titulo: `Adicionales — ${d.obra}`,
+                 texto: "Esta obra **no tiene adicionales** cargados.",
+                 route: `${ruta}/obra`, routeLabel: "Abrir gestión de obra" };
+      }
+      return {
+        titulo: `Adicionales — ${d.obra}`,
+        texto: `Tiene **${a.cuantos}** adicional${a.cuantos === 1 ? "" : "es"} por **${plata(a.total)}**.`,
+        pasos: (a.detalle || []).map((x) => `${x.nombre} — ${plata(x.monto)} (${(x.estado || "").toUpperCase()})`),
+        route: `${ruta}/obra`, routeLabel: "Abrir gestión de obra",
+      };
+    },
+  },
+  {
+    id: "pagar",
+    kw: ["pagar", "pago", "pagos", "debo", "proveedor", "proveedores", "subcontrato",
+         "subcontratos", "contratista", "contratistas", "gremio", "egreso", "egresos"],
+    responder: (d, ruta) => {
+      const pp = d.por_pagar || {};
+      const s = pp.subcontratos || {}, c = pp.compras || {};
+      if (!pp.total_pendiente) {
+        return { titulo: `Por pagar — ${d.obra}`,
+                 texto: (s.cuantos || c.cuantos)
+                   ? "No queda nada pendiente de pago en esta obra: subcontratos y compras están al día."
+                   : "Esta obra no tiene subcontratos ni compras cargadas.",
+                 route: `${ruta}/obra`, routeLabel: "Abrir gestión de obra" };
+      }
+      const lineas = [];
+      if (s.pendiente > 0) {
+        lineas.push(`SUBCONTRATOS — falta ${plata(s.pendiente)} de ${plata(s.total)}`);
+        (s.detalle || []).filter((x) => x.pendiente > 0).slice(0, 5)
+          .forEach((x) => lineas.push(`  ${x.contratista || "—"} — ${plata(x.pendiente)}`));
+      }
+      if (c.pendiente > 0) {
+        lineas.push(`COMPRAS — falta ${plata(c.pendiente)} de ${plata(c.total)}`);
+        (c.detalle || []).filter((x) => x.pendiente > 0).slice(0, 5)
+          .forEach((x) => lineas.push(`  ${x.proveedor || "—"} — ${plata(x.pendiente)}`));
+      }
+      return {
+        titulo: `Por pagar — ${d.obra}`,
+        texto: `Te falta pagar **${plata(pp.total_pendiente)}** en esta obra.`,
+        lineas,
+        route: `${ruta}/obra`, routeLabel: "Abrir gestión de obra",
+        chips: [`cuánto me deben en ${d.obra}`], chipsHint: "Preguntame también:",
+      };
+    },
+  },
+  {
+    id: "cobros",
+    kw: ["cobro", "cobros", "cobrado", "cobrar", "saldo", "deben", "debe", "adeuda",
+         "resta", "cuenta", "corriente", "falta", "pendiente"],
+    responder: (d, ruta) => {
+      const c = d.cobros;
+      if (!c) return { titulo: d.obra, texto: "No pude leer la cuenta corriente de esta obra." };
+      const rotulo = c.metodologia === "desembolsos" ? "Devengado" : "Certificado";
+      const lineas = [
+        `  ${rotulo.padEnd(16)} ${plata(c.devengado)}`,
+        `  ${"Cobrado".padEnd(16)} ${plata(c.cobrado)}`,
+        "─".repeat(34),
+        `  ${"Te deben".padEnd(16)} ${plata(Math.max(0, c.saldo))}`,
+      ];
+      if (c.pactado > 0) lineas.push(`  ${"Pactado total".padEnd(16)} ${plata(c.pactado)}`);
+      if (c.a_favor_cliente > 0) {
+        lineas.push("─".repeat(34));
+        lineas.push(`  A favor del cliente ${plata(c.a_favor_cliente)}`);
+      }
+      const nota = c.a_favor_cliente > 0
+        ? "\n\nHay plata cobrada por adelantado que todavía no tiene obra hecha detrás."
+        : "";
+      return {
+        titulo: `Cobros — ${d.obra}`,
+        texto: `Te deben **${plata(Math.max(0, c.saldo))}**.` +
+               (c.ultimo ? ` El último cobro fue el ${fechaCorta(c.ultimo.fecha)} por ${plata(c.ultimo.monto)}.` : "") + nota,
+        lineas,
+        route: `${ruta}/obra`, routeLabel: "Abrir gestión de obra",
+        chips: [`contrato de ${d.obra}`, `certificados de ${d.obra}`], chipsHint: "Preguntame también:",
+      };
+    },
+  },
+  {
+    id: "avance",
+    kw: ["avance", "avanza", "avanzo", "porcentaje", "lleva", "va", "adelanto", "ejecutado"],
+    responder: (d, ruta) => {
+      const a = d.avance || {};
+      const f = d.fechas || {};
+      const partes = [`La obra va en **${pct(a.pct)}**` +
+                      (a.origen ? ` (según ${a.origen === "certificado" ? "el último certificado" : "los avances cargados"})` : "") + "."];
+      if (a.pct_plan != null && Math.abs(a.pct_plan - a.pct) >= 1) {
+        partes.push(`En el Gantt las tareas suman ${pct(a.pct_plan)}.`);
+      }
+      if (f.termina) {
+        partes.push(f.atrasada
+          ? `⚠ Tenía que terminar el ${fechaLarga(f.termina)}: está pasada de fecha.`
+          : `Termina el ${fechaLarga(f.termina)}` + (f.dias_restantes != null ? ` — faltan ${f.dias_restantes} días.` : "."));
+      }
+      return {
+        titulo: `Avance — ${d.obra}`, texto: partes.join("\n\n"),
+        route: `${ruta}/obra`, routeLabel: "Abrir gestión de obra",
+        chips: [`planificación de ${d.obra}`, `certificados de ${d.obra}`, `quién trabaja en ${d.obra}`],
+        chipsHint: "Preguntame también:",
+      };
+    },
+  },
+];
+
+// Elige de qué se está preguntando. Puntúa por palabra encontrada para que
+// "¿cuánto me deben en X?" gane cobros y no se lo lleve "fin" por el "cuánto".
+function subIntencion(texto) {
+  const qs = tokens(texto);
+  let mejor = null, mejorPuntaje = 0;
+  for (const s of SUB_OBRA) {
+    let n = 0;
+    for (const k of s.kw) if (qs.some((q) => pesoToken(q, k) >= 1.4)) n += 2;
+    else if (qs.some((q) => pesoToken(q, k) >= 1)) n += 1;
+    if (n > mejorPuntaje) { mejorPuntaje = n; mejor = s; }
+  }
+  return mejorPuntaje >= 1 ? mejor : null;
+}
+
 // ── Componente ────────────────────────────────────────────────────────────────
 export default function Asistente() {
   const navigate = useNavigate();
@@ -1575,8 +1911,8 @@ export default function Asistente() {
       const inicial = [{
         from: "bot",
         titulo: "¡Hola! Soy el asistente de FAIM OBRAS 👋",
-        texto: "Te ayudo con tres cosas:\n• Cómo usar el sistema, paso a paso.\n• Datos de tus obras: precios, materiales, cobros y certificados.\n• Obra y análisis de precios: rendimientos de mano de obra, costo por m², cómo se arma un análisis.\n\nProbá: \"¿cuánto tarda un oficial en un m2 de mampostería?\"",
-        chips: [...(esCliente ? [] : ["cuánto tarda un oficial en un m2 de mampostería", "rendimiento de contrapiso", "cómo se arma un análisis de precio unitario", "materiales de un presupuesto"]), ...sugerencias(sec)],
+        texto: "Te ayudo con tres cosas:\n• Cómo usar el sistema, paso a paso.\n• Todo de una obra tuya: materiales, avance, último certificado, contrato, plan, cuánto te deben, cuánto falta pagar, quién trabaja ahí, cuándo arrancó y cuándo termina, y si tiene adicionales.\n• Análisis de precios: rendimientos de mano de obra y costo por m².\n\nNombrá la obra y preguntame: \"¿cuánto me deben en …?\"",
+        chips: [...(esCliente ? [] : ["materiales de una obra", "cuánto me deben en una obra", "quién trabaja en una obra", "cuándo termina una obra", "cuánto tarda un oficial en un m2 de mampostería"]), ...sugerencias(sec)],
       }];
 
       // Aviso de la Previsión, una sola vez por navegador. Un aviso que vuelve
@@ -1674,6 +2010,13 @@ export default function Asistente() {
   useEffect(() => { if (open) ensureData(); }, [open]);
 
   // Decide si la pregunta es de DATOS y de qué tipo (usa los datos ya cacheados)
+  // El id de la obra abierta, si estas parado en una.
+  const obraDeLaPantalla = () => {
+    const m = (location.pathname || "").match(/\/cotizador\/(?:presupuesto|gantt)\/(\d+)/);
+    if (!m) return null;
+    return (presuRef.current || []).find((x) => String(x.id) === m[1]) || null;
+  };
+
   const clasificar = (texto) => {
     if (esCliente) return null;
     const presu = presuRef.current || [];
@@ -1690,58 +2033,67 @@ export default function Asistente() {
       const c = matchPorNombre(texto, clientes, "nombre");
       if (c) return { tipo: "cliente", c };
     }
-    const p = matchPorNombre(texto, presu, "nombre_obra");
-    if (p) return { tipo: "presupuesto", p };
+    // Nombro una obra Y pregunto algo que es de la obra: gana la obra. Sin
+    // esto "cuantas horas trabajo Juan en lo de Perez" se lo llevaba la capa
+    // de rendimientos del catalogo por la palabra "horas".
+    const pObra = matchPorNombre(texto, presu, "nombre_obra");
+    if (pObra && subIntencion(texto)) return { tipo: "presupuesto", p: pObra };
+    if (pObra) return { tipo: "presupuesto", p: pObra };
     // 2) Costo unitario de una tarea del catálogo ("¿cuánto sale el m2 de …?")
     if (hayTarea && !esGestion && tieneAlguna(texto, KW_PRECIO)) return { tipo: "precioItem" };
     if (tieneAlguna(texto, KW_RENDIMIENTO)) return { tipo: "rendimiento" };
     const c2 = matchPorNombre(texto, clientes, "nombre");
     if (c2) return { tipo: "cliente", c: c2 };
+    // Parado en una obra, una pregunta suelta ("y el contrato?") es de esa obra.
+    const aca = obraDeLaPantalla();
+    if (aca && subIntencion(texto)) return { tipo: "presupuesto", p: aca };
     if (tieneAlguna(texto, KW_DATOS)) return { tipo: "ambiguo" };
     return null;
   };
 
+  // Una obra, una llamada. De ahi salen materiales, avance, ultimo certificado,
+  // contrato, plan, cobros, lo que hay que pagar, quien trabaja ahi, cuando
+  // arranco, cuando termina y si hay adicionales.
   const resolverPresupuesto = async (texto, p) => {
     const ruta = `/cotizador/presupuesto/${p.id}`;
-    const cerrado = (p.estado || "").toLowerCase() === "cerrado";
-    if (tieneAlguna(texto, ["material", "materiales"])) {
-      const aviso = cerrado ? null : "⚠️ Este presupuesto está ABIERTO. La lista de materiales se genera con el presupuesto CERRADO (se congelan precios y cantidades).";
-      const r = await api.get(`/presupuestos/${p.id}/materiales-listado`);
-      const arr = Array.isArray(r.data) ? r.data : Object.values(r.data || {});
-      const orden = arr.filter((m) => m && m.nombre).sort((a, b) => (b.subtotal || 0) - (a.subtotal || 0));
-      if (!orden.length) return [{ from: "bot", titulo: p.nombre_obra, texto: aviso || "No tiene materiales cargados en los análisis." }];
-      const total = orden.reduce((s, m) => s + (m.subtotal || 0), 0);
-      const top = orden.slice(0, 8).map((m) => `${m.nombre} — ${Math.round(m.cantidad_total || 0)} ${m.unidad || ""} (${money(m.subtotal)})`);
-      return [{ from: "bot", titulo: `Materiales — ${p.nombre_obra}`, texto: (aviso ? aviso + "\n\n" : "") + `${orden.length} materiales · total ${money(total)}`, pasos: top, route: `${ruta}/materiales`, routeLabel: "Ver listado completo" }];
+    let d;
+    try {
+      d = (await api.get(`/asistente/obra/${p.id}`)).data || {};
+    } catch (e) {
+      return [{ from: "bot", titulo: p.nombre_obra,
+                texto: "No pude traer los datos de esta obra ahora. Probá de nuevo en un momento." }];
     }
-    if (tieneAlguna(texto, ["cobro", "cobros", "cobre", "cobrado", "saldo", "cuenta", "debe", "adeuda", "resta"])) {
-      const d = (await api.get(`/presupuestos/${p.id}/cuenta-corriente`)).data || {};
-      return [{ from: "bot", titulo: `Cobros — ${p.nombre_obra}`, lineas: [
-        `Certificado: ${money(d.total_certificado)}`,
-        `Cobrado: ${money(d.total_cobrado)}`,
-        `Saldo pendiente: ${money(d.saldo_pendiente)}`,
-      ], route: `${ruta}/obra`, routeLabel: "Abrir gestión de obra" }];
-    }
-    if (tieneAlguna(texto, ["certificado", "certificados", "avance"])) {
-      const cs = ((await api.get(`/presupuestos/${p.id}/certificados`)).data || {}).certificados || [];
-      if (!cs.length) return [{ from: "bot", titulo: p.nombre_obra, texto: "Todavía no tiene certificados emitidos." + (cerrado ? "" : " (El presupuesto tiene que estar cerrado para certificar.)"), route: cerrado ? `${ruta}/certificado` : ruta, routeLabel: cerrado ? "Crear certificado" : "Abrir presupuesto" }];
-      const ult = cs[cs.length - 1];
-      return [{ from: "bot", titulo: `Certificados — ${p.nombre_obra}`, lineas: [
-        `Cantidad: ${cs.length}`,
-        `Avance acumulado: ${(ult.avance_total_pct || 0).toFixed(1)}%`,
-        `Acumulado: ${money(ult.total_acumulado)}`,
-      ], route: `${ruta}/certificado`, routeLabel: "Ver certificados" }];
-    }
-    // Económico / resumen (por defecto)
-    const d = (await api.get(`/presupuestos/${p.id}`)).data || {};
-    const t = d.totales || {};
-    const lineas = [`Total c/IVA: ${money(t.total_precio_con_iva)}`, `Subtotal s/IVA: ${money(t.total_precio_sin_iva)}`];
-    if (t.total_ejecucion) lineas.push(`Costo de ejecución: ${money(t.total_ejecucion)}`);
-    if (t.margen_pct != null) lineas.push(`Margen: ${Number(t.margen_pct).toFixed(1)}%`);
-    lineas.push(`Estado: ${(d.estado || p.estado || "").toUpperCase()}`);
-    return [{ from: "bot", titulo: p.nombre_obra, texto: p.cliente_nombre ? `Cliente: ${p.cliente_nombre}` : null, lineas,
-      route: ruta, routeLabel: "Abrir presupuesto",
-      chips: [`materiales de ${p.nombre_obra}`, `cobros de ${p.nombre_obra}`, `certificados de ${p.nombre_obra}`], chipsHint: "Preguntame también:" }];
+
+    const sub = subIntencion(texto);
+    if (sub) return [{ from: "bot", ...sub.responder(d, ruta) }];
+
+    // Sin una pregunta puntual: la foto de la obra y de que mas se puede hablar.
+    const ec = d.economico || {}, co = d.cobros || {}, f = d.fechas || {};
+    const lineas = [];
+    if (ec.total_con_iva) lineas.push(`  ${"Contrato/presupuesto".padEnd(22)} ${plata(ec.total_con_iva)}`);
+    if (co && co.saldo > 0) lineas.push(`  ${"Te deben".padEnd(22)} ${plata(co.saldo)}`);
+    if (co && co.cobrado) lineas.push(`  ${"Cobrado".padEnd(22)} ${plata(co.cobrado)}`);
+    const pp = (d.por_pagar || {}).total_pendiente;
+    if (pp) lineas.push(`  ${"Falta pagar".padEnd(22)} ${plata(pp)}`);
+    lineas.push(`  ${"Avance".padEnd(22)} ${pct((d.avance || {}).pct)}`);
+    if (f.arranco) lineas.push(`  ${"Arrancó".padEnd(22)} ${fechaLarga(f.arranco)}`);
+    if (f.termina) lineas.push(`  ${"Termina".padEnd(22)} ${fechaLarga(f.termina)}` + (f.atrasada ? "  ⚠ pasada de fecha" : ""));
+    if ((d.materiales || {}).cuantos) lineas.push(`  ${"Materiales".padEnd(22)} ${d.materiales.cuantos} · ${plata(d.materiales.total)}`);
+    if ((d.certificados || {}).cuantos) lineas.push(`  ${"Certificados".padEnd(22)} ${d.certificados.cuantos}`);
+    if ((d.personal || {}).cuantos) lineas.push(`  ${"Personal".padEnd(22)} ${d.personal.cuantos} · ${d.personal.jornadas} jornadas`);
+    if ((d.adicionales || {}).cuantos) lineas.push(`  ${"Adicionales".padEnd(22)} ${d.adicionales.cuantos} · ${plata(d.adicionales.total)}`);
+
+    return [{
+      from: "bot", titulo: d.obra || p.nombre_obra,
+      texto: [d.cliente ? `Cliente: ${d.cliente}` : null,
+              `Estado: ${(d.estado || "").toUpperCase()}`].filter(Boolean).join(" · "),
+      lineas,
+      route: ruta, routeLabel: "Abrir el presupuesto",
+      chips: [`materiales de ${d.obra}`, `avance de ${d.obra}`, `cuánto me deben en ${d.obra}`,
+              `quién trabaja en ${d.obra}`, `cuándo termina ${d.obra}`, `contrato de ${d.obra}`,
+              `último certificado de ${d.obra}`, `adicionales de ${d.obra}`],
+      chipsHint: "Preguntame también:",
+    }];
   };
 
   const resolverCliente = (c) => {
@@ -1884,7 +2236,7 @@ export default function Asistente() {
       if (intent.tipo === "presupuesto") return await resolverPresupuesto(texto, intent.p);
       const presu = presuRef.current || [];
       if (!presu.length) return [{ from: "bot", texto: "Todavía no tenés presupuestos cargados." }];
-      return [{ from: "bot", titulo: "¿Sobre qué presupuesto?", texto: "Tocá uno (o escribí el nombre) y te paso precios, materiales, cobros o certificados.", chips: presu.slice(0, 8).map((p) => p.nombre_obra) }];
+      return [{ from: "bot", titulo: "¿Sobre qué presupuesto?", texto: "Tocá uno (o escribí el nombre) y te paso materiales, avance, contrato, plan, cobros, quién trabaja ahí o adicionales.", chips: presu.slice(0, 8).map((p) => p.nombre_obra) }];
     } catch (e) {
       return [{ from: "bot", texto: "Tuve un problema consultando los datos. Probá de nuevo en un momento." }];
     }
