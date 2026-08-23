@@ -1,72 +1,94 @@
 // ── Circuito del asistente ───────────────────────────────────────────────────
 //
-// Se pega entero en la consola del navegador, logueado y parado en la obra que
-// dice cada bloque. Corre las preguntas de a una, espera la respuesta y la
-// compara contra lo que TIENE que decir y lo que NO.
+// Se pega entero en la consola del navegador, logueado, y se corre bloque por
+// bloque. Cada caso dice qué TIENE que aparecer en la respuesta y qué NO.
 //
-// Lo de "no" es la mitad importante: el asistente casi siempre contesta algo.
+// Lo del "no" es la mitad importante: el asistente casi siempre contesta algo.
 // Lo que hay que detectar es que conteste de la obra equivocada, o que devuelva
 // el instructivo cuando le pidieron un número. Una prueba que solo mira si
-// contestó, pasa siempre y no sirve.
+// contestó pasa siempre y no sirve.
 //
 // Uso:
-//     __correr(CASOS.obra)      // parado en /cotizador/presupuesto/164/obra
-//     __ver()                   // cuando termina
+//     __correr(CASOS.ayuda)          // desde cualquier pantalla
+//     __correr(CASOS.obra)           // parado en /cotizador/presupuesto/164/obra
+//     __correr(CASOS.estudio)        // desde el inicio, SIN obra en pantalla
+//     __correr(CASOS.cliente)        // ídem
+//     __correr(CASOS.obraPorNombre)  // ídem
+//     __ver()                        // cuando termina
 //
 // Los casos apuntan al tenant Simulación (obra 164, Casa Quiroga — Ampliación
-// quincho). Si se corre contra otro tenant hay que cambiar los nombres.
+// quincho). Contra otro tenant hay que cambiar los nombres.
 
 const CASOS = {
 
   // ── A. AYUDA DEL SISTEMA ─────────────────────────────────────────────────
-  //    Tiene que explicar el paso a paso. Si aparece un importe, se equivocó
-  //    de capa: le preguntaron cómo se hace, no cuánto hay.
+  //    Tiene que explicar el paso a paso. Si aparece un importe se equivocó de
+  //    capa: le preguntaron cómo se hace, no cuánto hay.
   ayuda: [
-    { q: "como creo un presupuesto",                 debe: "presupuesto",              no: "te deben|jornadas" },
-    { q: "como cargo un adicional",                  debe: "adicional",                no: "te deben|jornadas" },
-    { q: "como marco dias de lluvia",                debe: "lluvia|perdid",            no: "te deben" },
+    { q: "como creo un presupuesto",                  debe: "presupuesto",             no: "te deben|jornadas" },
+    { q: "como cargo un adicional",                   debe: "adicional",               no: "te deben|jornadas" },
+    { q: "como marco dias de lluvia",                 debe: "lluvia|perdid",           no: "te deben" },
     { q: "como le doy acceso al portal a un cliente", debe: "portal|acceso|clave",     no: "te deben" },
-    { q: "para que sirve el control financiero",     debe: "control financiero|caja",  no: null },
-    { q: "como cierro un presupuesto",               debe: "cerr|cierr",               no: "te deben" },
-    { q: "no me recalcula el plazo con la lluvia",   debe: "lluvia|perdid|holgura",    no: "te deben" },
+    { q: "para que sirve el control financiero",      debe: "control financiero|caja", no: null },
+    { q: "como cierro un presupuesto",                debe: "cerr|cierr",              no: "te deben" },
+    { q: "no me recalcula el plazo con la lluvia",    debe: "lluvia|perdid|holgura",   no: "te deben" },
   ],
 
   // ── B. LA OBRA DONDE ESTÁS PARADO ────────────────────────────────────────
   //    Ninguna pregunta nombra la obra: la señala con "acá" o directamente no
-  //    la menciona. Es como se pregunta en la vida real cuando la tenés en
-  //    pantalla. El "no" descarta que conteste de otra obra o del estudio.
+  //    la menciona. Es como se pregunta cuando la tenés en pantalla. El "no"
+  //    descarta que conteste de otra obra o del estudio entero.
   obra: [
-    { q: "cuanto me deben aca",          debe: "Casa Quiroga",        no: "Muro perimetral|Ba[nñ]o nuevo" },
-    { q: "quien trabaja aca",            debe: "Luis|Ariel",          no: "Muro perimetral" },
-    { q: "cuando termina esta obra",     debe: "septiembre|termina",  no: "obras pasadas de fecha" },
-    { q: "cuando arranco",               debe: "agosto|arranc",       no: "obras pasadas de fecha" },
-    { q: "que materiales lleva esta obra", debe: "materiales",        no: "obras pasadas de fecha" },
-    { q: "hay adicionales aca",          debe: "Casa Quiroga",        no: "Muro perimetral|Cierre perimetral" },
-    { q: "cual es el ultimo certificado", debe: "certificado",        no: "Muro perimetral" },
-    { q: "y el contrato",                debe: "contrato",            no: "Muro perimetral" },
-    { q: "como viene el avance",         debe: "60|avance de",        no: "Tocá|Abrilo" },
-    { q: "cuanto falta pagar aca",       debe: "Casa Quiroga|pagar",  no: "Muro perimetral" },
-    { q: "el plan de obra",              debe: "plan|tarea",          no: "Muro perimetral" },
+    { q: "cuanto me deben aca",            debe: "Casa Quiroga",       no: "Muro perimetral|Ba[nñ]o nuevo" },
+    { q: "quien trabaja aca",              debe: "Luis|Ariel",         no: "Muro perimetral" },
+    { q: "cuando termina esta obra",       debe: "septiembre|termina", no: "obras pasadas de fecha" },
+    { q: "cuando arranco",                 debe: "agosto|arranc",      no: "obras pasadas de fecha" },
+    { q: "que materiales lleva esta obra", debe: "materiales",         no: "obras pasadas de fecha" },
+    { q: "hay adicionales aca",            debe: "Casa Quiroga",       no: "Muro perimetral|Cierre perimetral" },
+    { q: "cual es el ultimo certificado",  debe: "certificado",        no: "Muro perimetral" },
+    { q: "y el contrato",                  debe: "contrato",           no: "Muro perimetral" },
+    { q: "como viene el avance",           debe: "60|avance de",       no: "Tocá|Abrilo" },
+    { q: "cuanto falta pagar aca",         debe: "Casa Quiroga|pagar", no: "Muro perimetral" },
+    { q: "el plan de obra",                debe: "plan|tarea",         no: "Muro perimetral" },
   ],
 
-  // ── C. NOMBRANDO LA COSA, DESDE CUALQUIER PANTALLA ───────────────────────
-  //    Acá se prueba que distinga entre obras que comparten palabras. El
-  //    estudio tiene cinco "Muro perimetral" y dos "Casa Quiroga".
-  nombrando: [
-    { q: "cuanto me deben en casa quiroga vivienda", debe: "Vivienda 96",  no: "Ampliaci" },
-    { q: "materiales de muro cierre",                debe: "uro cierre",   no: null },
-    { q: "que obras tiene marta quiroga",            debe: "Quiroga",      no: null },
-    { q: "quien es matias gonzalez",                 debe: "Matias|Gonzalez", no: null },
-    { q: "cuando termina casa matias",               debe: "Casa Matias",  no: "Muro perimetral" },
-  ],
-
-  // ── D. EL ESTUDIO ENTERO ─────────────────────────────────────────────────
-  //    Sin obra en pantalla ni nombrada, la respuesta es del estudio.
+  // ── C. EL ESTUDIO ENTERO, SIN ESTAR EN NINGUNA OBRA ──────────────────────
+  //    Este bloque se corre desde el inicio. Es el uso de todos los días:
+  //    abrís el sistema a la mañana y preguntás cómo viene todo. Si acá
+  //    contesta de una obra suelta, se equivocó de escala.
   estudio: [
-    { q: "cuanto me deben en total",   debe: "\\$ ?[\\d.]{6,}",                 no: null },
-    { q: "cuanto tengo que pagar",     debe: "\\$ ?[\\d.]{4,}|no hay|nada pend", no: null },
-    { q: "que obras tengo atrasadas",  debe: "atrasad|pasadas de fecha|al d",   no: null },
-    { q: "que hay en el panol",        debe: "pa[nñ]ol|herramient|no hay",      no: null },
+    { q: "cuanto me deben en total",               debe: "\\$ ?[\\d.]{6,}",                 no: null },
+    { q: "que tengo vencido",                      debe: "vencid|\\$ ?[\\d.]{4,}|al d[ií]a", no: null },
+    { q: "cuanto tengo que pagar",                 debe: "\\$ ?[\\d.]{4,}|no hay|nada pend", no: null },
+    { q: "a quien le debo",                        debe: "\\$ ?[\\d.]{4,}|no hay|nada pend", no: null },
+    { q: "que obras tengo atrasadas",              debe: "atrasad|pasadas de fecha|al d",   no: null },
+    { q: "cuantas obras tengo",                    debe: "\\d+ obra|obras",                 no: null },
+    { q: "como viene la caja de este mes",         debe: "\\$ ?[\\d.]{3,}|ingres|resultado", no: "Tocá|Abrí" },
+    { q: "que hay en el panol",                    debe: "pa[nñ]ol|herramient|no hay",      no: null },
+    { q: "que hay en el deposito",                 debe: "dep[oó]sito|cemento|no hay",      no: null },
+    { q: "cuanto le pago al personal esta semana", debe: "\\$ ?[\\d.]{3,}|no hay",           no: null },
+  ],
+
+  // ── D. UN CLIENTE, DESDE EL INICIO ───────────────────────────────────────
+  //    El estudio tiene seis clientes y algunos comparten palabras con obras.
+  cliente: [
+    { q: "quien es marta quiroga",        debe: "Quiroga",         no: null },
+    { q: "que obras tiene marta quiroga", debe: "Quiroga",         no: null },
+    { q: "cuanto me debe marta quiroga",  debe: "Quiroga|\\$",      no: null },
+    { q: "datos de matias gonzalez",      debe: "Matias|Gonzalez", no: null },
+    { q: "el telefono de gaston falcon",  debe: "Falcon|Gaston",   no: null },
+  ],
+
+  // ── E. UNA OBRA POR SU NOMBRE, DESDE EL INICIO ───────────────────────────
+  //    Sin tenerla en pantalla. Acá se prueba que distinga entre obras que
+  //    comparten palabras: hay cinco "Muro perimetral" y dos "Casa Quiroga".
+  obraPorNombre: [
+    { q: "cuanto me deben en casa quiroga vivienda", debe: "Vivienda 96",     no: "Ampliaci" },
+    { q: "quien trabaja en el quincho",              debe: "quincho|Quiroga", no: "Muro perimetral" },
+    { q: "cuando termina casa matias",               debe: "Casa Matias",     no: "Muro perimetral" },
+    { q: "materiales de muro cierre",                debe: "uro cierre",      no: null },
+    { q: "el contrato del quincho",                  debe: "quincho|Quiroga", no: "Muro perimetral" },
+    { q: "hay adicionales en el quincho",            debe: "quincho|Quiroga", no: "Cierre perimetral" },
   ],
 };
 
@@ -89,7 +111,7 @@ async function __pre(q, tope) {
   // media respuesta y el caso siguiente arranca encima del anterior.
   const t0 = Date.now();
   let txt = "", estable = 0;
-  while (Date.now() - t0 < (tope || 20000)) {
+  while (Date.now() - t0 < (tope || 22000)) {
     await new Promise((r) => setTimeout(r, 400));
     const l = cont.innerText.split("\n").map((s) => s.trim()).filter(Boolean);
     const i = l.lastIndexOf(q);

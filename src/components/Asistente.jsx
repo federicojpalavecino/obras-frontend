@@ -51,13 +51,30 @@ function lev(a, b) {
   return prev[n];
 }
 
+// Cuántas letras comparten dos palabras desde el principio.
+function raizComun(a, b) {
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  return i;
+}
+
 // Peso de coincidencia entre dos palabras (con tolerancia a errores)
 function pesoToken(q, k) {
   if (q === k) return 2;
   // Prefijo: cubre abreviaturas y morfología (presu→presupuesto, certific→certificado)
   // sin los falsos positivos de un substring suelto (presupuesto ⊅ puesto).
   if (q.length >= 4 && k.length >= 4 && (k.startsWith(q) || q.startsWith(k))) return 1.4;
-  const tol = q.length <= 4 ? 1 : 2;          // palabras cortas, menos tolerancia
+  // Raíz común larga: cubre plural y género (cuanto/cuantas) sin abrir la
+  // puerta a dos palabras distintas que casualmente se parecen.
+  if (raizComun(q, k) >= 5) return 1.2;
+  // Tolerancia a un tipeo, y solo eso. Antes se admitían DOS ediciones desde
+  // las cinco letras: con esa vara "obras" matcheaba "cobrar", "caja"
+  // matcheaba la obra "Casa" y "pañol" matcheaba "Baño", y cada uno de esos
+  // mandaba la pregunta a la respuesta equivocada. Un tipeo casi nunca cambia
+  // la primera letra, así que exigirla descarta el grueso de los choques.
+  if (q[0] !== k[0]) return 0;
+  const tol = q.length <= 4 ? 0 : q.length <= 7 ? 1 : 2;
+  if (!tol) return 0;
   if (Math.abs(q.length - k.length) > tol) return 0;
   return lev(q, k) <= tol ? 1 : 0;
 }
@@ -1155,7 +1172,11 @@ const PREGUNTAS_DATOS = [
   {
     id: "cobrar",
     claves: ["cuanto me deben", "quien me debe", "por cobrar", "cobranzas", "que tengo por cobrar",
-             "cuanto tengo que cobrar", "deudas de clientes", "me deben"],
+             "cuanto tengo que cobrar", "deudas de clientes", "me deben",
+             // "qué tengo vencido" se lo llevaba el artículo de suscripción,
+             // que también habla de vencimientos. Acá se pregunta por plata.
+             "que tengo vencido", "que esta vencido", "vencido", "vencidos",
+             "que me vencio", "atrasos de pago"],
     responder: (d) => {
       const c = d.por_cobrar || {};
       if (!c.cuantos) return { texto: "No tenés nada pendiente de cobro: todo lo pactado ya está cobrado." };
@@ -1214,7 +1235,8 @@ const PREGUNTAS_DATOS = [
   {
     id: "atrasadas",
     claves: ["que obra esta atrasada", "obras atrasadas", "atraso", "como vienen las obras",
-             "estado de las obras", "que obras tengo"],
+             "estado de las obras", "que obras tengo", "cuantas obras tengo",
+             "cuantas obras", "obras abiertas", "obras en curso"],
     responder: (d) => {
       const o = d.obras || {};
       if (!o.total) return { texto: "Todavía no hay ninguna obra con el plan armado en el Gantt." };
@@ -1461,7 +1483,10 @@ function matchPorNombre(texto, lista, campo) {
     if (!nt.length) continue;
     let hits = 0, largo = 0;
     for (const k of nt) {
-      if (qt.some((q) => pesoToken(q, k) >= 1)) { hits++; largo = Math.max(largo, k.length); }
+      // 1.2 y no 1: para un nombre propio no alcanza con parecerse. Un
+      // presupuesto se elige por su nombre; equivocarse de obra es peor que
+      // no reconocerla y preguntar.
+      if (qt.some((q) => pesoToken(q, k) >= 1.2)) { hits++; largo = Math.max(largo, k.length); }
     }
     const cov = hits / nt.length;
     if (hits > bestHits || (hits === bestHits && cov > bestCov)) {
