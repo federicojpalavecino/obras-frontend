@@ -1398,6 +1398,16 @@ const RE_COMO_HAGO = new RegExp(
 );
 const esComoHago = (texto) => RE_COMO_HAGO.test(normalizar(texto));
 
+// "quién trabaja en el quincho" no es una pregunta de uso: es un dato. Sin
+// esto la base de conocimiento se la llevaba puesta —la palabra "trabaja"
+// matcheaba fortísimo con "definir si se trabaja sábado o domingo"— y el
+// estudio recibía un instructivo del Gantt cuando preguntaba por su gente.
+const RE_PIDE_DATO = new RegExp(
+  "^(quien|quienes|cuanto|cuanta|cuantos|cuantas|cuando|a quien|con quien|" +
+  "que obra|que obras|cual obra|me deben|le debo|tengo que cobrar|tengo que pagar)\\b"
+);
+const pideUnDato = (texto) => RE_PIDE_DATO.test(normalizar(texto));
+
 const SALUDOS = ["hola", "buenas", "buen dia", "buenos dias", "buenas tardes", "que tal", "hey", "holaa"];
 const GRACIAS = ["gracias", "muchas gracias", "genial", "perfecto", "joya", "buenisimo", "ok gracias"];
 
@@ -1423,16 +1433,23 @@ const KW_GESTION = ["cobro", "cobros", "cobrado", "saldo", "certificado", "certi
 // Busca el ítem de una lista cuyo `campo` se parece más a las palabras de la pregunta
 function matchPorNombre(texto, lista, campo) {
   const qt = tokens(texto);
-  let best = null, bestHits = 0, bestCov = 0;
+  let best = null, bestHits = 0, bestCov = 0, bestLargo = 0;
   for (const it of lista || []) {
     const nt = tokens(it[campo] || "");
     if (!nt.length) continue;
-    let hits = 0;
-    for (const k of nt) if (qt.some((q) => pesoToken(q, k) >= 1)) hits++;
+    let hits = 0, largo = 0;
+    for (const k of nt) {
+      if (qt.some((q) => pesoToken(q, k) >= 1)) { hits++; largo = Math.max(largo, k.length); }
+    }
     const cov = hits / nt.length;
-    if (hits > bestHits || (hits === bestHits && cov > bestCov)) { best = it; bestHits = hits; bestCov = cov; }
+    if (hits > bestHits || (hits === bestHits && cov > bestCov)) {
+      best = it; bestHits = hits; bestCov = cov; bestLargo = largo;
+    }
   }
-  if (best && (bestHits >= 2 || (bestHits === 1 && bestCov >= 0.5))) return best;
+  // Una sola palabra alcanza si es rara: "el quincho" identifica a "Casa
+  // Quiroga — Ampliación quincho" sin ambigüedad, y antes no lo reconocía
+  // porque pedía cubrir la mitad del nombre. Nadie escribe el nombre entero.
+  if (best && (bestHits >= 2 || (bestHits === 1 && (bestCov >= 0.5 || bestLargo >= 6)))) return best;
   return null;
 }
 
@@ -2273,7 +2290,11 @@ export default function Asistente() {
     // Umbral alto: varias palabras fuertes del tema, título incluido. A esa
     // altura la pregunta es de uso aunque no tenga un "cómo" adelante.
     const kbMuyFirme = kb.length > 0 && kb[0].score >= 6;
-    let intent = ((esComoHago(texto) && kbFirme) || kbMuyFirme) ? null : clasificar(texto);
+    // Una pregunta de dato nunca se la queda la base de conocimiento, por muy
+    // fuerte que matchee: el que pregunta "quién" o "cuánto" quiere el número.
+    const dato = pideUnDato(texto);
+    let intent = (!dato && ((esComoHago(texto) && kbFirme) || kbMuyFirme))
+      ? null : clasificar(texto);
     // "ambiguo" es la capa de datos diciendo "algo de datos me suena, pero no
     // sé qué". Si la base de conocimiento sí sabe, gana la base.
     if (intent && intent.tipo === "ambiguo" && kbFirme) intent = null;
