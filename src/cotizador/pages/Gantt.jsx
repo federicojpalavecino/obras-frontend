@@ -95,25 +95,42 @@ export default function Gantt() {
   const [formDia, setFormDia] = useState({ desde: "", hasta: "", motivo: "lluvia", nota: "" });
   const perdidoPorFecha = Object.fromEntries(diasPerdidos.map(d => [d.fecha, d]));
 
+  // El backend replanifica y devuelve la fecha de fin de antes y la de ahora.
+  // Decir solo la fecha nueva no alcanzaba: cuando el plazo NO se movía se leía
+  // la misma fecha de siempre y parecía que no había recalculado nada. Lo que
+  // hace falta saber es si se corrió, cuánto, y si no, por qué no.
+  const explicarPlazo = (d) => {
+    if (!d?.fin) return "";
+    const corrio = d.corrio_dias;
+    if (corrio > 0) {
+      return ` · la obra pasa al ${fmtFechaLarga(d.fin)} (${corrio} día${corrio !== 1 ? "s" : ""} más)`;
+    }
+    if (corrio < 0) {
+      return ` · la obra vuelve al ${fmtFechaLarga(d.fin)} (${-corrio} día${corrio !== -1 ? "s" : ""} menos)`;
+    }
+    // No se movió. Las dos razones posibles, dichas con todas las letras.
+    if (d.habiles === 0) {
+      return ` · el plazo no cambia: esos días no se trabajaban igual. Sigue el ${fmtFechaLarga(d.fin)}`;
+    }
+    return ` · el plazo sigue el ${fmtFechaLarga(d.fin)}: esos días caen en una tarea con holgura o en un parón, así que no empujan el fin de obra`;
+  };
+
   const guardarDiasPerdidos = async () => {
     if (!formDia.desde) return;
     try {
-      // El backend replanifica y devuelve la fecha de fin nueva. Sin decirla,
-      // el que carga tres días de lluvia no tiene forma de saber si el plazo
-      // se movió o no: la franja aparece en la grilla igual.
       const r = await api.post(`/presupuestos/${id}/dias-no-trabajados`, formDia);
       setFormDia({ desde: "", hasta: "", motivo: "lluvia", nota: "" });
       await cargar();
       const n = r?.data?.creados || 0;
-      if (n) showToast(`☂ ${n} día${n !== 1 ? 's' : ''} sin trabajar` +
-                       (r?.data?.fin ? ` · la obra termina el ${fmtFechaLarga(r.data.fin)}` : ''));
+      if (n) showToast(`☂ ${n} día${n !== 1 ? 's' : ''} sin trabajar` + explicarPlazo(r?.data));
+      else showToast("Esos días ya estaban cargados");
     } catch (e) { alert(e?.response?.data?.detail || 'No se pudo guardar'); }
   };
 
   const borrarDiaPerdido = async (did) => {
     const r = await api.delete(`/presupuestos/${id}/dias-no-trabajados/${did}`);
     await cargar();
-    if (r?.data?.fin) showToast(`Día quitado · la obra termina el ${fmtFechaLarga(r.data.fin)}`);
+    showToast("Día quitado" + explicarPlazo(r?.data));
   };
 
   // Suspender una tarea no es lo mismo que un dia de lluvia: la lluvia para la

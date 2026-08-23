@@ -375,7 +375,7 @@ export default function Obra() {
   const crearCobro = async () => {
     if (!cobForm.monto) return;
     const r = await api.post(`/presupuestos/${id}/cobros`, { ...cobForm, monto: parseFloat(cobForm.monto) });
-    setShowCobro(false); setCobForm({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null, desembolso_id: null });
+    setShowCobro(false); setCobForm({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null, desembolso_id: null, es_anticipo: false });
     showToast(r.data?.en_control_financiero
       ? "✓ Cobro registrado · ya está en el control financiero"
       : "✓ Cobro registrado");
@@ -407,19 +407,14 @@ export default function Obra() {
   };
 
   // Un anticipo o adelanto no corresponde a ninguna etapa: es plata a cuenta.
-  const registrarAnticipo = async () => {
-    const txt = window.prompt("¿De cuánto es el anticipo?");
-    if (!txt) return;
-    const monto = parseFloat(String(txt).replace(/\./g, "").replace(",", "."));
-    if (!monto || monto <= 0) { showToast("Monto inválido"); return; }
-    const r = await api.post(`/presupuestos/${id}/cobros`, {
-      monto, fecha: today(), forma_pago: "transferencia",
-      nota: "Anticipo", es_anticipo: true,
-    });
-    showToast(r.data?.en_control_financiero
-      ? "✓ Anticipo registrado · ya está en el control financiero"
-      : "✓ Anticipo registrado");
-    cargar();
+  // Va por el mismo modal que cualquier cobro, con el anticipo ya marcado. Antes
+  // se pedía por window.prompt: un cuadro del navegador donde no se puede elegir
+  // la fecha ni la forma de pago, y que además tapa la pantalla del sistema.
+  const registrarAnticipo = () => {
+    setCobForm({ monto: "", fecha: today(), forma_pago: "transferencia",
+                 referencia: "", nota: "Anticipo", certificado_id: null,
+                 desembolso_id: null, es_anticipo: true });
+    setShowCobro(true);
   };
 
   const crearSubcontrato = async () => {
@@ -1774,7 +1769,9 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div style={{ background: C.surface, borderRadius: 16, padding: 24, width: "100%", maxWidth: 420, border: `1px solid ${C.border}`, maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>Registrar cobro</div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>
+                {cobForm.es_anticipo ? "Registrar anticipo" : "Registrar cobro"}
+              </div>
               <button onClick={() => setShowCobro(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 22 }}>×</button>
             </div>
 
