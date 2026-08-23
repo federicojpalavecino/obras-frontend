@@ -19,7 +19,20 @@ api.interceptors.request.use((config) => {
 let sesionExpiradaAvisada = false;
 let suscripcionBloqueadaAvisada = false;
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Cualquier borrado que salga bien avisa, y el botón de Deshacer aparece
+    // solo. Va acá y no en cada pantalla: son más de veinte lugares donde se
+    // borra algo, y el que se agregue mañana queda cubierto sin acordarse.
+    try {
+      const m = (response.config?.method || '').toLowerCase();
+      if (m === 'delete') {
+        window.dispatchEvent(new CustomEvent('faim:borrado', {
+          detail: { url: response.config?.url, data: response.data },
+        }));
+      }
+    } catch (e) {}
+    return response;
+  },
   async (error) => {
     const status = error.response?.status;
     // ── Reintentos con conexión débil ──

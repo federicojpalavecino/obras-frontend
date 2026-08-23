@@ -26,8 +26,10 @@ import AccesosClientes from "./pages/AccesosClientes";
 import Landing from "./pages/Landing";
 import Presentacion from "./pages/Presentacion";
 import DemoPortal from "./pages/DemoPortal";
+import Precios from "./pages/Precios";
 import Obra from "./pages/Obra";
 import Asistente from "./components/Asistente";
+import Deshacer from "./components/Deshacer";
 import ErrorBoundary from "./components/ErrorBoundary";
 import api from "./cotizador/api";
 
@@ -337,6 +339,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
       </Routes>
       </ErrorBoundary>
       <Asistente />
+      <Deshacer />
     </div>
   );
 }
@@ -584,6 +587,12 @@ export default function App() {
   // lo que ve el cliente del estudio, sin pedir usuario.
   if (["/demo-portal", "/demo-portal/", "/portal-demo", "/portal-demo/"].includes(window.location.pathname)) {
     return <DemoPortal />;
+  }
+
+  // Precio — pública también. Es la respuesta a «¿cuánto sale?»: el abono, lo
+  // que incluye y cómo se cobra, sin pedir usuario.
+  if (["/precios", "/precios/", "/precio", "/precio/"].includes(window.location.pathname)) {
+    return <Precios />;
   }
 
   if (loading) return (
