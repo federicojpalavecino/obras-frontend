@@ -1435,7 +1435,11 @@ const KW_GREMIO = ["oficial", "oficiales", "ayudante", "ayudantes", "cuadrilla",
 const KW_PRECIO = ["precio", "precios", "costo", "costos", "cuanto", "cuesta", "sale", "vale"];
 // Si aparecen, la pregunta es de gestión y no del catálogo de análisis
 const KW_GESTION = ["cobro", "cobros", "cobrado", "saldo", "certificado", "certificados",
-  "cliente", "clientes", "factura", "presupuesto", "presupuestos", "obra", "avance", "margen"];
+  "cliente", "clientes", "factura", "presupuesto", "presupuestos", "obra", "avance", "margen",
+  // "cuánto me DEBEN" es plata de una obra, no el precio de un ítem del
+  // catálogo. Sin esto la pregunta se iba a buscar un análisis de costos
+  // llamado "deben" y terminaba contestando un artículo de la ayuda.
+  "deben", "debe", "debemos", "adeuda", "deuda", "pagar", "pago", "pagos"];
 
 // Busca el ítem de una lista cuyo `campo` se parece más a las palabras de la pregunta
 function matchPorNombre(texto, lista, campo) {
@@ -2339,6 +2343,13 @@ export default function Asistente() {
     // "ambiguo" es la capa de datos diciendo "algo de datos me suena, pero no
     // sé qué". Si la base de conocimiento sí sabe, gana la base.
     if (intent && intent.tipo === "ambiguo" && kbFirme) intent = null;
+    // Arriba ya resolvimos de qué obra habla; si además es una pregunta de
+    // obra, no hace falta volver a deducirlo. clasificar() puede llevárselo
+    // para otro lado por una palabra suelta, y ahí se pierde una pregunta que
+    // ya estaba contestada.
+    if (deUnaObra && !esComoHago(texto) && subIntencion(texto)) {
+      intent = { tipo: "presupuesto", p: deUnaObra };
+    }
     if (intent) {
       setMsgs((m) => [...m, { from: "bot", texto: "Un segundo, busco eso… ⏳", loading: true }]);
       const res = await resolverDatos(intent, texto);
