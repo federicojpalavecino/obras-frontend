@@ -567,6 +567,13 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
   const porDesembolsos = cc.metodologia === "desembolsos"
     || presupuesto?.metodologia === "desembolsos";
   const rotuloDevengado = porDesembolsos ? "Desembolsos devengados" : "Certificado acumulado";
+  // Si el estudio no marco ninguna etapa, el backend deduce lo devengado del
+  // avance real de la obra. Es el numero correcto, pero conviene decir de
+  // donde sale: no es lo mismo una etapa que el estudio dio por entregada que
+  // una proporcion calculada, y de eso depende que se facture o no.
+  const devengadoDerivado = porDesembolsos
+    && (cc.desembolsos || []).length > 0
+    && (cc.desembolsos || []).every(d => d._derivado_del_avance);
   const aFavor = cc.a_favor_cliente || 0;
   const lineasObra = (presupuesto?.rubros || []).flatMap(r =>
     (r.lineas || []).map(l => ({ ...l, rubro: r.nombre })));
@@ -666,7 +673,8 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 24 }}>
               {[
                 ["Presupuesto", total_pres, C.text],
-                [rotuloDevengado, cc.total_devengado ?? cc.total_certificado, C.accent2],
+                [rotuloDevengado, cc.total_devengado ?? cc.total_certificado, C.accent2,
+                 devengadoDerivado ? "calculado sobre el avance de obra" : null],
                 ["Cobrado", cc.total_cobrado, C.green],
                 // Cobrar mas de lo devengado no es un error: es anticipo. Se
                 // nombra como lo que es, en vez de un saldo negativo en rojo.
@@ -676,10 +684,11 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 ["Subcontratos pagados", cc.total_subcontratos, C.warn],
                 ["Compras pagadas", cc.total_compras, C.warn],
                 ["Resultado neto", cc.resultado_neto, (cc.resultado_neto || 0) >= 0 ? C.accent : C.red],
-              ].map(([label, val, color]) => (
+              ].map(([label, val, color, pie]) => (
                 <div key={label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px" }}>
                   <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>{label}</div>
                   <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(val || 0)}</div>
+                  {pie && <div style={{ fontSize: 10.5, color: C.muted, marginTop: 4, lineHeight: 1.35 }}>{pie}</div>}
                 </div>
               ))}
             </div>
