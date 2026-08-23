@@ -327,6 +327,19 @@ export default function ControlFinanciero({ user }) {
   const cambiarTipo = (tipo) => {
     setTipoPeriodo(tipo);
     localStorage.setItem("cf_tipo_periodo", tipo);
+    // Si ya existe el período de ese tipo, se abre ese. Antes se abría siempre
+    // uno vacío: la plata que había entrado sola desde las obras estaba
+    // guardada en el período de verdad, pero al cambiar de Semana a Mes veías
+    // un mes en cero y parecía que no había llegado nada.
+    const { inicio, fin } = getPeriodDates(tipo);
+    const existente = semanas.find(s =>
+      !s.cerrado && (s.fecha_inicio === inicio || s.fecha === inicio) &&
+      (!s.fecha_fin || s.fecha_fin === fin));
+    if (existente) {
+      setWeek({ ...existente });
+      setEditingIdSynced(existente.id);
+      return;
+    }
     setEditingIdSynced(null);
     setWeek(emptyPeriod(tipo));
   };
