@@ -52,6 +52,10 @@ export default function Personal() {
   // El tap del calendario resuelve el caso rápido; esto resuelve el resto.
   const [detalleSemana, setDetalleSemana] = useState(null);
   const [guardandoDet, setGuardandoDet] = useState(false);
+  // Selección de gente para mandar a una obra de una sola vez.
+  const [elegidos, setElegidos] = useState({});
+  const [asignando, setAsignando] = useState(null);   // { obra, tambienSemana }
+  const [ocupado, setOcupado] = useState(false);
 
   const avisar = (m) => { setAviso(m); setTimeout(() => setAviso(""), 3500); };
   const dias = Array.from({ length: 7 }, (_, i) => sumarDias(semana, i));
@@ -97,6 +101,63 @@ export default function Personal() {
       api.get(`/personal/a-pagar?desde=${semana}&hasta=${finSemana}`)
         .then(x => setPagar(x.data)).catch(() => {});
     } catch (e) { avisar("⚠ " + (e.response?.data?.detail || "No se pudo marcar")); }
+  };
+
+  const refrescar = async () => {
+    const r = await api.get(`/personal/asistencia?desde=${semana}&hasta=${finSemana}`);
+    setAsist(r.data || []);
+    api.get(`/personal/a-pagar?desde=${semana}&hasta=${finSemana}`)
+      .then(x => setPagar(x.data)).catch(() => {});
+  };
+
+  // Marcar de a uno es tocar 35 casilleros por semana. Estas tres cubren lo que
+  // se hace de verdad: "Ramón vino toda la semana", "hoy vinieron todos", y
+  // "estos tres están en la obra de Pérez".
+  const marcarLote = async (personal_ids, fechas, jornadas) => {
+    if (!personal_ids.length || !fechas.length) return;
+    setOcupado(true);
+    try {
+      const cuerpo = { personal_ids, fechas, jornadas };
+      // Con obra elegida arriba manda esa; si no, cada uno cae en la suya.
+      if (obraDelDia) cuerpo.presupuesto_id = parseInt(obraDelDia);
+      await api.post("/personal/asistencia/lote", cuerpo);
+      await refrescar();
+    } catch (e) { avisar("⚠ " + ((e.response && e.response.data && e.response.data.detail) || "No se pudo")); }
+    setOcupado(false);
+  };
+
+  const diasHabiles = () => dias.filter(f => {
+    const d = new Date(f + "T12:00:00").getDay();
+    return d !== 0;   // el domingo no se marca solo
+  });
+
+  const laSemanaDe = (p) => {
+    const yaTiene = dias.some(f => (marcado(p.id, f)?.jornadas || 0) > 0);
+    return marcarLote([p.id], yaTiene ? dias : diasHabiles(), yaTiene ? 0 : 1);
+  };
+
+  const elDia = (f) => {
+    const gente_ = gente.filter(x => x.modalidad !== "subcontrato");
+    const yaTodos = gente_.every(x => (marcado(x.id, f)?.jornadas || 0) > 0);
+    return marcarLote(gente_.map(x => x.id), [f], yaTodos ? 0 : 1);
+  };
+
+  const nElegidos = Object.values(elegidos).filter(Boolean).length;
+
+  const guardarAsignacion = async () => {
+    const ids = Object.keys(elegidos).filter(k => elegidos[k]).map(Number);
+    if (!ids.length) return;
+    setOcupado(true);
+    try {
+      const cuerpo = { personal_ids: ids, presupuesto_id: asignando.obra ? parseInt(asignando.obra) : null };
+      if (asignando.tambienSemana) { cuerpo.desde = semana; cuerpo.hasta = finSemana; }
+      const r = await api.post("/personal/obra", cuerpo);
+      setAsignando(null); setElegidos({});
+      await cargar(); await refrescar();
+      avisar(`✓ ${r.data.cuantos} persona${r.data.cuantos !== 1 ? "s" : ""} a la obra`
+        + (r.data.reimputados ? ` · ${r.data.reimputados} día(s) reimputados` : ""));
+    } catch (e) { avisar("⚠ " + ((e.response && e.response.data && e.response.data.detail) || "No se pudo")); }
+    setOcupado(false);
   };
 
   // Abre el detalle con lo que ya hay cargado de esa persona en la semana.
@@ -260,19 +321,44 @@ export default function Personal() {
                 Esta semana
               </button>
               <select value={obraDelDia} onChange={e => setObraDelDia(e.target.value)}
-                title="Los días que marques se imputan a esta obra"
+                title="Los días que marques se imputan a esta obra. Sin elegir ninguna, cada persona va a la obra que tiene asignada."
                 style={{ marginLeft: "auto", padding: "6px 10px", borderRadius: 8, fontSize: 12.5,
                          border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontFamily: "inherit" }}>
-                <option value="">Sin imputar a una obra</option>
+                <option value="">Cada uno a su obra</option>
                 {obras.map(o => <option key={o.id} value={o.id}>{o.nombre_obra}</option>)}
               </select>
             </div>
 
             <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10, lineHeight: 1.5 }}>
-              Un toque marca el día entero, otro lo deja en medio día, y otro lo borra. Los días
-              que marques se imputan a la obra que elijas arriba. Para poner <b>horas exactas</b> o
-              cambiar la obra de un día suelto, tocá <b>✎</b> al final de la fila.
+              Un toque marca el día entero, otro lo deja en medio día, y otro lo borra. Tocá el
+              <b> día</b> arriba para marcar a todos, o <b>▸</b> al lado del nombre para toda la
+              semana. Para <b>horas exactas</b> o cambiar la obra de un día suelto, tocá <b>✎</b>.
             </div>
+
+            {nElegidos > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                            padding: "9px 13px", borderRadius: 10, marginBottom: 10,
+                            background: "rgba(5,150,105,.09)", border: `1px solid ${C.accent}55` }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>
+                  {nElegidos} seleccionado{nElegidos !== 1 ? "s" : ""}
+                </span>
+                <button onClick={() => setAsignando({ obra: obraDelDia || "", tambienSemana: false })}
+                  style={{ padding: "6px 13px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
+                           fontSize: 12.5, fontWeight: 700, background: C.accent, border: "none", color: "#fff" }}>
+                  Mandar a una obra
+                </button>
+                <button disabled={ocupado}
+                  onClick={() => marcarLote(Object.keys(elegidos).filter(k => elegidos[k]).map(Number), diasHabiles(), 1)}
+                  style={{ padding: "6px 13px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
+                           fontSize: 12.5, background: C.surface, border: `1px solid ${C.border}`, color: C.text }}>
+                  Marcar toda la semana
+                </button>
+                <button onClick={() => setElegidos({})}
+                  style={{ marginLeft: "auto", padding: "6px 10px", borderRadius: 8, cursor: "pointer",
+                           fontFamily: "inherit", fontSize: 12, background: "transparent",
+                           border: "none", color: C.muted }}>Deseleccionar</button>
+              </div>
+            )}
 
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
@@ -280,13 +366,19 @@ export default function Personal() {
                   <tr>
                     <th style={{ textAlign: "left", fontSize: 10.5, color: C.muted, padding: "0 6px 6px",
                                  textTransform: "uppercase", letterSpacing: .5 }}>Quién</th>
+                    <th style={{ width: 22, padding: "0 0 6px" }} />
                     {dias.map(f => {
                       const d = new Date(f + "T12:00:00");
                       const esHoy = f === hoy();
                       return (
-                        <th key={f} style={{ width: 40, padding: "0 2px 6px", fontSize: 10,
-                                             color: esHoy ? C.accent : C.muted, fontWeight: esHoy ? 800 : 600 }}>
-                          {["D", "L", "M", "M", "J", "V", "S"][d.getDay()]}<br />{d.getDate()}
+                        <th key={f} style={{ width: 40, padding: "0 2px 6px" }}>
+                          <button onClick={() => elDia(f)} disabled={ocupado}
+                            title="Marcar o desmarcar a todos este día"
+                            style={{ background: "none", border: "none", cursor: "pointer",
+                                     fontFamily: "inherit", fontSize: 10, padding: "2px 3px", borderRadius: 5,
+                                     color: esHoy ? C.accent : C.muted, fontWeight: esHoy ? 800 : 600 }}>
+                            {["D", "L", "M", "M", "J", "V", "S"][d.getDay()]}<br />{d.getDate()}
+                          </button>
                         </th>
                       );
                     })}
@@ -305,15 +397,30 @@ export default function Personal() {
                     return (
                       <tr key={p.id} style={{ borderTop: `1px solid ${C.border}` }}>
                         <td style={{ padding: "7px 6px", fontSize: 13 }}>
-                          <div style={{ fontWeight: 600 }}>{p.nombre}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                            <input type="checkbox" checked={!!elegidos[p.id]}
+                              onChange={e => setElegidos(x => ({ ...x, [p.id]: e.target.checked }))}
+                              style={{ width: 14, height: 14, accentColor: C.accent, cursor: "pointer" }} />
+                            <span style={{ fontWeight: 600 }}>{p.nombre}</span>
+                          </div>
                           <div style={{ fontSize: 10.5, color: C.muted }}>
                             {p.funcion ? p.funcion + " · " : ""}{p.modalidad_nombre}
                           </div>
-                          {obrasSemana.length > 0 && (
+                          {obrasSemana.length > 0 ? (
                             <div style={{ fontSize: 10.5, color: C.accent, marginTop: 2 }}>
                               {obrasSemana.join(" · ")}
                             </div>
-                          )}
+                          ) : p.obra ? (
+                            <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>
+                              {p.obra}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td style={{ padding: 0, textAlign: "center" }}>
+                          <button onClick={() => laSemanaDe(p)} disabled={ocupado}
+                            title="Marcar o borrar toda la semana"
+                            style={{ background: "none", border: "none", cursor: "pointer",
+                                     color: C.border, fontSize: 12, padding: "0 2px" }}>▸</button>
                         </td>
                         {dias.map(f => {
                           const m = marcado(p.id, f);
@@ -487,6 +594,61 @@ export default function Personal() {
         </div>
       )}
 
+      {/* Mandar a una obra */}
+      {asignando && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", zIndex: 400,
+                      display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+          onClick={() => setAsignando(null)}>
+          <div style={{ background: C.surface, borderRadius: "16px 16px 0 0", padding: "20px 18px 26px",
+                        width: "min(520px,100%)" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>
+              Mandar {nElegidos} persona{nElegidos !== 1 ? "s" : ""} a una obra
+            </div>
+            <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>
+              Queda como su obra habitual: de acá en más, cuando marques asistencia sin elegir
+              obra arriba, los días les caen ahí solos.
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={lbl}>Obra</label>
+              <select style={inp} value={asignando.obra}
+                onChange={e => setAsignando(a => ({ ...a, obra: e.target.value }))}>
+                <option value="">Sin obra</option>
+                {obras.map(o => <option key={o.id} value={o.id}>{o.nombre_obra}</option>)}
+              </select>
+            </div>
+
+            <label style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer",
+                            padding: "10px 12px", borderRadius: 9, background: C.surface2,
+                            fontSize: 13, marginBottom: 16 }}>
+              <input type="checkbox" checked={asignando.tambienSemana}
+                onChange={e => setAsignando(a => ({ ...a, tambienSemana: e.target.checked }))}
+                style={{ width: 15, height: 15, accentColor: C.accent }} />
+              <span>
+                Reimputar también los días <b>ya marcados</b> de esta semana
+                <span style={{ display: "block", fontSize: 11, color: C.muted }}>
+                  Para cuando te diste cuenta el viernes de que fueron a otra obra
+                </span>
+              </span>
+            </label>
+
+            <div style={{ display: "flex", gap: 9 }}>
+              <button onClick={() => setAsignando(null)}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                         fontSize: 14, background: "transparent", border: `1px solid ${C.border}`, color: C.muted }}>
+                Cancelar
+              </button>
+              <button onClick={guardarAsignacion} disabled={ocupado}
+                style={{ flex: 1.4, padding: "12px 0", borderRadius: 10, fontFamily: "inherit",
+                         cursor: ocupado ? "not-allowed" : "pointer", fontSize: 14, fontWeight: 700,
+                         background: ocupado ? C.border : C.accent, border: "none", color: "#fff" }}>
+                {ocupado ? "Guardando…" : "Mandar a la obra"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detalle de la semana: jornada, horas y obra, día por día */}
       {detalleSemana && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", zIndex: 400,
@@ -591,6 +753,18 @@ export default function Personal() {
               <label style={lbl}>Qué hace</label>
               <input style={inp} value={ficha.funcion || ""} placeholder="Oficial, ayudante, capataz…"
                 onChange={e => setFicha(f => ({ ...f, funcion: e.target.value }))} />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={lbl}>En qué obra trabaja</label>
+              <select style={inp} value={ficha.presupuesto_id || ""}
+                onChange={e => setFicha(f => ({ ...f, presupuesto_id: e.target.value || null }))}>
+                <option value="">Sin obra fija</option>
+                {obras.map(o => <option key={o.id} value={o.id}>{o.nombre_obra}</option>)}
+              </select>
+              <div style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.45 }}>
+                Los días que le marques van a imputarse acá, sin tener que elegirla cada vez.
+              </div>
             </div>
 
             <div style={{ marginBottom: 12 }}>
