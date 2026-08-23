@@ -2280,6 +2280,13 @@ export default function Asistente() {
     setInput("");
     setMsgs((m) => [...m, { from: "user", texto }]);
 
+    // Los datos ANTES de decidir de qué se habla. Estaban cargándose más
+    // abajo, y por eso la primera pregunta de cada sesión no sabía en qué
+    // obra estabas parado: la lista de obras todavía estaba vacía. "Hay
+    // adicionales acá" terminaba contestando por una obra de otro cliente
+    // que se llamaba "Adicional 1".
+    await ensureData();
+
     // Si preguntó por un dato del estudio, se contesta con la cifra. Un
     // secretario no te manda a buscar el número: te lo dice.
     //
@@ -2313,7 +2320,6 @@ export default function Asistente() {
       }
       return;
     }
-    await ensureData();
     // Si es una pregunta de USO y la base de conocimiento tiene una respuesta
     // firme, contesta la base. La capa de datos queda para las preguntas de
     // dato ("cuánto sale…", "cuánto me deben en…"), que es para lo que está.
