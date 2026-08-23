@@ -2275,8 +2275,20 @@ export default function Asistente() {
 
     // Si preguntó por un dato del estudio, se contesta con la cifra. Un
     // secretario no te manda a buscar el número: te lo dice.
+    //
+    // Pero "cuánto me deben" es del estudio entero y "cuánto me deben EN EL
+    // QUINCHO" es de una obra sola. Si el texto nombra una obra —o estás
+    // parado en una y la nombrás— gana la obra: contestar con la lista de
+    // todas las obras cuando alguien preguntó por una es peor que no contestar.
     const pd = preguntaDeDatos(texto);
-    if (pd) {
+    const deUnaObra = (() => {
+      const presu = presuRef.current || [];
+      if (!presu.length) return null;
+      const aca = obraDeLaPantalla();
+      if (aca && matchPorNombre(texto, [aca], "nombre_obra")) return aca;
+      return matchPorNombre(texto, presu, "nombre_obra");
+    })();
+    if (pd && !deUnaObra) {
       setMsgs((m) => [...m, { from: "bot", texto: "Un segundo, lo miro…", cargando: true }]);
       try {
         const r = await api.get("/asistente/datos");
