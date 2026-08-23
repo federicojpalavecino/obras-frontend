@@ -2187,9 +2187,55 @@ function ContratoModal({ presupuestoId, presupuesto, existing, onClose, onSave }
     desembolsos: existing?.desembolsos || [],
   });
 
-  const addDesembolso = () => setForm(f => ({ ...f, desembolsos: [...f.desembolsos, { descripcion: "", monto: 0, fecha_vencimiento: "", estado: "pendiente" }] }));
-  const updDesembolso = (i, k, v) => setForm(f => { const d = [...f.desembolsos]; d[i] = { ...d[i], [k]: v }; return { ...f, desembolsos: d }; });
+  const addDesembolso = () => setForm(f => ({ ...f, desembolsos: [...f.desembolsos, { descripcion: "", pct: "", monto: 0, fecha_vencimiento: "", estado: "pendiente" }] }));
+  const updDesembolso = (i, k, v) => setForm(f => {
+    const d = [...f.desembolsos];
+    d[i] = { ...d[i], [k]: v };
+    // Los dos campos son el mismo dato visto de dos maneras: se pacta un
+    // porcentaje y se cobra en pesos. Tocar uno recalcula el otro, así no hay
+    // que hacer la cuenta a mano ni queda un contrato con el % y los $ en
+    // desacuerdo.
+    const base = parseFloat(f.monto_total) || total || 0;
+    if (k === "pct" && base > 0) {
+      const n = parseFloat(String(v).replace(",", "."));
+      d[i].monto = isNaN(n) ? 0 : Math.round(base * n / 100 * 100) / 100;
+    }
+    if (k === "monto" && base > 0) {
+      const n = parseFloat(String(v).replace(",", "."));
+      d[i].pct = isNaN(n) ? "" : Math.round(n / base * 10000) / 100;
+    }
+    return { ...f, desembolsos: d };
+  });
   const delDesembolso = (i) => setForm(f => ({ ...f, desembolsos: f.desembolsos.filter((_, j) => j !== i) }));
+
+  // Las tres formas en que se pacta de verdad una obra. No son obligatorias:
+  // se cargan y después se editan. Es para no arrancar de una lista vacía.
+  const PLANTILLAS_PAGO = [
+    { nombre: "40 / 30 / 30", partes: [
+      ["Anticipo a la firma", 40], ["Al 50 % de avance", 30], ["A la entrega", 30]] },
+    { nombre: "20 / 30 / 30 / 20", partes: [
+      ["Anticipo a la firma", 20], ["Al 30 % de avance", 30],
+      ["Al 70 % de avance", 30], ["A la entrega", 20]] },
+    { nombre: "Anticipo + 6 cuotas", partes: [
+      ["Anticipo a la firma", 25],
+      ...[1, 2, 3, 4, 5, 6].map(n => [`Cuota ${n} de 6`, 12.5])] },
+  ];
+
+  const aplicarPlantilla = (p) => {
+    const base = parseFloat(form.monto_total) || total || 0;
+    setForm(f => ({
+      ...f,
+      desembolsos: p.partes.map(([desc, pct]) => ({
+        descripcion: desc, pct,
+        monto: Math.round(base * pct / 100 * 100) / 100,
+        fecha_vencimiento: "", estado: "pendiente",
+      })),
+    }));
+  };
+
+  const sumaDes = form.desembolsos.reduce((a, d) => a + (parseFloat(d.monto) || 0), 0);
+  const totalContrato = parseFloat(form.monto_total) || total || 0;
+  const difDes = Math.round((totalContrato - sumaDes) * 100) / 100;
 
   const guardar = async () => {
     await api.post(`/presupuestos/${presupuestoId}/contrato`, form);
@@ -2272,18 +2318,82 @@ function ContratoModal({ presupuestoId, presupuesto, existing, onClose, onSave }
 
         {/* Desembolsos */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, gap: 8, flexWrap: "wrap" }}>
             <div style={{ fontSize: 13, fontWeight: 700 }}>Calendario de pagos</div>
             <button onClick={addDesembolso} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 6, padding: "4px 12px", fontSize: 12, cursor: "pointer" }}>+ Agregar</button>
           </div>
+          <div style={{ fontSize: 11.5, color: "#6b7280", marginBottom: 8, lineHeight: 1.5 }}>
+            Se pacta en porcentaje del contrato y el monto sale solo. La fecha es la que
+            hace que el cobro aparezca en la previsión: sin fecha, no se ve venir.
+          </div>
+
+          {form.desembolsos.length === 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+              <span style={{ fontSize: 11.5, color: "#6b7280", alignSelf: "center" }}>Arrancá de:</span>
+              {PLANTILLAS_PAGO.map(p => (
+                <button key={p.nombre} onClick={() => aplicarPlantilla(p)}
+                  style={{ background: "transparent", border: "1px solid #e0e0e8", borderRadius: 20,
+                           padding: "5px 13px", fontSize: 12, cursor: "pointer", color: "#1a1a2e" }}>
+                  {p.nombre}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {form.desembolsos.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 70px 1fr 1fr auto", gap: 6,
+                          fontSize: 10, color: "#9096a8", textTransform: "uppercase",
+                          letterSpacing: .5, marginBottom: 4, paddingLeft: 2 }}>
+              <span>Concepto</span><span style={{ textAlign: "right" }}>%</span>
+              <span style={{ textAlign: "right" }}>Monto</span><span>Vence</span><span />
+            </div>
+          )}
           {form.desembolsos.map((d, i) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 6, marginBottom: 6 }}>
-              <input style={inp2} placeholder="Descripción" value={d.descripcion} onChange={e => updDesembolso(i, "descripcion", e.target.value)} />
-              <input style={inp2} type="number" placeholder="Monto" value={d.monto} onChange={e => updDesembolso(i, "monto", e.target.value)} />
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 70px 1fr 1fr auto", gap: 6, marginBottom: 6 }}>
+              <input style={inp2} placeholder="Anticipo a la firma" value={d.descripcion} onChange={e => updDesembolso(i, "descripcion", e.target.value)} />
+              <input style={{ ...inp2, textAlign: "right" }} type="number" step="0.01" placeholder="%"
+                value={d.pct ?? ""} onChange={e => updDesembolso(i, "pct", e.target.value)} />
+              <input style={{ ...inp2, textAlign: "right" }} type="number" placeholder="Monto" value={d.monto} onChange={e => updDesembolso(i, "monto", e.target.value)} />
               <input style={inp2} type="date" value={d.fecha_vencimiento} onChange={e => updDesembolso(i, "fecha_vencimiento", e.target.value)} />
               <button onClick={() => delDesembolso(i)} style={{ background: "none", border: "1px solid rgba(239,68,68,.3)", borderRadius: 6, color: "#ef4444", cursor: "pointer", padding: "4px 8px" }}>×</button>
             </div>
           ))}
+
+          {/* Que el calendario cierre contra el contrato. Sin esto se podían
+              pactar treinta millones en un contrato de cuatro y nadie avisaba:
+              el cliente quedaba debiendo cifras que no existen. */}
+          {form.desembolsos.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                          marginTop: 8, padding: "9px 12px", borderRadius: 8, fontSize: 12.5,
+                          background: Math.abs(difDes) < 1 ? "rgba(5,150,105,.08)" : "rgba(217,119,6,.1)",
+                          border: `1px solid ${Math.abs(difDes) < 1 ? "rgba(5,150,105,.35)" : "rgba(217,119,6,.4)"}` }}>
+              <span>Suman <b style={{ fontFamily: "var(--mono, monospace)" }}>{fmt(sumaDes)}</b> de {fmt(totalContrato)}</span>
+              {Math.abs(difDes) < 1 ? (
+                <span style={{ color: "#059669", fontWeight: 700 }}>✓ cierra</span>
+              ) : (
+                <>
+                  <span style={{ color: "#c2690a" }}>
+                    {difDes > 0 ? `faltan ${fmt(difDes)}` : `sobran ${fmt(-difDes)}`}
+                  </span>
+                  {form.desembolsos.length > 0 && (
+                    <button onClick={() => {
+                        const n = form.desembolsos.length;
+                        const pct = Math.round((100 / n) * 100) / 100;
+                        setForm(f => ({ ...f, desembolsos: f.desembolsos.map((x, i) => ({
+                          ...x,
+                          pct: i === n - 1 ? Math.round((100 - pct * (n - 1)) * 100) / 100 : pct,
+                          monto: Math.round(totalContrato * (i === n - 1 ? (100 - pct * (n - 1)) : pct) / 100 * 100) / 100,
+                        })) }));
+                      }}
+                      style={{ marginLeft: "auto", background: "transparent", border: "1px solid rgba(217,119,6,.5)",
+                               borderRadius: 6, padding: "4px 11px", fontSize: 11.5, cursor: "pointer", color: "#c2690a" }}>
+                      Repartir parejo
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <button onClick={guardar} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 8, padding: "12px", width: "100%", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
