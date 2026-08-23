@@ -871,7 +871,13 @@ ${firma}
   })();
   // Ni el servicio ni la obra que se cobra por etapas pactadas certifican.
   const certifica = !esServicio && data?.metodologia !== 'desembolsos';
-  const coefGgBen = coefs ? 1 / (1 - coefs.gg_porcentaje / 100 - coefs.ben_porcentaje / 100) : 1;
+  // El coeficiente por el que se multiplica el costo directo. GG y beneficio se
+  // toman sobre el PRECIO DE VENTA, no sobre el costo: por eso 15% + 15% da
+  // 1,4286 y no 1,30. Es la convención que aplica el backend, así que el número
+  // que se muestra acá es exactamente el que se está cobrando.
+  const sumaGgBen = coefs ? (Number(coefs.gg_porcentaje) || 0) + (Number(coefs.ben_porcentaje) || 0) : 0;
+  const coefImposible = sumaGgBen >= 100;
+  const coefGgBen = coefs && !coefImposible ? 1 / (1 - sumaGgBen / 100) : 1;
 
   if (loading) return <div className="loading">Cargando presupuesto...</div>;
   if (!data) return <div className="loading">No encontrado</div>;
@@ -1178,10 +1184,34 @@ ${firma}
                     disabled={cerrado}
                     onChange={e => setCoefs(prev => ({ ...prev, dias_vigencia: parseInt(e.target.value) || 30 }))} />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid var(--border)' }}>
-                  <div>
-                    <div style={{ fontSize: 10, color: 'var(--accent2)', fontWeight: 600 }}>Coef GG+BEN</div>
-                    <div style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--accent2)' }}>{coefGgBen.toFixed(4)}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10, paddingTop: 6, borderTop: '1px solid var(--border)' }}>
+                  <div style={{ minWidth: 0 }}>
+                    {coefImposible ? (
+                      <>
+                        <div style={{ fontSize: 10, color: 'var(--red)', fontWeight: 600 }}>No se puede calcular</div>
+                        <div style={{ fontSize: 9.5, color: 'var(--muted)', lineHeight: 1.45, marginTop: 2 }}>
+                          Gastos generales y beneficio no pueden sumar {sumaGgBen}%. Al tomarse sobre el
+                          precio de venta, en 100% no queda nada para el costo.
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 10, color: 'var(--accent2)', fontWeight: 600 }}>
+                          Al costo se lo multiplica por
+                        </div>
+                        <div style={{ fontSize: 13, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--accent2)' }}>
+                          {coefGgBen.toFixed(4)}
+                          <span style={{ fontSize: 10, fontWeight: 400, marginLeft: 5, color: 'var(--muted)' }}>
+                            (+{((coefGgBen - 1) * 100).toFixed(1)}%)
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 9.5, color: 'var(--muted)', lineHeight: 1.45, marginTop: 3 }}>
+                          GG y beneficio se toman sobre el precio de venta, no sobre el costo. Por eso
+                          {' '}{coefs?.gg_porcentaje || 0}% + {coefs?.ben_porcentaje || 0}% da {coefGgBen.toFixed(4)}
+                          {' '}y no {(1 + sumaGgBen / 100).toFixed(2)}.
+                        </div>
+                      </>
+                    )}
                   </div>
                   {!cerrado && (
                     <button className="btn btn-primary btn-sm" onClick={guardarCoefs} disabled={guardando}>

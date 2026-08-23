@@ -25,6 +25,11 @@ export default function ListadoMateriales() {
   const [busqueda, setBusqueda] = useState('');
   const [rubroFiltro, setRubroFiltro] = useState('');
   const [expandidos, setExpandidos] = useState({});
+  // Dos maneras de leer la misma lista. Por rubro se compra: todo el cemento
+  // junto, aunque vaya a cinco tareas. Por ítem se planifica y se imputa:
+  // cuánto lleva la mampostería, cuánto el contrapiso.
+  const [vistaPorItem, setVistaPorItem] = useState(false);
+  const [itemAbierto, setItemAbierto] = useState({});
   const [seleccionados, setSeleccionados] = useState({});
   const [modalAgregar, setModalAgregar] = useState(false);
   const [busquedaCatalogo, setBusquedaCatalogo] = useState('');
@@ -280,12 +285,23 @@ export default function ListadoMateriales() {
       {/* Filtros */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', background: 'var(--surface)' }}>
         <input className="input" style={{ flex: 1, minWidth: 200 }} placeholder="Buscar material..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
-        <select className="input" style={{ width: 200 }} value={rubroFiltro} onChange={e => setRubroFiltro(e.target.value)}>
-          <option value="">Todos los rubros</option>
-          {rubros.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <button className="btn btn-secondary btn-sm" onClick={seleccionarTodos}>Seleccionar todos</button>
-        {selCount > 0 && <button className="btn btn-secondary btn-sm" onClick={deseleccionarTodos}>Deseleccionar</button>}
+        <div style={{ display: 'flex', gap: 2, background: 'var(--surface2)', borderRadius: 8, padding: 3 }}>
+          {[[false, 'Por rubro'], [true, 'Por ítem']].map(([v, txt]) => (
+            <button key={txt} onClick={() => setVistaPorItem(v)}
+              style={{ padding: '5px 13px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                       fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
+                       background: vistaPorItem === v ? 'var(--accent)' : 'transparent',
+                       color: vistaPorItem === v ? '#fff' : 'var(--muted)' }}>{txt}</button>
+          ))}
+        </div>
+        {!vistaPorItem && (
+          <select className="input" style={{ width: 200 }} value={rubroFiltro} onChange={e => setRubroFiltro(e.target.value)}>
+            <option value="">Todos los rubros</option>
+            {rubros.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        )}
+        {!vistaPorItem && <button className="btn btn-secondary btn-sm" onClick={seleccionarTodos}>Seleccionar todos</button>}
+        {!vistaPorItem && selCount > 0 && <button className="btn btn-secondary btn-sm" onClick={deseleccionarTodos}>Deseleccionar</button>}
       </div>
 
       {/* Resumen */}
@@ -293,6 +309,11 @@ export default function ListadoMateriales() {
         <div style={{ fontSize: 12 }}><span style={{ color: 'var(--muted)' }}>Total materiales: </span><span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--precio)' }}>{fmt(data?.total_materiales)}</span></div>
         <div style={{ fontSize: 12 }}><span style={{ color: 'var(--muted)' }}>Ítems: </span><span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{materialesFiltrados.length}</span></div>
         <div style={{ fontSize: 12 }}><span style={{ color: 'var(--muted)' }}>Rubros: </span><span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{Object.keys(porRubro).length}</span></div>
+        {data?.con_desperdicio && (
+          <div style={{ fontSize: 11.5, color: 'var(--warn)', marginLeft: 'auto' }}>
+            Las cantidades ya incluyen el desperdicio cargado en los análisis
+          </div>
+        )}
       </div>
 
       {/* Tabla por rubro */}
@@ -301,7 +322,77 @@ export default function ListadoMateriales() {
           <div className="empty"><h3>Sin materiales</h3><p>Los ítems del presupuesto no tienen análisis de costos con materiales cargados.</p></div>
         )}
 
-        {Object.entries(porRubro).map(([rubro, mats]) => (
+        {vistaPorItem && (data?.por_item || []).filter(it => it.cuantos > 0).map(it => (
+          <div key={it.linea_id} style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
+                          background: 'var(--surface2)', cursor: 'pointer',
+                          border: '1px solid var(--border)',
+                          borderRadius: itemAbierto[it.linea_id] === false ? 8 : '8px 8px 0 0' }}
+              onClick={() => setItemAbierto(e => ({ ...e, [it.linea_id]: e[it.linea_id] === false }))}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700 }}>{it.item}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+                  {it.categoria} · {fmtCant(it.cantidad_item)} {it.unidad}
+                </div>
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>
+                {it.cuantos} material{it.cuantos !== 1 ? 'es' : ''} · {fmt(it.total)}
+              </span>
+              <span style={{ color: 'var(--muted)' }}>{itemAbierto[it.linea_id] === false ? '\u25b6' : '\u25bc'}</span>
+            </div>
+
+            {itemAbierto[it.linea_id] !== false && (
+              <div style={{ border: '1px solid var(--border)', borderTop: 'none',
+                            borderRadius: '0 0 8px 8px', overflow: 'auto' }}>
+                <table className="tabla-materiales" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--surface)' }}>
+                      <th style={th} className="col-secundaria">Código</th>
+                      <th style={th}>Material</th>
+                      <th style={{ ...th, textAlign: 'right' }} className="col-secundaria">Por {it.unidad || 'unidad'}</th>
+                      <th style={{ ...th, textAlign: 'right' }}>Cantidad</th>
+                      <th style={{ ...th, textAlign: 'right' }} className="col-secundaria">P. Unitario</th>
+                      <th style={{ ...th, textAlign: 'right', color: 'var(--precio)' }}>Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {it.materiales.map(m => (
+                      <tr key={m.material_id} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ ...td, color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 10.5 }}
+                            className="col-secundaria">{m.codigo || '\u2014'}</td>
+                        <td style={td}>
+                          {m.nombre}
+                          {m.desperdicio_pct > 0 && (
+                            <span style={{ marginLeft: 7, fontSize: 10.5, color: 'var(--warn)',
+                                           fontFamily: 'var(--mono)' }}>
+                              +{m.desperdicio_pct}% desperdicio
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', color: 'var(--muted)' }}
+                            className="col-secundaria">{fmtCant(m.por_unidad)} {m.unidad}</td>
+                        <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontWeight: 600 }}>
+                          {fmtCant(m.cantidad)} {m.unidad}
+                        </td>
+                        <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', color: 'var(--muted)' }}
+                            className="col-secundaria">{fmt(m.precio_unitario)}</td>
+                        <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)',
+                                     fontWeight: 700, color: 'var(--precio)' }}>{fmt(m.subtotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {vistaPorItem && !(data?.por_item || []).some(it => it.cuantos > 0) && (
+          <div className="empty"><h3>Ningún ítem tiene materiales</h3>
+            <p>Los análisis de costos de este presupuesto no tienen materiales cargados.</p></div>
+        )}
+
+        {!vistaPorItem && Object.entries(porRubro).map(([rubro, mats]) => (
           <div key={rubro} style={{ marginBottom: 16 }}>
             {/* Header rubro */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--surface2)', borderRadius: expandidos[rubro] ? '8px 8px 0 0' : 8, cursor: 'pointer', border: '1px solid var(--border)', borderBottom: expandidos[rubro] ? 'none' : '1px solid var(--border)' }}
