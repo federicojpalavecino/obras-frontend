@@ -1396,7 +1396,18 @@ const RE_COMO_HAGO = new RegExp(
   "sirve|significa|que es|que pasa|pasa si|para que|por que|porque|ayuda|explica|explicame|" +
   "no me aparece|no aparece|no funciona|no anda|no sale|no puedo|da mal|esta mal|error|falla)\\b"
 );
-const esComoHago = (texto) => RE_COMO_HAGO.test(normalizar(texto));
+// "cómo viene el avance", "cómo va la obra", "cómo está esto" preguntan por el
+// ESTADO, no por el procedimiento. Empiezan con "cómo" igual que "cómo cargo
+// un avance", y sin distinguirlas el que quería el 60% de su obra recibía el
+// instructivo de cómo emitir un certificado.
+const RE_COMO_ESTA = new RegExp(
+  "\bcomo (viene|va|van|esta|estan|anda|andan|venimos|vamos|quedo|queda|resulto)\b"
+);
+const esComoHago = (texto) => {
+  const t = normalizar(texto);
+  if (RE_COMO_ESTA.test(t)) return false;
+  return RE_COMO_HAGO.test(t);
+};
 
 // "quién trabaja en el quincho" no es una pregunta de uso: es un dato. Sin
 // esto la base de conocimiento se la llevaba puesta —la palabra "trabaja"
