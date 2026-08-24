@@ -1447,7 +1447,7 @@ const RE_COMO_HAGO = new RegExp(
 // un avance", y sin distinguirlas el que quería el 60% de su obra recibía el
 // instructivo de cómo emitir un certificado.
 const RE_COMO_ESTA = new RegExp(
-  "\bcomo (viene|va|van|esta|estan|anda|andan|venimos|vamos|quedo|queda|resulto)\b"
+  "\\bcomo (viene|va|van|esta|estan|anda|andan|venimos|vamos|quedo|queda|resulto)\\b"
 );
 const esComoHago = (texto) => {
   const t = normalizar(texto);
@@ -2414,9 +2414,18 @@ export default function Asistente() {
     // fuerte que matchee: el que pregunta "quién" o "cuánto" quiere el número.
     // Si ya sabemos de qué obra habla y qué le está preguntando, es un dato:
     // "hay adicionales acá" quiere los adicionales de la obra, no el
-    // instructivo de cómo se crea uno.
-    const dato = pideUnDato(texto) || !!(deUnaObra && subIntencion(texto));
-    let intent = (!dato && ((esComoHago(texto) && kbFirme) || kbMuyFirme))
+    // instructivo de cómo se crea uno. Pero un "¿cómo hago…?" sigue siendo
+    // una duda de uso: sin esa salvedad, "cómo cargo un adicional" se lo
+    // llevaba la obra "Casa Quiroga — Adicional 1", que tiene la palabra en
+    // el nombre, y el estudio recibía sus propios números en vez del paso a
+    // paso que pidió.
+    const dato = pideUnDato(texto)
+      || !!(deUnaObra && subIntencion(texto) && !esComoHago(texto));
+    // Preguntar por una persona nunca es preguntar cómo se hace algo: "datos
+    // de Matías González" matchea fortísimo con los artículos que hablan de
+    // datos de clientes, y la base de conocimiento se lo llevaba puesto.
+    const porPersona = preguntaPorPersona(texto);
+    let intent = (!dato && !porPersona && ((esComoHago(texto) && kbFirme) || kbMuyFirme))
       ? null : clasificar(texto);
     // "ambiguo" es la capa de datos diciendo "algo de datos me suena, pero no
     // sé qué". Si la base de conocimiento sí sabe, gana la base.

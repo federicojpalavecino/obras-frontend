@@ -1,55 +1,163 @@
-// Prueba en frío del ruteo cliente-vs-obra, sin navegador.
-// El navegador viene congelándose; esto prueba la decisión misma, que es lo
-// que importa: con qué se queda el asistente cuando el cliente y la obra
-// comparten el apellido.
+// ── Prueba en frío del ruteo del asistente ───────────────────────────────────
+//
+//     node docs/test-ruteo-asistente.js
+//
+// No necesita navegador ni sistema levantado. Carga las funciones reales de
+// Asistente.jsx y reproduce la decisión de enviar(): con qué capa se queda
+// cada pregunta —la ayuda, los datos del estudio, una obra o un cliente—.
+//
+// Es la mitad que se puede verificar barato y la que más se rompe: el texto de
+// las respuestas casi nunca falla, lo que falla es que la pregunta termine en
+// la capa equivocada. Para probar el texto renderizado está
+// docs/circuito-asistente.js, que sí necesita el navegador.
+//
+// Los casos apuntan al tenant Simulación. Contra otro hay que cambiar los
+// nombres de obras y clientes de abajo.
+
 const fs = require("fs");
-const src = fs.readFileSync("C:/obras-frontend/src/components/Asistente.jsx", "utf8");
+const RUTA = require("path").join(__dirname, "..", "src", "components", "Asistente.jsx");
+const src = fs.readFileSync(RUTA, "utf8");
 
-function trozo(a, b) {
-  const i = src.indexOf(a), j = src.indexOf(b, i);
-  if (i < 0 || j < 0) throw new Error("no encontré " + a);
-  return src.slice(i, j);
-}
-// `const` no sale del eval: se pasa a global para poder usarlo desde acá.
-const aGlobal = (s) => s.replace(/^const (\w+)/gm, "globalThis.$1");
+// ── Cargar el módulo sin la parte de React ──────────────────────────────────
+const desde = src.indexOf("const normalizar = (s) =>");
+const hasta = src.indexOf("// ── Componente");
+if (desde < 0 || hasta < 0) throw new Error("cambió la forma de Asistente.jsx");
 
-eval(aGlobal(trozo("const normalizar = (s) =>", "// ── Base de conocimiento")));
-eval(aGlobal(trozo("const RE_ESTA_OBRA", "// ── Consultas de DATOS reales")));
-eval(aGlobal(trozo("const money = (n) =>", "// ── Búsqueda de ítems del catálogo")));
+let modulo = src.slice(desde, hasta)
+  // conNegritas devuelve JSX y no participa del ruteo.
+  .replace(/function conNegritas\(t\) \{[\s\S]*?\n\}/, "function conNegritas(t) { return t; }")
+  // `const` no sale del eval: se lifta para poder usarlo desde acá.
+  .replace(/^const (\w+)/gm, "globalThis.$1");
+eval(modulo);
 
-const CL = [{ nombre: "Marta Quiroga" }, { nombre: "Matias Gonzalez" },
-            { nombre: "Gaston Falcon" }, { nombre: "Adrian Solis + Mariana Sosa" },
-            { nombre: "Milagros" }, { nombre: "Rodrigo Carrio" }];
-const OB = [{ nombre_obra: "Casa Quiroga — Ampliación quincho" },
-            { nombre_obra: "Casa Quiroga — Vivienda 96 m2" },
-            { nombre_obra: "Casa Matias" }, { nombre_obra: "Muro cierre" },
-            { nombre_obra: "Muro perimetral" }];
-
-const CASOS = [
-  ["quien es marta quiroga",                    "cliente", "Marta Quiroga"],
-  ["datos de matias gonzalez",                  "cliente", "Matias Gonzalez"],
-  ["el telefono de gaston falcon",              "cliente", "Gaston Falcon"],
-  ["contacto de rodrigo carrio",                "cliente", "Rodrigo Carrio"],
-  ["quien trabaja en el quincho",               "obra",    "Casa Quiroga — Ampliación quincho"],
-  ["cuando termina casa matias",                "obra",    "Casa Matias"],
-  ["materiales de muro cierre",                 "obra",    "Muro cierre"],
-  ["cuanto me deben en casa quiroga vivienda",  "obra",    "Casa Quiroga — Vivienda 96 m2"],
-  ["que obras tiene marta quiroga",             "obra",    "Casa Quiroga — Ampliación quincho"],
+// ── El estudio de prueba ────────────────────────────────────────────────────
+const CLIENTES = [
+  { id: 55, nombre: "Marta Quiroga" }, { id: 7, nombre: "Matias Gonzalez" },
+  { id: 27, nombre: "Gaston Falcon" }, { id: 30, nombre: "Adrian Solis + Mariana Sosa" },
+  { id: 28, nombre: "Milagros" }, { id: 29, nombre: "Rodrigo Carrio" },
+];
+const OBRAS = [
+  { id: 164, nombre_obra: "Casa Quiroga — Ampliación quincho" },
+  { id: 165, nombre_obra: "Casa Quiroga — Ampliación quincho — Adicional 1" },
+  { id: 160, nombre_obra: "Casa Quiroga — Vivienda 96 m2" },
+  { id: 109, nombre_obra: "Casa Matias" },
+  { id: 131, nombre_obra: "Muro cierre" },
+  { id: 129, nombre_obra: "Muro perimetral" },
+  { id: 79, nombre_obra: "Baño 2" },
+  { id: 59, nombre_obra: "Baño nuevo" },
 ];
 
-let ok = 0;
-for (const [q, esperaTipo, esperaNombre] of CASOS) {
-  // La misma decisión que toma clasificar(): persona primero, obra después.
-  const pp = preguntaPorPersona(q);
-  const c = matchPorNombre(q, CL, "nombre");
-  const o = matchPorNombre(q, OB, "nombre_obra");
-  const gana = (pp && c) ? ["cliente", c.nombre]
-             : o ? ["obra", o.nombre_obra]
-             : c ? ["cliente", c.nombre] : ["nada", ""];
-  const bien = gana[0] === esperaTipo && gana[1] === esperaNombre;
-  if (bien) ok++;
-  console.log((bien ? "ok   " : "MAL  ") + q.padEnd(42) + "-> " + gana[0] + ": " + gana[1]);
+// ── La misma decisión que toma enviar() ─────────────────────────────────────
+// Si esto se separa de enviar(), la prueba deja de servir: es una copia a
+// propósito, corta, para poder correrla sin React ni red.
+function rutear(texto, obraEnPantalla) {
+  const pd = preguntaDeDatos(texto);
+
+  const deUnaObra = (() => {
+    if (obraEnPantalla && matchPorNombre(texto, [obraEnPantalla], "nombre_obra")) return obraEnPantalla;
+    if (obraEnPantalla && !esComoHago(texto) &&
+        (hablaDeEstaObra(texto) || subIntencion(texto))) return obraEnPantalla;
+    return matchPorNombre(texto, OBRAS, "nombre_obra");
+  })();
+
+  if (pd && !deUnaObra) return { capa: "estudio", que: pd.id };
+
+  const kb = rankear(texto, null);
+  const kbFirme = kb.length > 0 && kb[0].score >= 3.2;
+  const kbMuyFirme = kb.length > 0 && kb[0].score >= 6;
+  const dato = pideUnDato(texto)
+    || !!(deUnaObra && subIntencion(texto) && !esComoHago(texto));
+  const porPersona = preguntaPorPersona(texto);
+  const esKB = !dato && !porPersona && ((esComoHago(texto) && kbFirme) || kbMuyFirme);
+  if (esKB) return { capa: "ayuda", que: (kb[0].e || {}).titulo || (kb[0].e || {}).t };
+
+  if (porPersona) {
+    const c = matchPorNombre(texto, CLIENTES, "nombre");
+    if (c) return { capa: "cliente", que: c.nombre };
+  }
+  if (deUnaObra) return { capa: "obra", que: deUnaObra.nombre_obra };
+  const c2 = matchPorNombre(texto, CLIENTES, "nombre");
+  if (c2) return { capa: "cliente", que: c2.nombre };
+  if (kb.length) return { capa: "ayuda", que: kb[0].e ? kb[0].e.t : kb[0].t };
+  return { capa: "nada", que: "" };
 }
+
+// ── Los casos ───────────────────────────────────────────────────────────────
+const AQUI = OBRAS[0];   // parado en Casa Quiroga — Ampliación quincho
+
+const CASOS = [
+  // Ayuda del sistema: tiene que explicar, no tirar números.
+  ["ayuda",   null, "como creo un presupuesto"],
+  ["ayuda",   null, "como cargo un adicional"],
+  ["ayuda",   null, "como marco dias de lluvia"],
+  ["ayuda",   null, "como le doy acceso al portal a un cliente"],
+  ["ayuda",   null, "para que sirve el control financiero"],
+  ["ayuda",   null, "como cierro un presupuesto"],
+  ["ayuda",   null, "no me recalcula el plazo con la lluvia"],
+
+  // Parado en una obra, sin nombrarla.
+  ["obra",    AQUI, "cuanto me deben aca"],
+  ["obra",    AQUI, "quien trabaja aca"],
+  ["obra",    AQUI, "cuando termina esta obra"],
+  ["obra",    AQUI, "cuando arranco"],
+  ["obra",    AQUI, "que materiales lleva esta obra"],
+  ["obra",    AQUI, "hay adicionales aca"],
+  ["obra",    AQUI, "cual es el ultimo certificado"],
+  ["obra",    AQUI, "y el contrato"],
+  ["obra",    AQUI, "como viene el avance"],
+  ["obra",    AQUI, "cuanto falta pagar aca"],
+
+  // Sin obra en pantalla: el estudio entero.
+  ["estudio", null, "cuanto me deben en total"],
+  ["estudio", null, "que tengo vencido"],
+  ["estudio", null, "cuanto tengo que pagar"],
+  ["estudio", null, "a quien le debo"],
+  ["estudio", null, "que obras tengo atrasadas"],
+  ["estudio", null, "cuantas obras tengo"],
+  ["estudio", null, "como viene la caja de este mes"],
+  ["estudio", null, "que hay en el panol"],
+  ["estudio", null, "que hay en el deposito"],
+  ["estudio", null, "cuanto le pago al personal esta semana"],
+
+  // Un cliente, por su nombre.
+  ["cliente", null, "quien es marta quiroga"],
+  ["cliente", null, "datos de matias gonzalez"],
+  ["cliente", null, "el telefono de gaston falcon"],
+  ["cliente", null, "contacto de rodrigo carrio"],
+
+  // Una obra por su nombre, sin tenerla en pantalla.
+  ["obra",    null, "cuanto me deben en casa quiroga vivienda"],
+  ["obra",    null, "quien trabaja en el quincho"],
+  ["obra",    null, "cuando termina casa matias"],
+  ["obra",    null, "materiales de muro cierre"],
+  ["obra",    null, "el contrato del quincho"],
+  ["obra",    null, "hay adicionales en el quincho"],
+];
+
+// Y algunas que además tienen que dar en el blanco exacto, no solo en la capa:
+// son los choques que ya rompieron una vez.
+const EXACTOS = {
+  "quien es marta quiroga": "Marta Quiroga",
+  "cuanto me deben en casa quiroga vivienda": "Casa Quiroga — Vivienda 96 m2",
+  "cuando termina casa matias": "Casa Matias",
+  "materiales de muro cierre": "Muro cierre",
+  "quien trabaja en el quincho": "Casa Quiroga — Ampliación quincho",
+};
+
+let ok = 0;
+const fallas = [];
+for (const [espera, aqui, q] of CASOS) {
+  const r = rutear(q, aqui);
+  let bien = r.capa === espera;
+  if (bien && EXACTOS[q]) bien = r.que === EXACTOS[q];
+  if (bien) ok++; else fallas.push([q, espera, r]);
+  console.log((bien ? "ok   " : "MAL  ") + q.padEnd(42) + "→ " + r.capa +
+              (r.que ? ": " + String(r.que).slice(0, 46) : ""));
+}
+
 console.log("");
 console.log(ok + "/" + CASOS.length);
-process.exit(ok === CASOS.length ? 0 : 1);
+for (const [q, espera, r] of fallas) {
+  console.log("  falla: «" + q + "» debía ir a " + espera + " y fue a " + r.capa + " (" + r.que + ")");
+}
+process.exit(fallas.length ? 1 : 0);
