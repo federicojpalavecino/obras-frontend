@@ -17,6 +17,19 @@ export default function ManoObra() {
   const [guardando, setGuardando] = useState(false);
   const [modalNuevoMO, setModalNuevoMO] = useState(false);
   const [formNuevoMO, setFormNuevoMO] = useState({ funcion: '', categoria: '', costo_hora_base: '' });
+  // Renombrar una función propia. Antes el único botón editaba el costo, así
+  // que una fila mal cargada no había forma de arreglarla desde la aplicación.
+  const [renombrando, setRenombrando] = useState(null);
+  const [nombreEdit, setNombreEdit] = useState('');
+
+  const guardarNombre = async (id) => {
+    if (!nombreEdit.trim()) return;
+    try {
+      await api.patch(`/maestros/mo/${id}`, { nombre: nombreEdit.trim() });
+      setRenombrando(null); setNombreEdit('');
+      cargar();
+    } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
+  };
   const [editandoCarga, setEditandoCarga] = useState(null);
   const [formCarga, setFormCarga] = useState({ concepto: '', porcentaje: '' });
   const [modalNuevaCarga, setModalNuevaCarga] = useState(false);
@@ -52,6 +65,10 @@ export default function ManoObra() {
     if (!formNuevoMO.funcion || !formNuevoMO.costo_hora_base) return;
     try {
       await api.post('/maestros/mo', {
+        // Van las dos claves: acá la columna se llama Función y el backend
+        // guarda el campo `nombre`. Mandar solo `funcion` hacía que la fila
+        // entrara en blanco y después no se pudiera elegir en ningún lado.
+        nombre: formNuevoMO.funcion,
         funcion: formNuevoMO.funcion,
         categoria: formNuevoMO.categoria || null,
         costo_hora: parseFloat(formNuevoMO.costo_hora_base),
@@ -247,7 +264,30 @@ export default function ManoObra() {
                           onMouseEnter={e => { if (!isEdit) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
                           onMouseLeave={e => { if (!isEdit) e.currentTarget.style.background = 'transparent'; }}>
                           <td style={td}>
-                            {mo.funcion}
+                            {renombrando === mo.id ? (
+                              <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                                <input className="input" autoFocus style={{ fontSize: 12, width: 190 }}
+                                  value={nombreEdit}
+                                  onChange={e => setNombreEdit(e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') guardarNombre(mo.id);
+                                    if (e.key === 'Escape') setRenombrando(null);
+                                  }} />
+                                <button className="btn btn-sm" onClick={() => guardarNombre(mo.id)}>✓</button>
+                                <button className="btn btn-sm btn-secondary" onClick={() => setRenombrando(null)}>×</button>
+                              </span>
+                            ) : (
+                              <>
+                            {mo.funcion || <i style={{ color: 'var(--warn, #d97706)' }}>sin nombre</i>}
+                            {mo.propio && (
+                              <button
+                                title="Cambiarle el nombre"
+                                onClick={() => { setRenombrando(mo.id); setNombreEdit(mo.funcion || ''); }}
+                                style={{ marginLeft: 7, background: 'none', border: 'none', cursor: 'pointer',
+                                         color: 'var(--muted)', fontSize: 11, padding: 0 }}>
+                                ✎
+                              </button>
+                            )}
                             {/* El costo del catalogo general es de todos; el que
                                 ajusta el estudio es suyo y no sale de aca. Decirlo
                                 evita la duda de si tocarlo le cambia el numero a
@@ -264,6 +304,8 @@ export default function ManoObra() {
                                              border: '1px solid rgba(16,185,129,.45)', color: '#10b981' }}>
                                 propia
                               </span>
+                            )}
+                              </>
                             )}
                           </td>
                           <td style={{ ...td, textAlign: 'right' }}>
