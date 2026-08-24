@@ -246,7 +246,26 @@ export default function ManoObra() {
                         <tr key={mo.id} style={{ borderBottom: '1px solid rgba(46,46,56,0.5)', background: isEdit ? 'rgba(167,139,250,0.04)' : 'transparent' }}
                           onMouseEnter={e => { if (!isEdit) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
                           onMouseLeave={e => { if (!isEdit) e.currentTarget.style.background = 'transparent'; }}>
-                          <td style={td}>{mo.funcion}</td>
+                          <td style={td}>
+                            {mo.funcion}
+                            {/* El costo del catalogo general es de todos; el que
+                                ajusta el estudio es suyo y no sale de aca. Decirlo
+                                evita la duda de si tocarlo le cambia el numero a
+                                otro, que es la razon por la que no lo tocaban. */}
+                            {mo.ajustado && (
+                              <span title={`En el catálogo general figura $ ${Math.round(mo.costo_hora_catalogo || 0).toLocaleString('es-AR')}`}
+                                style={{ marginLeft: 8, fontSize: 10, padding: '2px 7px', borderRadius: 20,
+                                         border: '1px solid rgba(167,139,250,.45)', color: 'var(--mo, #a78bfa)' }}>
+                                tu costo
+                              </span>
+                            )}
+                            {mo.propio && (
+                              <span style={{ marginLeft: 6, fontSize: 10, padding: '2px 7px', borderRadius: 20,
+                                             border: '1px solid rgba(16,185,129,.45)', color: '#10b981' }}>
+                                propia
+                              </span>
+                            )}
+                          </td>
                           <td style={{ ...td, textAlign: 'right' }}>
                             {isEdit ? (
                               <input type="number" min="0" step="0.01" autoFocus
