@@ -82,6 +82,17 @@ if c == 200:
     probar("sin herramientas repetidas", len(her) == len(set(her)), ", ".join(her))
     probar("sin materiales repetidos", len(dep) == len(set(dep)), ", ".join(dep))
 
+print("\n-- BUSCAR EN EL CATALOGO --")
+# El catalogo abrevia ("MAMPOST.") y usa acentos: buscar la palabra entera
+# daba cero y el estudio concluia que el catalogo no lo tenia.
+for q, minimo in [("mamposteria", 15), ("albanileria", 20), ("hormigon", 1),
+                  ("revoques", 15), ("cubiertas", 20), ("contrapiso", 15)]:
+    c, r = get("/maestros/items?q=" + q)
+    probar("buscar '%s' encuentra el catalogo" % q, c == 200 and len(r) >= minimo,
+           "%d items" % len(r or []))
+c, r = get("/maestros/items?q=zzzzqx")
+probar("una busqueda sin sentido no trae nada", c == 200 and len(r) == 0, "%d" % len(r or []))
+
 print("\n-- ESCRIBE: duplicar un item de catalogo --")
 r = S.post(API + "/analisis/items/1057/duplicar?nuevo_codigo=ZZTEST1", timeout=60)
 nid = (r.json() or {}).get("id") if r.status_code < 300 else None
