@@ -99,6 +99,53 @@ const tokens = (s) => normalizar(s).split(" ").filter((t) => t.length >= 2 && !S
 // kw: sinónimos / palabras clave (se normalizan en runtime).
 // pasos: respuesta paso a paso. route/routeLabel: botón opcional para ir directo.
 const BASE = [
+  // ── PLAN DE OBRA / DÍAS PERDIDOS ────────────────────────────────────────────
+  {
+    id: "dias-perdidos", sec: "gantt",
+    titulo: "Marcar días de lluvia (o cualquier día perdido)",
+    kw: "lluvia llovio llueve dias perdidos dia perdido no trabajado paro feriado " +
+        "falta material sin material clima temporal parar parada frenar freno " +
+        "corre corrimiento plazo atraso demora marcar marco cargar cargo",
+    pasos: [
+      "Entrá al Gantt de la obra y tocá “Días perdidos”.",
+      "Elegí la fecha y el motivo: lluvia, paro, falta de material u otro.",
+      "Guardá. El plazo se corre solo y la fecha de entrega se actualiza sin que tengas que replanificar nada.",
+      "El cliente lo ve en su portal con la fecha nueva: no hace falta avisarle aparte.",
+    ],
+    nota: "Se pueden cargar varios días juntos. Los días perdidos no consumen " +
+          "la holgura de las tareas que no estaban en el camino crítico.",
+    route: "/cotizador", routeLabel: "Ir a Presupuestos y obras",
+  },
+  {
+    id: "plazo-no-corre", sec: "gantt",
+    titulo: "Cargué días de lluvia y el plazo no se movió",
+    kw: "lluvia dias perdidos plazo no corre no cambia no recalcula no se mueve " +
+        "sigue igual no actualiza entrega fecha holgura critico problema falla",
+    pasos: [
+      "Fijate qué día marcaste: si cae sábado o domingo y el estudio no trabaja esos días, ya estaba descontado.",
+      "Fijate sobre qué tarea cae: si esa tarea tiene holgura, el día se come la holgura y la entrega no se mueve. Es correcto.",
+      "Si la tarea está en el camino crítico y aun así no se movió, revisá que la tarea esté vinculada a las siguientes.",
+    ],
+    nota: "El Gantt ahora te dice cuál de estos tres casos es, abajo del plazo, " +
+          "en vez de dejarte adivinando.",
+    route: "/cotizador", routeLabel: "Ir a Presupuestos y obras",
+  },
+  {
+    id: "cerrar-presupuesto", sec: "cotizador",
+    titulo: "Cerrar un presupuesto y convertirlo en obra",
+    kw: "cerrar cierro cierra cerrado convertir convierto pasar a obra aprobar " +
+        "aprobado adjudicar adjudicado congelar firmar arrancar empezar obra",
+    pasos: [
+      "Abrí el presupuesto y tocá “Cerrar” arriba.",
+      "Elegí cómo se va a gestionar la obra: por certificación de avance o por desembolsos pactados.",
+      "Al cerrarlo, los precios y cantidades quedan congelados: el presupuesto ya no recalcula aunque cambien los costos del catálogo.",
+      "Recién ahí aparecen contrato, cobros, certificados, compras, subcontratos, pañol, personal y el portal del cliente.",
+    ],
+    nota: "Si necesitás corregir algo después, se puede reabrir — pero al reabrirlo " +
+          "vuelve a recalcular con los precios de hoy.",
+    route: "/cotizador", routeLabel: "Ir a Presupuestos y obras",
+  },
+
   // ── COTIZADOR / PRESUPUESTOS ────────────────────────────────────────────────
   {
     id: "crear-presupuesto", sec: "cotizador",

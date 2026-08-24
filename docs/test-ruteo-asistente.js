@@ -69,7 +69,7 @@ function rutear(texto, obraEnPantalla) {
     || !!(deUnaObra && subIntencion(texto) && !esComoHago(texto));
   const porPersona = preguntaPorPersona(texto);
   const esKB = !dato && !porPersona && ((esComoHago(texto) && kbFirme) || kbMuyFirme);
-  if (esKB) return { capa: "ayuda", que: (kb[0].e || {}).titulo || (kb[0].e || {}).t };
+  if (esKB) return { capa: "ayuda", que: (kb[0].e || {}).titulo };
 
   if (porPersona) {
     const c = matchPorNombre(texto, CLIENTES, "nombre");
@@ -137,6 +137,19 @@ const CASOS = [
 // Y algunas que además tienen que dar en el blanco exacto, no solo en la capa:
 // son los choques que ya rompieron una vez.
 const EXACTOS = {
+  // Para la ayuda no alcanza con caer en la capa correcta: tiene que ser EL
+  // articulo. "Como marco dias de lluvia" caia en ayuda y contestaba uno sobre
+  // cuadrillas y horas, porque "dias" matcheaba ahi — y la prueba lo daba por
+  // bueno. La base no tenia nada de dias perdidos, que es de lo que mas se
+  // pregunta en obra.
+  "como creo un presupuesto": "Crear un presupuesto nuevo",
+  "como cargo un adicional": "Crear un presupuesto adicional",
+  "como marco dias de lluvia": "Marcar dias de lluvia (o cualquier dia perdido)",
+  "como le doy acceso al portal a un cliente": "Dar acceso a un cliente (portal)",
+  "para que sirve el control financiero": "Usar el Control Financiero",
+  "como cierro un presupuesto": "Cerrar un presupuesto y convertirlo en obra",
+  "no me recalcula el plazo con la lluvia": "Cargue dias de lluvia y el plazo no se movio",
+
   "quien es marta quiroga": "Marta Quiroga",
   "cuanto me deben en casa quiroga vivienda": "Casa Quiroga — Vivienda 96 m2",
   "cuando termina casa matias": "Casa Matias",
@@ -149,7 +162,8 @@ const fallas = [];
 for (const [espera, aqui, q] of CASOS) {
   const r = rutear(q, aqui);
   let bien = r.capa === espera;
-  if (bien && EXACTOS[q]) bien = r.que === EXACTOS[q];
+  const plano = (x) => String(x || "").normalize("NFD").replace(/[̀-ͯ]/g, "");
+  if (bien && EXACTOS[q]) bien = plano(r.que) === plano(EXACTOS[q]);
   if (bien) ok++; else fallas.push([q, espera, r]);
   console.log((bien ? "ok   " : "MAL  ") + q.padEnd(42) + "→ " + r.capa +
               (r.que ? ": " + String(r.que).slice(0, 46) : ""));
