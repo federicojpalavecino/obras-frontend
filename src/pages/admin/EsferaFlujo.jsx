@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
+const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
+const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
 /**
  * El flujo de la aplicación, sobre una esfera que gira.
  *
@@ -80,9 +83,94 @@ function slerp(a, b, t) {
   return [a[0] * k1 + b[0] * k2, a[1] * k1 + b[1] * k2, a[2] * k1 + b[2] * k2];
 }
 
+// Barras chicas. Nada de librerías: son doce divs.
+function Barras({ datos, etiquetas, destacar }) {
+  const tope = Math.max(1, ...datos);
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 62, marginTop: 8 }}>
+      {datos.map((n, i) => (
+        <div key={i} title={(etiquetas ? etiquetas[i] : i) + ": " + n}
+             style={{ flex: 1, display: "flex", flexDirection: "column",
+                      alignItems: "center", gap: 3, minWidth: 0 }}>
+          <div style={{
+            width: "100%", height: Math.max(2, (n / tope) * 46),
+            background: destacar === i ? "#34d399" : n ? "rgba(52,211,153,.42)" : "rgba(255,255,255,.07)",
+            borderRadius: 2,
+          }} />
+          <span style={{ fontSize: 8.5, color: "#6f7f78", fontFamily: "'IBM Plex Mono',monospace",
+                         whiteSpace: "nowrap", overflow: "hidden" }}>
+            {etiquetas ? etiquetas[i] : i}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// El embudo: cuantos estudios llegan a cada etapa. Con pocos eventos, esto
+// dice mucho mas que un histograma por hora — muestra en que escalon se cae
+// la gente, que es la pregunta que se quiere contestar.
+function Embudo({ datos, alPasar }) {
+  if (!datos || !datos.etapas) return null;
+  const tope = Math.max(1, ...datos.etapas.map(e => e.estudios || 0));
+  let previo = null;
+  return (
+    <div style={{ marginTop: 6 }}>
+      {datos.etapas.map((e, i) => {
+        const n = e.estudios;
+        // El salto contra la etapa anterior: donde mas cae, ahi esta el problema.
+        const caida = previo !== null && n !== null && previo > 0 ? previo - n : 0;
+        const grande = caida > 0 && caida >= tope * 0.3;
+        if (n !== null) previo = n;
+        return (
+          <div key={i}
+               onMouseEnter={() => alPasar && alPasar(e.nodo)}
+               onMouseLeave={() => alPasar && alPasar(null)}
+               style={{ padding: "5px 0", cursor: "default" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8,
+                          fontSize: 11.5, marginBottom: 3 }}>
+              <span style={{ color: "#c8d2cd", overflow: "hidden", textOverflow: "ellipsis",
+                             whiteSpace: "nowrap" }}>{e.etapa}</span>
+              <span style={{ fontFamily: "'IBM Plex Mono',monospace", color: "#95a49d",
+                             whiteSpace: "nowrap" }}>
+                {n === null ? "—" : n}
+                {e.pct !== null && e.pct !== undefined
+                  ? <span style={{ color: "#6f7f78" }}>{"  " + e.pct + "%"}</span> : null}
+              </span>
+            </div>
+            <div style={{ height: 5, background: "rgba(255,255,255,.06)", borderRadius: 4 }}>
+              <div style={{ height: 5, borderRadius: 4,
+                            width: ((n || 0) / tope) * 100 + "%",
+                            background: grande ? "#fb7185" : "rgba(52,211,153,.65)" }} />
+            </div>
+            {grande && (
+              <div style={{ fontSize: 10, color: "#fb7185", marginTop: 3 }}>
+                acá se caen {caida} estudios
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function EsferaFlujo() {
   const ref = useRef(null);
   const cajaRef = useRef(null);
+  const [uso, setUso] = useState(null);
+  const usoRef = useRef(null);
+  const [dias, setDias] = useState(90);
+
+  useEffect(() => {
+    let vivo = true;
+    const t = localStorage.getItem("obras_admin_token");
+    fetch(API + "/admin/uso?dias=" + dias, { headers: { Authorization: "Bearer " + t } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (vivo && d) { setUso(d); usoRef.current = d; } })
+      .catch(() => {});
+    return () => { vivo = false; };
+  }, [dias]);
   const [encima, setEncima] = useState(null);   // nodo bajo el mouse
   const encimaRef = useRef(null);
   const [quieto, setQuieto] = useState(false);
@@ -213,22 +301,31 @@ export default function EsferaFlujo() {
 
       // 4. Los nodos, también de atrás para adelante.
       posiciones.clear();
+      // El tamaño del nodo sale del uso real: así el dibujo del flujo muestra
+      // dónde se corta, que es la pregunta que importa.
+      const u = usoRef.current;
+      const usos = u ? u.por_modulo || {} : {};
+      const tope = Math.max(1, ...Object.values(usos));
       const puntos = nodos.map(n => ({ n, q: proyectar(n.v) })).sort((a, b) => b.q.z - a.q.z);
       for (const { n, q } of puntos) {
+        const usado = usos[n.id] || 0;
+        // Raíz para que un módulo con 5 eventos no desaparezca al lado de uno
+        // con 60. Sin datos todavía, todos iguales.
+        const fuerza = u ? (usado ? 0.4 + 0.6 * Math.sqrt(usado / tope) : 0.16) : 1;
         const cerca = q.z < 0;
         const tocado = sel === n.id;
         const atenuado = sel && !tocado &&
           !arcos.some(a => (a.de.id === sel && a.a.id === n.id) || (a.a.id === sel && a.de.id === n.id));
         posiciones.set(n.id, { x: q.x, y: q.y, r: 14 * q.p });
-        const r = (tocado ? 7 : 5) * q.p;
-        ctx.globalAlpha = atenuado ? 0.2 : cerca ? 1 : 0.4;
+        const r = (tocado ? 7 : 5) * q.p * (u ? 0.55 + 0.9 * fuerza : 1);
+        ctx.globalAlpha = (atenuado ? 0.2 : cerca ? 1 : 0.4) * (u ? 0.35 + 0.65 * fuerza : 1);
         // Halo
         const halo = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, r * 4);
         halo.addColorStop(0, n.color); halo.addColorStop(1, "rgba(0,0,0,0)");
         ctx.globalAlpha *= 0.35;
         ctx.fillStyle = halo;
         ctx.beginPath(); ctx.arc(q.x, q.y, r * 4, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = atenuado ? 0.2 : cerca ? 1 : 0.4;
+        ctx.globalAlpha = (atenuado ? 0.2 : cerca ? 1 : 0.4) * (u ? 0.35 + 0.65 * fuerza : 1);
         ctx.fillStyle = n.color;
         ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fill();
         // El nombre solo adelante: atrás se amontona y no se lee nada.
@@ -237,7 +334,7 @@ export default function EsferaFlujo() {
           ctx.fillStyle = tocado ? "#e7edea" : "rgba(226,232,240,0.85)";
           ctx.font = `${tocado ? 600 : 500} ${Math.round(11.5 * q.p)}px "IBM Plex Sans", system-ui, sans-serif`;
           ctx.textAlign = "center";
-          ctx.fillText(n.nombre, q.x, q.y - r - 7);
+          ctx.fillText(n.nombre + (u && usado ? "  " + usado : ""), q.x, q.y - r - 7);
         }
         ctx.globalAlpha = 1;
       }
@@ -277,6 +374,11 @@ export default function EsferaFlujo() {
     };
   }, []);
 
+  const rotulo = { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: 1.3,
+                   textTransform: "uppercase", color: "#6f7f78", marginBottom: 4 };
+  const cifra = { fontFamily: "'IBM Plex Mono', monospace", fontSize: 21, color: "#e7edea",
+                  lineHeight: 1.1 };
+
   const nodoEncima = NODOS.find(n => n.id === encima);
   const arcosDelNodo = encima
     ? ARCOS.filter(([d, a]) => d === encima || a === encima)
@@ -297,7 +399,9 @@ export default function EsferaFlujo() {
           </div>
           <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 19, fontWeight: 700,
                         color: "#e7edea", marginTop: 2 }}>
-            {nodoEncima ? nodoEncima.nombre : "15 módulos, 23 caminos"}
+            {nodoEncima ? nodoEncima.nombre
+              : uso ? uso.eventos + " movimientos de " + uso.tenants + " estudios"
+              : "15 módulos, 23 caminos"}
           </div>
         </div>
 
@@ -311,20 +415,88 @@ export default function EsferaFlujo() {
 
         <div style={{ position: "absolute", left: 16, bottom: 14, right: 16,
                       fontSize: 11.5, color: "#6f7f78", lineHeight: 1.5, pointerEvents: "none" }}>
-          Cada pulso es un dato viajando en el sentido en que viaja de verdad. Pasá el mouse
-          por un módulo para ver de dónde recibe y a dónde manda.
+          El tamaño de cada módulo es cuánto se usa de verdad. Los apagados son donde el
+          flujo se corta. Pasá el mouse por uno para ver de dónde recibe y a dónde manda.
         </div>
       </div>
 
       {/* Leyenda / detalle */}
       <div style={{ background: "#0d1211", borderRadius: 14, border: "1px solid #1f2825",
                     padding: 14, overflowY: "auto", maxHeight: 520 }}>
-        {!encima && (
+        {!encima && uso && (
           <>
-            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: 1.4,
-                          textTransform: "uppercase", color: "#6f7f78", marginBottom: 10 }}>
-              Módulos
+            <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
+              {[30, 90, 365].map(d => (
+                <button key={d} onClick={() => setDias(d)}
+                  style={{ flex: 1, background: dias === d ? "rgba(52,211,153,.15)" : "transparent",
+                           border: "1px solid " + (dias === d ? "rgba(52,211,153,.45)" : "rgba(255,255,255,.12)"),
+                           color: dias === d ? "#34d399" : "#95a49d", borderRadius: 6,
+                           padding: "4px 0", fontSize: 11, cursor: "pointer" }}>
+                  {d === 365 ? "1 año" : d + " d"}
+                </button>
+              ))}
             </div>
+
+            <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
+              <div><div style={rotulo}>Eventos</div><div style={cifra}>{uso.eventos}</div></div>
+              <div><div style={rotulo}>Estudios</div><div style={cifra}>{uso.tenants}</div></div>
+            </div>
+
+            {uso.embudo && (
+              <>
+                <div style={rotulo}>
+                  Hasta dónde llegan — {uso.embudo.total_estudios} estudios
+                </div>
+                {/* Pasar el mouse por una etapa prende su nodo en la esfera:
+                    así se ve en el dibujo dónde queda el corte. */}
+                <Embudo datos={uso.embudo} alPasar={setEncima} />
+                <div style={{ height: 18 }} />
+              </>
+            )}
+
+            <div style={rotulo}>Por hora — {uso.nota_horaria}</div>
+            <Barras datos={uso.por_hora}
+                    etiquetas={uso.por_hora.map((_, i) => (i % 6 === 0 ? i : ""))}
+                    destacar={uso.por_hora.indexOf(Math.max(...uso.por_hora))} />
+
+            <div style={{ ...rotulo, marginTop: 16 }}>Por día</div>
+            <Barras datos={uso.por_dia} etiquetas={DIAS}
+                    destacar={uso.por_dia.indexOf(Math.max(...uso.por_dia))} />
+
+            <div style={{ ...rotulo, marginTop: 18 }}>Los que más usan</div>
+            {uso.por_tenant.slice(0, 8).map(t => (
+              <div key={t.id} style={{ display: "flex", justifyContent: "space-between",
+                                       gap: 8, padding: "4px 0", fontSize: 12 }}>
+                <span style={{ color: "#c8d2cd", overflow: "hidden", textOverflow: "ellipsis",
+                               whiteSpace: "nowrap" }}>{t.nombre || "—"}</span>
+                <span style={{ fontFamily: "'IBM Plex Mono',monospace", color: "#6f7f78" }}>{t.eventos}</span>
+              </div>
+            ))}
+
+            {/* Sin esto el tablero miente: hay módulos apagados porque nadie
+                los usa y otros porque no registran nada. */}
+            {!!(uso.sin_instrumentar || []).length && (
+              <div style={{ marginTop: 18, fontSize: 11, color: "#6f7f78", lineHeight: 1.5 }}>
+                <span style={rotulo}>Sin medir</span>
+                {uso.sin_instrumentar.map(k => (NODOS.find(n => n.id === k) || {}).nombre)
+                  .filter(Boolean).join(", ")}.
+                <br />No registran actividad: apagados acá no quiere decir sin uso.
+              </div>
+            )}
+
+            {!!(uso.excluidos || []).length && (
+              <div style={{ marginTop: 14, fontSize: 11, color: "#6f7f78", lineHeight: 1.5 }}>
+                <span style={rotulo}>Excluido</span>
+                {uso.excluidos.map(e => (e.nombre || e.id) + " (" + e.eventos + ")").join(", ")},
+                que es el tenant de pruebas.
+              </div>
+            )}
+          </>
+        )}
+
+        {!encima && !uso && (
+          <>
+            <div style={rotulo}>Módulos</div>
             {NODOS.map(n => (
               <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
                 <span style={{ width: 8, height: 8, borderRadius: 8, background: n.color, flex: "0 0 auto" }} />

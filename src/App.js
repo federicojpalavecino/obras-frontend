@@ -5,7 +5,7 @@ import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
 import Panol from './pages/Panol';
-import AvisoVersion from './components/AvisoVersion';
+// import AvisoVersion from './components/AvisoVersion';   // apagado, ver abajo
 import Personal from './pages/Personal';
 import Planner from "./pages/Planner";
 import Fiscal from "./pages/Fiscal";
@@ -707,9 +707,16 @@ export default function App() {
       <ErrorBoundary>
         <AppInner user={user} tenant={tenant} onLogout={handleLogout} onTenantUpdate={(data) => setTenant(t => ({...t, ...data}))} />
       </ErrorBoundary>
-      {/* Avisa cuando se publicó algo nuevo, para que nadie siga trabajando
-          sobre una versión vieja sin enterarse. */}
-      <AvisoVersion />
+      {/* El aviso de versión nueva está apagado a pedido: aparecía en la
+          pantalla de todos los estudios cada vez que se publica algo.
+          El componente sigue en components/AvisoVersion.jsx y se vuelve a
+          prender descomentando esta línea — no se borró nada.
+
+          Lo que resuelve, por si hace falta volver a evaluarlo: el navegador
+          que ya tenía la aplicación abierta sigue con la versión vieja hasta
+          que alguien recarga a mano, y eso termina en "no me aparece lo
+          nuevo" y en un rato buscando un problema que no existe. */}
+      {/* <AvisoVersion /> */}
     </BrowserRouter>
   );
 }
