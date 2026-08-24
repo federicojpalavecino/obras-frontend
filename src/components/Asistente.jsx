@@ -1170,13 +1170,34 @@ const fechaCorta = (f) => f ? new Date(f + "T12:00:00").toLocaleDateString("es-A
 // Cada pregunta de datos: cómo se reconoce y cómo se contesta.
 const PREGUNTAS_DATOS = [
   {
+    // Va primero porque lo vencido cruza los dos lados: sirve de poco saber
+    // que te deben $21 M vencidos si no te dice que vos debés $13 M vencidos.
+    // Antes se lo llevaba el artículo de suscripción, que también habla de
+    // vencimientos.
+    id: "vencido",
+    claves: ["que tengo vencido", "que esta vencido", "vencido", "vencidos",
+             "que me vencio", "atrasos de pago", "que hay vencido"],
+    responder: (d) => {
+      const c = d.por_cobrar || {}, p = d.por_pagar || {};
+      if (!c.vencido && !p.vencido) return { texto: "No tenés nada vencido: estás al día de los dos lados." };
+      const partes = [];
+      if (c.vencido > 0) {
+        partes.push(`**Te deben ${plata(c.vencido)}** vencido:\n` +
+          (c.detalle || []).filter(x => x.vencido).slice(0, 5)
+            .map(x => `· ${x.obra || "sin obra"} — ${plata(x.monto)}`).join("\n"));
+      }
+      if (p.vencido > 0) {
+        partes.push(`**Debés ${plata(p.vencido)}** vencido:\n` +
+          (p.detalle || []).filter(x => x.vencido).slice(0, 5)
+            .map(x => `· ${x.persona || x.obra || x.concepto || "—"} — ${plata(x.monto)}`).join("\n"));
+      }
+      return { texto: partes.join("\n\n"), ir: "/finanzas", irLabel: "Ver la previsión" };
+    },
+  },
+  {
     id: "cobrar",
     claves: ["cuanto me deben", "quien me debe", "por cobrar", "cobranzas", "que tengo por cobrar",
-             "cuanto tengo que cobrar", "deudas de clientes", "me deben",
-             // "qué tengo vencido" se lo llevaba el artículo de suscripción,
-             // que también habla de vencimientos. Acá se pregunta por plata.
-             "que tengo vencido", "que esta vencido", "vencido", "vencidos",
-             "que me vencio", "atrasos de pago"],
+             "cuanto tengo que cobrar", "deudas de clientes", "me deben"],
     responder: (d) => {
       const c = d.por_cobrar || {};
       if (!c.cuantos) return { texto: "No tenés nada pendiente de cobro: todo lo pactado ya está cobrado." };
@@ -1249,8 +1270,11 @@ const PREGUNTAS_DATOS = [
       }
       const lista = atr.map(x =>
         `· **${x.obra}** — tenía que terminar el ${fechaCorta(x.fin)} y va ${Math.round(x.avance_pct)}%`).join("\n");
+      // El total primero: si preguntaron "cuántas obras tengo", la lista de
+      // atrasadas sola no contesta la pregunta.
       return {
-        texto: `${atr.length} obra${atr.length !== 1 ? "s" : ""} pasada${atr.length !== 1 ? "s" : ""} de fecha:\n\n${lista}`,
+        texto: `Tenés **${o.total}** obra${o.total !== 1 ? "s" : ""} con plan armado. ` +
+               `${atr.length} pasada${atr.length !== 1 ? "s" : ""} de fecha:\n\n${lista}`,
         ir: "/planner", irLabel: "Ver todas en el Planner",
       };
     },
@@ -1447,6 +1471,17 @@ const RE_ESTA_OBRA = new RegExp(
   "\\b(aca|aqui|est[ae] (obra|presupuesto|proyecto)|de aca|en esta|la de aca)\\b"
 );
 const hablaDeEstaObra = (texto) => RE_ESTA_OBRA.test(normalizar(texto));
+
+// "quién es Marta Quiroga", "el teléfono de Gastón", "datos de Matías": se
+// pregunta por una PERSONA. Las obras se llaman por el cliente —"Casa
+// Quiroga"— así que sin distinguir esto la obra le ganaba siempre y "quién es
+// Marta Quiroga" contestaba quién trabaja en la obra.
+const RE_QUIEN_ES = new RegExp(
+  "\\b(quien es|quienes son|quien era|datos de|ficha de|telefono de|tel de|" +
+  "mail de|email de|correo de|contacto de|direccion de|domicilio de|cuit de|" +
+  "dni de|como contacto a)\\b"
+);
+const preguntaPorPersona = (texto) => RE_QUIEN_ES.test(normalizar(texto));
 
 const SALUDOS = ["hola", "buenas", "buen dia", "buenos dias", "buenas tardes", "que tal", "hey", "holaa"];
 const GRACIAS = ["gracias", "muchas gracias", "genial", "perfecto", "joya", "buenisimo", "ok gracias"];
@@ -2108,6 +2143,13 @@ export default function Asistente() {
     // Nombro una obra Y pregunto algo que es de la obra: gana la obra. Sin
     // esto "cuantas horas trabajo Juan en lo de Perez" se lo llevaba la capa
     // de rendimientos del catalogo por la palabra "horas".
+    // Antes que la obra: si preguntan por una persona y hay un cliente con ese
+    // nombre, es el cliente. "Quién es Marta Quiroga" no pregunta por la
+    // cuadrilla de la obra que lleva su apellido.
+    if (preguntaPorPersona(texto)) {
+      const cp = matchPorNombre(texto, clientes, "nombre");
+      if (cp) return { tipo: "cliente", c: cp };
+    }
     const pObra = matchPorNombre(texto, presu, "nombre_obra");
     if (pObra && subIntencion(texto)) return { tipo: "presupuesto", p: pObra };
     if (pObra) return { tipo: "presupuesto", p: pObra };

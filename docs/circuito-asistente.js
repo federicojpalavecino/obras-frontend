@@ -71,12 +71,16 @@ const CASOS = {
 
   // ── D. UN CLIENTE, DESDE EL INICIO ───────────────────────────────────────
   //    El estudio tiene seis clientes y algunos comparten palabras con obras.
+  //    OJO con el "debe" de estos: la obra se llama "Casa Quiroga" y la clienta
+  //    "Marta Quiroga", asi que pedir solo "Quiroga" deja pasar la respuesta
+  //    equivocada. Paso: "quien es Marta Quiroga" contestaba quien TRABAJA en
+  //    la obra, y el test lo daba por bueno. El "no" es lo que lo caza.
   cliente: [
-    { q: "quien es marta quiroga",        debe: "Quiroga",         no: null },
+    { q: "quien es marta quiroga",        debe: "Marta",           no: "Personal —|jornadas" },
     { q: "que obras tiene marta quiroga", debe: "Quiroga",         no: null },
-    { q: "cuanto me debe marta quiroga",  debe: "Quiroga|\\$",      no: null },
-    { q: "datos de matias gonzalez",      debe: "Matias|Gonzalez", no: null },
-    { q: "el telefono de gaston falcon",  debe: "Falcon|Gaston",   no: null },
+    { q: "cuanto me debe marta quiroga",  debe: "Quiroga|[0-9.]{4,}", no: null },
+    { q: "datos de matias gonzalez",      debe: "Matias|Gonzalez", no: "Personal —|jornadas" },
+    { q: "el telefono de gaston falcon",  debe: "Falcon|Gaston",   no: "Personal —|jornadas" },
   ],
 
   // ── E. UNA OBRA POR SU NOMBRE, DESDE EL INICIO ───────────────────────────
