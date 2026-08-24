@@ -1,4 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
+
+// lazy a proposito: la esfera queda en su propio chunk y solo se descarga al
+// abrir esta pestania del admin. Ningun estudio se la baja.
+const EsferaFlujo = lazy(() => import("./admin/EsferaFlujo"));
 
 const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
 
@@ -811,9 +815,22 @@ export default function AdminPanel() {
           <button style={tabStyle("cuentas")} onClick={()=>setTab("cuentas")}>Cuentas</button>
           <button style={tabStyle("precios")} onClick={()=>setTab("precios")}>Precios</button>
           <button style={tabStyle("anuncio")} onClick={()=>setTab("anuncio")}>Anuncio</button>
+          <button style={tabStyle("flujo")} onClick={()=>setTab("flujo")}>Flujo</button>
         </div>
 
         {tab === "anuncio" && <PanelAnuncio token={token} />}
+
+        {tab === "flujo" && (
+          <Suspense fallback={
+            <div style={{ height: 520, borderRadius: 14, background: "#0d1211",
+                          border: "1px solid #1f2825", display: "grid", placeItems: "center",
+                          color: "#6f7f78", fontSize: 13 }}>
+              Armando el mapa…
+            </div>
+          }>
+            <EsferaFlujo />
+          </Suspense>
+        )}
 
         {/* ── CUENTAS ──────────────────────────────────────────────────────────── */}
         {tab === "cuentas" && (
