@@ -841,12 +841,13 @@ ${firma}
     }
   };
 
-  const itemsFiltrados = items.filter(i =>
-    coincide(i.nombre, busqueda) || coincide(i.codigo, busqueda)
-  );
-  const itemsAdicFiltrados = itemsAdic.filter(i =>
-    coincide(i.nombre, busquedaAdic) || coincide(i.codigo, busquedaAdic)
-  );
+  // Tambien por rubro: el que escribe "albanileria" quiere los items de ese
+  // rubro y no tiene por que saber que es una categoria y no un item. Eran 24
+  // items que no aparecian.
+  const buscaItem = (i, q) =>
+    coincide(i.nombre, q) || coincide(i.codigo, q) || coincide(i.categoria_nombre, q);
+  const itemsFiltrados = items.filter(i => buscaItem(i, busqueda));
+  const itemsAdicFiltrados = itemsAdic.filter(i => buscaItem(i, busquedaAdic));
 
   const cerrado = data?.estado === 'cerrado';
   // Un proyecto o servicio no tiene computo, ni materiales, ni curva de
