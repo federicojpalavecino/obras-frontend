@@ -304,7 +304,12 @@ export default function EsferaFlujo() {
       // El tamaño del nodo sale del uso real: así el dibujo del flujo muestra
       // dónde se corta, que es la pregunta que importa.
       const u = usoRef.current;
-      const usos = u ? u.por_modulo || {} : {};
+      // El brillo sale de las visitas, que es "que se usa". Las escrituras van
+      // aparte: un modulo muy mirado y poco escrito no es lo mismo que uno que
+      // nadie abre, y con un solo numero no se distinguen.
+      const vis = u ? u.visitas || {} : {};
+      const esc = u ? u.por_modulo || {} : {};
+      const usos = Object.keys(vis).length ? vis : esc;
       const tope = Math.max(1, ...Object.values(usos));
       const puntos = nodos.map(n => ({ n, q: proyectar(n.v) })).sort((a, b) => b.q.z - a.q.z);
       for (const { n, q } of puntos) {
@@ -334,7 +339,9 @@ export default function EsferaFlujo() {
           ctx.fillStyle = tocado ? "#e7edea" : "rgba(226,232,240,0.85)";
           ctx.font = `${tocado ? 600 : 500} ${Math.round(11.5 * q.p)}px "IBM Plex Sans", system-ui, sans-serif`;
           ctx.textAlign = "center";
-          ctx.fillText(n.nombre + (u && usado ? "  " + usado : ""), q.x, q.y - r - 7);
+          const escN = esc[n.id] || 0;
+          ctx.fillText(n.nombre + (u && (usado || escN)
+            ? "  " + usado + (escN ? " · " + escN : "") : ""), q.x, q.y - r - 7);
         }
         ctx.globalAlpha = 1;
       }
@@ -415,8 +422,9 @@ export default function EsferaFlujo() {
 
         <div style={{ position: "absolute", left: 16, bottom: 14, right: 16,
                       fontSize: 11.5, color: "#6f7f78", lineHeight: 1.5, pointerEvents: "none" }}>
-          El tamaño de cada módulo es cuánto se usa de verdad. Los apagados son donde el
-          flujo se corta. Pasá el mouse por uno para ver de dónde recibe y a dónde manda.
+          El tamaño de cada módulo son las pantallas abiertas; el segundo número, las
+          cosas que hicieron ahí. Mucho mirado y poco escrito es un módulo que no se
+          entiende. Pasá el mouse por uno para ver de dónde recibe y a dónde manda.
         </div>
       </div>
 
@@ -437,8 +445,14 @@ export default function EsferaFlujo() {
               ))}
             </div>
 
-            <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
-              <div><div style={rotulo}>Eventos</div><div style={cifra}>{uso.eventos}</div></div>
+            <div style={{ display: "flex", gap: 14, marginBottom: 14, flexWrap: "wrap" }}>
+              <div title="Pantallas abiertas: lo que miran">
+                <div style={rotulo}>Visitas</div>
+                <div style={cifra}>{uso.visitas_total ?? "—"}</div>
+              </div>
+              <div title="Cosas que hicieron: cargar, cerrar, cobrar">
+                <div style={rotulo}>Acciones</div><div style={cifra}>{uso.eventos}</div>
+              </div>
               <div><div style={rotulo}>Estudios</div><div style={cifra}>{uso.tenants}</div></div>
             </div>
 
