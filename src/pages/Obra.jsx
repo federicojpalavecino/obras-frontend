@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Printer, TrendingUp, Award, BarChart2, FileText, DollarSign, Users, ShoppingCart, CheckCircle } from "lucide-react";
 import api from "../cotizador/api";
 import MenuAcciones from "../shared/MenuAcciones";
+import VideoTutorial from "../components/VideoTutorial";
 import { imprimirHTML } from '../utils/imprimir';
 const fmt = (n) => "$" + Math.round(n || 0).toLocaleString("es-AR");
 const today = () => new Date().toISOString().split("T")[0];
@@ -980,6 +981,10 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                 <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Sin contrato</div>
                 <div style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>Creá el contrato para esta obra</div>
                 <button onClick={() => setShowContrato(true)} style={btn(C.accent)}>+ Crear contrato</button>
+                <div style={{ marginTop: 14 }}>
+                  <VideoTutorial archivo="contrato.mp4" duracion="23 s"
+                                 titulo="Cómo creo el contrato de una obra" />
+                </div>
               </div>
             )}
           </div>
