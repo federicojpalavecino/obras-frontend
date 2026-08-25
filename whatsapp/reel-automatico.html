@@ -85,7 +85,7 @@ html,body{background:#111;overflow:hidden}
 </div>
 <div id="reel">
 
-  <!-- 1 · terminaste el presupuesto -->
+  <!-- 1 - la premisa, placa entera -->
   <section class="esc vrd" id="e1">
     <div class="sp"></div>
     <div class="tick" id="e1c" style="background:#fff">
@@ -97,26 +97,16 @@ html,body{background:#111;overflow:hidden}
     <div class="sp"></div>
   </section>
 
-  <!-- 2 · el trabajo doble -->
-  <section class="esc" id="e2">
-    <div class="kick" id="e2k">Y ahora, otra vez</div>
+  <!-- 2 - la promesa, con la marca adentro -->
+  <section class="esc osc" id="e2">
     <div class="sp"></div>
     <div class="tit ch" id="e2t"></div>
-    <div style="height:44px"></div>
-    <div class="pie" id="e2d">Contar los ladrillos. Sumar las bolsas.<br>Armar la curva en otra planilla.</div>
     <div class="sp"></div>
   </section>
 
-  <!-- 3 · el giro -->
-  <section class="esc osc" id="e3">
-    <div class="sp"></div>
-    <div class="tit" id="e3t"></div>
-    <div class="sp"></div>
-  </section>
-
-  <!-- 4 · la lista de materiales -->
+  <!-- 3 - el listado -->
   <section class="esc osc" id="e4">
-    <div class="kick" id="e4k">Listado de materiales</div>
+    <div class="kick" id="e4k">1 &middot; Listado de materiales</div>
     <div class="tit xch" id="e4t" style="margin-top:22px"></div>
     <div style="height:40px"></div>
     <div class="boton" id="e4b" style="align-self:flex-start">Ver listado</div>
@@ -126,9 +116,9 @@ html,body{background:#111;overflow:hidden}
     <div class="clic" id="e4click"></div>
   </section>
 
-  <!-- 5 · la curva -->
+  <!-- 4 - la curva -->
   <section class="esc osc" id="e5">
-    <div class="kick" id="e5k">Curva de inversión</div>
+    <div class="kick" id="e5k">2 &middot; Curva de inversi&oacute;n</div>
     <div class="tit xch" id="e5t" style="margin-top:22px"></div>
     <div class="sp" style="flex:.4"></div>
     <div class="graf" id="e5g">
@@ -145,13 +135,14 @@ html,body{background:#111;overflow:hidden}
     <div class="sp"></div>
   </section>
 
-  <!-- 6 · cierre -->
+  <!-- 5 - remate -->
   <section class="esc vrd" id="e6">
     <div class="sp"></div>
-    <div class="tit" id="e6t"></div>
-    <div style="height:52px"></div>
-    <div class="pie" id="e6d" style="font-size:34px">faimobras.com</div>
+    <div class="tit ch" id="e6t"></div>
+    <div style="height:48px"></div>
+    <div class="pie" id="e6d2" style="font-size:38px;color:rgba(255,255,255,.92)"></div>
     <div class="sp"></div>
+    <div class="pie" id="e6d" style="font-size:34px">faimobras.com</div>
   </section>
 
   <div id="marca">FAIM OBRAS</div>
@@ -161,7 +152,7 @@ html,body{background:#111;overflow:hidden}
 <script>
 /* Reel de materiales y curva. Sin locución: el texto tiene que leerse en
    silencio, así que las placas se sostienen más. Todo sale de `t`. */
-const DURACION = 27.0;
+const DURACION = 26.4;
 window.DURACION = DURACION;
 const $ = id => document.getElementById(id);
 
@@ -196,27 +187,20 @@ function clic(el, t, desde, x, y){
   el.style.transform = `scale(${.5 + p * 2.1})`;
 }
 
-/* ── 1 · terminaste ──────────────────────────────────────────────── */
+/* -- 1 - la premisa ---------------------------------------------- */
 const P1 = t => {
   const p = out(win(t, .2, .75));
   $('e1c').style.opacity = p;
-  $('e1c').style.transform = `scale(${.7 + .3 * p})`;
-  kinetico($('e1t'), 'Terminaste el presupuesto.', t, .85, .13);
+  $('e1c').style.transform = 'scale(' + (.7 + .3 * p) + ')';
+  kinetico($('e1t'), 'Cargás el presupuesto una vez.', t, .85, .13);
 };
 
-/* ── 2 · el trabajo doble ────────────────────────────────────────── */
+/* -- 2 - la promesa, con la marca adentro ------------------------ */
 const P2 = t => {
-  entra($('e2k'), t, .1);
-  kinetico($('e2t'), 'Ahora hacé todo de nuevo, a mano.', t, .4, .1);
-  entra($('e2d'), t, 1.9);
+  kinetico($('e2t'), 'Y FAIM OBRAS te arma el resto en un toque.', t, .3, .105);
 };
 
-/* ── 3 · el giro ─────────────────────────────────────────────────── */
-const P3 = t => {
-  kinetico($('e3t'), 'Ya estaba computado. Todo.', t, .25, .13);
-};
-
-/* ── 4 · el listado sale solo ────────────────────────────────────── */
+/* -- 3 - el listado sale solo ------------------------------------ */
 const MAT = [
   ['Ladrillo hueco 18',      '4.860', 'u'],
   ['Cemento Portland 50 kg', '184',   'bl'],
@@ -226,31 +210,31 @@ const MAT = [
 ];
 const P4 = t => {
   entra($('e4k'), t, .1);
-  kinetico($('e4t'), 'Un toque, y ya está.', t, .35, .11);
+  kinetico($('e4t'), 'Qué comprar, y cuánto.', t, .35, .12);
   entra($('e4b'), t, 1.0, .4, 16);
   clic($('e4click'), t, 1.7, 210, 560);
 
   if (!$('e4l').children.length){
-    $('e4l').innerHTML = MAT.map(([n, c, u]) =>
-      `<div class="fila"><span class="n">${n}</span>` +
-      `<span class="c">${c}</span><span class="u">${u}</span></div>`).join('');
+    $('e4l').innerHTML = MAT.map(function(m){
+      return '<div class="fila"><span class="n">' + m[0] + '</span>' +
+             '<span class="c">' + m[1] + '</span>' +
+             '<span class="u">' + m[2] + '</span></div>';
+    }).join('');
   }
-  // Las filas caen una tras otra: es lo que se lee como "se armó solo".
   [...$('e4l').children].forEach((f, i) => entra(f, t, 2.2 + i * .16, .38, 26));
   entra($('e4tot'), t, 3.3, .45, 20);
-  const v = io(win(t, 3.4, 4.5));
-  $('e4v').textContent = plata(18400000 * v);
+  $('e4v').textContent = plata(18400000 * io(win(t, 3.4, 4.5)));
 };
 
-/* ── 5 · la curva se dibuja sola ─────────────────────────────────── */
+/* -- 4 - la curva se dibuja sola --------------------------------- */
 /* Curva en S: arranca lento, se acelera en el medio y afloja al final, que es
    como se gasta una obra de verdad. */
 const S = x => 1 / (1 + Math.exp(-9 * (x - .5)));
 const P5 = t => {
   entra($('e5k'), t, .1);
-  kinetico($('e5t'), 'Y la curva, también.', t, .35, .12);
+  kinetico($('e5t'), 'Cuánta plata necesitás, mes a mes.', t, .35, .1);
 
-  const p = io(win(t, 1.1, 3.4));
+  const p = io(win(t, 1.2, 3.5));
   const N = 60, W = 1000, H = 470;
   let d = '';
   for (let i = 0; i <= N * p; i++){
@@ -259,8 +243,8 @@ const P5 = t => {
     d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
   }
   $('e5lin').setAttribute('d', d);
-  $('e5area').setAttribute('d', d ? d + `L${(p * W).toFixed(1)} ${H}L0 ${H}Z` : '');
-  $('e5p').style.opacity = win(t, 3.2, 3.7);
+  $('e5area').setAttribute('d', d ? d + 'L' + (p * W).toFixed(1) + ' ' + H + 'L0 ' + H + 'Z' : '');
+  $('e5p').style.opacity = win(t, 3.3, 3.8);
 
   if (!$('e5g').querySelector('.mesX')){
     ['Mes 1','Mes 3','Mes 5','Mes 7'].forEach((m, i) => {
@@ -271,25 +255,27 @@ const P5 = t => {
       $('e5g').appendChild(s);
     });
   }
-  kinetico($('e5d'), 'Cuánta plata entra y sale, mes a mes.', t, 3.5, .085);
+  kinetico($('e5d'), 'Para saber cuándo pedir cada cobro.', t, 3.6, .09);
 };
 
-/* ── 6 · cierre ──────────────────────────────────────────────────── */
+/* -- 5 - remate --------------------------------------------------- */
 const P6 = t => {
-  kinetico($('e6t'), 'Es la app que necesitás.', t, .2, .14);
-  entra($('e6d'), t, 1.5);
+  kinetico($('e6t'), 'Todo sale del mismo cómputo.', t, .25, .13);
+  kinetico($('e6d2'), 'Con FAIM OBRAS no cargás nada dos veces.', t, 1.9, .1);
+  entra($('e6d'), t, 3.4);
 };
 
-/* ── línea de tiempo ─────────────────────────────────────────────── */
+/* -- linea de tiempo ---------------------------------------------- */
+/* Solo ventajas: no hay placa de problema. Las dos placas enteras del arranque
+   plantan la premisa y la promesa, y las dos del medio la cumplen. */
 const ESC = [
-  ['e1',  0.0,  3.6],
-  ['e2',  3.6,  8.0],
-  ['e3',  8.0, 11.0],
-  ['e4', 11.0, 17.4],
-  ['e5', 17.4, 23.4],
-  ['e6', 23.4, 27.0],
+  ['e1',  0.0,  4.2],   // Cargás el presupuesto una vez
+  ['e2',  4.2,  8.0],   // Y FAIM OBRAS te arma el resto en un toque
+  ['e4',  8.0, 15.0],   // 1 · Listado de materiales
+  ['e5', 15.0, 21.6],   // 2 · Curva de inversión
+  ['e6', 21.6, 26.4],   // Todo sale del mismo cómputo
 ];
-const PINTA = { e1:P1, e2:P2, e3:P3, e4:P4, e5:P5, e6:P6 };
+const PINTA = { e1:P1, e2:P2, e4:P4, e5:P5, e6:P6 };
 const FADE = 0.22;
 
 function setT(t){
@@ -300,8 +286,8 @@ function setT(t){
     if (op > 0) PINTA[id](t - a);
   });
   $('barra').style.width = (t / DURACION * 100) + '%';
-  const osc = (t >= 8.0 && t < 23.4);
-  const vrd = (t < 3.6) || (t >= 23.4);
+  const osc = (t >= 4.2 && t < 21.6);
+  const vrd = (t < 4.2) || (t >= 21.6);
   $('marca').style.color = osc ? 'rgba(255,255,255,.55)' : (vrd ? 'rgba(255,255,255,.8)' : 'var(--mut)');
   $('barra').style.background = vrd ? '#fff' : 'var(--ac)';
 }

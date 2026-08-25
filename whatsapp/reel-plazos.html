@@ -86,40 +86,45 @@ html,body{background:#111;overflow:hidden}
 </div>
 <div id="reel">
 
-  <!-- 1 · el hook -->
-  <section class="esc osc" id="e1">
-    <div class="kick" id="e1k">Todo cliente pregunta lo mismo</div>
+  <!-- 0 · placa entera: el contexto -->
+  <section class="esc osc" id="e0">
     <div class="sp"></div>
-    <div class="tit" id="e1t"></div>
+    <div class="tit" id="e0t"></div>
     <div class="sp"></div>
   </section>
 
-  <!-- 2 · la fecha con la panza -->
-  <section class="esc" id="e2">
-    <div class="kick" id="e2k">Y vos tirás una fecha</div>
+  <!-- 1 · la pregunta, sola y enorme -->
+  <section class="esc osc" id="e1">
     <div class="sp"></div>
+    <div class="tit" id="e1t" style="font-size:112px"></div>
+    <div class="sp"></div>
+  </section>
+
+  <!-- 2 · el papel, los sellos, el tachado -->
+  <section class="esc" id="e2">
+    <div class="sp" style="flex:.6"></div>
     <div class="papel" id="e2p">
       <div class="rot">Entrega estimada</div>
       <div class="fch">12 de nov.</div>
       <div class="tach" id="e2x"></div>
     </div>
     <div class="sp"></div>
-    <div class="pie" id="e2d">Sacada en una hoja, hace dos meses.</div>
-    <div class="sello" id="s1" style="left:120px;top:1180px;transform:rotate(-11deg)">Llovió 3 días</div>
-    <div class="sello" id="s2" style="right:110px;top:1330px;transform:rotate(8deg)">Faltó material</div>
-    <div class="sello" id="s3" style="left:190px;top:1480px;transform:rotate(-5deg)">Paro</div>
+    <div class="pie" id="e2d">Una fecha sacada en una hoja, hace dos meses.</div>
+    <div class="sello" id="s1" style="left:120px;top:1120px;transform:rotate(-11deg)">Llovió 3 días</div>
+    <div class="sello" id="s2" style="right:110px;top:1270px;transform:rotate(8deg)">Faltó material</div>
+    <div class="sello" id="s3" style="left:190px;top:1420px;transform:rotate(-5deg)">Paro</div>
   </section>
 
-  <!-- 3 · el giro -->
+  <!-- 3 · EL CORTE. Verde, pantalla entera: acá empieza la solución -->
   <section class="esc vrd" id="e3">
     <div class="sp"></div>
-    <div class="tit" id="e3t"></div>
+    <div class="tit ch" id="e3t"></div>
     <div class="sp"></div>
   </section>
 
-  <!-- 4 · el plan sale de los ítems -->
+  <!-- 4 · el plan que se arma y se corre solo -->
   <section class="esc osc" id="e4">
-    <div class="kick" id="e4k">Una tarea por ítem</div>
+    <div class="kick" id="e4k">En FAIM OBRAS</div>
     <div class="tit ch" id="e4t" style="margin-top:26px"></div>
     <div class="sp"></div>
     <div class="plan" id="e4plan">
@@ -138,13 +143,14 @@ html,body{background:#111;overflow:hidden}
     <div class="pie" id="e4d"></div>
   </section>
 
-  <!-- 5 · el cierre -->
+  <!-- 5 · remate -->
   <section class="esc vrd" id="e5">
     <div class="sp"></div>
-    <div class="tit" id="e5t"></div>
-    <div style="height:52px"></div>
-    <div class="pie" id="e5d" style="font-size:34px">faimobras.com</div>
+    <div class="tit ch" id="e5t"></div>
+    <div style="height:48px"></div>
+    <div class="pie" id="e5d2" style="font-size:38px;color:rgba(255,255,255,.92)"></div>
     <div class="sp"></div>
+    <div class="pie" id="e5d" style="font-size:34px">faimobras.com</div>
   </section>
 
   <div id="marca">FAIM OBRAS</div>
@@ -156,7 +162,7 @@ html,body{background:#111;overflow:hidden}
    así que cada placa se sostiene más de lo que se sostendría con voz encima.
    Todo se dibuja a partir de `t` — nada de requestAnimationFrame ni Date, o en
    el render sale congelado. */
-const DURACION = 26.0;
+const DURACION = 30.0;
 window.DURACION = DURACION;
 const $ = id => document.getElementById(id);
 
@@ -189,82 +195,86 @@ function golpe(el, t, desde, dur = .5, rot = 0){
   return p;
 }
 
-/* ── 1 · el hook ─────────────────────────────────────────────────── */
+/* ── 0 · el contexto, placa entera ───────────────────────────────── */
+const P0 = t => {
+  kinetico($('e0t'), 'Todo cliente pregunta lo mismo.', t, .3, .14);
+};
+
+/* ── 1 · la pregunta ─────────────────────────────────────────────── */
 const P1 = t => {
-  entra($('e1k'), t, .2);
-  kinetico($('e1t'), '¿Y cuándo me la entregás?', t, .55, .13);
+  kinetico($('e1t'), '¿Cuándo me la entregás?', t, .25, .15);
 };
 
-/* ── 2 · la fecha con la panza ───────────────────────────────────── */
+/* ── 2 · el papel y lo que siempre pasa ──────────────────────────── */
 const P2 = t => {
-  entra($('e2k'), t, .1);
-  entra($('e2p'), t, .35, .5, 40);
-  entra($('e2d'), t, .9);
-  // Los tres sellos caen encima, uno por uno: es lo que siempre pasa.
-  golpe($('s1'), t, 1.5, .28, -11);
-  golpe($('s2'), t, 2.1, .28, 8);
-  golpe($('s3'), t, 2.7, .28, -5);
-  // Y recién ahí se tacha la fecha.
-  $('e2x').style.transform = `scaleX(${io(win(t, 3.2, 3.7))}) rotate(-2deg)`;
+  entra($('e2p'), t, .2, .5, 40);
+  entra($('e2d'), t, .7);
+  golpe($('s1'), t, 1.6, .28, -11);
+  golpe($('s2'), t, 2.3, .28, 8);
+  golpe($('s3'), t, 3.0, .28, -5);
+  $('e2x').style.transform = `scaleX(${io(win(t, 3.6, 4.1))}) rotate(-2deg)`;
 };
 
-/* ── 3 · el giro ─────────────────────────────────────────────────── */
+/* ── 3 · EL CORTE ────────────────────────────────────────────────── */
+/* Pantalla entera y cambio de color. Es la bisagra del reel: de acá para
+   adelante no hay mas problema, solo lo que hace la app. */
 const P3 = t => {
-  kinetico($('e3t'), 'El plan de papel se muere en la segunda semana.', t, .25, .1);
+  kinetico($('e3t'), 'Con FAIM OBRAS el plazo se calcula solo.', t, .3, .115);
 };
 
-/* ── 4 · el plan que se arma y se corre ──────────────────────────── */
-const LARGOS = [.18, .30, .52, .70, .88];   // fin de cada barra, 0 a 1
+/* ── 4 · el plan que se arma y se corre solo ─────────────────────── */
+const LARGOS = [.18, .30, .52, .70, .88];
 const P4 = t => {
   entra($('e4k'), t, .1);
-  kinetico($('e4t'), 'El plan sale de los ítems que ya cargaste.', t, .35, .085);
-  // Las tareas entran encadenadas: cada una arranca donde termina la anterior.
+  kinetico($('e4t'), 'Una tarea por ítem. La fecha sale sola.', t, .3, .08);
   for (let i = 0; i < 5; i++){
-    entra($('t' + i), t, 1.9 + i * .22, .35, 18);
-    const p = io(win(t, 2.1 + i * .30, 2.1 + i * .30 + .55));
+    entra($('t' + i), t, 1.7 + i * .22, .35, 18);
+    const p = io(win(t, 1.9 + i * .30, 1.9 + i * .30 + .55));
     const ini = i ? LARGOS[i-1] : 0;
     $('b' + i).style.left  = (ini * 100) + '%';
     $('b' + i).style.width = ((LARGOS[i] - ini) * p * 100) + '%';
   }
-  // La fecha aparece sola cuando terminó de armarse.
-  const listo = win(t, 4.3, 4.7);
+  const listo = win(t, 4.1, 4.5);
   $('e4f').textContent = listo > .99 ? '12 nov.' : (listo > 0 ? '···' : '—');
   $('e4f').style.opacity = .35 + .65 * listo;
 
-  // Los tres días de lluvia: la barra se estira y la fecha se corre sola.
-  const ll = io(win(t, 6.4, 7.4));
+  /* Los tres dias de lluvia. Es el unico momento del reel donde algo se mueve
+     solo, y por eso es el que tiene que verse: la fecha cambia sin que nadie
+     replanifique. */
+  const ll = io(win(t, 6.2, 7.2));
   for (let i = 2; i < 5; i++){
     $('x' + i).style.opacity = ll;
-    const ini = LARGOS[i-1] + (LARGOS[i] - LARGOS[i-1]) * (1 - ll * .0);
     $('x' + i).style.left  = (LARGOS[i] * 100) + '%';
     $('x' + i).style.width = (ll * 4) + '%';
     $('b' + i).style.left  = ((i ? LARGOS[i-1] : 0) + ll * .04 * (i - 1)) * 100 + '%';
   }
   if (ll > .5){ $('e4f').textContent = '15 nov.'; $('e4f').style.color = 'var(--warn)'; }
   else { $('e4f').style.color = ''; }
-  entra($('e4m'), t, 6.9, .4, 14);
-
-  kinetico($('e4d'), '¿Llovió tres días? Los marcás y el plazo se corre solo.',
-           t, 5.9, .075);
+  entra($('e4m'), t, 6.7, .4, 14);
+  kinetico($('e4d'), 'Marcás los días de lluvia y el sistema corre la entrega.',
+           t, 5.7, .075);
 };
 
-/* ── 5 · cierre ──────────────────────────────────────────────────── */
+/* ── 5 · remate ──────────────────────────────────────────────────── */
 const P5 = t => {
-  kinetico($('e5t'), 'Dejá de tirar fechas con la panza.', t, .2, .12);
-  entra($('e5d'), t, 1.5);
+  kinetico($('e5t'), 'Las decisiones se toman con datos concretos.', t, .25, .105);
+  kinetico($('e5d2'), 'FAIM OBRAS te los da automáticamente.', t, 2.2, .1);
+  entra($('e5d'), t, 3.6);
 };
 
 /* ── línea de tiempo ─────────────────────────────────────────────── */
-/* Sin voz, cada placa se sostiene por lo que tarda en leerse: el hook corto,
-   el plan largo porque ahí está el argumento. */
+/* Mudo: cada placa dura lo que tarda alguien en leerla, no lo que tardaria
+   una voz en decirla. Y el corte del segundo 12,6 parte el reel en dos
+   mitades limpias: antes, el problema; despues, solo la app. */
 const ESC = [
-  ['e1',  0.0,  3.6],
-  ['e2',  3.6,  8.4],
-  ['e3',  8.4, 11.6],
-  ['e4', 11.6, 22.4],
-  ['e5', 22.4, 26.0],
+  ['e0',  0.0,  3.4],   // Todo cliente pregunta lo mismo
+  ['e1',  3.4,  6.8],   // ¿Cuándo me la entregás?
+  ['e2',  6.8, 12.6],   // el papel, los sellos, el tachado
+  ['e3', 12.6, 16.2],   // ── CORTE ── El plazo lo calcula la app
+  ['e4', 16.2, 25.0],   // el plan se arma y se corre
+  ['e5', 25.0, 30.0],   // las decisiones se toman con datos concretos
 ];
-const PINTA = { e1:P1, e2:P2, e3:P3, e4:P4, e5:P5 };
+const PINTA = { e0:P0, e1:P1, e2:P2, e3:P3, e4:P4, e5:P5 };
 const FADE = 0.22;
 
 function setT(t){
@@ -275,8 +285,8 @@ function setT(t){
     if (op > 0) PINTA[id](t - a);
   });
   $('barra').style.width = (t / DURACION * 100) + '%';
-  const osc = (t < 3.6) || (t >= 11.6 && t < 22.4);
-  const vrd = (t >= 8.4 && t < 11.6) || (t >= 22.4);
+  const osc = (t < 6.8) || (t >= 16.2 && t < 25.0);
+  const vrd = (t >= 12.6 && t < 16.2) || (t >= 25.0);
   $('marca').style.color = osc ? 'rgba(255,255,255,.55)' : (vrd ? 'rgba(255,255,255,.8)' : 'var(--mut)');
   $('barra').style.background = vrd ? '#fff' : 'var(--ac)';
 }
