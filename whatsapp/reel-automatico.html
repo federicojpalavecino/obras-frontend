@@ -152,7 +152,7 @@ html,body{background:#111;overflow:hidden}
 <script>
 /* Reel de materiales y curva. Sin locución: el texto tiene que leerse en
    silencio, así que las placas se sostienen más. Todo sale de `t`. */
-const DURACION = 26.4;
+const DURACION = 28.0;
 window.DURACION = DURACION;
 const $ = id => document.getElementById(id);
 
@@ -197,7 +197,7 @@ const P1 = t => {
 
 /* -- 2 - la promesa, con la marca adentro ------------------------ */
 const P2 = t => {
-  kinetico($('e2t'), 'Y FAIM OBRAS te arma el resto en un toque.', t, .3, .105);
+  kinetico($('e2t'), 'Y FAIM OBRAS te arma el resto en un click.', t, .3, .105);
 };
 
 /* -- 3 - el listado sale solo ------------------------------------ */
@@ -260,9 +260,9 @@ const P5 = t => {
 
 /* -- 5 - remate --------------------------------------------------- */
 const P6 = t => {
-  kinetico($('e6t'), 'Todo sale del mismo cómputo.', t, .25, .13);
-  kinetico($('e6d2'), 'Con FAIM OBRAS no cargás nada dos veces.', t, 1.9, .1);
-  entra($('e6d'), t, 3.4);
+  kinetico($('e6t'), 'La app que tu estudio o empresa necesita.', t, .25, .115);
+  kinetico($('e6d2'), 'Todo sale del mismo cómputo. Sin cargarlo dos veces.', t, 2.2, .075);
+  entra($('e6d'), t, 3.9);
 };
 
 /* -- linea de tiempo ---------------------------------------------- */
@@ -273,7 +273,7 @@ const ESC = [
   ['e2',  4.2,  8.0],   // Y FAIM OBRAS te arma el resto en un toque
   ['e4',  8.0, 15.0],   // 1 · Listado de materiales
   ['e5', 15.0, 21.6],   // 2 · Curva de inversión
-  ['e6', 21.6, 26.4],   // Todo sale del mismo cómputo
+  ['e6', 21.6, 28.0],   // La app que tu estudio o empresa necesita
 ];
 const PINTA = { e1:P1, e2:P2, e4:P4, e5:P5, e6:P6 };
 const FADE = 0.22;
