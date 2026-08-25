@@ -69,7 +69,7 @@ html,body{background:#111;overflow:hidden}
 .caja-f{display:flex;align-items:baseline;gap:26px;margin-top:48px}
 .caja-f .et{font-family:var(--m);font-size:28px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
 .osc .caja-f .et{color:rgba(255,255,255,.6)}
-.caja-f .v{font-family:var(--m);font-size:92px;font-weight:600;letter-spacing:-.02em}
+.caja-f .v{font-family:var(--m);font-size:80px;font-weight:600;letter-spacing:-.02em}
 .mas{font-family:var(--m);font-size:44px;font-weight:600;color:var(--warn);opacity:0}
 
 /* ── Marca y progreso ───────────────────────────────────────────── */
@@ -104,12 +104,12 @@ html,body{background:#111;overflow:hidden}
   <section class="esc" id="e2">
     <div class="sp" style="flex:.6"></div>
     <div class="papel" id="e2p">
-      <div class="rot">Entrega estimada</div>
-      <div class="fch">12 de nov.</div>
+      <div class="rot">Duración estimada</div>
+      <div class="fch">6 meses</div>
       <div class="tach" id="e2x"></div>
     </div>
     <div class="sp"></div>
-    <div class="pie" id="e2d">Una fecha sacada en una hoja, hace dos meses.</div>
+    <div class="pie" id="e2d">Una duración sacada a ojo, hace dos meses.</div>
     <div class="sello" id="s1" style="left:120px;top:1120px;transform:rotate(-11deg)">Llovió 3 días</div>
     <div class="sello" id="s2" style="right:110px;top:1270px;transform:rotate(8deg)">Faltó material</div>
     <div class="sello" id="s3" style="left:190px;top:1420px;transform:rotate(-5deg)">Paro</div>
@@ -135,7 +135,7 @@ html,body{background:#111;overflow:hidden}
       <div class="tar" id="t4"><div class="nom">Revoques</div><div class="pista"><div class="barra-t" id="b4"></div><div class="barra-x" id="x4"></div></div></div>
     </div>
     <div class="caja-f">
-      <span class="et">Entrega</span>
+      <span class="et">Plazo de obra</span>
       <span class="v" id="e4f">—</span>
       <span class="mas" id="e4m">+3 días</span>
     </div>
@@ -202,7 +202,7 @@ const P0 = t => {
 
 /* ── 1 · la pregunta ─────────────────────────────────────────────── */
 const P1 = t => {
-  kinetico($('e1t'), '¿Cuándo me la entregás?', t, .25, .15);
+  kinetico($('e1t'), '¿Cuánto va a durar la obra?', t, .25, .14);
 };
 
 /* ── 2 · el papel y lo que siempre pasa ──────────────────────────── */
@@ -226,7 +226,7 @@ const P3 = t => {
 const LARGOS = [.18, .30, .52, .70, .88];
 const P4 = t => {
   entra($('e4k'), t, .1);
-  kinetico($('e4t'), 'Una tarea por ítem. La fecha sale sola.', t, .3, .08);
+  kinetico($('e4t'), 'Una tarea por ítem. El plazo sale solo.', t, .3, .08);
   for (let i = 0; i < 5; i++){
     entra($('t' + i), t, 1.7 + i * .22, .35, 18);
     const p = io(win(t, 1.9 + i * .30, 1.9 + i * .30 + .55));
@@ -235,7 +235,7 @@ const P4 = t => {
     $('b' + i).style.width = ((LARGOS[i] - ini) * p * 100) + '%';
   }
   const listo = win(t, 4.1, 4.5);
-  $('e4f').textContent = listo > .99 ? '12 nov.' : (listo > 0 ? '···' : '—');
+  $('e4f').textContent = listo > .99 ? '112 días' : (listo > 0 ? '···' : '—');
   $('e4f').style.opacity = .35 + .65 * listo;
 
   /* Los tres dias de lluvia. Es el unico momento del reel donde algo se mueve
@@ -248,10 +248,10 @@ const P4 = t => {
     $('x' + i).style.width = (ll * 4) + '%';
     $('b' + i).style.left  = ((i ? LARGOS[i-1] : 0) + ll * .04 * (i - 1)) * 100 + '%';
   }
-  if (ll > .5){ $('e4f').textContent = '15 nov.'; $('e4f').style.color = 'var(--warn)'; }
+  if (ll > .5){ $('e4f').textContent = '115 días'; $('e4f').style.color = 'var(--warn)'; }
   else { $('e4f').style.color = ''; }
   entra($('e4m'), t, 6.7, .4, 14);
-  kinetico($('e4d'), 'Marcás los días de lluvia y el sistema corre la entrega.',
+  kinetico($('e4d'), 'Marcás los días de lluvia y el sistema estira el plazo.',
            t, 5.7, .075);
 };
 
