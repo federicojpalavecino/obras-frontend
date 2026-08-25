@@ -1,0 +1,59 @@
+[
+  {
+    "img": "paso-01.png",
+    "rotulo": "El presupuesto ya está cerrado y la obra existe.",
+    "click": [
+      282,
+      79
+    ],
+    "hold": 2.4
+  },
+  {
+    "img": "paso-02.png",
+    "rotulo": "Entrás a la pestaña Contrato.",
+    "click": [
+      640,
+      295
+    ],
+    "hold": 1.9
+  },
+  {
+    "img": "paso-03.png",
+    "rotulo": "El monto ya viene del presupuesto: no lo cargás de nuevo.",
+    "click": [
+      510,
+      269
+    ],
+    "hold": 2.8
+  },
+  {
+    "img": "paso-04.png",
+    "rotulo": "Ponés el plazo que pactaste.",
+    "click": null,
+    "hold": 1
+  },
+  {
+    "img": "paso-05.png",
+    "rotulo": "Y elegís cómo se cobra.",
+    "click": [
+      494,
+      663
+    ],
+    "hold": 2.2
+  },
+  {
+    "img": "paso-06.png",
+    "rotulo": "Las etapas salen solas, con su porcentaje y su monto.",
+    "click": [
+      640,
+      714
+    ],
+    "hold": 2.8
+  },
+  {
+    "img": "paso-07.png",
+    "rotulo": "El contrato queda hecho, y cada etapa se cobra desde acá.",
+    "click": null,
+    "hold": 3.8
+  }
+]

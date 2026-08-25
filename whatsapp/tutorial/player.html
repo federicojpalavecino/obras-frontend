@@ -1,0 +1,121 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>tutorial</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;800&family=IBM+Plex+Mono:wght@500&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1280px;height:800px;overflow:hidden;background:#0d1117}
+  #esc{position:relative;width:1280px;height:800px;overflow:hidden}
+
+  /* Las capturas de la app, una encima de otra: se cambia por opacidad para
+     que el corte entre estados no parpadee. */
+  #esc img{position:absolute;inset:0;width:1280px;height:800px;opacity:0}
+
+  /* El cursor lo dibuja el player, no la pagina capturada: por eso el gesto
+     y el resultado no pueden quedar desfasados. */
+  #cur{position:absolute;width:26px;height:26px;left:0;top:0;pointer-events:none;
+       filter:drop-shadow(0 2px 4px rgba(0,0,0,.45));transform-origin:2px 2px}
+  #ripple{position:absolute;width:14px;height:14px;border-radius:50%;left:0;top:0;
+          border:3px solid #059669;pointer-events:none;opacity:0;margin:-7px 0 0 -7px}
+
+  /* Rotulo: banda inferior, alto fijo, para que el texto no salte de linea a
+     mitad de video ni tape lo que se esta mostrando. */
+  #rot{position:absolute;left:0;right:0;bottom:0;height:92px;display:flex;align-items:center;
+       gap:16px;padding:0 34px;background:linear-gradient(transparent,rgba(10,14,20,.93) 34%);
+       font-family:Syne,sans-serif}
+  #num{flex:none;width:34px;height:34px;border-radius:50%;background:#059669;color:#fff;
+       font:800 15px/34px 'IBM Plex Mono',monospace;text-align:center}
+  #txt{color:#fff;font-size:25px;font-weight:600;letter-spacing:-.01em;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+  #barra{position:absolute;left:0;bottom:0;height:4px;background:#059669;width:0}
+</style>
+
+<div id="esc">
+  <div id="ripple"></div>
+  <svg id="cur" viewBox="0 0 24 24"><path d="M4 2l7.5 18.5 2.4-7.6 7.6-2.4z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>
+  <div id="rot"><div id="num">1</div><div id="txt"></div></div>
+  <div id="barra"></div>
+</div>
+
+<script>
+const $ = i => document.getElementById(i);
+const cl = x => Math.max(0, Math.min(1, x));
+const io = x => x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x+2, 3)/2;   // ease in-out
+
+const GUION = window.__GUION__;
+const VIAJE = 0.85;    // lo que tarda el cursor en llegar al boton
+const CLIC  = 0.45;    // el golpe y su onda
+const FUNDE = 0.28;    // el cruce entre una captura y la siguiente
+
+// Cada estado ocupa: viaje + clic + su propio hold. El ultimo no tiene clic.
+const T = [];
+let reloj = 0;
+GUION.forEach((g, i) => {
+  const mueve = g.click ? VIAJE : 0;
+  const pega  = g.click ? CLIC  : 0;
+  T.push({ ...g, i, t0: reloj, tMueve: mueve, tClic: pega, dur: mueve + pega + g.hold });
+  reloj += mueve + pega + g.hold;
+});
+const DURACION = reloj;
+window.DURACION = DURACION;
+
+// Las capturas, precargadas y apiladas
+const esc = $('esc');
+GUION.forEach(g => {
+  const im = new Image();
+  im.src = 'cap/' + g.img;
+  im.dataset.n = g.img;
+  esc.insertBefore(im, $('ripple'));
+});
+const IMGS = [...esc.querySelectorAll('img')];
+
+// El cursor arranca fuera de cuadro, abajo a la derecha, y va encadenando los
+// puntos de clic: cada estado lo recibe donde lo dejo el anterior.
+let previo = [1180, 760];
+T.forEach(s => { s.desde = previo; if (s.click) previo = s.click; });
+
+function setT(t){
+  t = Math.max(0, Math.min(DURACION - 0.001, t));
+  const k = T.findIndex(s => t < s.t0 + s.dur);
+  const s = T[k < 0 ? T.length - 1 : k];
+  const u = t - s.t0;
+
+  // La captura del estado entra con un fundido corto; la anterior se va.
+  IMGS.forEach((im, j) => {
+    const a = T[j];
+    const entra = cl((t - a.t0) / FUNDE);
+    const sale  = j + 1 < T.length ? cl((t - T[j+1].t0) / FUNDE) : 0;
+    im.style.opacity = Math.max(0, entra - sale);
+  });
+
+  // Cursor
+  let x, y, escala = 1;
+  if (s.click){
+    const p = io(cl(u / s.tMueve));
+    x = s.desde[0] + (s.click[0] - s.desde[0]) * p;
+    y = s.desde[1] + (s.click[1] - s.desde[1]) * p;
+    const golpe = cl((u - s.tMueve) / 0.12);
+    escala = 1 - 0.22 * Math.sin(golpe * Math.PI);
+  } else {
+    x = s.desde[0]; y = s.desde[1];
+  }
+  $('cur').style.transform = `translate(${x}px,${y}px) scale(${escala})`;
+  $('cur').style.opacity = 1;
+
+  // La onda del clic sale del punto exacto donde esta el cursor
+  const r = $('ripple');
+  if (s.click && u >= s.tMueve && u < s.tMueve + CLIC){
+    const q = (u - s.tMueve) / CLIC;
+    r.style.opacity = String(1 - q);
+    r.style.transform = `translate(${s.click[0]}px,${s.click[1]}px) scale(${1 + q * 4.5})`;
+  } else r.style.opacity = '0';
+
+  // Rotulo
+  $('num').textContent = String(s.i + 1);
+  $('txt').textContent = s.rotulo;
+  $('rot').style.opacity = String(Math.min(cl(u / .3), cl((s.dur - u) / .25) * .0 + 1));
+  $('barra').style.width = (t / DURACION * 100) + '%';
+}
+window.setT = setT;
+
+window.__LISTO__ = Promise.all(IMGS.map(im => im.decode().catch(() => {}))).then(() => { setT(0); return true; });
+</script>

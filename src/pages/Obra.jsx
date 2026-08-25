@@ -2246,9 +2246,21 @@ function ContratoModal({ presupuestoId, presupuesto, existing, onClose, onSave }
   const totalContrato = parseFloat(form.monto_total) || total || 0;
   const difDes = Math.round((totalContrato - sumaDes) * 100) / 100;
 
+  // Guardar no avisaba nada cuando fallaba: la promesa quedaba colgada y el
+  // modal se quedaba abierto, igual que si no hubieras tocado el boton. Con un
+  // campo numerico vacio el backend cortaba con 500 y el usuario no tenia forma
+  // de enterarse de por que no se guardaba su contrato.
+  const [errorGuardar, setErrorGuardar] = useState("");
+  const [guardando, setGuardando] = useState(false);
   const guardar = async () => {
-    await api.post(`/presupuestos/${presupuestoId}/contrato`, form);
-    onSave();
+    setErrorGuardar(""); setGuardando(true);
+    try {
+      await api.post(`/presupuestos/${presupuestoId}/contrato`, form);
+      onSave();
+    } catch (e) {
+      setErrorGuardar(e?.response?.data?.detail || e?.message || "No se pudo guardar el contrato.");
+    }
+    setGuardando(false);
   };
 
   const inp2 = { ...{ background: "#f1f3f5", border: "1px solid #d0d0dc", borderRadius: 8, color: "#1a1a2e", padding: "8px 10px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box", width: "100%" } };
@@ -2405,8 +2417,16 @@ function ContratoModal({ presupuestoId, presupuesto, existing, onClose, onSave }
           )}
         </div>
 
-        <button onClick={guardar} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 8, padding: "12px", width: "100%", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
-          Guardar contrato
+        {errorGuardar && (
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#ef4444",
+                        borderRadius: 8, padding: "10px 12px", fontSize: 12.5, marginBottom: 10 }}>
+            {errorGuardar}
+          </div>
+        )}
+
+        <button onClick={guardar} disabled={guardando}
+                style={{ background: guardando ? "#6b7280" : "#059669", color: "#fff", border: "none", borderRadius: 8, padding: "12px", width: "100%", fontSize: 15, fontWeight: 700, cursor: guardando ? "default" : "pointer" }}>
+          {guardando ? "Guardando…" : "Guardar contrato"}
         </button>
       </div>
     </div>

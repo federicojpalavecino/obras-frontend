@@ -28,3 +28,8 @@ yarn-error.log*
 # contenido: los videos y audios se regeneran, no se versionan
 /whatsapp/out
 __pycache__/
+
+# Render del material: los mp4 y las capturas se regeneran con los scripts
+whatsapp/out/
+whatsapp/tutorial/out/
+whatsapp/tutorial/_run.html
