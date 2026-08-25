@@ -25,6 +25,8 @@ duraciones de audio se miden decodificando a wav y no con ffprobe.
 | `node whatsapp/render.mjs placas` | Las placas de WhatsApp | `out/placa-*.png` |
 | `node whatsapp/render.mjs reel` | Reel de WhatsApp (44 s) | `out/faim-obras-reel.mp4` |
 | `node whatsapp/render.mjs venta` | Reel de venta de Instagram (66,7 s) | `out/faim-obras-venta.mp4` |
+| `node whatsapp/render.mjs plazos` | Reel de plazos, sin voz (26 s) | `out/faim-plazos.mp4` |
+| `node whatsapp/render.mjs automatico` | Reel de materiales y curva, sin voz (27 s) | `out/faim-automatico.mp4` |
 | `py -3.12 whatsapp/locucion-venta.py voz` | Los mp3 de cada frase | `out/voz-venta/` |
 | `py -3.12 whatsapp/locucion-venta.py plan` | Mide los mp3 y avisa si dos frases se pisan | consola |
 | `py -3.12 whatsapp/locucion-venta.py montar` | Pega la voz al video | `out/faim-obras-venta-voz.mp4` |
@@ -44,6 +46,23 @@ una animación usa el tiempo del navegador, en el render sale congelada o
 saltando. Todo se calcula a partir de `t`.
 
 Para previsualizar, abrí el HTML en el navegador y tocá «Reproducir».
+
+## Los reels sin locución
+
+`reel-plazos.html` y `reel-automatico.html` no tienen voz, y eso cambia dos
+cosas del armado:
+
+- **Cada placa se sostiene más.** Con voz, el tiempo lo marca la frase; sin
+  voz, lo marca lo que tarda alguien en leer. Una placa que con locución vive
+  cuatro segundos, muda necesita cinco o seis.
+- **La animación tiene que contar el argumento sola.** En el de plazos, el
+  plazo se corre en pantalla; en el otro, la lista cae sola debajo del botón
+  que se acaba de tocar. Si eso se explicara con texto en vez de mostrarse, el
+  reel no diría nada que un carrusel no diga mejor.
+
+Instagram se mira sin sonido por defecto, así que muda no es una limitación: es
+la condición normal. Se rinden igual, con `render.mjs`, y no pasan por
+`locucion-*.py`.
 
 ## La regla de oro del guion
 

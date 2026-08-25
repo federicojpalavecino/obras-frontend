@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>FAIM OBRAS — Reel plazos (Instagram)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--acl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#141916;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#111;overflow:hidden}
+#reel{width:1080px;height:1920px;position:relative;overflow:hidden;
+  background:var(--bg);color:var(--ink);font-family:var(--s);
+  transform:scale(var(--z,1));transform-origin:top left}
+.esc{position:absolute;inset:0;padding:150px 84px 170px;display:flex;flex-direction:column;opacity:0}
+.esc::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);
+  background-size:60px 60px;opacity:.5}
+.esc>*{position:relative;z-index:1}
+.osc{background:var(--ink);color:var(--bg)}
+.osc::after{background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);opacity:1}
+.vrd{background:var(--ac);color:#fff}
+.vrd::after{background-image:linear-gradient(rgba(255,255,255,.10) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.10) 1px,transparent 1px);opacity:1}
+
+.kick{font-family:var(--m);font-size:27px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
+.osc .kick{color:var(--acl)} .vrd .kick{color:rgba(255,255,255,.85)}
+.tit{font-size:96px;font-weight:800;line-height:1.02;letter-spacing:-.04em}
+.tit.ch{font-size:74px} .tit.xch{font-size:58px}
+.tit em{font-style:normal;color:var(--ac)}
+.osc .tit em{color:var(--acl)} .vrd .tit em{color:#fff}
+.pal{display:inline-block}
+.pie{font-family:var(--m);font-size:30px;color:var(--mut);line-height:1.45}
+.osc .pie{color:rgba(255,255,255,.62)} .vrd .pie{color:rgba(255,255,255,.9)}
+.sp{flex:1}
+
+/* ── El papel con la fecha escrita a mano ───────────────────────── */
+.papel{background:#fffdf6;border:2px solid var(--bord);border-radius:10px;
+  padding:44px 48px;box-shadow:0 24px 60px -30px rgba(20,25,22,.5);position:relative}
+.papel .rot{font-family:var(--m);font-size:24px;letter-spacing:.16em;color:var(--mut);text-transform:uppercase}
+.papel .fch{font-size:112px;font-weight:800;letter-spacing:-.04em;margin-top:8px}
+.tach{position:absolute;left:40px;right:40px;top:60%;height:9px;background:var(--red);
+  border-radius:6px;transform-origin:left center}
+
+/* Sellos que caen sobre el papel */
+.sello{position:absolute;font-family:var(--m);font-size:34px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--red);
+  border:5px solid var(--red);border-radius:12px;padding:14px 26px;opacity:0}
+
+/* ── El plan ─────────────────────────────────────────────────────── */
+.plan{display:flex;flex-direction:column;gap:22px;margin-top:12px}
+.tar{display:flex;align-items:center;gap:20px;opacity:0}
+.tar .nom{font-family:var(--m);font-size:26px;color:var(--mut);width:290px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.osc .tar .nom{color:rgba(255,255,255,.62)}
+.pista{flex:1;height:52px;background:var(--sup2);border-radius:8px;position:relative;overflow:hidden}
+.osc .pista{background:rgba(255,255,255,.08)}
+.barra-t{position:absolute;top:0;bottom:0;background:var(--ac);border-radius:8px}
+.barra-x{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(
+  45deg,var(--warn),var(--warn) 10px,rgba(0,0,0,0) 10px,rgba(0,0,0,0) 20px);
+  border-radius:8px;opacity:0}
+
+/* ── Contador de fecha ───────────────────────────────────────────── */
+.caja-f{display:flex;align-items:baseline;gap:26px;margin-top:48px}
+.caja-f .et{font-family:var(--m);font-size:28px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.osc .caja-f .et{color:rgba(255,255,255,.6)}
+.caja-f .v{font-family:var(--m);font-size:92px;font-weight:600;letter-spacing:-.02em}
+.mas{font-family:var(--m);font-size:44px;font-weight:600;color:var(--warn);opacity:0}
+
+/* ── Marca y progreso ───────────────────────────────────────────── */
+#marca{position:absolute;left:84px;bottom:78px;font-family:var(--m);font-size:26px;
+  letter-spacing:.2em;color:var(--mut);z-index:5}
+#barra{position:absolute;left:0;bottom:0;height:9px;background:var(--ac);width:0;z-index:6}
+#play{padding:10px 18px;font-family:var(--m);
+  font-size:14px;border:0;border-radius:8px;background:var(--ac);color:#fff;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="ui" style="position:fixed;left:12px;top:12px;z-index:99">
+  <button id="play">Reproducir</button>
+</div>
+<div id="reel">
+
+  <!-- 1 · el hook -->
+  <section class="esc osc" id="e1">
+    <div class="kick" id="e1k">Todo cliente pregunta lo mismo</div>
+    <div class="sp"></div>
+    <div class="tit" id="e1t"></div>
+    <div class="sp"></div>
+  </section>
+
+  <!-- 2 · la fecha con la panza -->
+  <section class="esc" id="e2">
+    <div class="kick" id="e2k">Y vos tirás una fecha</div>
+    <div class="sp"></div>
+    <div class="papel" id="e2p">
+      <div class="rot">Entrega estimada</div>
+      <div class="fch">12 de nov.</div>
+      <div class="tach" id="e2x"></div>
+    </div>
+    <div class="sp"></div>
+    <div class="pie" id="e2d">Sacada en una hoja, hace dos meses.</div>
+    <div class="sello" id="s1" style="left:120px;top:1180px;transform:rotate(-11deg)">Llovió 3 días</div>
+    <div class="sello" id="s2" style="right:110px;top:1330px;transform:rotate(8deg)">Faltó material</div>
+    <div class="sello" id="s3" style="left:190px;top:1480px;transform:rotate(-5deg)">Paro</div>
+  </section>
+
+  <!-- 3 · el giro -->
+  <section class="esc vrd" id="e3">
+    <div class="sp"></div>
+    <div class="tit" id="e3t"></div>
+    <div class="sp"></div>
+  </section>
+
+  <!-- 4 · el plan sale de los ítems -->
+  <section class="esc osc" id="e4">
+    <div class="kick" id="e4k">Una tarea por ítem</div>
+    <div class="tit ch" id="e4t" style="margin-top:26px"></div>
+    <div class="sp"></div>
+    <div class="plan" id="e4plan">
+      <div class="tar" id="t0"><div class="nom">Excavación</div><div class="pista"><div class="barra-t" id="b0"></div><div class="barra-x" id="x0"></div></div></div>
+      <div class="tar" id="t1"><div class="nom">Fundación</div><div class="pista"><div class="barra-t" id="b1"></div><div class="barra-x" id="x1"></div></div></div>
+      <div class="tar" id="t2"><div class="nom">Mampostería</div><div class="pista"><div class="barra-t" id="b2"></div><div class="barra-x" id="x2"></div></div></div>
+      <div class="tar" id="t3"><div class="nom">Techo</div><div class="pista"><div class="barra-t" id="b3"></div><div class="barra-x" id="x3"></div></div></div>
+      <div class="tar" id="t4"><div class="nom">Revoques</div><div class="pista"><div class="barra-t" id="b4"></div><div class="barra-x" id="x4"></div></div></div>
+    </div>
+    <div class="caja-f">
+      <span class="et">Entrega</span>
+      <span class="v" id="e4f">—</span>
+      <span class="mas" id="e4m">+3 días</span>
+    </div>
+    <div class="sp" style="flex:.7"></div>
+    <div class="pie" id="e4d"></div>
+  </section>
+
+  <!-- 5 · el cierre -->
+  <section class="esc vrd" id="e5">
+    <div class="sp"></div>
+    <div class="tit" id="e5t"></div>
+    <div style="height:52px"></div>
+    <div class="pie" id="e5d" style="font-size:34px">faimobras.com</div>
+    <div class="sp"></div>
+  </section>
+
+  <div id="marca">FAIM OBRAS</div>
+  <div id="barra"></div>
+</div>
+
+<script>
+/* Reel de plazos. Sin locución: el texto tiene que poder leerse en silencio,
+   así que cada placa se sostiene más de lo que se sostendría con voz encima.
+   Todo se dibuja a partir de `t` — nada de requestAnimationFrame ni Date, o en
+   el render sale congelado. */
+const DURACION = 26.0;
+window.DURACION = DURACION;
+const $ = id => document.getElementById(id);
+
+const cl  = (v,a=0,b=1) => Math.min(b, Math.max(a, v));
+const win = (t,a,b) => cl((t - a) / (b - a));
+const out = p => 1 - Math.pow(1 - p, 3);
+const io  = p => p < .5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2;
+
+function entra(el, t, desde, dur = .45, dy = 30){
+  const p = out(win(t, desde, desde + dur));
+  el.style.opacity = p;
+  el.style.transform = `translateY(${(1 - p) * dy}px)`;
+  return p;
+}
+function kinetico(el, texto, t, desde, paso = .12){
+  if (el.dataset.txt !== texto){
+    el.dataset.txt = texto;
+    el.innerHTML = texto.split(' ').map(w => `<span class="pal">${w}</span>`).join(' ');
+  }
+  [...el.children].forEach((sp, i) => {
+    const p = out(win(t, desde + i * paso, desde + i * paso + .34));
+    sp.style.opacity = p;
+    sp.style.transform = `translateY(${(1 - p) * 34}px)`;
+  });
+}
+function golpe(el, t, desde, dur = .5, rot = 0){
+  const p = out(win(t, desde, desde + dur));
+  el.style.opacity = p;
+  el.style.transform = `rotate(${rot}deg) scale(${1.5 - .5 * p})`;
+  return p;
+}
+
+/* ── 1 · el hook ─────────────────────────────────────────────────── */
+const P1 = t => {
+  entra($('e1k'), t, .2);
+  kinetico($('e1t'), '¿Y cuándo me la entregás?', t, .55, .13);
+};
+
+/* ── 2 · la fecha con la panza ───────────────────────────────────── */
+const P2 = t => {
+  entra($('e2k'), t, .1);
+  entra($('e2p'), t, .35, .5, 40);
+  entra($('e2d'), t, .9);
+  // Los tres sellos caen encima, uno por uno: es lo que siempre pasa.
+  golpe($('s1'), t, 1.5, .28, -11);
+  golpe($('s2'), t, 2.1, .28, 8);
+  golpe($('s3'), t, 2.7, .28, -5);
+  // Y recién ahí se tacha la fecha.
+  $('e2x').style.transform = `scaleX(${io(win(t, 3.2, 3.7))}) rotate(-2deg)`;
+};
+
+/* ── 3 · el giro ─────────────────────────────────────────────────── */
+const P3 = t => {
+  kinetico($('e3t'), 'El plan de papel se muere en la segunda semana.', t, .25, .1);
+};
+
+/* ── 4 · el plan que se arma y se corre ──────────────────────────── */
+const LARGOS = [.18, .30, .52, .70, .88];   // fin de cada barra, 0 a 1
+const P4 = t => {
+  entra($('e4k'), t, .1);
+  kinetico($('e4t'), 'El plan sale de los ítems que ya cargaste.', t, .35, .085);
+  // Las tareas entran encadenadas: cada una arranca donde termina la anterior.
+  for (let i = 0; i < 5; i++){
+    entra($('t' + i), t, 1.9 + i * .22, .35, 18);
+    const p = io(win(t, 2.1 + i * .30, 2.1 + i * .30 + .55));
+    const ini = i ? LARGOS[i-1] : 0;
+    $('b' + i).style.left  = (ini * 100) + '%';
+    $('b' + i).style.width = ((LARGOS[i] - ini) * p * 100) + '%';
+  }
+  // La fecha aparece sola cuando terminó de armarse.
+  const listo = win(t, 4.3, 4.7);
+  $('e4f').textContent = listo > .99 ? '12 nov.' : (listo > 0 ? '···' : '—');
+  $('e4f').style.opacity = .35 + .65 * listo;
+
+  // Los tres días de lluvia: la barra se estira y la fecha se corre sola.
+  const ll = io(win(t, 6.4, 7.4));
+  for (let i = 2; i < 5; i++){
+    $('x' + i).style.opacity = ll;
+    const ini = LARGOS[i-1] + (LARGOS[i] - LARGOS[i-1]) * (1 - ll * .0);
+    $('x' + i).style.left  = (LARGOS[i] * 100) + '%';
+    $('x' + i).style.width = (ll * 4) + '%';
+    $('b' + i).style.left  = ((i ? LARGOS[i-1] : 0) + ll * .04 * (i - 1)) * 100 + '%';
+  }
+  if (ll > .5){ $('e4f').textContent = '15 nov.'; $('e4f').style.color = 'var(--warn)'; }
+  else { $('e4f').style.color = ''; }
+  entra($('e4m'), t, 6.9, .4, 14);
+
+  kinetico($('e4d'), '¿Llovió tres días? Los marcás y el plazo se corre solo.',
+           t, 5.9, .075);
+};
+
+/* ── 5 · cierre ──────────────────────────────────────────────────── */
+const P5 = t => {
+  kinetico($('e5t'), 'Dejá de tirar fechas con la panza.', t, .2, .12);
+  entra($('e5d'), t, 1.5);
+};
+
+/* ── línea de tiempo ─────────────────────────────────────────────── */
+/* Sin voz, cada placa se sostiene por lo que tarda en leerse: el hook corto,
+   el plan largo porque ahí está el argumento. */
+const ESC = [
+  ['e1',  0.0,  3.6],
+  ['e2',  3.6,  8.4],
+  ['e3',  8.4, 11.6],
+  ['e4', 11.6, 22.4],
+  ['e5', 22.4, 26.0],
+];
+const PINTA = { e1:P1, e2:P2, e3:P3, e4:P4, e5:P5 };
+const FADE = 0.22;
+
+function setT(t){
+  ESC.forEach(([id, a, b]) => {
+    const el = $(id);
+    const op = Math.min(cl((t - a) / FADE), cl((b - t) / FADE));
+    el.style.opacity = op;
+    if (op > 0) PINTA[id](t - a);
+  });
+  $('barra').style.width = (t / DURACION * 100) + '%';
+  const osc = (t < 3.6) || (t >= 11.6 && t < 22.4);
+  const vrd = (t >= 8.4 && t < 11.6) || (t >= 22.4);
+  $('marca').style.color = osc ? 'rgba(255,255,255,.55)' : (vrd ? 'rgba(255,255,255,.8)' : 'var(--mut)');
+  $('barra').style.background = vrd ? '#fff' : 'var(--ac)';
+}
+window.setT = setT;
+setT(0);
+
+(function preview(){
+  const ajusta = () => {
+    const z = Math.min((window.innerHeight - 40) / 1920, window.innerWidth / 1080);
+    $('reel').style.setProperty('--z', z);
+    document.body.style.height = '100vh';
+  };
+  window.addEventListener('resize', ajusta); ajusta();
+  let raf = null;
+  $('play').addEventListener('click', () => {
+    cancelAnimationFrame(raf);
+    const t0 = performance.now();
+    const paso = () => {
+      const t = (performance.now() - t0) / 1000;
+      setT(Math.min(t, DURACION));
+      if (t < DURACION) raf = requestAnimationFrame(paso);
+    };
+    raf = requestAnimationFrame(paso);
+  });
+})();
+</script>
+</body>
+</html>

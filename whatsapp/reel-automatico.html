@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>FAIM OBRAS — Reel materiales y curva (Instagram)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--acl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#141916;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#111;overflow:hidden}
+#reel{width:1080px;height:1920px;position:relative;overflow:hidden;
+  background:var(--bg);color:var(--ink);font-family:var(--s);
+  transform:scale(var(--z,1));transform-origin:top left}
+.esc{position:absolute;inset:0;padding:150px 84px 170px;display:flex;flex-direction:column;opacity:0}
+.esc::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);
+  background-size:60px 60px;opacity:.5}
+.esc>*{position:relative;z-index:1}
+.osc{background:var(--ink);color:var(--bg)}
+.osc::after{background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);opacity:1}
+.vrd{background:var(--ac);color:#fff}
+.vrd::after{background-image:linear-gradient(rgba(255,255,255,.10) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.10) 1px,transparent 1px);opacity:1}
+
+.kick{font-family:var(--m);font-size:27px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
+.osc .kick{color:var(--acl)} .vrd .kick{color:rgba(255,255,255,.85)}
+.tit{font-size:96px;font-weight:800;line-height:1.02;letter-spacing:-.04em}
+.tit.ch{font-size:74px} .tit.xch{font-size:60px}
+.tit em{font-style:normal;color:var(--ac)}
+.osc .tit em{color:var(--acl)} .vrd .tit em{color:#fff}
+.pal{display:inline-block}
+.pie{font-family:var(--m);font-size:30px;color:var(--mut);line-height:1.45}
+.osc .pie{color:rgba(255,255,255,.62)} .vrd .pie{color:rgba(255,255,255,.9)}
+.sp{flex:1}
+
+/* ── El tilde de presupuesto terminado ──────────────────────────── */
+.tick{width:190px;height:190px;border-radius:190px;background:var(--ac);
+  display:grid;place-items:center;margin:0 auto;opacity:0}
+.tick svg{width:104px;height:104px}
+
+/* ── La lista de materiales ─────────────────────────────────────── */
+.lista{display:flex;flex-direction:column;gap:0;margin-top:46px}
+.fila{display:flex;align-items:baseline;gap:20px;padding:19px 0;
+  border-bottom:1px solid rgba(255,255,255,.09);opacity:0}
+.fila .n{flex:1;font-size:33px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila .c{font-family:var(--m);font-size:33px;color:var(--acl);white-space:nowrap}
+.fila .u{font-family:var(--m);font-size:24px;color:rgba(255,255,255,.45)}
+.total{display:flex;justify-content:space-between;align-items:baseline;margin-top:34px;opacity:0}
+.total .e{font-family:var(--m);font-size:27px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.total .v{font-family:var(--m);font-size:64px;font-weight:600;color:#fff}
+
+/* ── La curva ───────────────────────────────────────────────────── */
+.graf{position:relative;height:560px;margin-top:26px}
+.graf svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.ejeY{position:absolute;left:0;top:0;bottom:44px;width:2px;background:rgba(255,255,255,.16)}
+.ejeX{position:absolute;left:0;right:0;bottom:44px;height:2px;background:rgba(255,255,255,.16)}
+.mesX{position:absolute;bottom:0;white-space:nowrap;font-family:var(--m);font-size:24px;color:rgba(255,255,255,.45);
+  transform:translateX(-50%)}
+.pctY{position:absolute;right:0;font-family:var(--m);font-size:26px;color:var(--acl);
+  opacity:0;background:var(--ink);padding:2px 10px;border-radius:6px}
+
+/* ── El botón ───────────────────────────────────────────────────── */
+.boton{display:inline-flex;align-items:center;gap:16px;background:var(--ac);color:#fff;
+  border-radius:16px;padding:24px 38px;font-size:38px;font-weight:700;opacity:0}
+.osc .boton{background:var(--acl);color:var(--ink)}
+.clic{position:absolute;width:74px;height:74px;border:5px solid var(--acl);
+  border-radius:74px;opacity:0;pointer-events:none}
+
+#marca{position:absolute;left:84px;bottom:78px;font-family:var(--m);font-size:26px;
+  letter-spacing:.2em;color:var(--mut);z-index:5}
+#barra{position:absolute;left:0;bottom:0;height:9px;background:var(--ac);width:0;z-index:6}
+#play{padding:10px 18px;font-family:var(--m);font-size:14px;border:0;border-radius:8px;
+  background:var(--ac);color:#fff;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="ui" style="position:fixed;left:12px;top:12px;z-index:99">
+  <button id="play">Reproducir</button>
+</div>
+<div id="reel">
+
+  <!-- 1 · terminaste el presupuesto -->
+  <section class="esc vrd" id="e1">
+    <div class="sp"></div>
+    <div class="tick" id="e1c" style="background:#fff">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="3.4"
+           stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.2 5.2L20 7"/></svg>
+    </div>
+    <div style="height:56px"></div>
+    <div class="tit" id="e1t" style="text-align:center"></div>
+    <div class="sp"></div>
+  </section>
+
+  <!-- 2 · el trabajo doble -->
+  <section class="esc" id="e2">
+    <div class="kick" id="e2k">Y ahora, otra vez</div>
+    <div class="sp"></div>
+    <div class="tit ch" id="e2t"></div>
+    <div style="height:44px"></div>
+    <div class="pie" id="e2d">Contar los ladrillos. Sumar las bolsas.<br>Armar la curva en otra planilla.</div>
+    <div class="sp"></div>
+  </section>
+
+  <!-- 3 · el giro -->
+  <section class="esc osc" id="e3">
+    <div class="sp"></div>
+    <div class="tit" id="e3t"></div>
+    <div class="sp"></div>
+  </section>
+
+  <!-- 4 · la lista de materiales -->
+  <section class="esc osc" id="e4">
+    <div class="kick" id="e4k">Listado de materiales</div>
+    <div class="tit xch" id="e4t" style="margin-top:22px"></div>
+    <div style="height:40px"></div>
+    <div class="boton" id="e4b" style="align-self:flex-start">Ver listado</div>
+    <div class="lista" id="e4l"></div>
+    <div class="total" id="e4tot"><span class="e">Total a comprar</span><span class="v" id="e4v">$ 0</span></div>
+    <div class="sp"></div>
+    <div class="clic" id="e4click"></div>
+  </section>
+
+  <!-- 5 · la curva -->
+  <section class="esc osc" id="e5">
+    <div class="kick" id="e5k">Curva de inversión</div>
+    <div class="tit xch" id="e5t" style="margin-top:22px"></div>
+    <div class="sp" style="flex:.4"></div>
+    <div class="graf" id="e5g">
+      <div class="ejeY"></div><div class="ejeX"></div>
+      <svg viewBox="0 0 1000 516" preserveAspectRatio="none">
+        <path id="e5area" d="" fill="rgba(16,185,129,.16)"/>
+        <path id="e5lin" d="" fill="none" stroke="#10b981" stroke-width="7"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="pctY" id="e5p" style="top:-44px">100 %</div>
+    </div>
+    <div style="height:56px"></div>
+    <div class="pie" id="e5d"></div>
+    <div class="sp"></div>
+  </section>
+
+  <!-- 6 · cierre -->
+  <section class="esc vrd" id="e6">
+    <div class="sp"></div>
+    <div class="tit" id="e6t"></div>
+    <div style="height:52px"></div>
+    <div class="pie" id="e6d" style="font-size:34px">faimobras.com</div>
+    <div class="sp"></div>
+  </section>
+
+  <div id="marca">FAIM OBRAS</div>
+  <div id="barra"></div>
+</div>
+
+<script>
+/* Reel de materiales y curva. Sin locución: el texto tiene que leerse en
+   silencio, así que las placas se sostienen más. Todo sale de `t`. */
+const DURACION = 27.0;
+window.DURACION = DURACION;
+const $ = id => document.getElementById(id);
+
+const cl  = (v,a=0,b=1) => Math.min(b, Math.max(a, v));
+const win = (t,a,b) => cl((t - a) / (b - a));
+const out = p => 1 - Math.pow(1 - p, 3);
+const io  = p => p < .5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2;
+const plata = n => '$ ' + Math.round(n).toLocaleString('es-AR');
+
+function entra(el, t, desde, dur = .45, dy = 30){
+  const p = out(win(t, desde, desde + dur));
+  el.style.opacity = p;
+  el.style.transform = `translateY(${(1 - p) * dy}px)`;
+  return p;
+}
+function kinetico(el, texto, t, desde, paso = .12){
+  if (el.dataset.txt !== texto){
+    el.dataset.txt = texto;
+    el.innerHTML = texto.split(' ').map(w => `<span class="pal">${w}</span>`).join(' ');
+  }
+  [...el.children].forEach((sp, i) => {
+    const p = out(win(t, desde + i * paso, desde + i * paso + .34));
+    sp.style.opacity = p;
+    sp.style.transform = `translateY(${(1 - p) * 34}px)`;
+  });
+}
+/* El pulso del click: es lo que hace leer "esto pasó de un toque". */
+function clic(el, t, desde, x, y){
+  const p = win(t, desde, desde + .55);
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+  el.style.opacity = p > 0 && p < 1 ? (1 - p) : 0;
+  el.style.transform = `scale(${.5 + p * 2.1})`;
+}
+
+/* ── 1 · terminaste ──────────────────────────────────────────────── */
+const P1 = t => {
+  const p = out(win(t, .2, .75));
+  $('e1c').style.opacity = p;
+  $('e1c').style.transform = `scale(${.7 + .3 * p})`;
+  kinetico($('e1t'), 'Terminaste el presupuesto.', t, .85, .13);
+};
+
+/* ── 2 · el trabajo doble ────────────────────────────────────────── */
+const P2 = t => {
+  entra($('e2k'), t, .1);
+  kinetico($('e2t'), 'Ahora hacé todo de nuevo, a mano.', t, .4, .1);
+  entra($('e2d'), t, 1.9);
+};
+
+/* ── 3 · el giro ─────────────────────────────────────────────────── */
+const P3 = t => {
+  kinetico($('e3t'), 'Ya estaba computado. Todo.', t, .25, .13);
+};
+
+/* ── 4 · el listado sale solo ────────────────────────────────────── */
+const MAT = [
+  ['Ladrillo hueco 18',      '4.860', 'u'],
+  ['Cemento Portland 50 kg', '184',   'bl'],
+  ['Hierro ADN 420 · 8 mm',  '212',   'br'],
+  ['Arena gruesa',           '38',    'm³'],
+  ['Cal hidratada 25 kg',    '96',    'bl'],
+];
+const P4 = t => {
+  entra($('e4k'), t, .1);
+  kinetico($('e4t'), 'Un toque, y ya está.', t, .35, .11);
+  entra($('e4b'), t, 1.0, .4, 16);
+  clic($('e4click'), t, 1.7, 210, 560);
+
+  if (!$('e4l').children.length){
+    $('e4l').innerHTML = MAT.map(([n, c, u]) =>
+      `<div class="fila"><span class="n">${n}</span>` +
+      `<span class="c">${c}</span><span class="u">${u}</span></div>`).join('');
+  }
+  // Las filas caen una tras otra: es lo que se lee como "se armó solo".
+  [...$('e4l').children].forEach((f, i) => entra(f, t, 2.2 + i * .16, .38, 26));
+  entra($('e4tot'), t, 3.3, .45, 20);
+  const v = io(win(t, 3.4, 4.5));
+  $('e4v').textContent = plata(18400000 * v);
+};
+
+/* ── 5 · la curva se dibuja sola ─────────────────────────────────── */
+/* Curva en S: arranca lento, se acelera en el medio y afloja al final, que es
+   como se gasta una obra de verdad. */
+const S = x => 1 / (1 + Math.exp(-9 * (x - .5)));
+const P5 = t => {
+  entra($('e5k'), t, .1);
+  kinetico($('e5t'), 'Y la curva, también.', t, .35, .12);
+
+  const p = io(win(t, 1.1, 3.4));
+  const N = 60, W = 1000, H = 470;
+  let d = '';
+  for (let i = 0; i <= N * p; i++){
+    const x = (i / N) * W;
+    const y = H - (S(i / N) - S(0)) / (S(1) - S(0)) * H;
+    d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+  }
+  $('e5lin').setAttribute('d', d);
+  $('e5area').setAttribute('d', d ? d + `L${(p * W).toFixed(1)} ${H}L0 ${H}Z` : '');
+  $('e5p').style.opacity = win(t, 3.2, 3.7);
+
+  if (!$('e5g').querySelector('.mesX')){
+    ['Mes 1','Mes 3','Mes 5','Mes 7'].forEach((m, i) => {
+      const s = document.createElement('div');
+      s.className = 'mesX'; s.textContent = m;
+      s.style.left = (i * 33.3) + '%';
+      if (i === 3){ s.style.left = ''; s.style.right = '0'; s.style.transform = 'none'; }
+      $('e5g').appendChild(s);
+    });
+  }
+  kinetico($('e5d'), 'Cuánta plata entra y sale, mes a mes.', t, 3.5, .085);
+};
+
+/* ── 6 · cierre ──────────────────────────────────────────────────── */
+const P6 = t => {
+  kinetico($('e6t'), 'Es la app que necesitás.', t, .2, .14);
+  entra($('e6d'), t, 1.5);
+};
+
+/* ── línea de tiempo ─────────────────────────────────────────────── */
+const ESC = [
+  ['e1',  0.0,  3.6],
+  ['e2',  3.6,  8.0],
+  ['e3',  8.0, 11.0],
+  ['e4', 11.0, 17.4],
+  ['e5', 17.4, 23.4],
+  ['e6', 23.4, 27.0],
+];
+const PINTA = { e1:P1, e2:P2, e3:P3, e4:P4, e5:P5, e6:P6 };
+const FADE = 0.22;
+
+function setT(t){
+  ESC.forEach(([id, a, b]) => {
+    const el = $(id);
+    const op = Math.min(cl((t - a) / FADE), cl((b - t) / FADE));
+    el.style.opacity = op;
+    if (op > 0) PINTA[id](t - a);
+  });
+  $('barra').style.width = (t / DURACION * 100) + '%';
+  const osc = (t >= 8.0 && t < 23.4);
+  const vrd = (t < 3.6) || (t >= 23.4);
+  $('marca').style.color = osc ? 'rgba(255,255,255,.55)' : (vrd ? 'rgba(255,255,255,.8)' : 'var(--mut)');
+  $('barra').style.background = vrd ? '#fff' : 'var(--ac)';
+}
+window.setT = setT;
+setT(0);
+
+(function preview(){
+  const ajusta = () => {
+    const z = Math.min((window.innerHeight - 40) / 1920, window.innerWidth / 1080);
+    $('reel').style.setProperty('--z', z);
+    document.body.style.height = '100vh';
+  };
+  window.addEventListener('resize', ajusta); ajusta();
+  let raf = null;
+  $('play').addEventListener('click', () => {
+    cancelAnimationFrame(raf);
+    const t0 = performance.now();
+    const paso = () => {
+      const t = (performance.now() - t0) / 1000;
+      setT(Math.min(t, DURACION));
+      if (t < DURACION) raf = requestAnimationFrame(paso);
+    };
+    raf = requestAnimationFrame(paso);
+  });
+})();
+</script>
+</body>
+</html>

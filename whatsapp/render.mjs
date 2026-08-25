@@ -218,6 +218,9 @@ try {
   if (modo === 'todo' || modo === 'placas') await placas(browser);
   if (modo === 'todo' || modo === 'reel')   await reel(browser);
   if (modo === 'venta') await reel(browser, 'reel-venta.html', 'faim-obras-venta.mp4');
+  // Los dos reels de funcion, sin locucion: el texto se lee en silencio.
+  if (modo === 'plazos') await reel(browser, 'reel-plazos.html', 'faim-plazos.mp4');
+  if (modo === 'automatico') await reel(browser, 'reel-automatico.html', 'faim-automatico.mp4');
   if (modo === 'historias'){
     // Todo el material de historias en una sola carpeta: las fijas y los clips
     // juntos, que es como se sube después.
