@@ -1,12 +1,32 @@
 # Mails a los estudios
 
-`bienvenida-novedades.html` es el mail de novedades. Está en HTML de correo:
-tablas, estilos inline, sin fuentes externas ni imágenes remotas. Es lo que
-sobrevive en Gmail y en Outlook, que descartan las hojas de estilo y no entienden
-flex ni grid.
+Los dos mails de siempre son distintos entre sí, y conviene que sigan siendo dos:
 
-`bienvenida-novedades.md` es el mismo contenido en texto, para revisar la
-redacción sin pelear con el HTML.
+| Archivo | Qué es | A quién | Cada cuánto |
+|---|---|---|---|
+| `bienvenida.html` | Qué es el sistema y por dónde arrancar | Al que abre una cuenta | Evergreen: se manda siempre igual |
+| `novedades.html` | Qué se sumó desde la última vez | A los que ya lo usan | Fechado: se reescribe en cada envío |
+| `ajuste-pk.html` | Aviso de cambio de fecha de cobro y de valor | Solo a PK Arquitectura | Puntual: se manda una vez |
+
+`ajuste-pk.html` es de otra naturaleza: un aviso administrativo, a un solo
+estudio, con fechas y montos que hay que revisar antes de mandarlo (están
+anotados arriba del `.md`).
+
+Mezclarlos fue el primer intento y no funciona: al que recién entra las novedades
+no le dicen nada porque no conoce lo viejo, y al que ya lo usa la bienvenida le
+hace scrollear cosas que sabe. Si alguien se acaba de dar de alta, le llega la
+bienvenida y nada más — el mail de novedades siguiente ya lo agarra al día.
+
+Los dos están en HTML de correo —tablas, estilos inline, sin fuentes externas—
+que es lo que sobrevive en Gmail y en Outlook, que descartan las hojas de estilo
+y no entienden flex ni grid.
+
+Cada uno tiene su `.md` con el mismo contenido en texto, y el asunto y el
+preheader arriba, para revisar la redacción sin pelear con el HTML. **Si cambia
+uno, cambia el otro.**
+
+`imagenes.html` es el taller donde se dibujan las imágenes (`hero` y `gantt`).
+Se exportan a 1200×560 y se sirven desde `public/mail/`.
 
 ## Por qué no va como imagen
 
@@ -17,9 +37,9 @@ Tentador y equivocado. Un mail que es una sola imagen:
 - No se puede seleccionar, ni buscar, ni leer con lector de pantalla.
 - No tiene preheader — el renglón que se lee en la bandeja sale de texto real.
 
-Por eso los bloques visuales del mail (el mini Gantt, la tabla de movimientos,
-los chips) están armados con **tablas y colores de fondo**. Dan aspecto sin
-depender de que carguen imágenes.
+Por eso el mail es texto real con **tablas y colores de fondo**, y las dos
+imágenes son decoración: van con `width`, `height` y `alt` que dice lo mismo que
+la imagen, para que el mail se entienda igual con las imágenes bloqueadas.
 
 ## Cómo enviarlo
 
@@ -63,8 +83,14 @@ te ensucie la reputación del dominio.
 
 - Probarlo con vos mismo y abrirlo en **Gmail y en el celular**, que es donde lo
   van a leer.
-- Revisar que los links funcionen. El botón apunta a
-  `faimobras.com/novedades.html`, que se sirve desde `public/`.
+- Revisar que la imagen cargue: la bienvenida usa `/mail/hero.png` y las
+  novedades `/mail/gantt.png`, servidas desde `public/mail/`. Si el deploy no
+  está hecho, el mail sale con un hueco.
+- En novedades, releer el bloque «Y además» contra los commits desde el último
+  envío y borrar lo que ya se contó. Es el que más rápido queda desactualizado.
+- **Cuidar el registro.** Trato de vos, sin modismos: el que lee es un
+  profesional evaluando una herramienta de trabajo, no un conocido. Cada `.md`
+  arriba tiene la nota de registro y los ejemplos de lo que no va.
 - Mirar quién está con el plan vencido: le va a llegar un mail entusiasta y
   cuando entre ve el paywall. Puede servir para reactivarlo, pero que sea a
   propósito.

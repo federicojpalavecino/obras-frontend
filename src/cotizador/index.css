@@ -659,7 +659,10 @@ html, body {
    se lleva pantalla a todas las obras. */
 @media (max-width: 900px) {
   .totales-bar {
-    padding: 4px 10px !important;
+    /* La columna de la derecha queda para los dos botones flotantes (el de
+       observaciones y el del asistente). Sin ese hueco, el precio sin IVA
+       terminaba justo debajo del boton y no se podia leer. */
+    padding: 4px 62px 4px 10px !important;
     gap: 8px !important;
     font-size: 11px;
   }
@@ -808,4 +811,118 @@ html, body {
 /* El título gigante del Planner se comía media pantalla. */
 @media (max-width: 640px) {
   .planner-titulo { font-size: 24px !important; }
+}
+
+/* ═══════════════════════════════════════
+   EL CIRCUITO EN EL CELULAR
+   ═══════════════════════════════════════ */
+
+/* Espacio al pie para que el botón del asistente no se siente encima de la
+   última fila de una lista: tapaba el lápiz y la flecha del último cliente,
+   y el acumulado del último certificado. */
+@media (max-width: 768px) {
+  body { padding-bottom: 76px; }
+}
+
+/* Certificados: la fila era una sola línea de seis columnas (número, obra,
+   este período, acumulado, avance y los botones). En 390 px medía 627: el
+   avance y los botones de imprimir y ver quedaban fuera de la pantalla, y
+   como el overflow está oculto, no había forma de llegar a ellos. Ahora la
+   fila envuelve: arriba el número y la obra, abajo las tres cifras, y los
+   botones al pie. */
+/* En escritorio el nombre del certificado ocupa el hueco entre el numero y las
+   cifras. Vive aca y no en estilo inline porque el inline le gana a la hoja de
+   estilos, y entonces la version de celular no puede reacomodarlo. */
+.cert-fila .cert-info { flex: 1; min-width: 0; }
+
+@media (max-width: 768px) {
+  .cert-fila { flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+  /* Renglon 1: el numero (44 px) y el nombre del certificado al lado. */
+  .cert-fila .cert-info { flex: 1 1 calc(100% - 62px); }
+  /* Renglon 2: las tres cifras. Base `auto` = cada una mide lo que mide su
+     numero, y el sobrante se reparte. Con una base fija en porcentaje los dos
+     importes quedaban 3 px mas anchos que su casilla y se tocaban. */
+  .cert-fila .cert-cifra { flex: 1 1 auto; min-width: 0; text-align: left; }
+  .cert-fila .cert-cifra > div { white-space: nowrap; }
+  .cert-fila .cert-cifra > div + div { font-size: 13px; }
+  .cert-fila .cert-divisor { display: none; }
+  /* Renglon 3: imprimir y ver. */
+  .cert-fila .cert-acciones { flex: 1 1 100%; justify-content: flex-end; }
+}
+
+/* Los divisores verticales de las tarjetas de totales quedan flotando solos
+   cuando los bloques se apilan: son líneas de 1 px sin nada que separar. */
+@media (max-width: 768px) {
+  .kpi-divisor { display: none; }
+}
+
+/* La leyenda de antigüedad de precios empujaba el botón "Nuevo material"
+   fuera de la pantalla. El color de cada fila ya dice lo mismo.
+   El `display` vive acá y no en estilo inline a propósito: inline le gana a la
+   hoja de estilos, y entonces la regla de abajo no podría ocultarla. */
+.leyenda-antiguedad { display: flex; }
+
+@media (max-width: 640px) {
+  .leyenda-antiguedad { display: none; }
+}
+
+/* La cabecera de las pantallas del cotizador lleva el nombre del estudio, el
+   botón de volver y el nombre de la obra en una sola línea. En el celular el
+   nombre de la obra no tiene dónde encogerse y empuja el resto fuera de la
+   pantalla: en Certificados se iba 33 px y el título quedaba cortado contra el
+   borde. Dejando envolver a los grupos, el nombre de la obra se lleva su
+   propio renglón y entra entero. */
+@media (max-width: 768px) {
+  .header { flex-wrap: wrap; row-gap: 8px; }
+  .header > div { min-width: 0; flex-wrap: wrap; }
+  .header > div > div { min-width: 0; }
+}
+
+/* En el celular el globo del asistente se sienta sobre el contenido de la
+   esquina: tapaba el porcentaje de avance del certificado y el lápiz del
+   último cliente de la lista. Achicarlo no lo resuelve del todo — es un botón
+   flotante, siempre va a estar encima de algo — pero pasa de tapar 56 px a
+   tapar 46, y con el espacio de más al pie del documento el final de las
+   listas ya no queda debajo. */
+@media (max-width: 768px) {
+  .faim-fab-asistente {
+    width: 46px !important;
+    height: 46px !important;
+    bottom: 14px !important;
+    right: 14px !important;
+  }
+}
+
+/* Cabecera del presupuesto en el celular. El nombre del estudio no se encogía
+   nunca, así que el nombre de la obra —lo único que hace falta para saber
+   dónde estás parado— se cortaba en "Casa Qui..." mientras la ubicación se
+   daba el lujo de ocupar dos renglones. En una pantalla angosta el nombre del
+   estudio no aporta: se acaba de salir de su propia pantalla. */
+@media (max-width: 640px) {
+  .cab-tenant { display: none; }
+  .cab-obra {
+    white-space: normal !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.25;
+  }
+}
+
+/* Los chips de proyecto del Planner se envuelven, y con nombres de obra largos
+   en el celular cae uno por renglón: con trece proyectos son trece renglones
+   de filtro antes de llegar al tablero. En pantalla angosta van en una sola
+   línea que se desliza de costado, igual que las columnas del kanban.
+   (El `flex-wrap` vive acá y no en estilo inline porque el inline le gana a la
+   hoja de estilos.) */
+.planner-pills { flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .planner-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .planner-pills > * { flex: 0 0 auto; }
+  .planner-pills button { white-space: nowrap; }
 }

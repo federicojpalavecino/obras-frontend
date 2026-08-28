@@ -323,6 +323,7 @@ export default function Personal() {
               <select value={obraDelDia} onChange={e => setObraDelDia(e.target.value)}
                 title="Los días que marques se imputan a esta obra. Sin elegir ninguna, cada persona va a la obra que tiene asignada."
                 style={{ marginLeft: "auto", padding: "6px 10px", borderRadius: 8, fontSize: 12.5,
+                         maxWidth: "100%", minWidth: 0,
                          border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontFamily: "inherit" }}>
                 <option value="">Cada uno a su obra</option>
                 {obras.map(o => <option key={o.id} value={o.id}>{o.nombre_obra}</option>)}

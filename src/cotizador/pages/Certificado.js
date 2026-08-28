@@ -517,21 +517,21 @@ ${certEg ? `
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)' }}>Total presupuesto</div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700, color: 'var(--precio)' }}>{fmt(totalPresupuesto)}</div>
             </div>
-            <div style={{ width: 1, background: 'var(--border)' }}></div>
+            <div className="kpi-divisor" style={{ width: 1, background: 'var(--border)' }}></div>
             <div>
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)' }}>Certificados emitidos</div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700 }}>{certificados.length}</div>
             </div>
             {certificados.length > 0 && (
               <>
-                <div style={{ width: 1, background: 'var(--border)' }}></div>
+                <div className="kpi-divisor" style={{ width: 1, background: 'var(--border)' }}></div>
                 <div>
                   <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)' }}>Total certificado</div>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700, color: 'var(--warn)' }}>
                     {fmt(certificados[certificados.length - 1]?.total_acumulado)}
                   </div>
                 </div>
-                <div style={{ width: 1, background: 'var(--border)' }}></div>
+                <div className="kpi-divisor" style={{ width: 1, background: 'var(--border)' }}></div>
                 <div>
                   <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)' }}>Avance global</div>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700, color: 'var(--accent)' }}>
@@ -552,11 +552,11 @@ ${certEg ? `
                 return (
                   <div key={cert.id}>
                     <div className="card">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: 'var(--accent2)', fontFamily: 'var(--mono)' }}>
+                      <div className="cert-fila" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div className="cert-numero" style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: 'var(--accent2)', fontFamily: 'var(--mono)' }}>
                           {cert.numero}
                         </div>
-                        <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => verDetalle(cert.numero)}>
+                        <div className="cert-info" style={{ cursor: 'pointer' }} onClick={() => verDetalle(cert.numero)}>
                           <div style={{ fontWeight: 700 }}>Certificado Nº {cert.numero}</div>
                           {cert.fecha && <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{new Date(cert.fecha+'T12:00:00').toLocaleDateString('es-AR')}</div>}
                           {cert.periodo_desde && <div style={{ fontSize: 10, color: 'var(--muted)' }}>Período: {new Date(cert.periodo_desde+'T12:00:00').toLocaleDateString('es-AR')} → {cert.periodo_hasta ? new Date(cert.periodo_hasta+'T12:00:00').toLocaleDateString('es-AR') : '—'}</div>}
@@ -573,22 +573,22 @@ ${certEg ? `
                             </div>
                           )}
                         </div>
-                        <div style={{ textAlign: 'right', cursor: 'pointer' }} onClick={() => verDetalle(cert.numero)}>
+                        <div className="cert-cifra" style={{ textAlign: 'right', cursor: 'pointer' }} onClick={() => verDetalle(cert.numero)}>
                           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Este período</div>
                           <div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 700, color: 'var(--precio)' }}>{fmt(cert.total_periodo)}</div>
                         </div>
-                        <div style={{ width: 1, height: 36, background: 'var(--border)' }}></div>
-                        <div style={{ textAlign: 'right', cursor: 'pointer' }} onClick={() => verDetalle(cert.numero)}>
+                        <div className="cert-divisor" style={{ width: 1, height: 36, background: 'var(--border)' }}></div>
+                        <div className="cert-cifra" style={{ textAlign: 'right', cursor: 'pointer' }} onClick={() => verDetalle(cert.numero)}>
                           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Acumulado</div>
                           <div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 700, color: 'var(--warn)' }}>{fmt(cert.total_acumulado)}</div>
                         </div>
-                        <div style={{ textAlign: 'right', minWidth: 60, cursor: 'pointer' }} onClick={() => verDetalle(cert.numero)}>
+                        <div className="cert-cifra" style={{ textAlign: 'right', minWidth: 60, cursor: 'pointer' }} onClick={() => verDetalle(cert.numero)}>
                           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Avance</div>
                           <div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 700, color: 'var(--accent)' }}>
                             {totalPresupuesto > 0 ? (cert.total_acumulado / totalPresupuesto * 100).toFixed(1) : 0}%
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <div className="cert-acciones" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                           <button className="btn btn-secondary btn-sm" onClick={async () => {
                             // Need full detail to print
                             let det = certDetalle;

@@ -2505,6 +2505,7 @@ export default function Asistente() {
         <button
           onClick={() => setOpen(true)}
           aria-label="Abrir asistente de ayuda"
+          className="faim-fab-asistente"
           style={{
             position: "fixed", bottom: 20, right: 20, zIndex: 1000,
             width: 56, height: 56, borderRadius: "50%", border: "none", cursor: "pointer",

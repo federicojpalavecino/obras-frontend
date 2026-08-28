@@ -728,8 +728,11 @@ export default function ControlFinanciero({ user }) {
             {/* Header período */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", flex: isMobile ? "1 1 100%" : 1, minWidth: isMobile ? 0 : 260, marginBottom: isMobile ? 10 : 0 }}>
-                  <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>{TIPO_LABELS[tipoPeriodo]}</div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", flex: isMobile ? "1 1 100%" : 1, minWidth: isMobile ? 0 : 260, marginBottom: isMobile ? 10 : 0 }}>
+                  {/* En el celular el rotulo se lleva su propio renglon: compartiendo
+                      linea con las dos fechas, a cada input le quedaban 129 px y el
+                      ano salia cortado ("17/08/202"). */}
+                  <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", ...(isMobile ? { flex: "1 1 100%" } : {}) }}>{TIPO_LABELS[tipoPeriodo]}</div>
                   <input type="date" value={week.fecha_inicio || week.fecha} onChange={e => setWeek(w => ({ ...w, fecha_inicio: e.target.value, fecha: e.target.value }))} style={{ ...inp, flex: 1, minWidth: 0 }} />
                   <span style={{ color: C.muted }}>→</span>
                   <input type="date" value={week.fecha_fin || week.fecha_inicio || week.fecha} onChange={e => setWeek(w => ({ ...w, fecha_fin: e.target.value }))} style={{ ...inp, flex: 1, minWidth: 0 }} />

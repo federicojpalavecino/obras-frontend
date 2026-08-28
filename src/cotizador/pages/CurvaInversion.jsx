@@ -222,7 +222,13 @@ export default function CurvaInversion() {
   if (loading) return <div className="loading">Cargando...</div>;
 
   const BAR_H = 200;
-  const BAR_W = Math.max(40, Math.floor(700 / Math.max(curva.length, 1)));
+  // El ancho de barra se repartia sobre 700 px fijos: con un solo periodo daba
+  // una barra de 700 que en el celular se salia de la tarjeta y habia que
+  // arrastrar el grafico de costado para ver el final. En escritorio sigue
+  // dando lo mismo (el minimo gana siempre); en pantalla angosta se acomoda al
+  // ancho que hay.
+  const anchoGrafico = Math.min(700, Math.max(240, (typeof window !== 'undefined' ? window.innerWidth : 700) - 110));
+  const BAR_W = Math.max(40, Math.floor(anchoGrafico / Math.max(curva.length, 1)));
 
   return (
     <div>
@@ -278,14 +284,30 @@ export default function CurvaInversion() {
 
             {/* Gráfico */}
             <div className="card" style={{ padding: 20, marginBottom: 24, overflowX: 'auto' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)', marginBottom: 16 }}>
-                Plan de desembolso — {modo}
+              {/* La leyenda iba pegada arriba a la derecha DENTRO del area del
+                  grafico, que es exactamente donde la barra mas alta escribe su
+                  importe: cuando un periodo llegaba al 100% las dos cosas se
+                  superponian. Va aca, al lado del titulo, donde no pisa nada. */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)' }}>
+                  Plan de desembolso — {modo}
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ width: 12, height: 12, background: 'rgba(167,139,250,0.5)', borderRadius: 2 }}></div>
+                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>Desembolso</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ width: 12, height: 3, background: 'rgba(110,231,183,0.6)', borderRadius: 1 }}></div>
+                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>Acumulado</span>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, minHeight: BAR_H + 60, paddingBottom: 40, position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, minHeight: BAR_H + 60, paddingBottom: 40, paddingLeft: 34, position: 'relative' }}>
                 {/* Líneas guía */}
                 {[0, 25, 50, 75, 100].map(p => (
                   <div key={p} style={{ position: 'absolute', left: 0, right: 0, bottom: 40 + (BAR_H * p / 100), borderTop: `1px dashed ${p === 0 ? 'var(--border)' : 'rgba(255,255,255,0.05)'}`, zIndex: 0 }}>
-                    {p > 0 && <span style={{ position: 'absolute', left: -36, top: -8, fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{p}%</span>}
+                    {p > 0 && <span style={{ position: 'absolute', left: 0, top: -8, fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{p}%</span>}
                   </div>
                 ))}
 
@@ -295,9 +317,9 @@ export default function CurvaInversion() {
                   return (
                     <div key={c.fecha} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: BAR_W, position: 'relative', zIndex: 1 }}>
                       {/* Línea acumulado */}
-                      <div style={{ position: 'absolute', bottom: 40, left: '50%', width: 2, height: hAcum, background: 'rgba(110,231,183,0.4)', borderRadius: 1, transform: 'translateX(-50%)' }} />
+                      <div style={{ position: 'absolute', bottom: 0, left: '50%', width: 2, height: hAcum, background: 'rgba(110,231,183,0.4)', borderRadius: 1, transform: 'translateX(-50%)' }} />
                       {/* Barra período */}
-                      <div style={{ position: 'absolute', bottom: 40, width: Math.max(BAR_W - 6, 8), height: hBar, background: 'rgba(167,139,250,0.5)', borderRadius: '4px 4px 0 0', border: '1px solid rgba(167,139,250,0.6)' }}>
+                      <div style={{ position: 'absolute', bottom: 0, width: Math.max(BAR_W - 6, 8), height: hBar, background: 'rgba(167,139,250,0.5)', borderRadius: '4px 4px 0 0', border: '1px solid rgba(167,139,250,0.6)' }}>
                         <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: 'var(--accent2)', whiteSpace: 'nowrap', fontFamily: 'var(--mono)' }}>
                           {fmtK(c.monto)}
                         </div>
@@ -310,17 +332,6 @@ export default function CurvaInversion() {
                   );
                 })}
 
-                {/* Leyenda */}
-                <div style={{ position: 'absolute', top: 0, right: 0, display: 'flex', gap: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <div style={{ width: 12, height: 12, background: 'rgba(167,139,250,0.5)', borderRadius: 2 }}></div>
-                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>Desembolso</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <div style={{ width: 12, height: 3, background: 'rgba(110,231,183,0.6)', borderRadius: 1 }}></div>
-                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>Acumulado</span>
-                  </div>
-                </div>
               </div>
             </div>
 

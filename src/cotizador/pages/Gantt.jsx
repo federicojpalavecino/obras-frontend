@@ -1074,7 +1074,7 @@ export default function Gantt() {
             <div style={{ fontSize: 11, color: 'var(--muted)' }}>Diagrama de Gantt</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {tareas.length > 0 && (
             <button className="btn btn-secondary btn-sm" onClick={alternarNombres}
               title={verNombres ? 'Sacar la columna de nombres y dejarle todo el ancho al diagrama'

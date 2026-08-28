@@ -564,7 +564,7 @@ export default function Planner({ user }) {
 
       {/* ── PROYECTO PILLS ── */}
       {proyectos.length > 0 && (
-        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "8px 16px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        <div className="planner-pills" style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "8px 16px", display: "flex", gap: 6, alignItems: "center" }}>
           <button onClick={() => setFiltroProyecto("")} style={{ padding: "3px 12px", borderRadius: 20, border: `1px solid ${!filtroProyecto ? C.accent : C.border}`, background: !filtroProyecto ? C.accent + "12" : "transparent", color: !filtroProyecto ? C.accent : C.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
             Todos
           </button>

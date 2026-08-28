@@ -532,7 +532,7 @@ export default function Presupuesto() {
         + '</tbody></table>' + pie + '</div>';
     };
 
-    const html = '<!DOCTYPE html><html><head><title>Cómputo general</title>'
+    const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cómputo general</title>'
       + '<style>'
       + 'body{font-family:Arial,sans-serif;font-size:10pt;padding:24px;color:#111}'
       + 'h1{font-size:15pt;margin:0 0 4px}'
@@ -553,7 +553,7 @@ export default function Presupuesto() {
       + items.map(renderItem).join('')
       + '</body></html>';
 
-    win.document.write(html);
+    imprimirHTML(html, { titulo: 'Cómputo de cantidades', esperar: 500 });
   };
 
     const handleCantidad = async (linea_id, cant, esDeshacer = false) => {
@@ -893,12 +893,12 @@ ${firma}
         {/* HEADER — responsive */}
         <div className="header" style={{ flexWrap: 'wrap', gap: 6, minHeight: 'auto', padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')} style={{color:(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');return s?.tenant?.color_primario||JSON.parse(localStorage.getItem('obras_tenant')||'{}')?.color_primario||'var(--accent)';}catch(e){return 'var(--accent)';}})()}}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');const t=s?.tenant?.nombre;if(t)return t;const td=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(td?.nombre)return td.nombre;return 'FAIM OBRAS';}catch(e){return 'FAIM OBRAS';}})()}</span>
+            <span className="cab-tenant" onClick={() => navigate('/')} style={{ fontWeight: 900, fontSize: 16, letterSpacing: -0.5, cursor: 'pointer', flexShrink: 0, color:(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');return s?.tenant?.color_primario||JSON.parse(localStorage.getItem('obras_tenant')||'{}')?.color_primario||'var(--accent)';}catch(e){return 'var(--accent)';}})()}}>{(()=>{try{const s=JSON.parse(localStorage.getItem('obras_session')||'{}');const t=s?.tenant?.nombre;if(t)return t;const td=JSON.parse(localStorage.getItem('obras_tenant')||'null');if(td?.nombre)return td.nombre;return 'FAIM OBRAS';}catch(e){return 'FAIM OBRAS';}})()}</span>
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/cotizador')} style={{ flexShrink: 0 }}>
               <ArrowLeft size={14} />
             </button>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.nombre_obra}</div>
+              <div className="cab-obra" style={{ fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.nombre_obra}</div>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 1, alignItems: 'center' }}>
                 {data.ubicacion && <span style={{ fontSize: 10, color: 'var(--muted)' }}>{data.ubicacion}</span>}
                 {data.proyecto && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: (data.proyecto.color || '#6ee7b7') + '22', color: data.proyecto.color || '#059669' }}>{data.proyecto.nombre}</span>}
@@ -1625,18 +1625,18 @@ ${firma}
                           onMouseEnter={e => e.currentTarget.style.background = 'rgba(167,139,250,0.06)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                           <td colSpan={12} style={{ padding: '8px 12px', background: 'rgba(167,139,250,0.08)', borderTop: '2px solid rgba(167,139,250,0.3)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
                                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent2)' }}>{a.nombre_obra}</span>
                                 <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4,
                                   background: a.estado === 'cerrado' ? 'rgba(251,191,36,.15)' : 'rgba(110,231,183,.15)',
                                   color: a.estado === 'cerrado' ? 'var(--warn)' : 'var(--accent)' }}>
                                   {a.estado === 'cerrado' ? <Lock size={9} strokeWidth={2} /> : '●'} {a.estado}
                                 </span>
-                                <span style={{ fontSize: 10, color: 'var(--muted)' }}>{cantItemsDe(a)} ítem{cantItemsDe(a) !== 1 ? 's' : ''}</span>
+                                <span style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{cantItemsDe(a)} ítem{cantItemsDe(a) !== 1 ? 's' : ''}</span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--accent2)' }}>{fmt(totalAdicDe(a))}</span>
+                                <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--accent2)', whiteSpace: 'nowrap' }}>{fmt(totalAdicDe(a))}</span>
                                 <button onClick={e => { e.stopPropagation(); eliminarAdicional(a.id); }}
                                   style={{ background: 'none', border: '1px solid rgba(248,113,113,.3)', borderRadius: 4, color: 'var(--danger)', cursor: 'pointer', padding: '2px 7px', fontSize: 11 }}>×</button>
                               </div>
@@ -1698,7 +1698,7 @@ ${firma}
         </div>
 
         {/* OBSERVACIONES — botón flotante */}
-        <div style={{ position: 'fixed', bottom: 56, right: 16, zIndex: 40 }}>
+        <div style={{ position: 'fixed', bottom: 88, right: 28, zIndex: 40 }}>
           {obsOpen && (
             <div style={{ position: 'absolute', bottom: 48, right: 0, width: 320, background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.18)', padding: 14 }}>
               <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--muted)', marginBottom: 8 }}>Observaciones generales</div>

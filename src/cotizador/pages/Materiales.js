@@ -237,8 +237,8 @@ export default function Materiales() {
             <div style={{ fontSize: 11, color: 'var(--muted)' }}>{materiales.length} materiales</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: 12, fontSize: 11, fontFamily: 'var(--mono)' }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div className="leyenda-antiguedad" style={{ gap: 12, fontSize: 11, fontFamily: 'var(--mono)' }}>
             <span style={{ color: 'var(--success)' }}>● Actualizado</span>
             <span style={{ color: 'var(--warn)' }}>● +30 días</span>
             <span style={{ color: 'var(--danger)' }}>● +60 días</span>
@@ -255,13 +255,16 @@ export default function Materiales() {
         </div>
       </div>
 
-      <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 12 }}>
-        <div style={{ position: 'relative', flex: 1 }}>
+      <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        {/* El select de rubros pide 220 px fijos; en el celular al buscador le
+            quedaban 100 y el texto de ayuda salia cortado en "Buscar po...".
+            Con la base de 200 px se van uno debajo del otro y los dos entran. */}
+        <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 0 }}>
           <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
           <input className="input" style={{ paddingLeft: 30 }} placeholder="Buscar por nombre o código..."
             value={busqueda} onChange={e => setBusqueda(e.target.value)} />
         </div>
-        <select className="input" style={{ width: 220 }} value={rubroFiltro} onChange={e => setRubroFiltro(e.target.value)}>
+        <select className="input" style={{ width: 220, maxWidth: '100%' }} value={rubroFiltro} onChange={e => setRubroFiltro(e.target.value)}>
           <option value="">Todos los rubros</option>
           {rubrosUnicos.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
