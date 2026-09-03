@@ -105,8 +105,10 @@ export const getCertificado = (pid, num) => api.get(`/presupuestos/${pid}/certif
 export const crearCertificado = (pid, data) => api.post(`/presupuestos/${pid}/certificados`, data);
 
 // MAESTROS
-export const getCategorias = () => api.get('/maestros/categorias');
-export const getItems = (catId) => api.get('/maestros/items', { params: catId ? { categoria_id: catId } : {} });
+export const getCategorias = (origen) => api.get('/maestros/categorias', { params: origen ? { origen } : {} });
+export const getItems = (catId, origen) => api.get('/maestros/items', {
+  params: { ...(catId ? { categoria_id: catId } : {}), ...(origen ? { origen } : {}) },
+});
 export const getClientes = () => api.get('/clientes');
 export const crearCliente = (data) => api.post('/clientes', data);
 

@@ -7,6 +7,7 @@ import {
   getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea
 } from '../api';
 import api from '../api';
+import { catalogoSeparado } from '../tenant';
 import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check } from 'lucide-react';
 import PrintPresupuesto from './PrintPresupuesto';
 import PanelAnalisis from './PanelAnalisis';
@@ -34,6 +35,11 @@ export default function Presupuesto() {
   const [categorias, setCategorias] = useState([]);
   const [items, setItems] = useState([]);
   const [catSeleccionada, setCatSeleccionada] = useState(null);
+  // Con qué catálogo se está cargando este presupuesto: '' = los dos juntos,
+  // 'sistema' o 'propio'. Se elige una vez y se trabaja con ese, que es como se
+  // presupuesta: no se mezcla el criterio del estudio con el del sistema en la
+  // misma obra.
+  const [catalogo, setCatalogo] = useState('');
   const [busqueda, setBusqueda] = useState('');
   // En una pantalla de celular las tres columnas de ejecución no entran: se
   // arranca por el precio, que es lo que se mira en obra, y el resto queda en
@@ -92,15 +98,20 @@ export default function Presupuesto() {
   const [creandoAdic, setCreandoAdic] = useState(false);
   const [proyectos, setProyectos] = useState([]);
 
-  useEffect(() => { cargar(); cargarAdicionales(); getCategorias().then(r => setCategorias(r.data)); }, [id]);
+  useEffect(() => { cargar(); cargarAdicionales(); }, [id]);
+  // Los rubros dependen del catálogo elegido, y al cambiarlo se limpia el rubro
+  // seleccionado: los ids de un catálogo no existen en el otro.
   useEffect(() => {
-    if (catSeleccionada) getItems(catSeleccionada).then(r => setItems(r.data));
-    else getItems().then(r => setItems(r.data));
-  }, [catSeleccionada]);
+    getCategorias(catalogo).then(r => setCategorias(r.data));
+    setCatSeleccionada(null);
+    setCatAdic(null);
+  }, [catalogo]);
   useEffect(() => {
-    if (catAdic) getItems(catAdic).then(r => setItemsAdic(r.data));
-    else getItems().then(r => setItemsAdic(r.data));
-  }, [catAdic]);
+    getItems(catSeleccionada, catalogo).then(r => setItems(r.data));
+  }, [catSeleccionada, catalogo]);
+  useEffect(() => {
+    getItems(catAdic, catalogo).then(r => setItemsAdic(r.data));
+  }, [catAdic, catalogo]);
 
   const cargar = async (silent = false) => {
     // Solo hace falta para servicios, pero pedirlo siempre es una llamada
@@ -1269,6 +1280,16 @@ ${firma}
               <>
                 <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 7 }}>Agregar ítem</div>
+                  {catalogoSeparado() && (
+                    <select className="input" style={{ fontSize: 11, marginBottom: 7,
+                              borderColor: catalogo ? 'var(--accent)' : undefined,
+                              color: catalogo ? 'var(--accent)' : undefined, fontWeight: catalogo ? 700 : 400 }}
+                      value={catalogo} onChange={e => setCatalogo(e.target.value)}>
+                      <option value="">Los dos catálogos</option>
+                      <option value="propio">Solo nuestro catálogo</option>
+                      <option value="sistema">Solo el del sistema</option>
+                    </select>
+                  )}
                   <div style={{ position: 'relative', marginBottom: 7 }}>
                     <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
                     <input className="input" style={{ paddingLeft: 26, fontSize: 11 }} placeholder="Buscar ítem..."
@@ -1277,7 +1298,7 @@ ${firma}
                   <select className="input" style={{ fontSize: 11 }} value={catSeleccionada || ''}
                     onChange={e => setCatSeleccionada(e.target.value || null)}>
                     <option value="">Todos los rubros</option>
-                    {categorias.map(c => <option key={c.id} value={c.id}>{c.numero}. {c.nombre}</option>)}
+                    {categorias.map(c => <option key={c.id} value={c.id}>{c.codigo || c.numero ? `${c.codigo || c.numero}. ` : ""}{c.nombre}</option>)}
                   </select>
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -1957,7 +1978,7 @@ ${firma}
                       </div>
                       <select className="input" style={{ fontSize: 11 }} value={catAdic || ''} onChange={e => setCatAdic(e.target.value || null)}>
                         <option value="">Todos los rubros</option>
-                        {categorias.map(c => <option key={c.id} value={c.id}>{c.numero}. {c.nombre}</option>)}
+                        {categorias.map(c => <option key={c.id} value={c.id}>{c.codigo || c.numero ? `${c.codigo || c.numero}. ` : ""}{c.nombre}</option>)}
                       </select>
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto' }}>

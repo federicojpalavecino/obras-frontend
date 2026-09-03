@@ -228,7 +228,7 @@ export default function AnalisisCostos() {
         </div>
         <select className="input" style={{ width: 260 }} value={catFiltro} onChange={e => setCatFiltro(e.target.value)}>
           <option value="">Todos los rubros</option>
-          {categorias.map(c => <option key={c.id} value={c.id}>{c.numero}. {c.nombre}</option>)}
+          {categorias.map(c => <option key={c.id} value={c.id}>{c.codigo || c.numero ? `${c.codigo || c.numero}. ` : ""}{c.nombre}</option>)}
         </select>
         {catalogoSeparado() && (
           <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden',
@@ -453,7 +453,7 @@ export default function AnalisisCostos() {
               <select className="input" value={nuevoItem.categoria_id}
                 onChange={e => setNuevoItem(p => ({ ...p, categoria_id: e.target.value }))}>
                 <option value="">Seleccionar rubro...</option>
-                {categorias.map(c => <option key={c.id} value={c.id}>{c.numero}. {c.nombre}</option>)}
+                {categorias.map(c => <option key={c.id} value={c.id}>{c.codigo || c.numero ? `${c.codigo || c.numero}. ` : ""}{c.nombre}</option>)}
               </select>
             </div>
             <div className="modal-actions">
