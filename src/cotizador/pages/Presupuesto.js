@@ -896,6 +896,13 @@ ${firma}
 
   const { totales } = data;
   const totalAdic = adicionales.reduce((s, a) => s + totalAdicDe(a), 0);
+  // El backend da el total de ejecución y el de venta, pero no cuánto de eso es
+  // material y cuánto mano de obra: se suma acá sobre las líneas que ya trajo
+  // el presupuesto, sin pedir nada nuevo al servidor.
+  const subtotalMat = (rubro) => (rubro.lineas || []).reduce((s, l) => s + (Number(l.costo_mat) || 0), 0);
+  const subtotalMo = (rubro) => (rubro.lineas || []).reduce((s, l) => s + (Number(l.costo_mo) || 0), 0);
+  const totalMat = (data.rubros || []).reduce((s, r) => s + subtotalMat(r), 0);
+  const totalMo = (data.rubros || []).reduce((s, r) => s + subtotalMo(r), 0);
 
   return (
     <>
@@ -1631,7 +1638,12 @@ ${firma}
                         })}
                         <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(167,139,250,0.04)' }}>
                           <td colSpan={4} style={{ ...td, fontSize: 9, color: 'var(--muted)' }}>Subtotal {rubro.numero}</td>
-                          {(vista === 'ambos' || vista === 'ejec') && <><td colSpan={3} className="col-ejec"></td><td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ejec)', fontWeight: 600 }} className="col-ejec">{fmt(rubro.subtotal_ejecucion)}</td></>}
+                          {(vista === 'ambos' || vista === 'ejec') && <>
+                            <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--mat)', fontWeight: 600 }} className="col-ejec">{fmt(subtotalMat(rubro))}</td>
+                            <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--mo)', fontWeight: 600 }} className="col-ejec">{fmt(subtotalMo(rubro))}</td>
+                            <td className="col-ejec"></td>
+                            <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ejec)', fontWeight: 600 }} className="col-ejec">{fmt(rubro.subtotal_ejecucion)}</td>
+                          </>}
                           {(vista === 'ambos' || vista === 'comercial') && <><td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--precio)', fontWeight: 600 }}>{fmt(rubro.subtotal_precio)}</td><td colSpan={2}></td></>}
                         </tr>
                       </React.Fragment>
@@ -1675,6 +1687,8 @@ ${firma}
                             boxShadow: '0 -2px 10px rgba(0,0,0,0.06)',
                             padding: '5px 12px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 {[
+                  { label: 'Material', val: totalMat, color: 'var(--mat)', size: 12 },
+                  { label: 'M. Obra', val: totalMo, color: 'var(--mo)', size: 12 },
                   { label: 'Costo Ejec', val: totales?.total_ejecucion, color: 'var(--ejec)', size: 13 },
                   { label: 'Precio s/IVA', val: totales?.total_precio_sin_iva, color: 'var(--precio)', size: 13 },
                   { label: 'IVA', val: totales?.total_iva, color: 'var(--muted)', size: 12 },

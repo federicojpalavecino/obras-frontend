@@ -221,17 +221,17 @@ export default function AnalisisCostos() {
         </button>
       </div>
 
-      <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 12 }}>
-        <div style={{ position: 'relative', flex: 1 }}>
+      <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 200px' }}>
           <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
           <input className="input" style={{ paddingLeft: 30 }} placeholder="Buscar ítem..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
         </div>
-        <select className="input" style={{ width: 260 }} value={catFiltro} onChange={e => setCatFiltro(e.target.value)}>
+        <select className="input" style={{ width: 260, flex: '0 1 auto' }} value={catFiltro} onChange={e => setCatFiltro(e.target.value)}>
           <option value="">Todos los rubros</option>
           {categorias.map(c => <option key={c.id} value={c.id}>{c.codigo || c.numero ? `${c.codigo || c.numero}. ` : ""}{c.nombre}</option>)}
         </select>
         {catalogoSeparado() && (
-          <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden',
+          <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', flex: '0 0 auto',
                         border: '1px solid var(--border2)' }}>
             {[['', 'Todo'], ['sistema', 'Del sistema'], ['propio', 'Nuestro']].map(([v, txt]) => (
               <button key={v} onClick={() => { setOrigen(v); setCatFiltro(''); }}
