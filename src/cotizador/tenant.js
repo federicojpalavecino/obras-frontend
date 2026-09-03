@@ -34,3 +34,15 @@ export function localidadYFecha(fecha) {
   const loc = tenantLocalidad();
   return loc ? `${loc}, ${fecha}` : fecha;
 }
+
+/**
+ * ¿Este estudio tiene catálogo propio y quiere verlo aparte del del sistema?
+ *
+ * Lo enciende el admin de plataforma por estudio. Apagado —que es como está
+ * para todos menos el que lo pidió— la pantalla del catálogo no muestra ningún
+ * filtro nuevo: el que no tiene ítems propios no tiene nada que separar, y un
+ * control de más en una pantalla que ya sabe usar es ruido.
+ */
+export function catalogoSeparado() {
+  return !!leerTenant()?.catalogo_separado;
+}

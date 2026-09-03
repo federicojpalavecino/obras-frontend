@@ -2,6 +2,7 @@ import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { catalogoSeparado } from '../tenant';
 import { ArrowLeft, Search, Plus, Trash2, Edit2, Check, X, Copy, ChevronDown, ChevronRight } from 'lucide-react';
 import { coincide } from '../buscar';
 
@@ -25,6 +26,8 @@ export default function AnalisisCostos() {
   const [maqList, setMaqList] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [catFiltro, setCatFiltro] = useState('');
+  // '' = los dos catálogos juntos, como siempre. 'sistema' / 'propio' los separan.
+  const [origen, setOrigen] = useState('');
   const [expandidos, setExpandidos] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
@@ -38,14 +41,15 @@ export default function AnalisisCostos() {
   const [addMaq, setAddMaq] = useState({ maquinaria_id: '', horas: 1 });
   const [editLinea, setEditLinea] = useState(null); // {tipo, id, valor}
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => { cargar(); }, [origen]);
 
   const cargar = async () => {
     setLoading(true);
     try {
+      const q = origen ? `?origen=${origen}` : '';
       const [catRes, itemsRes, matsRes, moRes, maqRes] = await Promise.all([
-        api.get('/maestros/categorias'),
-        api.get('/analisis/items'),
+        api.get(`/maestros/categorias${q}`),
+        api.get(`/analisis/items${q}`),
         api.get('/maestros/materiales'),
         api.get('/analisis/mo'),
         api.get('/analisis/maquinaria'),
@@ -226,6 +230,18 @@ export default function AnalisisCostos() {
           <option value="">Todos los rubros</option>
           {categorias.map(c => <option key={c.id} value={c.id}>{c.numero}. {c.nombre}</option>)}
         </select>
+        {catalogoSeparado() && (
+          <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden',
+                        border: '1px solid var(--border2)' }}>
+            {[['', 'Todo'], ['sistema', 'Del sistema'], ['propio', 'Nuestro']].map(([v, txt]) => (
+              <button key={v} onClick={() => { setOrigen(v); setCatFiltro(''); }}
+                style={{ padding: '8px 14px', border: 'none', cursor: 'pointer',
+                         fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+                         background: origen === v ? 'var(--accent)' : 'var(--surface)',
+                         color: origen === v ? '#fff' : 'var(--muted)' }}>{txt}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
