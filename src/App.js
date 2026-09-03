@@ -415,6 +415,17 @@ export default function App() {
               try {
                 const td = (await api.get('/tenant')).data;
                 setTenant(td); localStorage.setItem("obras_tenant", JSON.stringify(td));
+                // /estudio/login guarda además una copia del tenant en obras_session
+                // "por compatibilidad" (tenant.js y otras pantallas la leen primero
+                // que obras_tenant). Si acá no se actualiza también, queda pegada a
+                // la del día del login y ningún F5 la refresca — un flag nuevo del
+                // tenant (como catalogo_separado) nunca llega a aparecer.
+                const savedSessRaw = localStorage.getItem('obras_session');
+                if (savedSessRaw) {
+                  const ns = JSON.parse(savedSessRaw);
+                  ns.tenant = td;
+                  localStorage.setItem('obras_session', JSON.stringify(ns));
+                }
               } catch(e) {}
             }
             setLoading(false); return;
