@@ -1162,6 +1162,11 @@ export default function Gantt() {
               </button>
             )}
             {tareas.length > 0 && (
+              <button className="btn btn-secondary btn-sm" onClick={imprimirGantt} title="Imprimir el diagrama de Gantt">
+                🖨 Imprimir
+              </button>
+            )}
+            {tareas.length > 0 && (
               <button className="btn btn-secondary btn-sm" onClick={exportarAlPlanner} title="Copiar tareas del Gantt al Planner">
                 Exportar al Planner
               </button>
