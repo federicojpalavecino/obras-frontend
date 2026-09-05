@@ -9,12 +9,15 @@ import { imprimirHTML } from '../../utils/imprimir';
 const fmt = n => '$ ' + Math.round(n || 0).toLocaleString('es-AR');
 const fmtCant = n => Number(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
 
-// Calcula presentaciones comerciales: 100kg / 50kg por bolsa = 2 bolsas
+// Calcula presentaciones comerciales: 100kg / 50kg por bolsa = 2 bolsas.
+// Sin `presentacion` cargada no hay nada real que mostrar: la mayoría de los
+// materiales del catálogo tienen cant_presentacion=1 de default (nadie llegó
+// a cargarles la bolsa/barra/rollo real), y mostrar "3 unid." ahí es solo
+// repetir la cantidad — peor que no decir nada.
 const calcPresentacion = (m) => {
-  if (!m.cant_presentacion || m.cant_presentacion <= 0) return null;
+  if (!m.presentacion || !m.cant_presentacion || m.cant_presentacion <= 0) return null;
   const cantPres = Math.ceil(m.cantidad_total / m.cant_presentacion);
-  const label = m.presentacion || 'unid.';
-  return { cantPres, label, cantPorPres: m.cant_presentacion };
+  return { cantPres, label: m.presentacion, cantPorPres: m.cant_presentacion };
 };
 
 export default function ListadoMateriales() {
