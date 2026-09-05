@@ -106,7 +106,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
     const val = calcFila(tipo, f);
     return f.signo === '-' ? acc - val : acc + val;
   }, 0);
-  const total = Math.round(totalFilas * 1000) / 1000;
+  const total = Math.round(totalFilas * 10000) / 10000;
 
   const addFila = () => setFilas(f => [...f, filaVacia(tipo)]);
   const delFila = (i) => setFilas(f => (f.length <= 1 ? [filaVacia(tipo)] : f.filter((_, j) => j !== i)));
@@ -163,7 +163,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
         <td>${i + 1}</td>
         <td>${campos.join(' — ')}</td>
         <td style="text-align:right">${f.signo === '-' ? '-' : '+'}</td>
-        <td style="text-align:right;font-family:monospace">${val.toFixed(3)}</td>
+        <td style="text-align:right;font-family:monospace">${val.toFixed(4)}</td>
       </tr>`;
     }).join('');
     imprimirHTML(`<!DOCTYPE html><html><head><title>Cómputo — ${nombre}</title>
@@ -181,7 +181,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
     <table>
       <thead><tr><th>#</th><th>Detalle</th><th style="text-align:right">±</th><th style="text-align:right">Parcial</th></tr></thead>
       <tbody>${rows}
-      <tr class="total-row"><td colspan="3">TOTAL</td><td style="text-align:right;font-family:monospace">${total.toFixed(3)} ${unidad}</td></tr>
+      <tr class="total-row"><td colspan="3">TOTAL</td><td style="text-align:right;font-family:monospace">${total.toFixed(4)} ${unidad}</td></tr>
       </tbody>
     </table>
     </body></html>`, { titulo: 'Cómputo' });
@@ -292,7 +292,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: fila.signo === '-' ? 'var(--danger)' : 'var(--accent)', textAlign: 'right', cursor: 'pointer' }}
                 title="Click para cambiar signo (+/-)"
                 onClick={() => updFila(i, 'signo', fila.signo === '-' ? '+' : '-')}>
-                {fila.signo === '-' ? '−' : '+'}{parcial.toFixed(3)}
+                {fila.signo === '-' ? '−' : '+'}{parcial.toFixed(4)}
               </div>
               <button onClick={() => delFila(i)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: '2px 4px', display: 'flex', alignItems: 'center' }}
@@ -318,11 +318,11 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
           <div>
             <div style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Total cómputo</div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--accent2)' }}>
-              {total.toFixed(3)} <span style={{ fontSize: 12, color: 'var(--muted)' }}>{unidad}</span>
+              {total.toFixed(4)} <span style={{ fontSize: 12, color: 'var(--muted)' }}>{unidad}</span>
             </div>
           </div>
           <button className="btn btn-primary" onClick={aplicarCantidad} disabled={guardando || total <= 0} style={{ minWidth: 120 }}>
-            {guardando ? '...' : aplicado ? '✓ Aplicado' : `Aplicar ${total.toFixed(2)} ${unidad}`}
+            {guardando ? '...' : aplicado ? '✓ Aplicado' : `Aplicar ${total.toFixed(4)} ${unidad}`}
           </button>
         </div>
         <div style={{ fontSize: 10, color: 'var(--muted)' }}>
