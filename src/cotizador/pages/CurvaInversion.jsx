@@ -76,22 +76,32 @@ export default function CurvaInversion() {
   const cargar = async () => {
     setLoading(true);
     try {
-      const [pRes, tRes] = await Promise.all([
+      const [pRes, tRes, planRes] = await Promise.all([
         api.get(`/presupuestos/${id}`).then(r => r.data),
         api.get(`/presupuestos/${id}/gantt/tareas`).then(r => r.data),
+        api.get(`/presupuestos/${id}/gantt/plan`).then(r => r.data).catch(() => ({ tareas: [] })),
       ]);
       setPresupuesto(pRes);
-      // Convert duracion_dias to fecha_fin for compatibility
-      const tareasConFin = (tRes || []).map(t => ({
-        ...t,
-        fecha_fin: t.fecha_fin || (() => {
-          if (!t.fecha_inicio) return t.fecha_inicio;
-          const d = new Date(t.fecha_inicio + 'T12:00:00');
-          d.setDate(d.getDate() + (t.duracion_dias || 1) - 1);
-          return d.toISOString().split('T')[0];
-        })(),
-        linea_presupuesto_id: t.linea_id,
-      }));
+      // Las fechas salen del plan (dependencias, calendario y días de lluvia
+      // ya descontados) y no de duracion_dias en días de calendario: esa
+      // cuenta corría fines de semana como si se trabajaran y estiraba cada
+      // tarea de más, corriendo todo el reparto semana a semana de la curva.
+      const planPorId = {};
+      (planRes?.tareas || []).forEach(t => { planPorId[t.id] = t; });
+      const tareasConFin = (tRes || []).map(t => {
+        const p = planPorId[t.id];
+        return {
+          ...t,
+          fecha_inicio: p?.inicio || t.fecha_inicio,
+          fecha_fin: p?.fin || (() => {
+            if (!t.fecha_inicio) return t.fecha_inicio;
+            const d = new Date(t.fecha_inicio + 'T12:00:00');
+            d.setDate(d.getDate() + (t.duracion_dias || 1) - 1);
+            return d.toISOString().split('T')[0];
+          })(),
+          linea_presupuesto_id: t.linea_id,
+        };
+      });
       setTareas(tareasConFin);
     } catch(e) { console.error(e); }
     setLoading(false);
