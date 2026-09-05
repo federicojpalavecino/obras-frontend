@@ -10,6 +10,254 @@ import '../print.css';
 import { imprimirHTML } from '../../utils/imprimir';
 const fmt = (n) => n ? '$ ' + Math.round(n).toLocaleString('es-AR') : '$ 0';
 const fmtPct = (n) => (n != null ? Number(n).toFixed(1) + '%' : '0.0%');
+const getTenantNombre = () => {
+  try {
+    const s = JSON.parse(localStorage.getItem('obras_session') || '{}');
+    if (s?.tenant?.nombre) return s.tenant.nombre;
+    const t = JSON.parse(localStorage.getItem('obras_tenant') || 'null');
+    if (t?.nombre) return t.nombre;
+  } catch (e) {}
+  return 'FAIM OBRAS';
+};
+
+// ── PAGOS Y CUENTA CORRIENTE ─────────────────────────────────────────────────
+// El certificado dice cuánto se le puede facturar; esto deja constancia de lo
+// que el cliente pagó de verdad — con recibo imprimible y un resumen de
+// cuenta para que quede por escrito cuánto debe.
+function PagosCuenta({ presupuestoId, obraNombre, obraUbicacion }) {
+  const [resumen, setResumen] = useState(null);
+  const [pagos, setPagos] = useState([]);
+  const [form, setForm] = useState({ fecha: new Date().toISOString().split('T')[0], monto: '', medio_pago: 'transferencia', concepto: '' });
+  const [guardando, setGuardando] = useState(false);
+  const [abierto, setAbierto] = useState(true);
+
+  const cargar = async () => {
+    try {
+      const [rRes, pRes] = await Promise.all([
+        api.get(`/presupuestos/${presupuestoId}/resumen-cuenta`),
+        api.get(`/presupuestos/${presupuestoId}/pagos`),
+      ]);
+      setResumen(rRes.data);
+      setPagos(pRes.data || []);
+    } catch (e) { console.error(e); }
+  };
+  useEffect(() => { if (presupuestoId) cargar(); /* eslint-disable-next-line */ }, [presupuestoId]);
+
+  const registrarPago = async () => {
+    if (!form.monto || parseFloat(form.monto) <= 0) return;
+    setGuardando(true);
+    try {
+      await api.post(`/presupuestos/${presupuestoId}/pagos`, {
+        fecha: form.fecha, monto: parseFloat(form.monto), medio_pago: form.medio_pago,
+        concepto: form.concepto || null,
+      });
+      setForm(f => ({ ...f, monto: '', concepto: '' }));
+      await cargar();
+    } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
+    setGuardando(false);
+  };
+
+  const eliminarPago = async (pid) => {
+    if (!window.confirm('¿Eliminar este pago? No se puede deshacer.')) return;
+    try {
+      await api.delete(`/presupuestos/${presupuestoId}/pagos/${pid}`);
+      cargar();
+    } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
+  };
+
+  const imprimirRecibo = (pago) => {
+    const tn = getTenantNombre();
+    const hoyStr = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recibo N° ${pago.numero}</title>
+<style>
+html,body{background:#fff;color:#111;font-family:Arial,sans-serif;font-size:10pt;margin:0;padding:20px 28px}
+.top{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px}
+.empresa{font-size:18pt;font-weight:900}
+.titulo{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#444;margin-top:2px}
+.datos{font-size:8.5pt;color:#555;margin-top:5px;line-height:1.5}
+.meta{font-size:8.5pt;color:#555;text-align:right;line-height:1.7}
+.monto-box{border:2.5px solid #111;border-radius:6px;padding:20px;margin:24px 0;text-align:center}
+.monto-lbl{font-size:8pt;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:6px}
+.monto-val{font-size:26pt;font-weight:900;font-family:'Courier New',monospace}
+.linea{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;font-size:9.5pt}
+.linea b{color:#555;font-weight:600}
+.firmas{display:flex;justify-content:space-between;margin-top:50px;padding:0 10px}
+.firma{width:200px;text-align:center}
+.firma div{border-top:1px solid #333;padding-top:7px;font-size:9pt;color:#444}
+footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;justify-content:space-between;font-size:8pt;color:#888}
+</style></head><body>
+<div class="top">
+  <div>
+    <div class="empresa">${tn}</div>
+    <div class="titulo">Recibo de pago N° ${pago.numero}</div>
+    <div class="datos"><strong>Obra:</strong> ${obraNombre || ''}${obraUbicacion ? ' &nbsp;·&nbsp; <strong>Ubicación:</strong> ' + obraUbicacion : ''}</div>
+  </div>
+  <div class="meta">
+    <div>${localidadYFecha(hoyStr)}</div>
+    <div>Fecha del pago: ${new Date(pago.fecha + 'T12:00:00').toLocaleDateString('es-AR')}</div>
+  </div>
+</div>
+<div class="monto-box">
+  <div class="monto-lbl">Recibí la suma de</div>
+  <div class="monto-val">${fmt(pago.monto)}</div>
+</div>
+<div class="linea"><span><b>En concepto de</b></span><span>${pago.concepto || '—'}</span></div>
+<div class="linea"><span><b>Forma de pago</b></span><span style="text-transform:capitalize">${pago.medio_pago || '—'}</span></div>
+${pago.observaciones ? `<div class="linea"><span><b>Observaciones</b></span><span>${pago.observaciones}</span></div>` : ''}
+<div class="firmas">
+  <div class="firma"><div>Firma dirección de obra</div></div>
+  <div class="firma"><div>Firma comitente</div></div>
+</div>
+<footer><span>${tn} — Recibo N° ${pago.numero} — ${hoyStr}</span><span>${obraNombre || ''}</span></footer>
+</body></html>`;
+    imprimirHTML(html, { titulo: 'Recibo de pago', esperar: 600 });
+  };
+
+  const imprimirResumen = () => {
+    const tn = getTenantNombre();
+    const hoyStr = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const filas = pagos.map(p => `<tr><td>${p.numero}</td><td>${new Date(p.fecha + 'T12:00:00').toLocaleDateString('es-AR')}</td><td>${p.concepto || '—'}</td><td style="text-transform:capitalize">${p.medio_pago || '—'}</td><td class="n">${fmt(p.monto)}</td></tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Resumen de cuenta</title>
+<style>
+html,body{background:#fff;color:#111;font-family:Arial,sans-serif;font-size:10pt;margin:0;padding:20px 28px}
+.top{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px}
+.empresa{font-size:18pt;font-weight:900}
+.titulo{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#444;margin-top:2px}
+.datos{font-size:8.5pt;color:#555;margin-top:5px;line-height:1.5}
+.meta{font-size:8.5pt;color:#555;text-align:right;line-height:1.7}
+table{width:100%;border-collapse:collapse;margin-bottom:14px}
+th{background:#1a1a1a;color:#fff;padding:5px 8px;font-size:7.5pt;text-transform:uppercase;letter-spacing:.8px;text-align:left}
+td{padding:5px 8px;border-bottom:1px solid #e5e5e5;font-size:9pt;color:#111}
+tr:nth-child(even) td{background:#f9f9f9}
+.n{text-align:right;font-family:'Courier New',monospace}
+.res{border:1.5px solid #111;margin-bottom:20px}
+.res-h{background:#1a1a1a;color:#fff;padding:5px 10px;font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.res-b{display:flex}
+.blk{flex:1;padding:8px 10px;border-right:1px solid #ddd;text-align:center;background:#fff}
+.blk:last-child{border-right:none}
+.lbl{font-size:7pt;text-transform:uppercase;letter-spacing:.8px;color:#666;margin-bottom:3px}
+.val{font-size:13pt;font-weight:900;font-family:'Courier New',monospace;color:#111}
+footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;justify-content:space-between;font-size:8pt;color:#888}
+</style></head><body>
+<div class="top">
+  <div>
+    <div class="empresa">${tn}</div>
+    <div class="titulo">Resumen de cuenta</div>
+    <div class="datos"><strong>Obra:</strong> ${obraNombre || ''}${obraUbicacion ? ' &nbsp;·&nbsp; <strong>Ubicación:</strong> ' + obraUbicacion : ''}</div>
+  </div>
+  <div class="meta"><div>${localidadYFecha(hoyStr)}</div></div>
+</div>
+<div class="res">
+  <div class="res-h">Estado de cuenta</div>
+  <div class="res-b">
+    <div class="blk"><div class="lbl">Total presupuesto</div><div class="val">${fmt(resumen?.total_presupuesto)}</div></div>
+    <div class="blk"><div class="lbl">Facturado a la fecha</div><div class="val">${fmt(resumen?.total_certificado)}</div></div>
+    <div class="blk"><div class="lbl">Cobrado</div><div class="val">${fmt(resumen?.total_cobrado)}</div></div>
+    <div class="blk"><div class="lbl">Saldo pendiente</div><div class="val" style="color:${(resumen?.saldo_pendiente_cobro || 0) > 0 ? '#b91c1c' : '#059669'}">${fmt(resumen?.saldo_pendiente_cobro)}</div></div>
+  </div>
+</div>
+<table><thead><tr><th>N°</th><th>Fecha</th><th>Concepto</th><th>Medio</th><th class="n">Monto</th></tr></thead>
+<tbody>${filas}
+<tr style="background:#f0f0f0;font-weight:700"><td colspan="4">Total cobrado</td><td class="n">${fmt(resumen?.total_cobrado)}</td></tr>
+</tbody></table>
+<footer><span>${tn} — Resumen de cuenta — ${hoyStr}</span><span>${obraNombre || ''}</span></footer>
+</body></html>`;
+    imprimirHTML(html, { titulo: 'Resumen de cuenta' });
+  };
+
+  if (!resumen) return null;
+
+  return (
+    <div className="card" style={{ marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: abierto ? 14 : 0, cursor: 'pointer' }} onClick={() => setAbierto(a => !a)}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>💵 Pagos y cuenta corriente</div>
+        <span style={{ color: 'var(--muted)' }}>{abierto ? '▼' : '▶'}</span>
+      </div>
+      {abierto && (
+        <>
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Facturado</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 700, color: 'var(--warn)' }}>{fmt(resumen.total_certificado)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Cobrado</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 700, color: 'var(--accent)' }}>{fmt(resumen.total_cobrado)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Saldo pendiente</div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 700, color: resumen.saldo_pendiente_cobro > 0 ? 'var(--danger)' : 'var(--accent)' }}>{fmt(resumen.saldo_pendiente_cobro)}</div>
+            </div>
+            <button className="btn btn-secondary btn-sm" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }} onClick={imprimirResumen}>
+              <Printer size={12} strokeWidth={1.5} /> Resumen de cuenta
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14, alignItems: 'flex-end' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: 10 }}>Fecha</label>
+              <input className="input" type="date" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} style={{ width: 130 }} />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: 10 }}>Monto</label>
+              <input className="input" type="number" min="0" step="0.01" value={form.monto} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} placeholder="0" style={{ width: 120 }} />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ fontSize: 10 }}>Medio</label>
+              <select className="input" value={form.medio_pago} onChange={e => setForm(f => ({ ...f, medio_pago: e.target.value }))} style={{ width: 130 }}>
+                <option value="transferencia">Transferencia</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="cheque">Cheque</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: 140 }}>
+              <label style={{ fontSize: 10 }}>Concepto</label>
+              <input className="input" value={form.concepto} onChange={e => setForm(f => ({ ...f, concepto: e.target.value }))} placeholder="Ej: Certificado N° 2" />
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={registrarPago} disabled={guardando || !form.monto}>
+              {guardando ? '...' : '+ Registrar pago'}
+            </button>
+          </div>
+
+          {pagos.length === 0 ? (
+            <div style={{ fontSize: 12, color: 'var(--muted)', padding: '8px 0' }}>Todavía no se registró ningún pago.</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: 'var(--surface2)' }}>
+                  {['N°', 'Fecha', 'Concepto', 'Medio', 'Monto', ''].map(h => (
+                    <th key={h} style={{ padding: '6px 10px', textAlign: h === 'Monto' ? 'right' : 'left', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pagos.map(p => (
+                  <tr key={p.id} style={{ borderBottom: '1px solid var(--border2)' }}>
+                    <td style={{ padding: '6px 10px', fontSize: 12, fontFamily: 'var(--mono)' }}>{p.numero}</td>
+                    <td style={{ padding: '6px 10px', fontSize: 12 }}>{new Date(p.fecha + 'T12:00:00').toLocaleDateString('es-AR')}</td>
+                    <td style={{ padding: '6px 10px', fontSize: 12 }}>{p.concepto || '—'}</td>
+                    <td style={{ padding: '6px 10px', fontSize: 12, color: 'var(--muted)', textTransform: 'capitalize' }}>{p.medio_pago || '—'}</td>
+                    <td style={{ padding: '6px 10px', fontSize: 12, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--accent)', textAlign: 'right' }}>{fmt(p.monto)}</td>
+                    <td style={{ padding: '6px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => imprimirRecibo(p)} title="Imprimir recibo"><Printer size={11} strokeWidth={1.5} /></button>
+                      <button onClick={() => eliminarPago(p.id)} title="Eliminar"
+                        style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', marginLeft: 6 }}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}>
+                        <Trash2 size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function Certificado() {
   const { id } = useParams();
@@ -541,6 +789,8 @@ ${certEg ? `
               </>
             )}
           </div>
+
+          <PagosCuenta presupuestoId={id} obraNombre={presupuesto?.nombre_obra} obraUbicacion={presupuesto?.ubicacion} />
 
           {certificados.length === 0 ? (
             <div className="empty"><h3>Sin certificados aún</h3><p>Creá el primer certificado de avance</p></div>
