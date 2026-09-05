@@ -89,7 +89,8 @@ export const actualizarPresupuesto = (id, data) => api.put(`/presupuestos/${id}`
 export const cerrarPresupuesto = (id, metodologia) =>
   api.post(`/presupuestos/${id}/cerrar`, metodologia ? { metodologia } : {});
 export const reabrirPresupuesto = (id) => api.post(`/presupuestos/${id}/reabrir`);
-export const duplicarPresupuesto = (id, nombre) => api.post(`/presupuestos/${id}/duplicar`, null, { params: { nuevo_nombre: nombre } });
+export const duplicarPresupuesto = (id, nombre, clienteId) => api.post(`/presupuestos/${id}/duplicar`, null,
+  { params: { nuevo_nombre: nombre || undefined, cliente_id: clienteId || undefined } });
 
 // LÍNEAS
 export const agregarLinea = (pid, data) => api.post(`/presupuestos/${pid}/lineas`, data);

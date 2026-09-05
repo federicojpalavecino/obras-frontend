@@ -145,10 +145,21 @@ export default function Menu() {
     } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
   };
 
-  const handleDuplicar = async (pid, e) => {
+  const [modalDuplicar, setModalDuplicar] = useState(null); // { pid, nombre_obra, cliente_id }
+
+  const abrirDuplicar = (p, e) => {
     e.stopPropagation();
+    setModalDuplicar({ pid: p.id, nombre_obra: p.nombre_obra + ' (copia)', cliente_id: p.cliente_id || '' });
+  };
+
+  const handleDuplicar = async () => {
+    if (!modalDuplicar) return;
     try {
-      const res = await duplicarPresupuesto(pid);
+      const res = await duplicarPresupuesto(
+        modalDuplicar.pid, modalDuplicar.nombre_obra.trim(),
+        modalDuplicar.cliente_id ? parseInt(modalDuplicar.cliente_id) : null,
+      );
+      setModalDuplicar(null);
       cargar();
       navigate(`/cotizador/presupuesto/${res.data.id}`);
     } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
@@ -398,7 +409,7 @@ export default function Menu() {
                           <button className="btn btn-secondary btn-sm" onClick={e => handleRenombrar(p, e)} title="Renombrar">
                             <Edit2 size={13} />
                           </button>
-                          <button className="btn btn-secondary btn-sm" onClick={e => handleDuplicar(p.id, e)} title="Duplicar">
+                          <button className="btn btn-secondary btn-sm" onClick={e => abrirDuplicar(p, e)} title="Duplicar">
                             <Copy size={13} />
                           </button>
                           <button className="btn btn-danger btn-sm"
@@ -520,6 +531,36 @@ export default function Menu() {
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setModalPresupuesto(false)}>Cancelar</button>
               <button className="btn btn-primary" onClick={handleCrearPresupuesto}>Crear presupuesto</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalDuplicar && (
+        <div className="modal-overlay" onClick={() => setModalDuplicar(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>Duplicar presupuesto</h2>
+            <div className="form-group">
+              <label>Nombre de la copia</label>
+              <input className="input" autoFocus value={modalDuplicar.nombre_obra}
+                onChange={e => setModalDuplicar(m => ({ ...m, nombre_obra: e.target.value }))} />
+            </div>
+            <div className="form-group">
+              <label>Cliente</label>
+              <select className="input" value={modalDuplicar.cliente_id}
+                onChange={e => setModalDuplicar(m => ({ ...m, cliente_id: e.target.value }))}>
+                <option value="">Sin cliente</option>
+                {menu.filter(c => c.id !== 'sin_cliente').map(c => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                ))}
+              </select>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                Por defecto queda para el mismo cliente — elegí otro para copiarlo entre clientes.
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setModalDuplicar(null)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={handleDuplicar} disabled={!modalDuplicar.nombre_obra.trim()}>Duplicar</button>
             </div>
           </div>
         </div>
