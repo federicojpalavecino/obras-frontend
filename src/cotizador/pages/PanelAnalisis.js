@@ -447,6 +447,11 @@ function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, camp
                     </div>
                   )
                 )}
+                {l.desperdicio > 0 && (
+                  <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 1 }}>
+                    Compra: {(Number(l.val1) * (1 + Number(l.desperdicio) / 100)).toLocaleString('es-AR', { maximumFractionDigits: 3 })}{l.unidad ? ' ' + l.unidad : ''}
+                  </div>
+                )}
               </td>
               {/* Campo 1 (cantidad/horas) */}
               <td style={{ padding: '5px 4px', textAlign: 'right', width: 70 }}>
