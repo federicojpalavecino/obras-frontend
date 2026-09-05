@@ -242,7 +242,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                 lineas={data.lineas_mat.map(l => ({
                   id: l.id,
                   nombre: l.nombre, sub: l.codigo,
-                  val1: l.cantidad, label1: 'Cant',
+                  val1: l.cantidad, label1: 'Cant', unidad: l.unidad,
                   val2: l.precio_unitario, label2: 'P.Unit',
                   val2_manual: l.precio_manual,
                   desperdicio: l.desperdicio_pct || 0,
@@ -463,6 +463,7 @@ function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, camp
                     onClick={() => { setEditando({ id: l.id, campo: campo1 }); setEditVal(l.val1); }}
                     title={`Editar ${l.label1}`}>
                     {l.val1}
+                    {l.unidad && <span style={{ fontSize: 9, color: 'var(--muted)', marginLeft: 3 }}>{l.unidad}</span>}
                   </span>
                 )}
               </td>
