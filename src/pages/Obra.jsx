@@ -555,6 +555,148 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
     imprimirHTML(html, { titulo: "Obra" });
   };
 
+  // Cómo nombrar un cobro que no diga simplemente "transferencia": a qué
+  // corresponde. Un cobro puede venir de una etapa pactada, de un
+  // certificado, ser un anticipo, o no estar atado a nada en particular.
+  const conceptoDeCobro = (c) => {
+    if (c.es_anticipo) return "Anticipo / adelanto";
+    if (c.desembolso_id) {
+      const d = desembolsos.find(x => x.id === c.desembolso_id);
+      return d ? `Etapa ${d.numero}${d.descripcion ? ' — ' + d.descripcion : ''}` : "Etapa pactada";
+    }
+    if (c.certificado_id) {
+      const cert = certificados.find(x => x.id === c.certificado_id);
+      return cert ? `Certificado Nº ${cert.numero}` : "Certificado de avance";
+    }
+    return c.nota || "Pago a cuenta";
+  };
+
+  const imprimirRecibo = (c) => {
+    const tenant = presupuesto?.tenant || {};
+    const cliente = presupuesto?.cliente || {};
+    const hoy = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Recibo — ${presupuesto?.nombre_obra}</title>
+<style>
+  body { font-family: 'Georgia', serif; color: #1a1a2e; padding: 48px; font-size: 13px; line-height: 1.8; }
+  h1 { font-size: 20px; text-align: center; margin-bottom: 4px; letter-spacing: 1px; }
+  .subtitle { text-align: center; color: #6b7280; font-size: 12px; margin-bottom: 36px; }
+  .header { display: flex; justify-content: space-between; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid #059669; }
+  .logo { font-size: 18px; font-weight: 900; color: #059669; }
+  .section { margin-bottom: 20px; }
+  .section h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #059669; margin-bottom: 8px; border-bottom: 1px solid #e0e0e8; padding-bottom: 4px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .field { margin-bottom: 8px; }
+  .label { font-size: 10px; text-transform: uppercase; color: #6b7280; letter-spacing: 1px; }
+  .value { font-size: 13px; font-weight: 600; }
+  .monto-box { border: 2.5px solid #1a1a2e; border-radius: 8px; padding: 24px; margin: 28px 0; text-align: center; }
+  .monto-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 8px; }
+  .monto-val { font-size: 30px; font-weight: 900; color: #059669; }
+  .firma { margin-top: 80px; display: flex; justify-content: space-around; }
+  .firma-box { text-align: center; width: 200px; }
+  .firma-line { border-top: 1px solid #1a1a2e; margin-bottom: 6px; }
+  @media print { body { padding: 24px; } }
+</style></head><body>
+<div class="header">
+  <div><div class="logo">${tenant.nombre || "FAIM OBRAS"}</div><div style="font-size:11px;color:#6b7280;margin-top:4px">${tenant.cuit ? `CUIT: ${tenant.cuit}` : ""}</div></div>
+  <div style="text-align:right;font-size:11px;color:#6b7280">${hoy}</div>
+</div>
+<h1>RECIBO DE PAGO</h1>
+<div class="subtitle">${presupuesto?.nombre_obra}</div>
+
+<div class="section">
+  <div class="grid">
+    <div class="field"><div class="label">Recibido de</div><div class="value">${cliente.nombre || "—"}</div></div>
+    <div class="field"><div class="label">Fecha del pago</div><div class="value">${c.fecha ? new Date(c.fecha + "T12:00:00").toLocaleDateString("es-AR") : "—"}</div></div>
+  </div>
+</div>
+
+<div class="monto-box">
+  <div class="monto-lbl">Recibí la suma de</div>
+  <div class="monto-val">${fmt(c.monto)}</div>
+</div>
+
+<div class="section">
+  <div class="field"><div class="label">En concepto de</div><div class="value">${conceptoDeCobro(c)}</div></div>
+  <div class="field"><div class="label">Forma de pago</div><div class="value" style="text-transform:capitalize">${c.forma_pago || "—"}</div></div>
+  ${c.referencia ? `<div class="field"><div class="label">Referencia</div><div class="value">${c.referencia}</div></div>` : ""}
+</div>
+
+<div class="firma">
+  <div class="firma-box"><div class="firma-line"></div><div>${tenant.nombre || "Profesional"}</div><div style="font-size:11px;color:#6b7280">Firma y aclaración</div></div>
+  <div class="firma-box"><div class="firma-line"></div><div>${cliente.nombre || "Comitente"}</div><div style="font-size:11px;color:#6b7280">Firma y aclaración</div></div>
+</div>
+
+<div style="text-align:center;margin-top:60px;font-size:10px;color:#9ca3af">
+  Emitido con FAIM OBRAS · ${hoy}
+</div>
+</body></html>`;
+    imprimirHTML(html, { titulo: "Recibo" });
+  };
+
+  const imprimirResumenCuenta = () => {
+    const tenant = presupuesto?.tenant || {};
+    const cliente = presupuesto?.cliente || {};
+    const hoy = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+    const rotulo = porDesembolsos ? "Desembolsos devengados" : "Certificado acumulado";
+    const filas = cobros.map(c => `<tr>
+      <td>${c.fecha ? new Date(c.fecha + "T12:00:00").toLocaleDateString("es-AR") : "—"}</td>
+      <td>${conceptoDeCobro(c)}</td>
+      <td style="text-transform:capitalize">${c.forma_pago || "—"}</td>
+      <td class="n">${fmt(c.monto)}</td>
+    </tr>`).join("");
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Resumen de cuenta — ${presupuesto?.nombre_obra}</title>
+<style>
+  body { font-family: 'Georgia', serif; color: #1a1a2e; padding: 48px; font-size: 13px; line-height: 1.8; }
+  h1 { font-size: 20px; text-align: center; margin-bottom: 4px; letter-spacing: 1px; }
+  .subtitle { text-align: center; color: #6b7280; font-size: 12px; margin-bottom: 36px; }
+  .header { display: flex; justify-content: space-between; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid #059669; }
+  .logo { font-size: 18px; font-weight: 900; color: #059669; }
+  .res { border: 1.5px solid #1a1a2e; border-radius: 8px; overflow: hidden; margin-bottom: 28px; }
+  .res-h { background: #1a1a2e; color: #fff; padding: 6px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .res-b { display: flex; flex-wrap: wrap; }
+  .blk { flex: 1; min-width: 140px; padding: 14px 16px; border-right: 1px solid #e0e0e8; text-align: center; }
+  .blk:last-child { border-right: none; }
+  .lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 5px; }
+  .val { font-size: 17px; font-weight: 900; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; padding: 6px 8px; text-align: left; border-bottom: 1px solid #e0e0e8; }
+  td { padding: 6px 8px; font-size: 12px; border-bottom: 1px solid #f1f3f5; }
+  .n { text-align: right; font-family: 'Courier New', monospace; }
+  @media print { body { padding: 24px; } }
+</style></head><body>
+<div class="header">
+  <div><div class="logo">${tenant.nombre || "FAIM OBRAS"}</div><div style="font-size:11px;color:#6b7280;margin-top:4px">${tenant.cuit ? `CUIT: ${tenant.cuit}` : ""}</div></div>
+  <div style="text-align:right;font-size:11px;color:#6b7280">${hoy}</div>
+</div>
+<h1>RESUMEN DE CUENTA</h1>
+<div class="subtitle">${presupuesto?.nombre_obra}${cliente.nombre ? " — " + cliente.nombre : ""}</div>
+
+<div class="res">
+  <div class="res-h">Estado de cuenta</div>
+  <div class="res-b">
+    <div class="blk"><div class="lbl">Total presupuesto</div><div class="val">${fmt(total_pres)}</div></div>
+    <div class="blk"><div class="lbl">${rotulo}</div><div class="val" style="color:#7c3aed">${fmt(cc.total_devengado ?? cc.total_certificado)}</div></div>
+    <div class="blk"><div class="lbl">Cobrado</div><div class="val" style="color:#059669">${fmt(cc.total_cobrado)}</div></div>
+    <div class="blk"><div class="lbl">${aFavor > 0 ? "A favor del cliente" : "Saldo pendiente"}</div><div class="val" style="color:${aFavor > 0 ? '#7c3aed' : ((cc.saldo_pendiente || 0) > 0 ? '#ef4444' : '#059669')}">${fmt(aFavor > 0 ? aFavor : cc.saldo_pendiente)}</div></div>
+  </div>
+</div>
+
+<table>
+  <thead><tr><th>Fecha</th><th>Concepto</th><th>Forma de pago</th><th style="text-align:right">Monto</th></tr></thead>
+  <tbody>${filas}
+    <tr style="font-weight:700;background:#f8f9fa"><td colspan="3">Total cobrado</td><td class="n">${fmt(cc.total_cobrado)}</td></tr>
+  </tbody>
+</table>
+
+<div style="text-align:center;margin-top:60px;font-size:10px;color:#9ca3af">
+  Emitido con FAIM OBRAS · ${hoy}
+</div>
+</body></html>`;
+    imprimirHTML(html, { titulo: "Resumen de cuenta" });
+  };
+
   if (loading) return (
     <div style={{ minHeight: "100dvh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Syne',sans-serif", color: C.muted }}>
       Cargando...
@@ -671,6 +813,12 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
         {/* ── RESUMEN ── */}
         {tab === "resumen" && (
           <div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+              <button onClick={imprimirResumenCuenta}
+                style={{ ...btn(C.surface2), color: C.text, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 5 }}>
+                <Printer size={13} strokeWidth={1.5} /> Imprimir resumen de cuenta
+              </button>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 24 }}>
               {[
                 ["Presupuesto", total_pres, C.text],
@@ -1055,7 +1203,13 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                   Cobrado: {fmt(cc.total_cobrado || 0)} · Saldo: {fmt(cc.saldo_pendiente || 0)}
                 </div>
               </div>
-              <button onClick={() => setShowCobro(true)} style={btn(C.green)}>+ Registrar cobro</button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={imprimirResumenCuenta}
+                  style={{ ...btn(C.surface2), color: C.text, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 5 }}>
+                  <Printer size={13} strokeWidth={1.5} /> Resumen de cuenta
+                </button>
+                <button onClick={() => setShowCobro(true)} style={btn(C.green)}>+ Registrar cobro</button>
+              </div>
             </div>
             {cobros.length === 0 ? (
               <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 40, textAlign: "center", color: C.muted }}>
@@ -1067,10 +1221,14 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                   <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 16px", borderBottom: i < cobros.length - 1 ? `1px solid ${C.border2}` : "none" }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{c.forma_pago}</div>
-                      <div style={{ fontSize: 12, color: C.muted }}>{c.fecha} {c.referencia ? `· Ref: ${c.referencia}` : ""} {c.nota ? `· ${c.nota}` : ""}</div>
+                      <div style={{ fontSize: 12, color: C.muted }}>{c.fecha} · {conceptoDeCobro(c)}{c.referencia ? ` · Ref: ${c.referencia}` : ""}</div>
                       {c.creado_por_nombre && <div style={{ fontSize: 11, color: C.muted2 }}>Registró: {c.creado_por_nombre}</div>}
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 800, color: C.green, fontFamily: "'IBM Plex Mono',monospace" }}>{fmt(c.monto)}</div>
+                    <button onClick={() => imprimirRecibo(c)} title="Imprimir recibo"
+                      style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, cursor: "pointer", padding: "4px 8px", display: "flex", alignItems: "center" }}>
+                      <Printer size={13} strokeWidth={1.5} />
+                    </button>
                     <button onClick={() => eliminarCobro(c.id)} style={{ background: "none", border: `1px solid rgba(239,68,68,.3)`, borderRadius: 6, color: C.red, cursor: "pointer", padding: "4px 10px", fontSize: 13 }}>×</button>
                   </div>
                 ))}
