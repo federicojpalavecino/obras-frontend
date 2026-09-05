@@ -90,10 +90,14 @@ export default function AnalisisCostos() {
   const handleCrearItem = async () => {
     if (!nuevoItem.codigo || !nuevoItem.nombre || !nuevoItem.categoria_id) return;
     try {
-      await api.post('/analisis/items', { ...nuevoItem, categoria_id: parseInt(nuevoItem.categoria_id) });
+      const res = await api.post('/analisis/items', { ...nuevoItem, categoria_id: parseInt(nuevoItem.categoria_id) });
       setModalNuevoItem(false);
       setNuevoItem({ codigo: '', nombre: '', categoria_id: '', unidad_ejecucion: '' });
-      cargar();
+      await cargar();
+      // Lo abre de una: recien creado no tiene materiales ni MO, y para
+      // cargarlos (o borrar una linea que se puso de mas) hay que estar
+      // parado en su detalle.
+      if (res.data?.id) verDetalle({ id: res.data.id });
     } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
   };
 
@@ -102,6 +106,15 @@ export default function AnalisisCostos() {
     if (!nuevoCodigo) return;
     try {
       await api.post(`/analisis/items/${item.id}/duplicar?nuevo_codigo=${encodeURIComponent(nuevoCodigo)}`);
+      cargar();
+    } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
+  };
+
+  const handleEliminarItem = async (item) => {
+    if (!window.confirm(`¿Eliminar "${item.nombre}" del catálogo? Los presupuestos que ya lo usan no se ven afectados.`)) return;
+    try {
+      await api.delete(`/analisis/items/${item.id}`);
+      if (itemDetalle?.id === item.id) setItemDetalle(null);
       cargar();
     } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
   };
@@ -281,6 +294,14 @@ export default function AnalisisCostos() {
                           onClick={e => { e.stopPropagation(); handleDuplicar(item); }} title="Duplicar">
                           <Copy size={11} />
                         </button>
+                        {item.es_propio && (
+                          <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: '2px 4px', fontSize: 11 }}
+                            onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
+                            onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}
+                            onClick={e => { e.stopPropagation(); handleEliminarItem(item); }} title="Eliminar ítem">
+                            <Trash2 size={11} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
