@@ -14,6 +14,10 @@ function useIsMobile(bp = 820) {
 
 const fmt = (n) => n ? '$ ' + Math.round(n).toLocaleString('es-AR') : '$ 0';
 const fmtD = (n) => n ? '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+// Mismo criterio que en el panel del presupuesto: si el material tiene
+// presentación cargada, mostrar cuánto de la unidad de cálculo entra en la de venta.
+const equivalenciaVenta = (m) => (m?.presentacion && m?.cant_presentacion > 0)
+  ? ` · ${m.cant_presentacion} ${m.unidad || ''} = 1 ${m.presentacion}` : '';
 
 export default function AnalisisCostos() {
   const navigate = useNavigate();
@@ -378,7 +382,7 @@ export default function AnalisisCostos() {
                     <select className="input" style={{ flex: 2 }} value={addMat.material_id}
                       onChange={e => setAddMat(p => ({ ...p, material_id: e.target.value }))}>
                       <option value="">Seleccionar material...</option>
-                      {materiales.map(m => <option key={m.id} value={m.id}>{m.codigo} — {m.nombre} ({m.unidad})</option>)}
+                      {materiales.map(m => <option key={m.id} value={m.id}>{m.codigo} — {m.nombre} ({m.unidad}){equivalenciaVenta(m)}</option>)}
                     </select>
                     <input type="number" min="0" step="0.001" className="input input-mono" style={{ width: 90 }}
                       placeholder="Cant." value={addMat.cantidad}

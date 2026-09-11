@@ -18,6 +18,7 @@ function useIsMobile(bp = 720) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n) => "$" + Math.round(n || 0).toLocaleString("es-AR");
+const hoyISO = () => new Date().toISOString().slice(0, 10);
 const fmtShort = (n) => {
   const v = Math.abs(Math.round(n || 0));
   if (v >= 1000000) return (n < 0 ? "-" : "") + "$" + (v / 1000000).toFixed(1) + "M";
@@ -195,17 +196,17 @@ function imprimirPeriodo(period, calc, tipo, tenant) {
 
 <section>
   <h3>Ingresos</h3>
-  ${period.ingresos?.length ? `<table><thead><tr><th>Concepto</th><th>Estado</th><th>Obra</th><th style="text-align:right">Monto</th></tr></thead><tbody>
-    ${(period.ingresos || []).map(r => `<tr><td>${r.concepto||""}</td><td>${r.estado||""}</td><td>${r.obra||r.cliente||""}</td><td style="text-align:right;font-weight:600">${fmt(r.monto)}</td></tr>`).join("")}
-    <tr class="total-row"><td colspan="3">Total ingresos</td><td style="text-align:right">${fmt(calc.totalIng)}</td></tr>
+  ${period.ingresos?.length ? `<table><thead><tr><th>Concepto</th><th>Fecha</th><th>Estado</th><th>Obra</th><th style="text-align:right">Monto</th></tr></thead><tbody>
+    ${(period.ingresos || []).map(r => `<tr><td>${r.concepto||""}</td><td>${r.fecha||""}</td><td>${r.estado||""}</td><td>${r.obra||r.cliente||""}</td><td style="text-align:right;font-weight:600">${fmt(r.monto)}</td></tr>`).join("")}
+    <tr class="total-row"><td colspan="4">Total ingresos</td><td style="text-align:right">${fmt(calc.totalIng)}</td></tr>
   </tbody></table>` : `<div class="empty">Sin ingresos</div>`}
 </section>
 
 <section>
   <h3>Egresos</h3>
-  ${period.egresos?.length ? `<table><thead><tr><th>Concepto</th><th>Estado</th><th>Obra</th><th style="text-align:right">Monto</th></tr></thead><tbody>
-    ${(period.egresos || []).map(r => `<tr><td>${r.concepto||""}</td><td>${r.estado||""}</td><td>${r.obra||""}</td><td style="text-align:right;font-weight:600">${fmt(r.monto)}</td></tr>`).join("")}
-    <tr class="total-row"><td colspan="3">Total egresos</td><td style="text-align:right">${fmt(calc.totalEg)}</td></tr>
+  ${period.egresos?.length ? `<table><thead><tr><th>Concepto</th><th>Fecha</th><th>Estado</th><th>Obra</th><th style="text-align:right">Monto</th></tr></thead><tbody>
+    ${(period.egresos || []).map(r => `<tr><td>${r.concepto||""}</td><td>${r.fecha||""}</td><td>${r.estado||""}</td><td>${r.obra||""}</td><td style="text-align:right;font-weight:600">${fmt(r.monto)}</td></tr>`).join("")}
+    <tr class="total-row"><td colspan="4">Total egresos</td><td style="text-align:right">${fmt(calc.totalEg)}</td></tr>
   </tbody></table>` : `<div class="empty">Sin egresos</div>`}
 </section>
 
@@ -245,7 +246,7 @@ export default function ControlFinanciero({ user }) {
   // Mobile: grid de 2 columnas. Concepto/nombre ocupan toda la fila arriba, el resto fluye de a 2.
   const mobileRow = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 12, alignItems: "center", paddingBottom: 12, borderBottom: "1px dashed var(--border, #e0e0e8)" };
   const rowGrid = isMobile ? mobileRow
-    : { display: "grid", gridTemplateColumns: "2.2fr 120px 110px 1.1fr 0.9fr auto", gap: 5, marginBottom: 5, alignItems: "center" };
+    : { display: "grid", gridTemplateColumns: "2fr 128px 120px 110px 1.1fr 0.9fr auto", gap: 5, marginBottom: 5, alignItems: "center" };
   const personalGrid = isMobile ? mobileRow
     : { display: "grid", gridTemplateColumns: "1.5fr 1fr 60px 60px 120px 100px auto", gap: 5, marginBottom: 5, alignItems: "center" };
   const herramGrid = isMobile ? mobileRow
@@ -457,11 +458,11 @@ export default function ControlFinanciero({ user }) {
     setRango({ desde: `${a}-01-01`, hasta: `${a}-12-31` }); };
   const rangoTodo = () => setRango({ desde: '', hasta: '' });
 
-  const addIngreso = () => setWeek(w => { const nw = { ...w, ingresos: [...w.ingresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", cliente: "" , usuario: usuarioActual }] }; programarGuardado(nw, 300); return nw; });
+  const addIngreso = () => setWeek(w => { const nw = { ...w, ingresos: [...w.ingresos, { concepto: "", monto: "", fecha: hoyISO(), estado: "PENDIENTE", obra: "", cliente: "" , usuario: usuarioActual }] }; programarGuardado(nw, 300); return nw; });
   const updIngreso = (i, f, v) => setWeek(w => { const a = [...w.ingresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, ingresos: a }; programarGuardado(nw); return nw; });
   const delIngreso = (i) => { const nw = { ...week, ingresos: week.ingresos.filter((_, j) => j !== i) }; setWeek(nw); programarGuardado(nw, 300); };
 
-  const addEgreso = () => setWeek(w => { const nw = { ...w, egresos: [...w.egresos, { concepto: "", monto: "", estado: "PENDIENTE", obra: "", presupuesto_id: null , usuario: usuarioActual }] }; programarGuardado(nw, 300); return nw; });
+  const addEgreso = () => setWeek(w => { const nw = { ...w, egresos: [...w.egresos, { concepto: "", monto: "", fecha: hoyISO(), estado: "PENDIENTE", obra: "", presupuesto_id: null , usuario: usuarioActual }] }; programarGuardado(nw, 300); return nw; });
   const updEgreso = (i, f, v) => setWeek(w => { const a = [...w.egresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, egresos: a }; programarGuardado(nw); return nw; });
   const delEgreso = (i) => { const nw = { ...week, egresos: week.egresos.filter((_, j) => j !== i) }; setWeek(nw); programarGuardado(nw, 300); };
 
@@ -771,6 +772,8 @@ export default function ControlFinanciero({ user }) {
                   <input style={{ ...inp, ...conceptoSpan, ...(row.origen === "obra" ? { background: "var(--surface2)" } : {}) }}
                     placeholder="Concepto" value={row.concepto || ""} readOnly={row.origen === "obra"}
                     onChange={e => updIngreso(i, "concepto", e.target.value)} />
+                  <input type="date" style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}
+                    value={row.fecha || ""} title="Fecha del ingreso" onChange={e => updIngreso(i, "fecha", e.target.value)} />
                   <NumeroInput style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} placeholder="Monto" value={row.monto || ""} onChange={v => updIngreso(i, "monto", v)} />
                   <select style={inp} value={row.estado || "PENDIENTE"} onChange={e => updIngreso(i, "estado", e.target.value)}>
                     {["PENDIENTE", "COBRADO", "EN PROCESO"].map(s => <option key={s}>{s}</option>)}
@@ -796,6 +799,8 @@ export default function ControlFinanciero({ user }) {
                   <input style={{ ...inp, ...conceptoSpan, ...(row.origen === "obra" ? { background: "var(--surface2)" } : {}) }}
                     placeholder="Concepto" value={row.concepto || ""} readOnly={row.origen === "obra"}
                     onChange={e => updEgreso(i, "concepto", e.target.value)} />
+                  <input type="date" style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}
+                    value={row.fecha || ""} title="Fecha del egreso" onChange={e => updEgreso(i, "fecha", e.target.value)} />
                   <NumeroInput style={{ ...inp, fontFamily: "'IBM Plex Mono', monospace" }} placeholder="Monto" value={row.monto || ""} onChange={v => updEgreso(i, "monto", v)} />
                   <select style={inp} value={row.estado || "PENDIENTE"} onChange={e => updEgreso(i, "estado", e.target.value)}>
                     {["PENDIENTE", "PAGADO"].map(s => <option key={s}>{s}</option>)}

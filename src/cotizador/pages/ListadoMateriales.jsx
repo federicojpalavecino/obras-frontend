@@ -42,6 +42,9 @@ export default function ListadoMateriales() {
   const [materialesExtra, setMaterialesExtra] = useState([]);
   const [cargandoCatalogo, setCargandoCatalogo] = useState(false);
   const [catalogoCompleto, setCatalogoCompleto] = useState([]);
+  const [editandoDesperdicio, setEditandoDesperdicio] = useState(null); // material_id
+  const [valorDesperdicio, setValorDesperdicio] = useState('');
+  const [guardandoDesperdicio, setGuardandoDesperdicio] = useState(false);
 
   const cargar = async () => {
     setLoading(true);
@@ -147,6 +150,23 @@ export default function ListadoMateriales() {
   };
 
   const eliminarExtra = (mid) => setMaterialesExtra(prev => prev.filter(m => m.material_id !== mid));
+
+  // Atajo del listado: pone el mismo % en todas las líneas de este material en
+  // el presupuesto, sin entrar análisis por análisis. No mueve el costo del
+  // presupuesto — solo lo que hay que comprar (ver "con_desperdicio" arriba).
+  const guardarDesperdicio = async (materialId) => {
+    const d = parseFloat(valorDesperdicio);
+    if (isNaN(d) || d < 0 || d > 100) { setEditandoDesperdicio(null); return; }
+    setGuardandoDesperdicio(true);
+    try {
+      await api.patch(`/presupuestos/${id}/materiales-listado/${materialId}/desperdicio`, { desperdicio_pct: d });
+      await cargar();
+    } catch (e) {
+      alert('No se pudo guardar el desperdicio: ' + (e.response?.data?.detail || e.message));
+    }
+    setGuardandoDesperdicio(false);
+    setEditandoDesperdicio(null);
+  };
 
   const materialesFiltrados = todosLosMateriales.filter(m => {
     const matchBusq = !busqueda || coincide(m.nombre, busqueda) || coincide(m.codigo, busqueda);
@@ -417,6 +437,7 @@ export default function ListadoMateriales() {
                       <th style={{ ...th, textAlign: 'right' }} className="col-secundaria">Unidad</th>
                       <th style={{ ...th, textAlign: 'right' }}>P. Unitario</th>
                       <th style={{ ...th, textAlign: 'right', color: 'var(--precio)' }}>Subtotal</th>
+                      <th style={{ ...th, textAlign: 'right', color: 'var(--warn)' }} className="col-secundaria" title="Lo que se pierde en obra: recortes, roturas. Se aplica a todas las líneas que usan este material.">Desperdicio</th>
                       <th style={{ ...th, textAlign: 'right', color: 'var(--accent2)' }} className="col-secundaria">Presentación</th>
                       <th style={th} className="col-secundaria">Usado en</th>
                     </tr>
@@ -438,6 +459,26 @@ export default function ListadoMateriales() {
                         <td className="col-secundaria" style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>{m.unidad || '—'}</td>
                         <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>{fmt(m.precio_unitario)}</td>
                         <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--precio)', fontWeight: 600 }}>{fmt(m.subtotal)}</td>
+                        <td className="col-secundaria" style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                          {typeof m.material_id !== 'number' ? '—' : editandoDesperdicio === m.material_id ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
+                              <input type="text" inputMode="decimal" autoFocus value={valorDesperdicio}
+                                disabled={guardandoDesperdicio}
+                                onChange={e2 => setValorDesperdicio(e2.target.value)}
+                                onKeyDown={e2 => { if (e2.key === 'Enter') guardarDesperdicio(m.material_id); if (e2.key === 'Escape') setEditandoDesperdicio(null); }}
+                                style={{ width: 40, fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'right', padding: '2px 4px', borderRadius: 4, border: '1px solid var(--accent2)', background: 'var(--surface)', color: 'var(--text)' }} />
+                              <span style={{ fontSize: 10, color: 'var(--muted)' }}>%</span>
+                              <button onClick={() => guardarDesperdicio(m.material_id)} disabled={guardandoDesperdicio}
+                                style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 11 }}>✓</button>
+                            </div>
+                          ) : (
+                            <span onClick={() => { setEditandoDesperdicio(m.material_id); setValorDesperdicio(String(m.desperdicio_pct || 0)); }}
+                              title={m.desperdicio_uniforme === false ? 'Distinto según el ítem — click para poner el mismo % en todos' : 'Click para editar'}
+                              style={{ fontFamily: 'var(--mono)', fontSize: 11, cursor: 'pointer', color: m.desperdicio_pct > 0 ? 'var(--warn)' : 'var(--border2)' }}>
+                              {m.desperdicio_pct > 0 ? `+${m.desperdicio_pct}%${m.desperdicio_uniforme === false ? '*' : ''}` : '+ %'}
+                            </span>
+                          )}
+                        </td>
                         <td className="col-secundaria" style={{ ...td, fontSize: 11, color: 'var(--accent2)' }}>
                           {calcPresentacion(m) ? (
                             <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>
@@ -456,6 +497,8 @@ export default function ListadoMateriales() {
                     <tr style={{ background: 'rgba(110,231,183,0.04)', borderTop: '1px solid var(--border)' }}>
                       <td colSpan={7} style={{ ...td, fontSize: 11, color: 'var(--muted)', textAlign: 'right', fontWeight: 600 }}>Subtotal {rubro}</td>
                       <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: 'var(--precio)' }}>{fmt(mats.reduce((a, m) => a + m.subtotal, 0))}</td>
+                      <td className="col-secundaria"></td>
+                      <td className="col-secundaria"></td>
                       <td></td>
                     </tr>
                   </tbody>

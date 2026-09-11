@@ -9,6 +9,16 @@ import MobileMenu from './MobileMenu';
 
 const fmt = (n) => n ? '$ ' + Math.round(n).toLocaleString('es-AR') : '$ 0';
 
+// FastAPI manda `detail` como string, pero en un 422 de validación es un
+// array de objetos {msg, loc...}. 'Error: ' + array lo convierte en
+// "[object Object]" — esto lo arma legible en cualquiera de los dos casos.
+const errMsg = (e) => {
+  const detail = e.response?.data?.detail;
+  if (Array.isArray(detail)) return detail.map(d => d.msg || JSON.stringify(d)).join('; ');
+  if (detail && typeof detail === 'object') return JSON.stringify(detail);
+  return detail || e.message;
+};
+
 export default function Menu() {
   const navigate = useNavigate();
   const [menu, setMenu] = useState([]);
@@ -112,7 +122,7 @@ export default function Menu() {
       setModalCliente(false);
       setFormCliente({ nombre: '', email: '', telefono: '' });
       cargar();
-    } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
+    } catch (e) { alert('Error: ' + (errMsg(e))); }
   };
 
   const handleEditarCliente = async (id) => {
@@ -120,7 +130,7 @@ export default function Menu() {
       await api.put(`/clientes/${id}`, formCliente);
       setEditandoCliente(null);
       cargar();
-    } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
+    } catch (e) { alert('Error: ' + (errMsg(e))); }
   };
 
   const handleEliminarCliente = async (cliente) => {
@@ -128,7 +138,7 @@ export default function Menu() {
     try {
       await api.delete(`/clientes/${cliente.id}`);
       cargar();
-    } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
+    } catch (e) { alert('Error: ' + (errMsg(e))); }
   };
 
   const handleCrearPresupuesto = async () => {
@@ -142,7 +152,7 @@ export default function Menu() {
       setFormPresupuesto({ nombre_obra: '', ubicacion: '', cliente_id: '', proyecto_id: '', tipo: 'obra' });
       setProyectosCliente([]);
       navigate(`/cotizador/presupuesto/${res.data.id}`);
-    } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
+    } catch (e) { alert('Error: ' + (errMsg(e))); }
   };
 
   const [modalDuplicar, setModalDuplicar] = useState(null); // { pid, nombre_obra, cliente_id }
@@ -162,7 +172,7 @@ export default function Menu() {
       setModalDuplicar(null);
       cargar();
       navigate(`/cotizador/presupuesto/${res.data.id}`);
-    } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
+    } catch (e) { alert('Error: ' + (errMsg(e))); }
   };
 
   const handleRenombrar = async (p, e) => {
@@ -174,7 +184,7 @@ export default function Menu() {
     try {
       await actualizarPresupuesto(p.id, { nombre_obra: nombre });
       cargar();
-    } catch (err) { alert('Error al renombrar: ' + (err.response?.data?.detail || err.message)); }
+    } catch (err) { alert('Error al renombrar: ' + (errMsg(err))); }
   };
 
   const handleEliminarPresupuesto = async (pid, nombre, e) => {
@@ -183,7 +193,7 @@ export default function Menu() {
     try {
       await api.delete(`/presupuestos/${pid}`);
       cargar();
-    } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
+    } catch (e) { alert('Error: ' + (errMsg(e))); }
   };
 
   const toggleCliente = (id) => setExpandidos(p => ({ ...p, [id]: !p[id] }));
@@ -352,7 +362,7 @@ export default function Menu() {
                   <span style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--muted)', display: 'none' }} className="show-desktop">
                     {cliente.presupuestos?.length || 0} presup.
                   </span>
-                  {editandoCliente !== cliente.id && (
+                  {editandoCliente !== cliente.id && cliente.id !== 'sin_cliente' && (
                     <>
                       <button className="btn btn-secondary btn-sm" onClick={e => abrirEditarCliente(cliente, e)} title="Editar cliente">
                         <Edit2 size={12} />

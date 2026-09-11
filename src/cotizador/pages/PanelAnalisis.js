@@ -7,6 +7,14 @@ import { parseNum } from '../num';
 const fmt2 = (n) => n != null ? '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
 const fmt0 = (n) => n != null ? '$ ' + Math.round(n).toLocaleString('es-AR') : '$ 0';
 
+// El material se compone en su unidad de cálculo (el hierro en kg), pero se
+// compra en la de venta (la barra). Sin esto, quien trabaja en barras tiene
+// que ir a hacer la cuenta a otro lado para saber con cuánto está trabajando.
+const equivalenciaVenta = (m) => {
+  if (!m || !m.presentacion || !m.cant_presentacion || m.cant_presentacion <= 0) return null;
+  return `${m.cant_presentacion} ${m.unidad || ''} = 1 ${m.presentacion}`;
+};
+
 export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoChange }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -246,6 +254,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                   val2: l.precio_unitario, label2: 'P.Unit',
                   val2_manual: l.precio_manual,
                   desperdicio: l.desperdicio_pct || 0,
+                  equivalencia: equivalenciaVenta(l),
                   subtotal: l.subtotal,
                 }))}
                 editando={editando} setEditando={setEditando}
@@ -278,6 +287,9 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                             <span style={{ fontFamily: 'var(--mono)', color: 'var(--muted)', marginRight: 6 }}>{m.codigo}</span>
                             {m.nombre}
                             <span style={{ float: 'right', color: 'var(--muted)', fontSize: 10 }}>{m.unidad}</span>
+                            {equivalenciaVenta(m) && (
+                              <div style={{ fontSize: 9.5, color: 'var(--accent2)', marginTop: 1 }}>{equivalenciaVenta(m)}</div>
+                            )}
                           </div>
                         ))}
                       {materiales.filter(m => coincide(m.nombre, busquedaMat) || coincide(m.codigo, busquedaMat)).length === 0 && (
@@ -451,6 +463,9 @@ function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, camp
                   <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 1 }}>
                     Compra: {(Number(l.val1) * (1 + Number(l.desperdicio) / 100)).toLocaleString('es-AR', { maximumFractionDigits: 3 })}{l.unidad ? ' ' + l.unidad : ''}
                   </div>
+                )}
+                {l.equivalencia && (
+                  <div style={{ fontSize: 9, color: 'var(--accent2)', marginTop: 1 }}>{l.equivalencia}</div>
                 )}
               </td>
               {/* Campo 1 (cantidad/horas) */}
