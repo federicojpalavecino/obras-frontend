@@ -110,15 +110,15 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
     setImportando(false);
   };
 
-  // En obra nunca rinde el 100%: se corta, se rompe, sobra recorte. El
-  // desperdicio va por material y no por ítem, porque el ladrillo no
-  // desperdicia lo mismo que el hierro, y cada estudio lo sabe por experiencia
-  // propia.
-  const guardarDesperdicio = async (matLineaId, pct) => {
+  // En obra nunca rinde el 100%: se corta, se rompe, sobra recorte. Va por
+  // ítem y no por material — "esta tabiquería tiene 8% de desperdicio" — y se
+  // aplica a todos los materiales del análisis de una sola vez. El ajuste fino
+  // por material individual sigue disponible desde el listado de materiales.
+  const guardarDesperdicioItem = async (pct) => {
     const n = parseFloat(String(pct).replace(',', '.'));
     if (isNaN(n) || n < 0 || n > 100) return;
     try {
-      await api.patch(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/material/${matLineaId}`,
+      await api.patch(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/desperdicio`,
         { desperdicio_pct: n });
       await cargar();
       onCostoChange && onCostoChange();
@@ -245,7 +245,8 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
         {loading ? <div className="loading">Cargando...</div> : data && (
           <>
             {/* MATERIALES */}
-            <Seccion titulo="1/3) Materiales" color="var(--mat)">
+            <Seccion titulo="1/3) Materiales" color="var(--mat)"
+              extra={<DesperdicioItem lineasMat={data.lineas_mat} onGuardar={guardarDesperdicioItem} />}>
               <TablaLineas
                 lineas={data.lineas_mat.map(l => ({
                   id: l.id,
@@ -260,7 +261,6 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
                 editando={editando} setEditando={setEditando}
                 onEditar={(id, campo, val) => handleEditarMat(id, campo, val)}
                 onEliminar={handleEliminarMat}
-                onDesperdicio={guardarDesperdicio}
                 campo1="cantidad" campo2="precio_manual"
               />
               <FilaAgregar>
@@ -407,18 +407,50 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
   );
 }
 
-function Seccion({ titulo, color, children }) {
+function Seccion({ titulo, color, extra, children }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color, marginBottom: 8, paddingBottom: 4, borderBottom: `1px solid ${color}40` }}>
-        {titulo}
+      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color, marginBottom: 8, paddingBottom: 4, borderBottom: `1px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>{titulo}</span>
+        {extra}
       </div>
       {children}
     </div>
   );
 }
 
-function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, campo1, campo2, onDesperdicio }) {
+// Un solo % de desperdicio para todos los materiales del ítem, no por línea.
+function DesperdicioItem({ lineasMat, onGuardar }) {
+  const [editando, setEditando] = useState(false);
+  const [val, setVal] = useState('');
+  const valores = [...new Set(lineasMat.map(l => l.desperdicio_pct || 0))];
+  const uniforme = valores.length <= 1;
+  const actual = uniforme ? (valores[0] || 0) : null;
+
+  if (lineasMat.length === 0) return null;
+
+  if (editando) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 3, textTransform: 'none', fontWeight: 400 }} onClick={e => e.stopPropagation()}>
+        <input type="text" inputMode="decimal" autoFocus value={val}
+          onChange={e => setVal(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { onGuardar(val); setEditando(false); } if (e.key === 'Escape') setEditando(false); }}
+          style={{ width: 40, fontSize: 10, textAlign: 'right', padding: '1px 4px', borderRadius: 3, border: '1px solid var(--warn)', background: 'var(--bg)', color: 'var(--text)' }} />
+        <span style={{ fontSize: 9 }}>%</span>
+        <button onClick={() => { onGuardar(val); setEditando(false); }} style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer', padding: 0 }}><Check size={10} /></button>
+      </div>
+    );
+  }
+  return (
+    <span onClick={() => { setEditando(true); setVal(String(actual ?? 0)); }}
+      title="Desperdicio del ítem: se aplica a todos sus materiales. El ajuste fino por material va en el listado de materiales."
+      style={{ textTransform: 'none', fontWeight: 400, fontSize: 10, cursor: 'pointer', color: actual > 0 ? 'var(--warn)' : 'var(--border2)' }}>
+      {uniforme ? (actual > 0 ? `Desperdicio +${actual}%` : '+ desperdicio del ítem') : 'Desperdicio: mixto — click para unificar'}
+    </span>
+  );
+}
+
+function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, campo1, campo2 }) {
   const [editVal, setEditVal] = useState('');
 
   if (lineas.length === 0)
@@ -435,30 +467,6 @@ function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, camp
               <td style={{ padding: '5px 0', fontSize: 11, lineHeight: 1.3 }}>
                 <div>{l.nombre}</div>
                 {l.sub && <div style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{l.sub}</div>}
-                {onDesperdicio && (
-                  editando?.id === l.id && editando?.campo === 'desperdicio' ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 2 }}>
-                      <span style={{ fontSize: 9, color: 'var(--muted)' }}>Desperdicio</span>
-                      <input type="text" inputMode="decimal" autoFocus value={editVal}
-                        onChange={e => setEditVal(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') { onDesperdicio(l.id, editVal); setEditando(null); } }}
-                        style={{ width: 38, background: 'var(--bg)', border: '1px solid var(--accent2)', borderRadius: 3,
-                                 padding: '1px 3px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 10, textAlign: 'right' }} />
-                      <span style={{ fontSize: 9, color: 'var(--muted)' }}>%</span>
-                      <button style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer', padding: 0 }}
-                        onClick={() => { onDesperdicio(l.id, editVal); setEditando(null); }}><Check size={10} /></button>
-                      <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 0 }}
-                        onClick={() => setEditando(null)}><X size={9} /></button>
-                    </div>
-                  ) : (
-                    <div onClick={() => { setEditando({ id: l.id, campo: 'desperdicio' }); setEditVal(String(l.desperdicio || 0)); }}
-                      title="Lo que se pierde en obra: recortes, roturas. Encarece el material sin cambiar lo que se coloca."
-                      style={{ fontSize: 9, marginTop: 1, cursor: 'pointer', display: 'inline-block',
-                               color: l.desperdicio > 0 ? 'var(--warn)' : 'var(--border2)' }}>
-                      {l.desperdicio > 0 ? `+${l.desperdicio}% desperdicio` : '+ desperdicio'}
-                    </div>
-                  )
-                )}
                 {l.desperdicio > 0 && (
                   <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 1 }}>
                     Compra: {(Number(l.val1) * (1 + Number(l.desperdicio) / 100)).toLocaleString('es-AR', { maximumFractionDigits: 3 })}{l.unidad ? ' ' + l.unidad : ''}
