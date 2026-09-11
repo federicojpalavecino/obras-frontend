@@ -941,6 +941,15 @@ ${firma}
               <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => handleImprimir('interno')}><Printer size={12} strokeWidth={1.5} /> Interno</button>
               {!esServicio && <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={imprimirComputoGeneral} title="Imprimir cómputo de cantidades">∑ Cómputo</button>}
             </div>
+            {/* El listado sale del cómputo y los análisis, que existen igual
+                con el presupuesto abierto — no hace falta cerrar para ver qué
+                comprar. Por eso vive afuera del grupo de gestión, que sí
+                depende de tener el presupuesto cerrado. */}
+            {!esServicio && (
+              <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/cotizador/presupuesto/${id}/materiales`)}>
+                <Package size={13} strokeWidth={1.5} /> Mat.
+              </button>
+            )}
             {cerrado ? (
               <>
                 {/* Gestión group */}
@@ -967,11 +976,6 @@ ${firma}
                   {!esServicio && (
                     <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => navigate(`/cotizador/presupuesto/${id}/curva`)}>
                       <TrendingUp size={13} strokeWidth={1.5} /> Curva
-                    </button>
-                  )}
-                  {!esServicio && (
-                    <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={() => navigate(`/cotizador/presupuesto/${id}/materiales`)}>
-                      <Package size={13} strokeWidth={1.5} /> Mat.
                     </button>
                   )}
                   <button style={{ borderRadius: 0, borderLeft: '2px solid var(--accent)', padding: '4px 12px', background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.3)', color: 'var(--accent)', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => navigate(`/cotizador/presupuesto/${id}/obra`)}>
@@ -1002,18 +1006,23 @@ ${firma}
                 onClick: () => { setSidebarOpen(true); setCoefsOpen(true); } },
               { label: 'Imprimir — Cliente', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('comercial') },
               { label: 'Imprimir — Interno', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('interno') },
+              // El listado sale del cómputo y los análisis, que existen con el
+              // presupuesto abierto o cerrado — no hace falta cerrar para ver
+              // qué comprar.
+              ...(!esServicio ? [
+                { label: 'Listado de materiales',icon: <Package    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/materiales`) },
+              ] : []),
               ...(cerrado ? [
                 ...(certifica ? [
                 { label: 'Certificados',        icon: <FileText    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/certificado`) },
                 ] : []),
                 ...(esServicio ? [
-                /* Un proyecto no tiene curva de inversión ni listado de
-                   materiales: no hay materiales que comprar ni desembolsos que
-                   seguir. Lo que hay es qué se entrega y cuándo se cobra. */
+                /* Un proyecto no tiene curva de inversión: no hay desembolsos
+                   de obra que seguir. Lo que hay es qué se entrega y cuándo se
+                   cobra. */
                 { label: 'Qué se entrega y cobros', icon: <Check size={18} strokeWidth={1.5} />, onClick: () => setVerEntregables(true) },
                 ] : [
                 { label: 'Curva de inversión',  icon: <TrendingUp  size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/curva`) },
-                { label: 'Listado de materiales',icon: <Package    size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/materiales`) },
                 ]),
                 { label: esServicio ? 'Plan de trabajo' : 'Gantt', icon: <BarChart2 size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/gantt/${id}`) },
                 { label: esServicio ? 'Gestión del proyecto' : 'Gestión de obra', icon: <Building2 size={18} strokeWidth={1.5} />, onClick: () => navigate(`/cotizador/presupuesto/${id}/obra`) },
