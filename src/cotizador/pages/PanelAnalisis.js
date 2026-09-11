@@ -251,8 +251,12 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
         </div>
       )}
 
-      {/* Refuerzo de mampostería — solo en ítems de pared/muro */}
-      {data && /pared|muro|mamposter/i.test(data.item_nombre || '') && (
+      {/* Refuerzo de mampostería — solo mampostería (ladrillo/HCCA/bloque), no
+          cualquier "muro" (steel frame, durlock, etc. no llevan esto). El
+          rubro es la señal más confiable; el nombre del ítem es respaldo para
+          cuando no viene categorizado. */}
+      {data && (/mamposter/i.test(linea?.categoria_nombre || '')
+        || /mamposter|ladrillo|hcca|bloque/i.test(data.item_nombre || '')) && (
         <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 600 }}>Refuerzo</div>
