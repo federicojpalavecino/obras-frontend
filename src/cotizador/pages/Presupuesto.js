@@ -7,7 +7,6 @@ import {
   getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea
 } from '../api';
 import api from '../api';
-import { catalogoSeparado } from '../tenant';
 import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check } from 'lucide-react';
 import PrintPresupuesto from './PrintPresupuesto';
 import PanelAnalisis from './PanelAnalisis';
@@ -97,8 +96,14 @@ export default function Presupuesto() {
   const [showLibreAdic, setShowLibreAdic] = useState(false);
   const [creandoAdic, setCreandoAdic] = useState(false);
   const [proyectos, setProyectos] = useState([]);
+  // Igual que en Análisis de costos: el filtro de catálogo propio/sistema solo
+  // aparece si el estudio realmente tiene ítems propios cargados.
+  const [hayPropios, setHayPropios] = useState(false);
 
   useEffect(() => { cargar(); cargarAdicionales(); }, [id]);
+  useEffect(() => {
+    getItems(null, 'propio').then(r => setHayPropios((r.data || []).length > 0)).catch(() => {});
+  }, []);
   // Los rubros dependen del catálogo elegido, y al cambiarlo se limpia el rubro
   // seleccionado: los ids de un catálogo no existen en el otro.
   useEffect(() => {
@@ -1287,7 +1292,7 @@ ${firma}
               <>
                 <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 7 }}>Agregar ítem</div>
-                  {catalogoSeparado() && (
+                  {hayPropios && (
                     <select className="input" style={{ fontSize: 11, marginBottom: 7,
                               borderColor: catalogo ? 'var(--accent)' : undefined,
                               color: catalogo ? 'var(--accent)' : undefined, fontWeight: catalogo ? 700 : 400 }}

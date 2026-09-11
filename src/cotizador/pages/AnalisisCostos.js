@@ -2,7 +2,6 @@ import '../index.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { catalogoSeparado } from '../tenant';
 import { ArrowLeft, Search, Plus, Trash2, Edit2, Check, X, Copy, ChevronDown, ChevronRight } from 'lucide-react';
 import { coincide } from '../buscar';
 
@@ -32,6 +31,11 @@ export default function AnalisisCostos() {
   const [catFiltro, setCatFiltro] = useState('');
   // '' = los dos catálogos juntos, como siempre. 'sistema' / 'propio' los separan.
   const [origen, setOrigen] = useState('');
+  // El filtro solo se muestra si el estudio tiene ítems propios — antes lo
+  // encendía el admin a mano por tenant (arrancó con MALT); ahora se detecta
+  // solo del primer listado sin filtrar, así que cualquiera que cree sus
+  // propios ítems lo ve, sin pedirlo.
+  const [hayPropios, setHayPropios] = useState(false);
   const [expandidos, setExpandidos] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
@@ -60,6 +64,7 @@ export default function AnalisisCostos() {
       ]);
       setCategorias(catRes.data);
       setItems(itemsRes.data);
+      if (!origen) setHayPropios((itemsRes.data || []).some(i => i.es_propio));
       setMateriales(matsRes.data);
       setMoList(moRes.data);
       setMaqList(maqRes.data);
@@ -247,7 +252,7 @@ export default function AnalisisCostos() {
           <option value="">Todos los rubros</option>
           {categorias.map(c => <option key={c.id} value={c.id}>{c.codigo || c.numero ? `${c.codigo || c.numero}. ` : ""}{c.nombre}</option>)}
         </select>
-        {catalogoSeparado() && (
+        {hayPropios && (
           <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', flex: '0 0 auto',
                         border: '1px solid var(--border2)' }}>
             {[['', 'Todo'], ['sistema', 'Del sistema'], ['propio', 'Nuestro']].map(([v, txt]) => (

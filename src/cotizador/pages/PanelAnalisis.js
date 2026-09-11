@@ -125,6 +125,17 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
     } catch (e) { /* el panel ya muestra el valor viejo */ }
   };
 
+  // Refuerzo de pared: un hierro del 8 cada 40cm, horizontal. Solo aplica a
+  // ítems de mampostería (pared/muro); en cualquier otro ítem no se muestra.
+  const handleToggleRefuerzo = async (con_refuerzo) => {
+    try {
+      await api.patch(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis/refuerzo-mamposteria`,
+        { con_refuerzo });
+      await cargar();
+      onCostoChange && onCostoChange();
+    } catch (e) { alert('No se pudo cambiar el refuerzo: ' + (e.response?.data?.detail || e.message)); }
+  };
+
   // Materiales
   const handleAgregarMat = async () => {
     if (!addMat.material_id) return;
@@ -237,6 +248,23 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
               <div style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600, color: t.color }}>{fmt0(t.val)}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Refuerzo de mampostería — solo en ítems de pared/muro */}
+      {data && /pared|muro|mamposter/i.test(data.item_nombre || '') && (
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600 }}>Refuerzo</div>
+            <div style={{ fontSize: 9.5, color: 'var(--muted)' }}>Hierro del 8 cada 40cm, horizontal</div>
+          </div>
+          <button onClick={() => handleToggleRefuerzo(!data.refuerzo_mamposteria)}
+            title={data.refuerzo_mamposteria ? 'Con refuerzo — click para sacarlo' : 'Sin refuerzo — click para agregarlo'}
+            style={{ width: 38, height: 21, borderRadius: 11, border: 'none', cursor: 'pointer', position: 'relative',
+                     background: data.refuerzo_mamposteria ? 'var(--accent)' : 'var(--border2)', transition: 'background .15s', flexShrink: 0 }}>
+            <span style={{ position: 'absolute', top: 2, left: data.refuerzo_mamposteria ? 19 : 2, width: 17, height: 17,
+                           borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+          </button>
         </div>
       )}
 
