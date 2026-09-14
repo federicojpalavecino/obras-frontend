@@ -156,6 +156,7 @@ export default function Menu() {
   };
 
   const [modalDuplicar, setModalDuplicar] = useState(null); // { pid, nombre_obra, cliente_id }
+  const [modalAsignar, setModalAsignar] = useState(null); // { pid, nombre_obra, cliente_id }
 
   const abrirDuplicar = (p, e) => {
     e.stopPropagation();
@@ -172,6 +173,23 @@ export default function Menu() {
       setModalDuplicar(null);
       cargar();
       navigate(`/cotizador/presupuesto/${res.data.id}`);
+    } catch (e) { alert('Error: ' + (errMsg(e))); }
+  };
+
+  const abrirAsignar = (p, e) => {
+    e.stopPropagation();
+    setModalAsignar({ pid: p.id, nombre_obra: p.nombre_obra, cliente_id: '' });
+  };
+
+  // "Sin cliente" no es un cliente de verdad — no tiene fila en /clientes, no
+  // se le puede cambiar el nombre. Lo que hacía falta era esto: pasar el
+  // presupuesto a un cliente que sí existe.
+  const handleAsignar = async () => {
+    if (!modalAsignar || !modalAsignar.cliente_id) return;
+    try {
+      await actualizarPresupuesto(modalAsignar.pid, { cliente_id: parseInt(modalAsignar.cliente_id) });
+      setModalAsignar(null);
+      cargar();
     } catch (e) { alert('Error: ' + (errMsg(e))); }
   };
 
@@ -416,6 +434,11 @@ export default function Menu() {
                           )}
                         </div>
                         <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                          {!p.cliente_id && (
+                            <button className="btn btn-secondary btn-sm" onClick={e => abrirAsignar(p, e)} title="Asignar a un cliente">
+                              <User size={13} />
+                            </button>
+                          )}
                           <button className="btn btn-secondary btn-sm" onClick={e => handleRenombrar(p, e)} title="Renombrar">
                             <Edit2 size={13} />
                           </button>
@@ -571,6 +594,35 @@ export default function Menu() {
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setModalDuplicar(null)}>Cancelar</button>
               <button className="btn btn-primary" onClick={handleDuplicar} disabled={!modalDuplicar.nombre_obra.trim()}>Duplicar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalAsignar && (
+        <div className="modal-overlay" onClick={() => setModalAsignar(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>Asignar a un cliente</h2>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
+              "{modalAsignar.nombre_obra}" — elegí a qué cliente pertenece.
+            </div>
+            <div className="form-group">
+              <label>Cliente</label>
+              <select className="input" autoFocus value={modalAsignar.cliente_id}
+                onChange={e => setModalAsignar(m => ({ ...m, cliente_id: e.target.value }))}>
+                <option value="">Seleccionar cliente...</option>
+                {clientes.map(c => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                ))}
+              </select>
+              <button className="btn btn-secondary btn-sm" style={{ fontSize: 11, marginTop: 8 }}
+                onClick={() => { setModalAsignar(null); setFormCliente({ nombre: '', email: '', telefono: '' }); setModalCliente(true); }}>
+                <Plus size={12} /> Nuevo cliente
+              </button>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setModalAsignar(null)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={handleAsignar} disabled={!modalAsignar.cliente_id}>Asignar</button>
             </div>
           </div>
         </div>
