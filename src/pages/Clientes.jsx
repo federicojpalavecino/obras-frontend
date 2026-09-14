@@ -11,6 +11,16 @@ const C = {
   accent: "#059669", accent2: "#7c3aed", warn: "#d97706", red: "#ef4444",
 };
 const COLORES = ["#6ee7b7", "#a78bfa", "#38bdf8", "#fbbf24", "#f87171", "#fb923c", "#e879f9", "#a3e635", "#34d399", "#60a5fa"];
+
+// FastAPI manda `detail` como string, pero en un 422 de validación es un
+// array de objetos {msg, loc...}. 'Error: ' + array lo convierte en
+// "[object Object]" — esto lo arma legible en cualquiera de los dos casos.
+const errMsg = (e) => {
+  const detail = e.response?.data?.detail;
+  if (Array.isArray(detail)) return detail.map(d => d.msg || JSON.stringify(d)).join('; ');
+  if (detail && typeof detail === 'object') return JSON.stringify(detail);
+  return detail || e.message;
+};
 const inp = { background: C.surface2, border: `1px solid ${C.border2}`, borderRadius: 8, color: C.text, padding: "8px 12px", fontSize: 13, fontFamily: "inherit", width: "100%", outline: "none", boxSizing: "border-box" };
 
 function Btn({ primary, danger, small, onClick, disabled, children, style = {} }) {
@@ -76,14 +86,16 @@ export default function Clientes({ user }) {
       setModalCliente(null);
       showToast("✓ Cliente guardado");
       cargarTodo();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert("Error: " + errMsg(e)); }
   };
 
   const eliminarCliente = async (id) => {
     if (!window.confirm("¿Eliminar cliente?")) return;
-    await api.delete(`/clientes/${id}`);
-    showToast("✓ Eliminado");
-    cargarTodo();
+    try {
+      await api.delete(`/clientes/${id}`);
+      showToast("✓ Eliminado");
+      cargarTodo();
+    } catch (e) { alert("Error: " + errMsg(e)); }
   };
 
   const guardarProyecto = async (form) => {
