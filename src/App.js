@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X, Package } from "lucide-react";
+import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, MessageSquare, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X, Package } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
@@ -27,6 +27,7 @@ import Landing from "./pages/Landing";
 import Presentacion from "./pages/Presentacion";
 import DemoPortal from "./pages/DemoPortal";
 import Obra from "./pages/Obra";
+import Mensajes from "./pages/Mensajes";
 import Asistente from "./components/Asistente";
 import Deshacer from "./components/Deshacer";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -228,6 +229,19 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   const logoUrl = tenant?.logo_url || null;
   const colorAccent = tenant?.color_primario || C.accent;
 
+  // Mensajes internos: se pregunta liviano y seguido para que el numerito del
+  // header se sienta al toque, sin necesidad de un socket.
+  const [noLeidos, setNoLeidos] = useState(0);
+  useEffect(() => {
+    let activo = true;
+    const pedir = () => api.get("/mensajes/no-leidos")
+      .then(r => { if (activo) setNoLeidos(r.data?.no_leidos || 0); })
+      .catch(() => {});
+    pedir();
+    const t = setInterval(pedir, 20000);
+    return () => { activo = false; clearInterval(t); };
+  }, []);
+
   const modules = [
     { id:"cotizador", path:"/cotizador", Icon:FileText,      label:"Presupuestos",          desc:"Obras y proyectos: cotizar, certificar y ejecutar",       color:C.accent2 },
     { id:"finanzas",  path:"/finanzas",  Icon:TrendingUp,    label:"Control Financiero",    desc:"Ingresos, egresos y distribución semanal",               color:C.accent },
@@ -235,6 +249,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
     { id:"personal",  path:"/personal",  Icon:Users,         label:"Personal",              desc:"Quién vino, cuántos días y cuánto hay que pagarle",      color:C.accent },
     { id:"panol",     path:"/panol",     Icon:Package,       label:"Pañol y depósito",      desc:"Herramientas, materiales y en qué obra está cada cosa",  color:C.warn },
     { id:"clientes",  path:"/clientes",  Icon:Users,         label:"Clientes",              desc:"Clientes, obras y el acceso de cada uno a su portal",    color:C.green },
+    { id:"mensajes",  path:"/mensajes",  Icon:MessageSquare, label:"Mensajes" + (noLeidos ? ` (${noLeidos})` : ""), desc:"Dejale un aviso a alguien del estudio", color:C.accent2 },
     { id:"config",    path:"/config",    Icon:Settings,      label:"Configuración",         desc:"Logo, nombre y datos del estudio",                       color:C.muted, soloAdmin:true },
     { id:"soporte",   path:"/soporte",   Icon:MessageCircle, label:"Soporte técnico",       desc:"Contacto, ayuda y sugerencias",                          color:C.blue },
   ].filter(m => !m.soloAdmin || esAdmin);
@@ -272,6 +287,15 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
             )}
           </div>
           <div style={{display:"flex", alignItems:"center", gap:8}}>
+            <button onClick={()=>navigate("/mensajes")} aria-label="Mensajes"
+              style={{position:"relative", background:"none", border:"none", cursor:"pointer", color:C.muted, padding:4, display:"flex"}}>
+              <MessageSquare size={18} strokeWidth={1.5} />
+              {noLeidos > 0 && (
+                <span style={{position:"absolute", top:0, right:0, background:C.red, color:"#fff", borderRadius:"50%", minWidth:14, height:14, fontSize:9, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'IBM Plex Mono', monospace", padding:"0 2px"}}>
+                  {noLeidos > 9 ? "9+" : noLeidos}
+                </span>
+              )}
+            </button>
             <div style={{width:30, height:30, borderRadius:"50%", background:C.surface2, border:"1px solid " + C.border, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:C.muted, fontFamily:"'IBM Plex Mono', monospace"}}>
               {iniciales}
             </div>
@@ -315,6 +339,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
         <Route path="/finanzas/*" element={<ControlFinanciero user={user} />}/>
         <Route path="/panol" element={<Panol />}/>
         <Route path="/personal" element={<Personal />}/>
+        <Route path="/mensajes" element={<Mensajes />}/>
         <Route path="/cotizador" element={<Menu />}/>
         <Route path="/cotizador/presupuesto/:id" element={<Presupuesto />}/>
         <Route path="/cotizador/materiales" element={<Materiales />}/>
