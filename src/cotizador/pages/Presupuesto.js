@@ -435,8 +435,10 @@ export default function Presupuesto() {
         // nuevo rubro con nombre personalizado — se genera número automático via backend
         catNum = null; catNom = null;
       } else if (rubroLibreSelec) {
+        // Mismo cuidado que en el selector de ítems de catálogo: r.numero es
+        // la posición en la lista, no el categoria_numero real de sus líneas.
         const r = (data?.rubros || []).find(r => String(r.numero) === String(rubroLibreSelec));
-        if (r) { catNum = r.numero; catNom = r.nombre; }
+        if (r) { catNum = r.lineas?.[0]?.categoria_numero ?? r.numero; catNom = r.nombre; }
       }
       const res = await agregarLinea(id, {
         tipo: 'libre',
@@ -1864,9 +1866,16 @@ ${firma}
                   <div style={{ fontSize: 12, fontWeight: 600 }}>Rubro original del catálogo</div>
                   <div style={{ fontSize: 11, color: 'var(--muted)' }}>{itemPendiente.categoria_nombre || 'Sin rubro'}</div>
                 </button>
+                {/* r.numero es la posición del rubro en la lista (1, 2, 3...),
+                    reordenada cada vez que se arma data.rubros — no es el
+                    categoria_numero real con el que están guardadas sus líneas
+                    (que puede ser el id de categoría del catálogo). Mandar
+                    r.numero como categoria_numero de la línea nueva la deja en
+                    un grupo propio con el mismo nombre en vez de sumarse al
+                    rubro elegido: aparece como "rubro nuevo" sin que se note por qué. */}
                 {(data?.rubros || []).map(r => (
                   <button key={r.numero}
-                    onClick={() => handleAgregarItem(itemPendiente, { numero: r.numero, nombre: r.nombre })}
+                    onClick={() => handleAgregarItem(itemPendiente, { numero: r.lineas?.[0]?.categoria_numero ?? r.numero, nombre: r.nombre })}
                     style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface2)', cursor: 'pointer', textAlign: 'left' }}>
                     <div style={{ fontSize: 12, fontWeight: 600 }}>{r.numero} — {r.nombre}</div>
                     <div style={{ fontSize: 11, color: 'var(--muted)' }}>{r.lineas?.length || 0} ítems</div>
