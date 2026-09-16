@@ -7,7 +7,7 @@ import {
   getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea
 } from '../api';
 import api from '../api';
-import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check } from 'lucide-react';
+import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check, Edit2 } from 'lucide-react';
 import PrintPresupuesto from './PrintPresupuesto';
 import PanelAnalisis from './PanelAnalisis';
 import PanelComputo from './PanelComputo';
@@ -326,6 +326,13 @@ export default function Presupuesto() {
   const [m2, setM2] = useState("");
   const [montoObra, setMontoObra] = useState("");
   const [agregandoTarea, setAgregandoTarea] = useState(null);
+  // Alta y edición de tareas propias del arancel (ej: "Medición de obra"), y
+  // ajuste del % o los K de cualquier tarea — el arancel del colegio es punto
+  // de partida, no un techo ni un piso.
+  const [modalNuevaTarea, setModalNuevaTarea] = useState(false);
+  const [nuevaTareaForm, setNuevaTareaForm] = useState({ nombre: '', modo: 'pct_obra', valor: '' });
+  const [editandoTareaId, setEditandoTareaId] = useState(null);
+  const [editTareaValor, setEditTareaValor] = useState('');
   // El K y los m2 van juntos: de los dos sale el monto de obra, y del monto la
   // escala. Se guardan en el presupuesto para que quede escrito con que valor
   // se aranceló.
@@ -360,6 +367,34 @@ export default function Presupuesto() {
       avisar(e?.response?.data?.detail || 'No se pudo agregar');
     }
     setAgregandoTarea(null);
+  };
+
+  const handleCrearTarea = async () => {
+    const nombre = nuevaTareaForm.nombre.trim();
+    const valor = parseFloat(nuevaTareaForm.valor);
+    if (!nombre || !valor) return;
+    try {
+      const payload = { nombre, modo: nuevaTareaForm.modo };
+      if (nuevaTareaForm.modo === 'pct_obra') payload.pct_etapa = valor;
+      else payload.coef_k = valor;
+      await api.post('/honorarios/tareas', payload);
+      setModalNuevaTarea(false);
+      setNuevaTareaForm({ nombre: '', modo: 'pct_obra', valor: '' });
+      const r = await api.get('/honorarios/config');
+      if (r.data?.tareas) setArancel(r.data);
+    } catch (e) { avisar(e?.response?.data?.detail || 'No se pudo crear la tarea'); }
+  };
+
+  const handleGuardarValorTarea = async (tarea) => {
+    const valor = parseFloat(editTareaValor);
+    setEditandoTareaId(null);
+    if (isNaN(valor) || valor === (tarea.modo === 'pct_obra' ? tarea.pct_etapa : tarea.coef_k)) return;
+    try {
+      const campo = tarea.modo === 'pct_obra' ? 'pct_etapa' : 'coef_k';
+      await api.put(`/honorarios/tareas/${tarea.id}`, { [campo]: valor });
+      const r = await api.get('/honorarios/config');
+      if (r.data?.tareas) setArancel(r.data);
+    } catch (e) { avisar(e?.response?.data?.detail || 'No se pudo guardar'); }
   };
 
   const confirmarCierre = async (metodologia) => {
@@ -1264,14 +1299,20 @@ ${firma}
             {!cerrado && esServicio && (
               <>
                 <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 7 }}>Agregar tarea</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--muted)' }}>Agregar tarea</div>
+                    <button onClick={() => setModalNuevaTarea(true)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent2)', fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3, padding: 0 }}>
+                      <Plus size={11} /> Nueva
+                    </button>
+                  </div>
                   <input className="input" style={{ fontSize: 11 }} placeholder="Buscar tarea..."
                     value={busqueda} onChange={e => setBusqueda(e.target.value)} />
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                   {!arancel?.tareas?.length ? (
                     <div style={{ padding: 16, fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.5 }}>
-                      Todavía no hay tareas en tu arancel. Se cargan en Configuración → Honorarios.
+                      Todavía no hay tareas en tu arancel. Agregá la primera con "+ Nueva", arriba.
                     </div>
                   ) : arancel.tareas
                       .filter(t => !busqueda || t.nombre.toLowerCase().includes(busqueda.toLowerCase()))
@@ -1280,6 +1321,7 @@ ${firma}
                         // Sin provincia no hay K y no hay precio posible. Con
                         // provincia entra siempre: los m2 van en el computo.
                         const falta = !data?.valor_k_usado;
+                        const editando = editandoTareaId === t.id;
                         return (
                           <div key={t.id}
                             title={falta ? 'Elegí la provincia en Honorarios' : 'Se agrega con 1 m²; la superficie se carga en la cantidad'}
@@ -1287,11 +1329,30 @@ ${firma}
                                      cursor: falta ? 'not-allowed' : 'pointer', opacity: falta ? .45 : 1 }}
                             onMouseEnter={e => { if (!falta) e.currentTarget.style.background = 'var(--surface2)'; }}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                            onClick={() => { if (!falta) agregarTarea(t); }}>
+                            onClick={() => { if (!falta && !editando) agregarTarea(t); }}>
                             <div style={{ fontSize: 11, lineHeight: 1.3 }}>{t.nombre}</div>
-                            <div style={{ fontSize: 9.5, color: 'var(--muted)', marginTop: 2 }}>
-                              {porcentaje ? `${t.pct_etapa}% del honorario · por m²` : `${t.coef_k} K por m²`}
-                            </div>
+                            {editando ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}
+                                onClick={e => e.stopPropagation()}>
+                                <input autoFocus type="number" step="0.01" className="input"
+                                  style={{ fontSize: 10, padding: '3px 6px', width: 64 }}
+                                  value={editTareaValor} onChange={e => setEditTareaValor(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') handleGuardarValorTarea(t); if (e.key === 'Escape') setEditandoTareaId(null); }}
+                                  onBlur={() => handleGuardarValorTarea(t)} />
+                                <span style={{ fontSize: 9.5, color: 'var(--muted)' }}>{porcentaje ? '% del honorario' : 'K por m²'}</span>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: 9.5, color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                {porcentaje ? `${t.pct_etapa}% del honorario · por m²` : `${t.coef_k} K por m²`}
+                                {/* El % o los K son la referencia del colegio, no un valor fijo: cada
+                                    estudio lo sube o baja según lo que negoció con su cliente. */}
+                                <span title="Ajustar precio"
+                                  onClick={e => { e.stopPropagation(); setEditandoTareaId(t.id); setEditTareaValor(String(porcentaje ? t.pct_etapa : t.coef_k)); }}
+                                  style={{ cursor: 'pointer', opacity: 0.7 }}>
+                                  <Edit2 size={9} />
+                                </span>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1884,6 +1945,52 @@ ${firma}
               </div>
               <div className="modal-actions">
                 <button className="btn btn-secondary" onClick={() => setItemPendiente(null)}>Cancelar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL NUEVA TAREA DE ARANCEL — para agregar cosas como "Medición de
+            obra" que el colegio no siempre lista como tarea aparte, con el %
+            o los K que el estudio quiera (no hace falta que coincida con
+            ningún reglamento: es la referencia del estudio, no una obligación). */}
+        {modalNuevaTarea && (
+          <div className="modal-overlay" onClick={() => setModalNuevaTarea(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <h2>Nueva tarea de arancel</h2>
+              <div className="form-group">
+                <label>Nombre *</label>
+                <input className="input" autoFocus placeholder="Ej: Medición de obra"
+                  value={nuevaTareaForm.nombre}
+                  onChange={e => setNuevaTareaForm(f => ({ ...f, nombre: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label>Cómo se cobra</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[['pct_obra', '% del honorario (por m²)'], ['k', 'Múltiplo de K (por m²)']].map(([v, l]) => (
+                    <button key={v} type="button"
+                      onClick={() => setNuevaTareaForm(f => ({ ...f, modo: v }))}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 6, fontSize: 11.5, cursor: 'pointer',
+                               border: `1px solid ${nuevaTareaForm.modo === v ? 'var(--accent)' : 'var(--border)'}`,
+                               background: nuevaTareaForm.modo === v ? 'rgba(5,150,105,.08)' : 'var(--surface2)' }}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="form-group">
+                <label>{nuevaTareaForm.modo === 'pct_obra' ? 'Porcentaje del honorario *' : 'Múltiplo de K *'}</label>
+                <input className="input" type="number" step="0.01"
+                  placeholder={nuevaTareaForm.modo === 'pct_obra' ? 'Ej: 15' : 'Ej: 0.5'}
+                  value={nuevaTareaForm.valor}
+                  onChange={e => setNuevaTareaForm(f => ({ ...f, valor: e.target.value }))} />
+              </div>
+              <div className="modal-actions">
+                <button className="btn btn-secondary" onClick={() => setModalNuevaTarea(false)}>Cancelar</button>
+                <button className="btn btn-primary" onClick={handleCrearTarea}
+                  disabled={!nuevaTareaForm.nombre.trim() || !parseFloat(nuevaTareaForm.valor)}>
+                  Crear
+                </button>
               </div>
             </div>
           </div>
