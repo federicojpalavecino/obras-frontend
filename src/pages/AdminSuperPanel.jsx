@@ -566,6 +566,7 @@ function PanelAnuncio({ token }) {
   const [titulo, setTitulo] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [activo, setActivo] = useState(true);
+  const [notificar, setNotificar] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
 
@@ -574,14 +575,14 @@ function PanelAnuncio({ token }) {
     const r = await fetch(`${API}/admin/anuncio`, { headers: { Authorization: `Bearer ${token}` } });
     if (r.ok) {
       const d = await r.json();
-      if (d) { setTitulo(d.titulo || ""); setMensaje(d.mensaje || ""); setActivo(!!d.activo); }
+      if (d) { setTitulo(d.titulo || ""); setMensaje(d.mensaje || ""); setActivo(!!d.activo); setNotificar(false); }
     }
   };
   const guardar = async () => {
     setSaving(true); setMsg(null);
     const r = await fetch(`${API}/admin/anuncio`, {
       method: "PUT", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ titulo, mensaje, activo }),
+      body: JSON.stringify({ titulo, mensaje, activo, notificar }),
     });
     setSaving(false);
     setMsg(r.ok ? "✓ Guardado. Los usuarios lo verán la próxima vez que entren." : "Error al guardar");
@@ -600,8 +601,12 @@ function PanelAnuncio({ token }) {
         <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Mensaje</label>
         <textarea value={mensaje} onChange={e => setMensaje(e.target.value)} placeholder="Ej: ¡Nuevo! Ahora el asistente responde consultas sobre tus presupuestos: precios, materiales, cobros y certificados."
           style={{ width: "100%", height: 90, padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 6, marginBottom: 14, boxSizing: "border-box", outline: "none", resize: "vertical", fontFamily: "inherit" }} />
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: C.text, marginBottom: 16, cursor: "pointer" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: C.text, marginBottom: 10, cursor: "pointer" }}>
           <input type="checkbox" checked={activo} onChange={e => setActivo(e.target.checked)} /> Mostrar el anuncio (destildá para ocultarlo)
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: C.text, marginBottom: 16, cursor: "pointer" }}>
+          <input type="checkbox" checked={notificar} onChange={e => setNotificar(e.target.checked)} />
+          Mandar también como notificación push a todos los estudios (usalo solo para lo importante)
         </label>
         {mensaje && activo && (
           <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", color: "#3730a3", borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 16 }}>
