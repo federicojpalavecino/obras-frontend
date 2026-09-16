@@ -196,6 +196,19 @@ const BASE = [
     ],
   },
   {
+    id: "arancel-tarea-nueva", sec: "presupuesto",
+    titulo: "Agregar una tarea propia al arancel (ej: Medición de obra) o subir/bajar el precio",
+    kw: "arancel honorario honorarios tarea tareas medicion medir obra colegio k croquis anteproyecto direccion proyecto servicio agregar nueva propia porcentaje subir bajar ajustar precio",
+    pasos: [
+      "Abrí un presupuesto de tipo Proyecto o servicio y desplegá el panel “Honorarios” (a la izquierda).",
+      "Donde dice “Agregar tarea”, tocá “＋ Nueva” arriba de la lista.",
+      "Ponele nombre (por ejemplo “Medición de obra”), elegí si se cobra como % del honorario o como múltiplo de K, y cargá el valor.",
+      "Se suma a tu lista de tareas y ya la podés usar en este presupuesto y en los siguientes.",
+      "Para subir o bajar el precio de cualquier tarea del arancel (la del colegio o una tuya), tocá el lápiz al lado del %/K en la lista y escribí el valor nuevo.",
+    ],
+    nota: "El arancel del colegio es el punto de partida, no un techo: cada estudio lo ajusta a lo que negoció con su cliente.",
+  },
+  {
     id: "cerrar-presupuesto", sec: "presupuesto",
     titulo: "Cerrar o reabrir un presupuesto",
     kw: "cerrar cerrado reabrir abrir bloquear finalizar terminar aprobar estado candado habilitar certificados obra",
@@ -2102,6 +2115,10 @@ export default function Asistente() {
 
     // Nada se parece → fallback con sugerencias
     if (!ranked.length || ranked[0].score < 1.5) {
+      // Se ve qué preguntó gente real cuando la base local no supo — así
+      // crece a mano, sin conectar el asistente a nada externo.
+      api.post("/asistente/pregunta-sin-responder",
+        { texto, pantalla: location.pathname }).catch(() => {});
       return [{
         from: "bot",
         titulo: "No estoy seguro de haber entendido 🤔",
