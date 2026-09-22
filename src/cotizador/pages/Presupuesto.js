@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   getPresupuesto, actualizarPresupuesto, cerrarPresupuesto, reabrirPresupuesto,
-  getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea
+  getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea, moverRubro
 } from '../api';
 import api from '../api';
 import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check, Edit2 } from 'lucide-react';
@@ -48,7 +48,7 @@ export default function Presupuesto() {
       ? 'comercial' : 'ambos');
   const [loading, setLoading] = useState(true);
   const [modalLibre, setModalLibre] = useState(false);
-  const [itemLibre, setItemLibre] = useState({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1 });
+  const [itemLibre, setItemLibre] = useState({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1, es_material: false });
   const [modoLibre, setModoLibre] = useState('global'); // 'global' | 'desglosado'
   const [libreAbrirAnalisis, setLibreAbrirAnalisis] = useState(false); // abrir panel tras crear
   const [itemPendiente, setItemPendiente] = useState(null); // ítem catálogo esperando rubro destino
@@ -453,11 +453,12 @@ export default function Presupuesto() {
         unidad_libre: itemLibre.unidad_libre,
         cantidad: parseNum(itemLibre.cantidad),
         costo_directo_libre: modoLibre === 'global' ? parseNum(itemLibre.costo_directo_libre) : 0,
+        es_material: modoLibre === 'global' ? !!itemLibre.es_material : false,
       });
       const editId = itemLibre._editId;
       const editNombre = itemLibre.nombre_libre;
       setModalLibre(false);
-      setItemLibre({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1 });
+      setItemLibre({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1, es_material: false });
       await cargar(true);
       // Si eligió desglosar en modo edición, abrir panel
       if (modoLibre === 'desglosado') {
@@ -481,10 +482,11 @@ export default function Presupuesto() {
         unidad_libre: itemLibre.unidad_libre,
         cantidad: parseNum(itemLibre.cantidad) || 1,
         costo_directo_libre: modoLibre === 'global' ? parseNum(itemLibre.costo_directo_libre) : 0,
+        es_material: modoLibre === 'global' ? !!itemLibre.es_material : false,
         ...(catNum !== null ? { categoria_numero: catNum, categoria_nombre: catNom } : {}),
       });
       setModalLibre(false);
-      setItemLibre({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1 });
+      setItemLibre({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1, es_material: false });
       await cargar(true);
       // Si eligió desglosar, abrir PanelAnalisis automáticamente
       if (modoLibre === 'desglosado' && res?.id) {
@@ -888,6 +890,21 @@ ${firma}
       );
       setEditandoRubroNum(null);
       setRubroEditVal('');
+      await cargar(true);
+    } catch(e) {
+      alert('Error: ' + (e.response?.data?.detail || e.message));
+    }
+  };
+
+  // El orden de los rubros no es un campo aparte, sale del orden de las
+  // líneas — por eso hace falta el `categoria_numero` real (no el `numero`
+  // secuencial que arma el back solo para mostrar) y alcanza con tomarlo de
+  // cualquier línea del rubro, todas comparten el mismo.
+  const handleMoverRubro = async (rubro, direccion) => {
+    const categoriaNumero = rubro?.lineas?.[0]?.categoria_numero;
+    if (categoriaNumero == null) return;
+    try {
+      await moverRubro(id, categoriaNumero, direccion);
       await cargar(true);
     } catch(e) {
       alert('Error: ' + (e.response?.data?.detail || e.message));
@@ -1563,7 +1580,7 @@ ${firma}
                     </tr>
                   </thead>
                   <tbody>
-                    {data.rubros?.map(rubro => (
+                    {data.rubros?.map((rubro, idxRubro) => (
                       <React.Fragment key={rubro.numero}>
                         <tr className="fila-rubro">
                           <td colSpan={12} style={{ padding: '7px 12px', background: 'var(--surface2)', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: 'var(--muted)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
@@ -1585,10 +1602,20 @@ ${firma}
                                   style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, border: 'none', background: 'var(--border2)', color: 'var(--text)', cursor: 'pointer' }}>✕</button>
                               </div>
                             ) : (
-                              <span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                {!cerrado && (
+                                  <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 0.7, marginRight: 2 }}>
+                                    <span title="Subir rubro"
+                                      style={{ fontSize: 9, color: idxRubro === 0 ? 'var(--border2)' : 'var(--muted)', cursor: idxRubro === 0 ? 'default' : 'pointer', opacity: idxRubro === 0 ? 0.35 : 1 }}
+                                      onClick={e => { e.stopPropagation(); if (idxRubro > 0) handleMoverRubro(rubro, 'arriba'); }}>▲</span>
+                                    <span title="Bajar rubro"
+                                      style={{ fontSize: 9, color: idxRubro === data.rubros.length - 1 ? 'var(--border2)' : 'var(--muted)', cursor: idxRubro === data.rubros.length - 1 ? 'default' : 'pointer', opacity: idxRubro === data.rubros.length - 1 ? 0.35 : 1 }}
+                                      onClick={e => { e.stopPropagation(); if (idxRubro < data.rubros.length - 1) handleMoverRubro(rubro, 'abajo'); }}>▼</span>
+                                  </span>
+                                )}
                                 {rubro.numero} — {rubro.nombre}
                                 {!cerrado && (
-                                  <span title="Renombrar rubro" style={{ marginLeft: 8, fontSize: 10, color: 'var(--border2)', cursor: 'pointer', opacity: 0.6 }}
+                                  <span title="Renombrar rubro" style={{ marginLeft: 2, fontSize: 10, color: 'var(--border2)', cursor: 'pointer', opacity: 0.6 }}
                                     onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent2)'; e.currentTarget.style.opacity = '1'; }}
                                     onMouseLeave={e => { e.currentTarget.style.color = 'var(--border2)'; e.currentTarget.style.opacity = '0.6'; }}
                                     onClick={e => {
@@ -1896,6 +1923,14 @@ ${firma}
                     onChange={e => setItemLibre({ ...itemLibre, costo_directo_libre: e.target.value })}
                     placeholder="0" />
                   <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Se aplican los coeficientes GG + BEN + IVA del presupuesto.</div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8, fontSize: 12, color: 'var(--text)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={!!itemLibre.es_material}
+                      onChange={e => setItemLibre({ ...itemLibre, es_material: e.target.checked })} />
+                    Es una compra de materiales
+                  </label>
+                  <div style={{ fontSize: 10.5, color: 'var(--border2)', marginTop: 2 }}>
+                    Si lo tildás, también se le aplica K Materiales — igual que a un ítem del catálogo.
+                  </div>
                 </div>
               ) : (
                 <div style={{ padding: '10px 12px', borderRadius: 6, background: 'var(--surface2)', fontSize: 12, color: 'var(--muted)', border: '1px solid var(--border)' }}>

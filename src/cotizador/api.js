@@ -99,6 +99,8 @@ export const eliminarLinea = (pid, lid) => api.delete(`/presupuestos/${pid}/line
 
 // RUBROS
 export const crearRubroVacio = (pid, data) => api.post(`/presupuestos/${pid}/rubros`, data);
+export const moverRubro = (pid, categoriaNumero, direccion) =>
+  api.post(`/presupuestos/${pid}/rubros/mover`, { categoria_numero: categoriaNumero, direccion });
 
 // CERTIFICADOS
 export const getCertificados = (pid) => api.get(`/presupuestos/${pid}/certificados`);
