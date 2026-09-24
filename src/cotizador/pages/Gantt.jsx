@@ -273,6 +273,32 @@ export default function Gantt() {
 
   const avancePorLinea = Object.fromEntries(
     ((avanceObra && avanceObra.por_linea) || []).map(a => [a.linea_id, a.pct]));
+
+  // ── Obra real ──────────────────────────────────────────────────────────────
+  // No hay una tabla nueva para esto: el historial de avance (`t_avances` +
+  // certificados) ya trae, por línea, cuándo se cargó cada porcentaje. De ahí
+  // sale cuándo arrancó de verdad una tarea (el primer avance > 0%) y cuándo
+  // terminó (el que llega a 100%). Si todavía no llegó, la barra real queda
+  // abierta hasta hoy. Guardar fechas reales aparte sería tener dos números
+  // para lo mismo, y uno de los dos termina quedando viejo.
+  const historialPorLinea = {};
+  (avanceObra?.historial || []).forEach(h => {
+    if (!h.linea_id) return;
+    (historialPorLinea[h.linea_id] = historialPorLinea[h.linea_id] || []).push(h);
+  });
+  // El historial ya viene ordenado por fecha desde el backend.
+  const realDeTarea = (t) => {
+    if (!t.linea_id) return null;
+    const hist = historialPorLinea[t.linea_id];
+    if (!hist || !hist.length) return null;
+    const primerAvance = hist.find(h => (h.pct || 0) > 0);
+    if (!primerAvance) return null;
+    const completo = hist.find(h => (h.pct || 0) >= 100);
+    const inicio = primerAvance.fecha;
+    const fin = completo ? completo.fecha : (hoy > inicio ? hoy : inicio);
+    return { inicio, fin, terminada: !!completo, atrasoDias: diasEntre(t.fecha_fin, fin) };
+  };
+
   // laborables: días de la semana que se trabajan, en índices de getDay() de JS
   // corridos a lunes=0 (igual que weekday() de Python, que es lo que usa el motor).
   const [config, setConfig] = useState({
@@ -298,6 +324,14 @@ export default function Gantt() {
     return () => mq.removeEventListener('change', f);
   }, []);
   const [verDiagrama, setVerDiagrama] = useState(false);
+  // «Obra real»: debajo de cada barra planificada se dibuja una segunda,
+  // angosta, con lo que salió del historial de avance. Arranca apagado: no
+  // todas las obras cargan avance seguido, y con poco dato la barra real es
+  // más ruido que información.
+  const [verObraReal, setVerObraReal] = useState(() => localStorage.getItem('obras_gantt_real') === '1');
+  const alternarObraReal = () => {
+    setVerObraReal(v => { localStorage.setItem('obras_gantt_real', v ? '0' : '1'); return !v; });
+  };
   // La columna de nombres es lo normal en una pantalla grande: es donde se lee
   // la obra de un vistazo. Sacarla sirve en el celular, donde 260 px son media
   // pantalla — ahí no entra y estorba. Así que arranca visible en la compu y
@@ -366,7 +400,15 @@ export default function Gantt() {
   // En el celular las filas van bajas para que entren varias tareas; en una
   // pantalla grande eso queda apretado y se lee peor, que es lo contrario de
   // lo que se buscaba.
-  const ROW_H = esCelular ? 30 : 36;
+  const FILA_H = esCelular ? 30 : 36;
+  // La barra planificada mide lo mismo de siempre. Con «Obra real» prendido
+  // la fila crece para que entre, angosta, la barra real debajo — el resto
+  // del diagrama (flechas, hito, columnas) sigue centrado sobre la barra
+  // planificada, no sobre la fila entera.
+  const BARRA_TOP = 6, BARRA_H = FILA_H - 12;
+  const REAL_TOP = BARRA_TOP + BARRA_H + 3, REAL_H = esCelular ? 7 : 9;
+  const ROW_H = verObraReal ? REAL_TOP + REAL_H + 4 : FILA_H;
+  const CENTRO_BARRA = BARRA_TOP + BARRA_H / 2;
   const LABEL_W = esCelular ? 130 : 260;
 
   useEffect(() => { cargar(); }, [id]);
@@ -1151,6 +1193,13 @@ export default function Gantt() {
                 ▲ Crítico
               </button>
             )}
+            {tareas.length > 0 && (
+              <button className={`btn btn-sm ${verObraReal ? 'btn-warn' : 'btn-secondary'}`}
+                onClick={alternarObraReal}
+                title="Debajo de cada barra, lo que salió de verdad según el avance cargado">
+                🏗 Obra real
+              </button>
+            )}
             {tareas.length === 0 && (
               <button className="btn btn-primary btn-sm" onClick={generarDesdePresupuesto} disabled={generando}>
                 {generando ? 'Generando...' : '⚡ Generar'}
@@ -1185,6 +1234,8 @@ export default function Gantt() {
               { label: 'Recalcular fechas', icon: '↻', onClick: aplicarPlan },
             ] : []),
             ...(tareas.length > 0 ? [
+              { label: verObraReal ? 'Ocultar obra real' : 'Ver obra real', icon: '🏗', onClick: alternarObraReal,
+                color: verObraReal ? 'var(--warn)' : undefined },
               { label: 'Imprimir el Gantt', icon: '🖨', onClick: imprimirGantt },
               { label: 'Exportar al Planner', icon: <Calendar size={16} strokeWidth={1.5} />, onClick: exportarAlPlanner },
             ] : []),
@@ -1230,6 +1281,17 @@ export default function Gantt() {
             style={{ background: 'none', border: '1px solid var(--border2)', borderRadius: 12, color: 'var(--text)', cursor: 'pointer', fontSize: 11, padding: '2px 10px', fontFamily: 'inherit' }}>
             🔗 {vinculos.length} vínculo(s) {panelVinculos ? '▴' : '▾'}
           </button>
+        </div>
+      )}
+
+      {/* Leyenda de la barra real, solo mientras está prendida */}
+      {verObraReal && (
+        <div style={{ background: 'rgba(96,165,250,.08)', borderBottom: '1px solid var(--border)', padding: '4px 14px', display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 10.5, alignItems: 'center', color: 'var(--muted)' }}>
+          <span style={{ fontWeight: 700, color: 'var(--text)' }}>🏗 Obra real</span>
+          <span><span style={{ display: 'inline-block', width: 14, height: 7, borderRadius: 2, background: '#60a5fa88', border: '1px dashed #60a5fa', verticalAlign: 'middle', marginRight: 4 }} />en curso, a tiempo</span>
+          <span><span style={{ display: 'inline-block', width: 14, height: 7, borderRadius: 2, background: '#34d399aa', border: '1px dashed #34d399', verticalAlign: 'middle', marginRight: 4 }} />terminada a tiempo</span>
+          <span><span style={{ display: 'inline-block', width: 14, height: 7, borderRadius: 2, background: '#f8717188', border: '1px dashed #f87171', verticalAlign: 'middle', marginRight: 4 }} />atrasada</span>
+          <span>Sale del avance cargado por línea — tocá una tarea y «Avance» para sumar la próxima medición.</span>
         </div>
       )}
 
@@ -1421,6 +1483,18 @@ export default function Gantt() {
                     </span>
                     <span style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>{Math.round(pct)}%</span>
                   </div>
+                  {verObraReal && (() => {
+                    const real = realDeTarea(t);
+                    if (!real) return null;
+                    const atrasada = real.atrasoDias > 0;
+                    const color = atrasada ? '#f87171' : real.terminada ? '#34d399' : '#60a5fa';
+                    return (
+                      <div style={{ fontSize: 10, marginTop: 3, color }}>
+                        🏗 Real: {fmtFecha(real.inicio)} → {fmtFecha(real.fin)}{!real.terminada ? ' (en curso)' : ''}
+                        {real.atrasoDias !== 0 && ` · ${atrasada ? `${real.atrasoDias}d atraso` : `${-real.atrasoDias}d adelanto`}`}
+                      </div>
+                    );
+                  })()}
                   {e?.subcontrato && (
                     <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 3 }}>
                       {e.subcontrato.contratista}
@@ -1717,7 +1791,7 @@ export default function Gantt() {
                       // Hito: rombo, no ocupa tiempo
                       <div title={`${t.nombre} — hito ${fmtFechaLarga(t.fecha_inicio)}`}
                         onClick={() => modoVincular ? clickVincular(t) : setEditando(t)}
-                        style={{ position: 'absolute', left: left + PX_DIA / 2 - 8, top: ROW_H / 2 - 8, width: 16, height: 16,
+                        style={{ position: 'absolute', left: left + PX_DIA / 2 - 8, top: CENTRO_BARRA - 8, width: 16, height: 16,
                           background: t.critica && verCritico ? '#f87171' : t.color, transform: 'rotate(45deg)',
                           cursor: 'pointer', zIndex: 4, border: predSel?.id === t.id ? '2px solid #fff' : 'none' }} />
                     ) : (() => {
@@ -1743,7 +1817,7 @@ export default function Gantt() {
                     {tramos && (
                       <div style={{ position: 'absolute', left: segs[0].left + segs[0].width,
                                     width: segs[segs.length - 1].left - (segs[0].left + segs[0].width),
-                                    top: ROW_H / 2 - 1, height: 2, zIndex: 3, pointerEvents: 'none',
+                                    top: CENTRO_BARRA - 1, height: 2, zIndex: 3, pointerEvents: 'none',
                                     background: `repeating-linear-gradient(90deg, ${t.color}88 0 4px, transparent 4px 8px)` }} />
                     )}
                     {/* El nombre al lado de la barra, pero solo cuando no está
@@ -1764,7 +1838,7 @@ export default function Gantt() {
                     </div>}
                     {segs.map((s, si) => (
                     <div key={si} title={`${t.nombre}\n${fmtFechaLarga(t.fecha_inicio)} → ${fmtFechaLarga(t.fecha_fin)}${tramos ? `\n✂ Se hace en ${tramos.length} partes` : ''}${t.holgura != null ? `\nHolgura: ${t.holgura} día(s)` : ''}${t.critica ? '\n⚠ Camino crítico' : ''}${t.no_antes_de ? `\n📌 Fijada al ${fmtFecha(t.no_antes_de)}` : ''}`}
-                      style={{ position: 'absolute', left: s.left, top: 6, width: s.width, height: ROW_H - 12, borderRadius: 6,
+                      style={{ position: 'absolute', left: s.left, top: BARRA_TOP, width: s.width, height: BARRA_H, borderRadius: 6,
                         background: (t.critica && verCritico ? '#f87171' : t.color) + (tramos && !s.hecho ? '1a' : '33'),
                         border: predSel?.id === t.id ? '2px solid #fff'
                               : `${t.es_adicional ? '1px dashed' : '1px solid'} ${(t.critica && verCritico ? '#f87171' : t.color)}${t.critica && verCritico ? 'cc' : (t.es_adicional ? 'cc' : '66')}`,
@@ -1798,6 +1872,26 @@ export default function Gantt() {
                       <div style={{ width: `${pct}%`, height: '100%', background: t.color + '55', transition: 'width .3s' }} />
                     </div>
                     ))}
+                    {/* Barra real: lo que salió del historial de avance,
+                        comparado contra la fecha_fin planificada. Roja si se
+                        pasó, verde si cerró a tiempo o antes, azul si sigue en
+                        curso y todavía no se pasó del plan. */}
+                    {verObraReal && (() => {
+                      const real = realDeTarea(t);
+                      if (!real) return null;
+                      const rLeft = diasEntre(fechaMin, real.inicio) * PX_DIA;
+                      const rWidth = Math.max(PX_DIA * 0.6, (diasEntre(real.inicio, real.fin) + 1) * PX_DIA - 2);
+                      const atrasada = real.atrasoDias > 0;
+                      const color = atrasada ? '#f87171' : real.terminada ? '#34d399' : '#60a5fa';
+                      const atrasoTxt = real.atrasoDias === 0 ? ''
+                        : `\n${atrasada ? `${real.atrasoDias} día(s) de atraso` : `${-real.atrasoDias} día(s) de adelanto`}`;
+                      return (
+                        <div title={`Real: ${fmtFechaLarga(real.inicio)} → ${fmtFechaLarga(real.fin)}${real.terminada ? '' : ' (en curso)'}${atrasoTxt}`}
+                          style={{ position: 'absolute', left: rLeft, top: REAL_TOP, width: rWidth, height: REAL_H,
+                                   borderRadius: 3, background: color + (real.terminada ? 'aa' : '55'),
+                                   border: `1px dashed ${color}`, zIndex: 3, cursor: 'default' }} />
+                      );
+                    })()}
                     </>;
                     })()}
                   </div>
@@ -1826,8 +1920,8 @@ export default function Gantt() {
                   const iniB = diasEntre(fechaMin, b.fecha_inicio) * PX_DIA;
                   const x1 = (v.tipo === 'SS' || v.tipo === 'SF') ? iniA : finA;
                   const x2 = (v.tipo === 'FF' || v.tipo === 'SF') ? finB : iniB;
-                  const y1 = a.fila * ROW_H + ROW_H / 2;
-                  const y2 = b.fila * ROW_H + ROW_H / 2;
+                  const y1 = a.fila * ROW_H + CENTRO_BARRA;
+                  const y2 = b.fila * ROW_H + CENTRO_BARRA;
                   // Ruta en L: sale, baja y entra. El codo se separa un poco para
                   // que dos flechas a la misma tarea no se pisen.
                   const sale = x1 + 10;
@@ -2530,6 +2624,14 @@ function EditarTarea({ tarea, onSave, onDelete, presupuestoId }) {
         <div>
           <label style={lblStyle}>Duración (días)</label>
           <input style={inpStyle} type="number" min={1} value={form.duracion_dias} onChange={e => upd('duracion_dias', e.target.value)} />
+          {/* Si la tarea tiene horas de mano de obra cargadas, la duración la
+              manda la cuadrilla — cambiarla acá la fija a mano y apaga ese
+              cálculo automático hasta que se vuelva a tocar «⏱ Horas». */}
+          {form.horas_totales > 0 && (
+            <div style={{ fontSize: 10, color: '#d97706', marginTop: 4 }}>
+              Se calcula sola por cuadrilla. Si la cambiás acá, queda fija — «⏱ Horas» la vuelve a poner en automático.
+            </div>
+          )}
         </div>
         <div>
           <label style={lblStyle}>Fecha fin</label>
