@@ -56,6 +56,8 @@ export default function Materiales() {
     setFormEdit({
       precio_presentacion: mat.precio_presentacion || '',
       cant_presentacion: mat.cant_presentacion || '',
+      unidad: mat.unidad || 'u',
+      presentacion: mat.presentacion || '',
       observacion: '',
     });
   };
@@ -74,6 +76,8 @@ export default function Materiales() {
       const body = {};
       if (formEdit.precio_presentacion) body.precio_presentacion = parseFloat(formEdit.precio_presentacion);
       if (formEdit.cant_presentacion) body.cant_presentacion = parseFloat(formEdit.cant_presentacion);
+      if (formEdit.unidad) body.unidad = formEdit.unidad;
+      if (formEdit.presentacion) body.presentacion = formEdit.presentacion;
       if (formEdit.observacion) body.observacion = formEdit.observacion;
       const res = await api.patch(`/maestros/materiales/${mat.id}/precio`, body);
       setEditando(null);
@@ -83,6 +87,8 @@ export default function Materiales() {
         precio_presentacion: res.data.precio_presentacion,
         precio_unitario: res.data.precio_unitario,
         cant_presentacion: res.data.cant_presentacion,
+        unidad: res.data.unidad,
+        presentacion: res.data.presentacion,
       } : m));
     } catch (e) { alert('Error: ' + (e.response?.data?.detail || e.message)); }
     setGuardando(false);
@@ -317,11 +323,19 @@ export default function Materiales() {
                             <td style={td}>{mat.nombre}</td>
                             <td style={{ ...td, textAlign: 'center', fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>
                               {isEdit ? (
-                                <input type="number" min="0" step="0.001" className="input input-mono"
-                                  style={{ width: 70, padding: '3px 6px', fontSize: 11 }}
-                                  placeholder="Cant"
-                                  value={formEdit.cant_presentacion}
-                                  onChange={e => setFormEdit(p => ({ ...p, cant_presentacion: e.target.value }))} />
+                                <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                                  <input type="number" min="0" step="0.001" className="input input-mono"
+                                    style={{ width: 60, padding: '3px 6px', fontSize: 11 }}
+                                    placeholder="Cant"
+                                    value={formEdit.cant_presentacion}
+                                    onChange={e => setFormEdit(p => ({ ...p, cant_presentacion: e.target.value }))} />
+                                  <select className="input" style={{ width: 80, padding: '3px 4px', fontSize: 11 }}
+                                    value={formEdit.presentacion}
+                                    onChange={e => setFormEdit(p => ({ ...p, presentacion: e.target.value }))}>
+                                    <option value="">—</option>
+                                    {UNIDADES_PRESENTACION.map(u => <option key={u} value={u}>{u}</option>)}
+                                  </select>
+                                </div>
                               ) : (
                                 mat.cant_presentacion ? `${mat.cant_presentacion} ${mat.presentacion || mat.unidad}` : '—'
                               )}
@@ -343,7 +357,14 @@ export default function Materiales() {
                                   <div style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 700, color: precioUnitCalc ? 'var(--precio)' : 'var(--border2)' }}>
                                     {precioUnitCalc ? `$ ${Number(precioUnitCalc).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : '—'}
                                   </div>
-                                  <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 2 }}>calculado / {mat.unidad}</div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end', marginTop: 2 }}>
+                                    <span style={{ fontSize: 9, color: 'var(--muted)' }}>calculado /</span>
+                                    <select className="input input-mono" style={{ width: 60, padding: '2px 4px', fontSize: 10 }}
+                                      value={formEdit.unidad}
+                                      onChange={e => setFormEdit(p => ({ ...p, unidad: e.target.value }))}>
+                                      {UNIDADES_MEDIDA.map(u => <option key={u} value={u}>{u}</option>)}
+                                    </select>
+                                  </div>
                                 </div>
                               ) : (
                                 <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600, color: 'var(--precio)' }}>
