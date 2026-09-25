@@ -950,9 +950,21 @@ export default function Gantt() {
     };
   });
 
-  // El plan completo, de punta a punta.
-  const planDesde = filas.reduce((a, t) => t.fecha_inicio < a ? t.fecha_inicio : a, filas[0]?.fecha_inicio || config.fecha_inicio_obra);
-  const planHasta = filas.reduce((a, t) => t.fecha_fin > a ? t.fecha_fin : a, addDias(planDesde, 30));
+  // El plan completo, de punta a punta. Si una tarea arrancó o terminó de
+  // verdad fuera del rango planificado, el plan se ensancha para que entre —
+  // si no, la barra real quedaba dibujada antes del borde izquierdo de la
+  // grilla, en una zona de scroll a la que no se puede llegar, y parecía que
+  // no se dibujaba nada.
+  const planDesde = filas.reduce((a, t) => {
+    const real = realDeTarea(t);
+    const desde = real && real.inicio < t.fecha_inicio ? real.inicio : t.fecha_inicio;
+    return desde < a ? desde : a;
+  }, filas[0]?.fecha_inicio || config.fecha_inicio_obra);
+  const planHasta = filas.reduce((a, t) => {
+    const real = realDeTarea(t);
+    const hasta = real && real.fin > t.fecha_fin ? real.fin : t.fecha_fin;
+    return hasta > a ? hasta : a;
+  }, addDias(planDesde, 30));
 
   // La ventana elegida, recortada contra el plan: nunca se muestra más allá de
   // lo que la obra realmente ocupa.
