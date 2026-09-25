@@ -69,6 +69,16 @@ export default function Gantt() {
   const [plata, setPlata] = useState(null);
   const [cargarAvanceEn, setCargarAvanceEn] = useState(null);   // tarea abierta
   const [pctNuevo, setPctNuevo] = useState("");
+  // Fecha en la que pasó de verdad el avance que se está cargando. Por
+  // defecto hoy, pero se puede atrasar — es la forma de decir «esto arrancó
+  // el lunes pasado, no hoy» o «esto se terminó la semana pasada». De ahí sale
+  // la barra de «Obra real»: arranca en el primer avance > 0% y termina en el
+  // que llega a 100%, según la fecha con la que se guardó cada uno.
+  const [fechaAvance, setFechaAvance] = useState(hoyLocal());
+  // Se resetea a hoy cada vez que se abre el panel de una tarea distinta —
+  // si no, quedaba la fecha atrasada de la carga anterior pegada en la
+  // siguiente tarea que se abre.
+  useEffect(() => { if (cargarAvanceEn) setFechaAvance(hoyLocal()); }, [cargarAvanceEn?.id]);
   // El día de hoy vive en un estado, no en una constante calculada al dibujar:
   // el tablero de una obra queda abierto días enteros en la pantalla de la
   // oficina, y si no se recalcula, la línea de HOY se queda clavada en la fecha
@@ -261,6 +271,7 @@ export default function Gantt() {
     try {
       await api.post(`/presupuestos/${id}/avance`, {
         lineas: [{ linea_id: cargarAvanceEn.linea_id, pct: parseFloat(pctNuevo) || 0 }],
+        fecha: fechaAvance || undefined,
         nota: `Cargado desde el Gantt · ${cargarAvanceEn.nombre}`,
       });
       const r = await api.get(`/presupuestos/${id}/avance`);
@@ -296,7 +307,11 @@ export default function Gantt() {
     const completo = hist.find(h => (h.pct || 0) >= 100);
     const inicio = primerAvance.fecha;
     const fin = completo ? completo.fecha : (hoy > inicio ? hoy : inicio);
-    return { inicio, fin, terminada: !!completo, atrasoDias: diasEntre(t.fecha_fin, fin) };
+    // Algunos lugares abren el panel con la tarea "cruda" del API, sin la
+    // fecha_fin que calcula la fila del diagrama — sin eso no hay con qué
+    // comparar el atraso, pero el rango real igual sirve para mostrar.
+    const atrasoDias = t.fecha_fin ? diasEntre(t.fecha_fin, fin) : null;
+    return { inicio, fin, terminada: !!completo, atrasoDias };
   };
 
   // laborables: días de la semana que se trabajan, en índices de getDay() de JS
@@ -1491,7 +1506,7 @@ export default function Gantt() {
                     return (
                       <div style={{ fontSize: 10, marginTop: 3, color }}>
                         🏗 Real: {fmtFecha(real.inicio)} → {fmtFecha(real.fin)}{!real.terminada ? ' (en curso)' : ''}
-                        {real.atrasoDias !== 0 && ` · ${atrasada ? `${real.atrasoDias}d atraso` : `${-real.atrasoDias}d adelanto`}`}
+                        {!!real.atrasoDias && ` · ${atrasada ? `${real.atrasoDias}d atraso` : `${-real.atrasoDias}d adelanto`}`}
                       </div>
                     );
                   })()}
@@ -1883,7 +1898,7 @@ export default function Gantt() {
                       const rWidth = Math.max(PX_DIA * 0.6, (diasEntre(real.inicio, real.fin) + 1) * PX_DIA - 2);
                       const atrasada = real.atrasoDias > 0;
                       const color = atrasada ? '#f87171' : real.terminada ? '#34d399' : '#60a5fa';
-                      const atrasoTxt = real.atrasoDias === 0 ? ''
+                      const atrasoTxt = !real.atrasoDias ? ''
                         : `\n${atrasada ? `${real.atrasoDias} día(s) de atraso` : `${-real.atrasoDias} día(s) de adelanto`}`;
                       return (
                         <div title={`Real: ${fmtFechaLarga(real.inicio)} → ${fmtFechaLarga(real.fin)}${real.terminada ? '' : ' (en curso)'}${atrasoTxt}`}
@@ -2016,10 +2031,34 @@ export default function Gantt() {
               )}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
+              <b style={{ color: 'var(--text)' }}>Estimado</b>{' '}
               {fmtFechaLarga(cargarAvanceEn.fecha_inicio)} → {fmtFechaLarga(cargarAvanceEn.fecha_fin)}
               {cargarAvanceEn.horas_totales ? ` · ${cargarAvanceEn.horas_totales} h` : ''}
               {cargarAvanceEn.personas ? ` · ${cargarAvanceEn.personas} personas` : ''}
             </div>
+            {/* «Real» sale del historial de avance de esta línea: primer
+                avance > 0% = cuándo arrancó de verdad, el que llega a 100% =
+                cuándo terminó. Si no llegó, sigue abierta hasta hoy. Para
+                corregirla —arrancó o terminó otro día— se carga un avance más
+                abajo con la fecha real en vez de hoy. */}
+            {(() => {
+              const real = realDeTarea(cargarAvanceEn);
+              if (!real) {
+                return (
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                    <b style={{ color: 'var(--text)' }}>Real</b> todavía sin avance cargado
+                  </div>
+                );
+              }
+              const atrasada = real.atrasoDias > 0;
+              const color = atrasada ? '#f87171' : real.terminada ? '#34d399' : '#60a5fa';
+              return (
+                <div style={{ fontSize: 12, color, marginTop: 2, fontWeight: 600 }}>
+                  Real {fmtFechaLarga(real.inicio)} → {fmtFechaLarga(real.fin)}{!real.terminada ? ' (en curso)' : ''}
+                  {!!real.atrasoDias && ` · ${atrasada ? `${real.atrasoDias} día(s) de atraso` : `${-real.atrasoDias} día(s) de adelanto`}`}
+                </div>
+              );
+            })()}
 
             {cargarAvanceEn.suspendida && (
               <div style={{ marginTop: 12, padding: '10px 13px', borderRadius: 9, fontSize: 12.5,
@@ -2284,12 +2323,27 @@ export default function Gantt() {
                            background: 'var(--surface2)', color: 'var(--text)', fontFamily: "'IBM Plex Mono',monospace",
                            fontSize: 15, textAlign: 'right' }} />
               </div>
+              <div style={{ flex: 1.1 }}>
+                {/* Por defecto hoy. Si la tarea arrancó o terminó otro día,
+                    se cambia acá antes de guardar — de ahí sale la barra de
+                    «Obra real»: no hay otro lugar donde cargar esa fecha. */}
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>Fecha real</div>
+                <input type="date" value={fechaAvance} max={hoy}
+                  onChange={e => setFechaAvance(e.target.value)}
+                  style={{ width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8,
+                           background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13 }} />
+              </div>
               <button onClick={guardarAvanceLinea}
                 style={{ padding: '10px 18px', background: 'var(--accent)', color: '#fff', border: 'none',
                          borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                 Guardar
               </button>
             </div>
+            {fechaAvance !== hoy && (
+              <div style={{ fontSize: 11, color: 'var(--warn, #d97706)', marginTop: 6 }}>
+                Se guarda como si hubiera pasado el {fmtFechaLarga(fechaAvance)}, no hoy.
+              </div>
+            )}
             {(() => {
               const a = (avanceObra?.por_linea || []).find(x => x.linea_id === cargarAvanceEn.linea_id);
               const deCert = a && a.origen === 'certificado';
