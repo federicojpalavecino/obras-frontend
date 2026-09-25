@@ -510,13 +510,13 @@ export default function Gantt() {
   // El centrado de arriba corre en cada render hasta que engancha la columna
   // de HOY (sirve para la carga inicial, con la columna todavía sin pintar) y
   // después queda trabado para no pelearle el scroll a quien está mirando
-  // otra parte del plan a propósito. Pero trabado para siempre traía un
-  // problema en obras largas: cambiar a «Día por día» para ver el detalle
-  // dejaba a la persona mirando el primer día del plan, a semanas de scroll
-  // de hoy, porque el scrollLeft en píxeles de la escala vieja ya no apunta a
-  // la fecha correcta en la nueva. Estos tres cambios sueltan el traba y
-  // fuerzan un recentrado, una sola vez cada uno.
-  useEffect(() => { yaCentre.current = false; }, [escala, periodo, verObraReal]);
+  // otra parte del plan a propósito. Pero trabado para siempre traía dos
+  // problemas: cambiar de escala o período en una obra larga dejaba mirando
+  // el primer día del plan (el scrollLeft en píxeles de la escala vieja ya no
+  // apunta a la fecha correcta en la nueva), y entrar a otro presupuesto sin
+  // que el componente se remonte dejaba el centrado pegado al de la obra
+  // anterior. Estos cambios sueltan el traba y fuerzan un recentrado.
+  useEffect(() => { yaCentre.current = false; }, [escala, periodo, verObraReal, id]);
 
   // Recalcula el plan (fechas, holguras, camino crítico) sin recargar todo
   const refrescarPlan = async () => {
@@ -805,6 +805,11 @@ export default function Gantt() {
     try {
       const r = await api.post(`/presupuestos/${id}/gantt/generar`);
       await cargar();
+      // El centrado en HOY ya había corrido con la pantalla vacía (o con el
+      // plan viejo) y quedaba trabado: generar tareas cambia por completo qué
+      // fechas importan, pero nada disparaba un recentrado, así que el plan
+      // recién generado quedaba fuera de la vista y había que buscarlo a mano.
+      yaCentre.current = false;
       const nv = r.data?.vinculos_borrados || 0;
       showToast(`✓ ${r.data?.tareas_generadas || 0} tareas generadas` +
                 (nv ? ` · se borraron ${nv} vínculo${nv !== 1 ? 's' : ''}` : ''));
