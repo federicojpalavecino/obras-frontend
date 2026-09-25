@@ -285,6 +285,19 @@ export default function Gantt() {
   const avancePorLinea = Object.fromEntries(
     ((avanceObra && avanceObra.por_linea) || []).map(a => [a.linea_id, a.pct]));
 
+  // Marca cuándo arrancó o terminó de verdad una tarea, sin pasar por el %.
+  // `campo` es 'fecha_inicio_real' o 'fecha_fin_real'; `valor` vacío la borra.
+  const guardarRealTarea = async (tarea, campo, valor) => {
+    try {
+      await api.patch(`/presupuestos/${id}/gantt/tareas/${tarea.id}/real`, { [campo]: valor || null });
+      const t = await api.get(`/presupuestos/${id}/gantt/tareas`);
+      setTareas(t.data || []);
+      setCargarAvanceEn(prev => prev && prev.id === tarea.id ? { ...prev, [campo]: valor || null } : prev);
+    } catch (e) {
+      showToast('⚠ ' + (e.response?.data?.detail || 'No se pudo guardar'));
+    }
+  };
+
   // ── Obra real ──────────────────────────────────────────────────────────────
   // No hay una tabla nueva para esto: el historial de avance (`t_avances` +
   // certificados) ya trae, por línea, cuándo se cargó cada porcentaje. De ahí
@@ -298,20 +311,33 @@ export default function Gantt() {
     (historialPorLinea[h.linea_id] = historialPorLinea[h.linea_id] || []).push(h);
   });
   // El historial ya viene ordenado por fecha desde el backend.
+  //
+  // Primero manda lo que se marcó a mano (fecha_inicio_real / fecha_fin_real):
+  // es explícito, no depende de haber cargado ningún % ese mismo día. Si no
+  // se marcó nada, se infiere del historial de avance — sirve igual para el
+  // que ya viene cargando avance y nunca tocó el campo nuevo.
   const realDeTarea = (t) => {
-    if (!t.linea_id) return null;
-    const hist = historialPorLinea[t.linea_id];
-    if (!hist || !hist.length) return null;
-    const primerAvance = hist.find(h => (h.pct || 0) > 0);
-    if (!primerAvance) return null;
-    const completo = hist.find(h => (h.pct || 0) >= 100);
-    const inicio = primerAvance.fecha;
-    const fin = completo ? completo.fecha : (hoy > inicio ? hoy : inicio);
+    let inicio = t.fecha_inicio_real || null;
+    let fin = t.fecha_fin_real || null;
+    let terminada = !!fin;
+    if (!inicio) {
+      if (!t.linea_id) return null;
+      const hist = historialPorLinea[t.linea_id];
+      const primerAvance = hist && hist.find(h => (h.pct || 0) > 0);
+      if (!primerAvance) return null;
+      inicio = primerAvance.fecha;
+      if (!fin) {
+        const completo = hist.find(h => (h.pct || 0) >= 100);
+        fin = completo ? completo.fecha : null;
+        terminada = !!completo;
+      }
+    }
+    if (!fin) fin = hoy > inicio ? hoy : inicio;   // en curso: abierta hasta hoy
     // Algunos lugares abren el panel con la tarea "cruda" del API, sin la
     // fecha_fin que calcula la fila del diagrama — sin eso no hay con qué
     // comparar el atraso, pero el rango real igual sirve para mostrar.
     const atrasoDias = t.fecha_fin ? diasEntre(t.fecha_fin, fin) : null;
-    return { inicio, fin, terminada: !!completo, atrasoDias };
+    return { inicio, fin, terminada, atrasoDias };
   };
 
   // laborables: días de la semana que se trabajan, en índices de getDay() de JS
@@ -2036,11 +2062,10 @@ export default function Gantt() {
               {cargarAvanceEn.horas_totales ? ` · ${cargarAvanceEn.horas_totales} h` : ''}
               {cargarAvanceEn.personas ? ` · ${cargarAvanceEn.personas} personas` : ''}
             </div>
-            {/* «Real» sale del historial de avance de esta línea: primer
-                avance > 0% = cuándo arrancó de verdad, el que llega a 100% =
-                cuándo terminó. Si no llegó, sigue abierta hasta hoy. Para
-                corregirla —arrancó o terminó otro día— se carga un avance más
-                abajo con la fecha real en vez de hoy. */}
+            {/* «Real» sale de lo que se marca acá abajo (Arrancó/Terminó el);
+                si no se marcó nada, se infiere del historial de avance: el
+                primer avance > 0% como inicio, el que llega a 100% como fin.
+                Si no llegó, sigue abierta hasta hoy. */}
             {(() => {
               const real = realDeTarea(cargarAvanceEn);
               if (!real) {
@@ -2059,6 +2084,58 @@ export default function Gantt() {
                 </div>
               );
             })()}
+
+            {/* Marcar cuándo arrancó y terminó de verdad, directo — sin tener
+                que subir el % para que cuente. Es lo que arma la barra real
+                de arriba cuando no hay avance cargado, o la corrige cuando lo
+                hay pero pasó otro día. */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Arrancó el</div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <input type="date" value={cargarAvanceEn.fecha_inicio_real || ''} max={hoy}
+                    onChange={e => guardarRealTarea(cargarAvanceEn, 'fecha_inicio_real', e.target.value)}
+                    style={{ flex: 1, minWidth: 0, padding: '7px 8px', border: '1px solid var(--border)', borderRadius: 7,
+                             background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12 }} />
+                  {cargarAvanceEn.fecha_inicio_real ? (
+                    <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_inicio_real', '')}
+                      title="Borrar la fecha marcada"
+                      style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--border)',
+                               background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>×</button>
+                  ) : (
+                    <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_inicio_real', hoy)}
+                      title="Marcar que arrancó hoy"
+                      style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--accent)',
+                               background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>
+                      Hoy
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Terminó el</div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <input type="date" value={cargarAvanceEn.fecha_fin_real || ''} max={hoy}
+                    min={cargarAvanceEn.fecha_inicio_real || undefined}
+                    onChange={e => guardarRealTarea(cargarAvanceEn, 'fecha_fin_real', e.target.value)}
+                    style={{ flex: 1, minWidth: 0, padding: '7px 8px', border: '1px solid var(--border)', borderRadius: 7,
+                             background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12 }} />
+                  {cargarAvanceEn.fecha_fin_real ? (
+                    <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_fin_real', '')}
+                      title="Borrar la fecha marcada"
+                      style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--border)',
+                               background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>×</button>
+                  ) : (
+                    <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_fin_real', hoy)}
+                      title="Marcar que terminó hoy"
+                      style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--accent)',
+                               background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>
+                      Hoy
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {cargarAvanceEn.suspendida && (
               <div style={{ marginTop: 12, padding: '10px 13px', borderRadius: 9, fontSize: 12.5,
