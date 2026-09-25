@@ -2068,183 +2068,6 @@ export default function Gantt() {
                                border: '1px solid rgba(251,146,60,.5)' }}>ADICIONAL</span>
               )}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
-              <b style={{ color: 'var(--text)' }}>Estimado</b>{' '}
-              {fmtFechaLarga(cargarAvanceEn.fecha_inicio)} → {fmtFechaLarga(cargarAvanceEn.fecha_fin)}
-              {cargarAvanceEn.horas_totales ? ` · ${cargarAvanceEn.horas_totales} h` : ''}
-              {cargarAvanceEn.personas ? ` · ${cargarAvanceEn.personas} personas` : ''}
-            </div>
-            {/* «Real» sale de lo que se marca acá abajo (Arrancó/Terminó el);
-                si no se marcó nada, se infiere del historial de avance: el
-                primer avance > 0% como inicio, el que llega a 100% como fin.
-                Si no llegó, sigue abierta hasta hoy. */}
-            {(() => {
-              const real = realDeTarea(cargarAvanceEn);
-              if (!real) {
-                return (
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                    <b style={{ color: 'var(--text)' }}>Real</b> todavía sin avance cargado
-                  </div>
-                );
-              }
-              const atrasada = real.atrasoDias > 0;
-              const color = atrasada ? '#f87171' : real.terminada ? '#34d399' : '#60a5fa';
-              return (
-                <div style={{ fontSize: 12, color, marginTop: 2, fontWeight: 600 }}>
-                  Real {fmtFechaLarga(real.inicio)} → {fmtFechaLarga(real.fin)}{!real.terminada ? ' (en curso)' : ''}
-                  {!!real.atrasoDias && ` · ${atrasada ? `${real.atrasoDias} día(s) de atraso` : `${-real.atrasoDias} día(s) de adelanto`}`}
-                </div>
-              );
-            })()}
-
-            {/* Marcar cuándo arrancó y terminó de verdad, directo — sin tener
-                que subir el % para que cuente. Es lo que arma la barra real
-                de arriba cuando no hay avance cargado, o la corrige cuando lo
-                hay pero pasó otro día. */}
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Arrancó el</div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <input type="date" value={cargarAvanceEn.fecha_inicio_real || ''} max={hoy}
-                    onChange={e => guardarRealTarea(cargarAvanceEn, 'fecha_inicio_real', e.target.value)}
-                    style={{ flex: 1, minWidth: 0, padding: '7px 8px', border: '1px solid var(--border)', borderRadius: 7,
-                             background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12 }} />
-                  {cargarAvanceEn.fecha_inicio_real ? (
-                    <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_inicio_real', '')}
-                      title="Borrar la fecha marcada"
-                      style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--border)',
-                               background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>×</button>
-                  ) : (
-                    <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_inicio_real', hoy)}
-                      title="Marcar que arrancó hoy"
-                      style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--accent)',
-                               background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>
-                      Hoy
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Terminó el</div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <input type="date" value={cargarAvanceEn.fecha_fin_real || ''} max={hoy}
-                    min={cargarAvanceEn.fecha_inicio_real || undefined}
-                    onChange={e => guardarRealTarea(cargarAvanceEn, 'fecha_fin_real', e.target.value)}
-                    style={{ flex: 1, minWidth: 0, padding: '7px 8px', border: '1px solid var(--border)', borderRadius: 7,
-                             background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12 }} />
-                  {cargarAvanceEn.fecha_fin_real ? (
-                    <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_fin_real', '')}
-                      title="Borrar la fecha marcada"
-                      style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--border)',
-                               background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>×</button>
-                  ) : (
-                    <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_fin_real', hoy)}
-                      title="Marcar que terminó hoy"
-                      style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--accent)',
-                               background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>
-                      Hoy
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {cargarAvanceEn.suspendida && (
-              <div style={{ marginTop: 12, padding: '10px 13px', borderRadius: 9, fontSize: 12.5,
-                            background: 'rgba(217,119,6,.12)', border: '1px solid rgba(217,119,6,.4)', color: '#b45309' }}>
-                <b>Suspendida</b> desde el {fmtFechaLarga(cargarAvanceEn.suspendida_desde)}
-                {cargarAvanceEn.motivo_suspension ? ` · ${cargarAvanceEn.motivo_suspension}` : ''}
-              </div>
-            )}
-
-            {(() => {
-              const e = estadoLineas[cargarAvanceEn.linea_id];
-              if (!e) return null;
-              const sc = e.subcontrato;
-              return (
-                <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10,
-                              background: 'var(--surface2)', border: '1px solid var(--border)', fontSize: 12.5 }}>
-                  {sc ? (
-                    <>
-                      <div style={{ fontWeight: 700, marginBottom: 5 }}>Lo ejecuta {sc.contratista}</div>
-                      <div style={{ color: 'var(--muted)', lineHeight: 1.6 }}>
-                        Contrato ${Math.round(sc.monto).toLocaleString('es-AR')} ·
-                        pagado ${Math.round(sc.pagado).toLocaleString('es-AR')}
-                        {sc.pendiente > 0 && <> · <b style={{ color: '#d97706' }}>le debés ${Math.round(sc.pendiente).toLocaleString('es-AR')}</b></>}
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ color: 'var(--muted)' }}>Sin contratista asignado — lo hace el estudio.</div>
-                  )}
-                  {e.certificado > 0 && (
-                    <div style={{ color: 'var(--muted)', marginTop: 5 }}>
-                      Certificado al cliente: ${Math.round(e.certificado).toLocaleString('es-AR')}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {!cargarAvanceEn.es_resumen && (
-              <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10,
-                            background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700 }}>Cuántos trabajan</div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                      {cargarAvanceEn.horas_totales > 0
-                        ? `${Math.round(cargarAvanceEn.horas_totales)} h de mano de obra — sumar gente acorta el plazo`
-                        : 'Sin horas cargadas: el plazo no se recalcula solo'}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    <button onClick={() => cambiarCuadrilla(cargarAvanceEn.id, Math.max(1, (cargarAvanceEn.personas || 1) - 1), cargarAvanceEn.horas_totales)}
-                      style={{ width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 17, lineHeight: 1,
-                               background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}>−</button>
-                    <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 16, fontWeight: 700, minWidth: 22, textAlign: 'center' }}>
-                      {cargarAvanceEn.personas || 1}
-                    </span>
-                    <button onClick={() => cambiarCuadrilla(cargarAvanceEn.id, (cargarAvanceEn.personas || 1) + 1, cargarAvanceEn.horas_totales)}
-                      style={{ width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 17, lineHeight: 1,
-                               background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}>+</button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <button onClick={() => { const t = cargarAvanceEn; setCargarAvanceEn(null); setEditando(t); }}
-              style={{ marginTop: 14, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
-                       fontFamily: 'inherit', fontSize: 13, fontWeight: 600, background: 'transparent',
-                       border: '1px solid var(--border)', color: 'var(--muted)' }}>
-              Editar nombre, fechas y color
-            </button>
-
-            {(() => {
-              const antes = vinculos.filter(v => v.sucesora_id === cargarAvanceEn.id);
-              const despues = vinculos.filter(v => v.predecesora_id === cargarAvanceEn.id);
-              if (!antes.length && !despues.length) return null;
-              const nom = i => (tareas.find(t => t.id === i) || {}).nombre || 'otra tarea';
-              const fila = (v, txt) => (
-                <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
-                  <span style={{ flex: 1, minWidth: 0, color: 'var(--muted)', overflow: 'hidden',
-                                 textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{txt}</span>
-                  <button onClick={() => borrarVinculo(v.id)} title="Desvincular"
-                    style={{ flexShrink: 0, padding: '3px 9px', borderRadius: 6, cursor: 'pointer',
-                             fontFamily: 'inherit', fontSize: 11.5, background: 'transparent',
-                             border: '1px solid rgba(239,68,68,.45)', color: '#ef4444' }}>
-                    Desvincular
-                  </button>
-                </div>
-              );
-              return (
-                <div style={{ marginTop: 12, padding: '11px 13px', borderRadius: 10, fontSize: 12.5,
-                              background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-                  <div style={{ fontWeight: 700, marginBottom: 2 }}>Depende de / la siguen</div>
-                  {antes.map(v => fila(v, `Va después de «${nom(v.predecesora_id)}»`))}
-                  {despues.map(v => fila(v, `Antes de «${nom(v.sucesora_id)}»`))}
-                </div>
-              );
-            })()}
 
             {avisoTarea && (
               <div style={{ marginTop: 10, padding: '9px 12px', borderRadius: 9, fontSize: 12.5,
@@ -2253,199 +2076,385 @@ export default function Gantt() {
               </div>
             )}
 
-            {/* Partir la tarea — el formulario va acá adentro, no en un cuadro
-                del navegador: hay que poder elegir una fecha en un calendario. */}
-            {!cargarAvanceEn.suspendida && !formSuspender && (
-              formPartir ? (
-                <div style={{ marginTop: 10, padding: '13px 14px', borderRadius: 10,
-                              background: 'var(--surface2)', border: '1px solid var(--accent)' }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>
-                    {cargarAvanceEn.tramos?.length > 1 ? 'Partir otra vez lo que queda' : 'Hacer una parte ahora y el resto después'}
+            {/* ── PLANIFICADO ── todo lo que define el plan: fechas, cuadrilla,
+                dependencias, y las dos formas de tocar el cronograma (partir /
+                suspender). Todo bajo un mismo título para no mezclarlo con lo
+                que pasó de verdad, que va en la mitad de abajo. */}
+            <div style={{ marginTop: 14, borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+              <div style={{ padding: '7px 14px', background: 'var(--surface2)', fontSize: 10.5, fontWeight: 800,
+                            letterSpacing: 1, textTransform: 'uppercase', color: 'var(--muted)' }}>
+                Planificado
+              </div>
+              <div style={{ padding: 14 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700 }}>
+                  {fmtFechaLarga(cargarAvanceEn.fecha_inicio)} → {fmtFechaLarga(cargarAvanceEn.fecha_fin)}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                  {cargarAvanceEn.dur_calc ?? cargarAvanceEn.duracion_dias} día(s)
+                  {cargarAvanceEn.horas_totales ? ` · ${cargarAvanceEn.horas_totales} h` : ''}
+                </div>
+
+                {cargarAvanceEn.suspendida && (
+                  <div style={{ marginTop: 10, padding: '9px 12px', borderRadius: 9, fontSize: 12,
+                                background: 'rgba(217,119,6,.12)', border: '1px solid rgba(217,119,6,.4)', color: '#b45309' }}>
+                    <b>Suspendida</b> desde el {fmtFechaLarga(cargarAvanceEn.suspendida_desde)}
+                    {cargarAvanceEn.motivo_suspension ? ` · ${cargarAvanceEn.motivo_suspension}` : ''}
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 11, lineHeight: 1.5 }}>
-                    {cargarAvanceEn.tramos?.length > 1
-                      ? `Se parte la última parte, la de ${cargarAvanceEn.tramos[cargarAvanceEn.tramos.length - 1].dias} día${cargarAvanceEn.tramos[cargarAvanceEn.tramos.length - 1].dias !== 1 ? 's' : ''}. Las anteriores no se tocan.`
-                      : 'Sigue siendo la misma tarea: la barra queda cortada, con el hueco de los días en que se para.'}
-                  </div>
-                  <div style={{ display: 'flex', gap: 9 }}>
+                )}
+
+                {!cargarAvanceEn.es_resumen && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
-                        {cargarAvanceEn.tramos?.length > 1 ? 'De eso se hace' : 'Se hace ahora'}
-                      </div>
-                      <div style={{ position: 'relative' }}>
-                        <input type="number" min="1" max="99" value={formPartir.pct} autoFocus
-                          onChange={e => setFormPartir(f => ({
-                            ...f, pct: e.target.value,
-                            fecha: f.tocada ? f.fecha : fechaQueSigue(cargarAvanceEn, e.target.value),
-                          }))}
-                          style={{ width: '100%', padding: '8px 26px 8px 10px', border: '1px solid var(--border)', borderRadius: 8,
-                                   background: 'var(--surface)', color: 'var(--text)', fontFamily: "'IBM Plex Mono',monospace",
-                                   fontSize: 14, textAlign: 'right' }} />
-                        <span style={{ position: 'absolute', right: 9, top: 9, fontSize: 12, color: 'var(--muted)' }}>%</span>
+                      <div style={{ fontSize: 12, fontWeight: 700 }}>Cuántos trabajan</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 1 }}>
+                        {cargarAvanceEn.horas_totales > 0 ? 'sumar gente acorta el plazo' : 'sin horas cargadas, el plazo es fijo'}
                       </div>
                     </div>
-                    <div style={{ flex: 1.3 }}>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
-                        Se retoma el{!formPartir.tocada && <span style={{ opacity: .7 }}> · seguido</span>}
-                      </div>
-                      <input type="date" value={formPartir.fecha} min={cargarAvanceEn.fecha_inicio}
-                        onChange={e => setFormPartir({ ...formPartir, fecha: e.target.value, tocada: true })}
-                        style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8,
-                                 background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13 }} />
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    <button onClick={() => setFormPartir(null)}
-                      style={{ flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-                               fontSize: 13, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)' }}>
-                      Cancelar
-                    </button>
-                    <button onClick={() => partirTarea(cargarAvanceEn, formPartir.pct, formPartir.fecha)}
-                      style={{ flex: 1.4, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-                               fontSize: 13, fontWeight: 700, background: 'var(--accent)', border: 'none', color: '#fff' }}>
-                      Partir la tarea
-                    </button>
-                  </div>
-                </div>
-              ) : cargarAvanceEn.tramos?.length > 1 ? (<>
-                <div style={{ marginTop: 10, padding: '11px 13px', borderRadius: 10, fontSize: 12.5,
-                              background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-                  <div style={{ fontWeight: 700, marginBottom: 3 }}>Se hace en {cargarAvanceEn.tramos.length} partes</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 8, lineHeight: 1.5 }}>
-                    Las partes con ✓ ya se hicieron y quedan como fueron. Si sumás gente
-                    a la tarea, se acorta lo que falta, no lo que ya pasó.
-                  </div>
-                  {cargarAvanceEn.tramos.map((tr, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <span style={{ color: 'var(--muted)', flexShrink: 0 }}>
-                        {tr.hecho ? '✓' : '○'} {i + 1}ª · {tr.dias} día{tr.dias !== 1 ? 's' : ''}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => cambiarCuadrilla(cargarAvanceEn.id, Math.max(1, (cargarAvanceEn.personas || 1) - 1), cargarAvanceEn.horas_totales)}
+                        style={{ width: 28, height: 28, borderRadius: 7, cursor: 'pointer', fontSize: 15, lineHeight: 1,
+                                 background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}>−</button>
+                      <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 14, fontWeight: 700, minWidth: 18, textAlign: 'center' }}>
+                        {cargarAvanceEn.personas || 1}
                       </span>
-                      {i === 0 ? (
-                        <span style={{ color: 'var(--muted)' }}>desde el {fmtFechaLarga(tr.inicio)}</span>
-                      ) : (
-                        // La fecha de retomar se edita acá nomás: es la que da
-                        // el juego para reacomodar el plan.
-                        <input type="date" defaultValue={tr.inicio} key={tr.inicio}
-                          onChange={e => moverTramo(cargarAvanceEn, i, e.target.value)}
-                          title="Cambiar la fecha en que se retoma"
-                          style={{ flex: 1, padding: '6px 9px', border: '1px solid var(--accent)', borderRadius: 7,
-                                   background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12.5 }} />
-                      )}
+                      <button onClick={() => cambiarCuadrilla(cargarAvanceEn.id, (cargarAvanceEn.personas || 1) + 1, cargarAvanceEn.horas_totales)}
+                        style={{ width: 28, height: 28, borderRadius: 7, cursor: 'pointer', fontSize: 15, lineHeight: 1,
+                                 background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}>+</button>
                     </div>
-                  ))}
-                  <button onClick={() => unirTarea(cargarAvanceEn)}
-                    style={{ marginTop: 9, width: '100%', padding: '8px 0', borderRadius: 8, cursor: 'pointer',
-                             fontFamily: 'inherit', fontSize: 12.5, background: 'transparent',
-                             border: '1px solid var(--border)', color: 'var(--muted)' }}>
-                    Volver a hacerla de corrido
-                  </button>
-                </div>
-                {/* Una obra se puede frenar una vez o cinco: no hay tope de
-                    partes. Lo que se parte siempre es lo que queda. */}
-                {cargarAvanceEn.tramos[cargarAvanceEn.tramos.length - 1].dias > 1 && (
-                  <button onClick={() => { setAvisoTarea(''); setFormPartir({ pct: '50', fecha: fechaQueSigue(cargarAvanceEn, 50) }); }}
-                    style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
-                             fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: 'transparent',
-                             border: '1px solid var(--accent)', color: 'var(--accent)' }}>
-                    Partir otra vez lo que queda
+                  </div>
+                )}
+
+                {(() => {
+                  const antes = vinculos.filter(v => v.sucesora_id === cargarAvanceEn.id);
+                  const despues = vinculos.filter(v => v.predecesora_id === cargarAvanceEn.id);
+                  if (!antes.length && !despues.length) return null;
+                  const nom = i => (tareas.find(t => t.id === i) || {}).nombre || 'otra tarea';
+                  const fila = (v, txt) => (
+                    <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
+                      <span style={{ flex: 1, minWidth: 0, color: 'var(--muted)', overflow: 'hidden',
+                                     textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{txt}</span>
+                      <button onClick={() => borrarVinculo(v.id)} title="Desvincular"
+                        style={{ flexShrink: 0, padding: '3px 9px', borderRadius: 6, cursor: 'pointer',
+                                 fontFamily: 'inherit', fontSize: 11, background: 'transparent',
+                                 border: '1px solid rgba(239,68,68,.45)', color: '#ef4444' }}>
+                        Desvincular
+                      </button>
+                    </div>
+                  );
+                  return (
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 12 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 2 }}>Depende de / la siguen</div>
+                      {antes.map(v => fila(v, `Va después de «${nom(v.predecesora_id)}»`))}
+                      {despues.map(v => fila(v, `Antes de «${nom(v.sucesora_id)}»`))}
+                    </div>
+                  );
+                })()}
+
+                {/* Partir la tarea — el formulario va acá adentro, no en un
+                    cuadro del navegador: hay que poder elegir una fecha. */}
+                {!cargarAvanceEn.suspendida && !formSuspender && (
+                  formPartir ? (
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>
+                        {cargarAvanceEn.tramos?.length > 1 ? 'Partir otra vez lo que queda' : 'Hacer una parte ahora y el resto después'}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5 }}>
+                        {cargarAvanceEn.tramos?.length > 1
+                          ? `Se parte la última parte, la de ${cargarAvanceEn.tramos[cargarAvanceEn.tramos.length - 1].dias} día${cargarAvanceEn.tramos[cargarAvanceEn.tramos.length - 1].dias !== 1 ? 's' : ''}. Las anteriores no se tocan.`
+                          : 'Sigue siendo la misma tarea: la barra queda cortada, con el hueco de los días en que se para.'}
+                      </div>
+                      <div style={{ display: 'flex', gap: 9 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
+                            {cargarAvanceEn.tramos?.length > 1 ? 'De eso se hace' : 'Se hace ahora'}
+                          </div>
+                          <div style={{ position: 'relative' }}>
+                            <input type="number" min="1" max="99" value={formPartir.pct} autoFocus
+                              onChange={e => setFormPartir(f => ({
+                                ...f, pct: e.target.value,
+                                fecha: f.tocada ? f.fecha : fechaQueSigue(cargarAvanceEn, e.target.value),
+                              }))}
+                              style={{ width: '100%', padding: '8px 26px 8px 10px', border: '1px solid var(--border)', borderRadius: 8,
+                                       background: 'var(--surface2)', color: 'var(--text)', fontFamily: "'IBM Plex Mono',monospace",
+                                       fontSize: 14, textAlign: 'right' }} />
+                            <span style={{ position: 'absolute', right: 9, top: 9, fontSize: 12, color: 'var(--muted)' }}>%</span>
+                          </div>
+                        </div>
+                        <div style={{ flex: 1.3 }}>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
+                            Se retoma el{!formPartir.tocada && <span style={{ opacity: .7 }}> · seguido</span>}
+                          </div>
+                          <input type="date" value={formPartir.fecha} min={cargarAvanceEn.fecha_inicio}
+                            onChange={e => setFormPartir({ ...formPartir, fecha: e.target.value, tocada: true })}
+                            style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8,
+                                     background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13 }} />
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                        <button onClick={() => setFormPartir(null)}
+                          style={{ flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                                   fontSize: 13, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)' }}>
+                          Cancelar
+                        </button>
+                        <button onClick={() => partirTarea(cargarAvanceEn, formPartir.pct, formPartir.fecha)}
+                          style={{ flex: 1.4, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                                   fontSize: 13, fontWeight: 700, background: 'var(--accent)', border: 'none', color: '#fff' }}>
+                          Partir la tarea
+                        </button>
+                      </div>
+                    </div>
+                  ) : cargarAvanceEn.tramos?.length > 1 ? (<>
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 12 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 3 }}>Se hace en {cargarAvanceEn.tramos.length} partes</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8, lineHeight: 1.5 }}>
+                        Las partes con ✓ ya se hicieron y quedan como fueron. Si sumás gente
+                        a la tarea, se acorta lo que falta, no lo que ya pasó.
+                      </div>
+                      {cargarAvanceEn.tramos.map((tr, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <span style={{ color: 'var(--muted)', flexShrink: 0 }}>
+                            {tr.hecho ? '✓' : '○'} {i + 1}ª · {tr.dias} día{tr.dias !== 1 ? 's' : ''}
+                          </span>
+                          {i === 0 ? (
+                            <span style={{ color: 'var(--muted)' }}>desde el {fmtFechaLarga(tr.inicio)}</span>
+                          ) : (
+                            // La fecha de retomar se edita acá nomás: es la que
+                            // da el juego para reacomodar el plan.
+                            <input type="date" defaultValue={tr.inicio} key={tr.inicio}
+                              onChange={e => moverTramo(cargarAvanceEn, i, e.target.value)}
+                              title="Cambiar la fecha en que se retoma"
+                              style={{ flex: 1, padding: '6px 9px', border: '1px solid var(--accent)', borderRadius: 7,
+                                       background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12.5 }} />
+                          )}
+                        </div>
+                      ))}
+                      <button onClick={() => unirTarea(cargarAvanceEn)}
+                        style={{ marginTop: 6, width: '100%', padding: '8px 0', borderRadius: 8, cursor: 'pointer',
+                                 fontFamily: 'inherit', fontSize: 12, background: 'transparent',
+                                 border: '1px solid var(--border)', color: 'var(--muted)' }}>
+                        Volver a hacerla de corrido
+                      </button>
+                    </div>
+                    {/* Una obra se puede frenar una vez o cinco: no hay tope de
+                        partes. Lo que se parte siempre es lo que queda. */}
+                    {cargarAvanceEn.tramos[cargarAvanceEn.tramos.length - 1].dias > 1 && (
+                      <button onClick={() => { setAvisoTarea(''); setFormPartir({ pct: '50', fecha: fechaQueSigue(cargarAvanceEn, 50) }); }}
+                        style={{ marginTop: 8, width: '100%', padding: '8px 0', borderRadius: 8, cursor: 'pointer',
+                                 fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, background: 'transparent',
+                                 border: '1px solid var(--accent)', color: 'var(--accent)' }}>
+                        Partir otra vez lo que queda
+                      </button>
+                    )}
+                  </>) : (
+                    <button onClick={() => { setAvisoTarea(''); setFormPartir({ pct: '50', fecha: fechaQueSigue(cargarAvanceEn, 50) }); }}
+                      style={{ marginTop: 12, width: '100%', padding: '8px 0', borderRadius: 8, cursor: 'pointer',
+                               fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, background: 'transparent',
+                               border: '1px solid var(--accent)', color: 'var(--accent)' }}>
+                      Hacer una parte y reprogramar el resto
+                    </button>
+                  )
+                )}
+
+                {/* Suspender: el motivo también se escribe acá. */}
+                {formSuspender ? (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>Suspender la tarea</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 9, lineHeight: 1.5 }}>
+                      Queda parada hasta que la retomes. Los días que esté parada se suman al plazo.
+                    </div>
+                    <input value={formSuspender.motivo} autoFocus
+                      placeholder="Falta material, decisión del cliente, se cayó el contratista…"
+                      onChange={e => setFormSuspender({ motivo: e.target.value })}
+                      style={{ width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8,
+                               background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13 }} />
+                    <div style={{ display: 'flex', gap: 7, marginTop: 8 }}>
+                      <button onClick={() => setFormSuspender(null)}
+                        style={{ flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                                 fontSize: 13, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)' }}>
+                        Cancelar
+                      </button>
+                      <button onClick={() => alternarSuspension(cargarAvanceEn, formSuspender.motivo)} disabled={suspendiendo}
+                        style={{ flex: 1.4, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                                 fontSize: 13, fontWeight: 700, background: '#d97706', border: 'none', color: '#fff' }}>
+                        {suspendiendo ? '…' : 'Suspender'}
+                      </button>
+                    </div>
+                  </div>
+                ) : !formPartir && (
+                  <button
+                    onClick={() => {
+                      setAvisoTarea('');
+                      if (cargarAvanceEn.suspendida) alternarSuspension(cargarAvanceEn);
+                      else setFormSuspender({ motivo: '' });
+                    }}
+                    disabled={suspendiendo}
+                    style={{ marginTop: 8, width: '100%', padding: '8px 0', borderRadius: 8, cursor: 'pointer',
+                             fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
+                             border: `1px solid ${cargarAvanceEn.suspendida ? 'var(--accent)' : '#d97706'}`,
+                             background: 'transparent',
+                             color: cargarAvanceEn.suspendida ? 'var(--accent)' : '#d97706' }}>
+                    {suspendiendo ? '…' : cargarAvanceEn.suspendida ? 'Retomar la tarea' : 'Suspender la tarea'}
                   </button>
                 )}
-              </>) : (
-                <button onClick={() => { setAvisoTarea(''); setFormPartir({ pct: '50', fecha: fechaQueSigue(cargarAvanceEn, 50) }); }}
-                  style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
-                           fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: 'transparent',
-                           border: '1px solid var(--accent)', color: 'var(--accent)' }}>
-                  Hacer una parte y reprogramar el resto
+
+                <button onClick={() => { const t = cargarAvanceEn; setCargarAvanceEn(null); setEditando(t); }}
+                  style={{ marginTop: 10, width: '100%', padding: '8px 0', borderRadius: 8, cursor: 'pointer',
+                           fontFamily: 'inherit', fontSize: 12, fontWeight: 600, background: 'transparent',
+                           border: '1px solid var(--border)', color: 'var(--muted)' }}>
+                  Editar nombre, fechas y color
                 </button>
-              )
-            )}
-
-            {/* Suspender: el motivo también se escribe acá. */}
-            {formSuspender ? (
-              <div style={{ marginTop: 10, padding: '13px 14px', borderRadius: 10,
-                            background: 'var(--surface2)', border: '1px solid #d97706' }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>Suspender la tarea</div>
-                <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5 }}>
-                  Queda parada hasta que la retomes. Los días que esté parada se suman al plazo y se corre todo lo que depende de ella.
-                </div>
-                <input value={formSuspender.motivo} autoFocus
-                  placeholder="Falta material, decisión del cliente, se cayó el contratista…"
-                  onChange={e => setFormSuspender({ motivo: e.target.value })}
-                  style={{ width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8,
-                           background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13 }} />
-                <div style={{ display: 'flex', gap: 7, marginTop: 8 }}>
-                  <button onClick={() => setFormSuspender(null)}
-                    style={{ flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-                             fontSize: 13, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)' }}>
-                    Cancelar
-                  </button>
-                  <button onClick={() => alternarSuspension(cargarAvanceEn, formSuspender.motivo)} disabled={suspendiendo}
-                    style={{ flex: 1.4, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-                             fontSize: 13, fontWeight: 700, background: '#d97706', border: 'none', color: '#fff' }}>
-                    {suspendiendo ? '…' : 'Suspender'}
-                  </button>
-                </div>
               </div>
-            ) : !formPartir && (
-              <button
-                onClick={() => {
-                  setAvisoTarea('');
-                  if (cargarAvanceEn.suspendida) alternarSuspension(cargarAvanceEn);
-                  else setFormSuspender({ motivo: '' });
-                }}
-                disabled={suspendiendo}
-                style={{ marginTop: 8, width: '100%', padding: '9px 0', borderRadius: 9, cursor: 'pointer',
-                         fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
-                         border: `1px solid ${cargarAvanceEn.suspendida ? 'var(--accent)' : '#d97706'}`,
-                         background: 'transparent',
-                         color: cargarAvanceEn.suspendida ? 'var(--accent)' : '#d97706' }}>
-                {suspendiendo ? '…' : cargarAvanceEn.suspendida ? 'Retomar la tarea' : 'Suspender la tarea'}
-              </button>
-            )}
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>Avance acumulado</div>
-                <input type="number" min="0" max="100" value={pctNuevo} autoFocus
-                  onChange={e => setPctNuevo(e.target.value)}
-                  style={{ width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8,
-                           background: 'var(--surface2)', color: 'var(--text)', fontFamily: "'IBM Plex Mono',monospace",
-                           fontSize: 15, textAlign: 'right' }} />
-              </div>
-              <div style={{ flex: 1.1 }}>
-                {/* Por defecto hoy. Si la tarea arrancó o terminó otro día,
-                    se cambia acá antes de guardar — de ahí sale la barra de
-                    «Obra real»: no hay otro lugar donde cargar esa fecha. */}
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>Fecha real</div>
-                <input type="date" value={fechaAvance} max={hoy}
-                  onChange={e => setFechaAvance(e.target.value)}
-                  style={{ width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8,
-                           background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13 }} />
-              </div>
-              <button onClick={guardarAvanceLinea}
-                style={{ padding: '10px 18px', background: 'var(--accent)', color: '#fff', border: 'none',
-                         borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Guardar
-              </button>
             </div>
-            {fechaAvance !== hoy && (
-              <div style={{ fontSize: 11, color: 'var(--warn, #d97706)', marginTop: 6 }}>
-                Se guarda como si hubiera pasado el {fmtFechaLarga(fechaAvance)}, no hoy.
-              </div>
-            )}
+
+            {/* ── REAL ── lo que pasó de verdad: cuándo arrancó y terminó, quién
+                lo ejecuta, y el % de avance. Separado de arriba a propósito:
+                el plan se toca para reprogramar, esto se carga para registrar
+                lo que ya sucedió. */}
             {(() => {
-              const a = (avanceObra?.por_linea || []).find(x => x.linea_id === cargarAvanceEn.linea_id);
-              const deCert = a && a.origen === 'certificado';
-              const deSub = a && a.origen === 'subcontrato';
+              const real = realDeTarea(cargarAvanceEn);
+              const atrasada = real && real.atrasoDias > 0;
+              const colorReal = !real ? 'var(--muted)' : atrasada ? '#f87171' : real.terminada ? '#34d399' : '#60a5fa';
               return (
-                <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 10, lineHeight: 1.55 }}>
-                  {deCert && <>Lo que se ve hoy sale del <b>último certificado</b> ({a.fecha}). Lo que cargues acá manda a partir de su fecha, sin tocar el certificado.<br /></>}
-                  {deSub && <>Lo que se ve hoy sale de <b>lo certificado a un contratista</b>. Lo que cargues acá lo pisa.<br /></>}
-                  Se registra en el avance de la obra: es el mismo número que ven el resumen, la
-                  curva y el cliente en su portal.
-                  {avanceObra?.metodologia === 'certificacion'
-                    ? ' Cuando emitas el próximo certificado, va a partir de acá.'
-                    : ' Las etapas pactadas se miden con este mismo avance.'}
+                <div style={{ marginTop: 12, borderRadius: 12, border: `1px solid ${real ? colorReal + '55' : 'var(--border)'}`, overflow: 'hidden' }}>
+                  <div style={{ padding: '7px 14px', background: real ? colorReal + '18' : 'var(--surface2)',
+                                fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: colorReal }}>
+                    Real
+                  </div>
+                  <div style={{ padding: 14 }}>
+                    {real ? (
+                      <>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: colorReal }}>
+                          {fmtFechaLarga(real.inicio)} → {fmtFechaLarga(real.fin)}{!real.terminada ? ' (en curso)' : ''}
+                        </div>
+                        {!!real.atrasoDias && (
+                          <div style={{ fontSize: 11, color: colorReal, marginTop: 2 }}>
+                            {atrasada ? `${real.atrasoDias} día(s) de atraso` : `${-real.atrasoDias} día(s) de adelanto`}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Todavía sin marcar</div>
+                    )}
+
+                    {/* Marcar cuándo arrancó y terminó de verdad, directo — sin
+                        tener que subir el % para que cuente. */}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Arrancó el</div>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <input type="date" value={cargarAvanceEn.fecha_inicio_real || ''} max={hoy}
+                            onChange={e => guardarRealTarea(cargarAvanceEn, 'fecha_inicio_real', e.target.value)}
+                            style={{ flex: 1, minWidth: 0, padding: '7px 8px', border: '1px solid var(--border)', borderRadius: 7,
+                                     background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12 }} />
+                          {cargarAvanceEn.fecha_inicio_real ? (
+                            <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_inicio_real', '')}
+                              title="Borrar la fecha marcada"
+                              style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--border)',
+                                       background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>×</button>
+                          ) : (
+                            <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_inicio_real', hoy)}
+                              title="Marcar que arrancó hoy"
+                              style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--accent)',
+                                       background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>
+                              Hoy
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Terminó el</div>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <input type="date" value={cargarAvanceEn.fecha_fin_real || ''} max={hoy}
+                            min={cargarAvanceEn.fecha_inicio_real || undefined}
+                            onChange={e => guardarRealTarea(cargarAvanceEn, 'fecha_fin_real', e.target.value)}
+                            style={{ flex: 1, minWidth: 0, padding: '7px 8px', border: '1px solid var(--border)', borderRadius: 7,
+                                     background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 12 }} />
+                          {cargarAvanceEn.fecha_fin_real ? (
+                            <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_fin_real', '')}
+                              title="Borrar la fecha marcada"
+                              style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--border)',
+                                       background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>×</button>
+                          ) : (
+                            <button onClick={() => guardarRealTarea(cargarAvanceEn, 'fecha_fin_real', hoy)}
+                              title="Marcar que terminó hoy"
+                              style={{ padding: '0 9px', borderRadius: 7, border: '1px solid var(--accent)',
+                                       background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>
+                              Hoy
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const e = estadoLineas[cargarAvanceEn.linea_id];
+                      if (!e) return null;
+                      const sc = e.subcontrato;
+                      return (
+                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 12 }}>
+                          {sc ? (
+                            <>
+                              <div style={{ fontWeight: 700, marginBottom: 4 }}>Lo ejecuta {sc.contratista}</div>
+                              <div style={{ color: 'var(--muted)', lineHeight: 1.6 }}>
+                                Contrato ${Math.round(sc.monto).toLocaleString('es-AR')} ·
+                                pagado ${Math.round(sc.pagado).toLocaleString('es-AR')}
+                                {sc.pendiente > 0 && <> · <b style={{ color: '#d97706' }}>le debés ${Math.round(sc.pendiente).toLocaleString('es-AR')}</b></>}
+                              </div>
+                            </>
+                          ) : (
+                            <div style={{ color: 'var(--muted)' }}>Sin contratista asignado — lo hace el estudio.</div>
+                          )}
+                          {e.certificado > 0 && (
+                            <div style={{ color: 'var(--muted)', marginTop: 4 }}>
+                              Certificado al cliente: ${Math.round(e.certificado).toLocaleString('es-AR')}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', alignItems: 'flex-end' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>% avance acumulado</div>
+                        <input type="number" min="0" max="100" value={pctNuevo} autoFocus
+                          onChange={e => setPctNuevo(e.target.value)}
+                          style={{ width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8,
+                                   background: 'var(--surface2)', color: 'var(--text)', fontFamily: "'IBM Plex Mono',monospace",
+                                   fontSize: 15, textAlign: 'right' }} />
+                      </div>
+                      <div style={{ flex: 1.1 }}>
+                        {/* Por defecto hoy. Si el % corresponde a otro día, se
+                            cambia acá antes de guardar. */}
+                        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>Fecha del %</div>
+                        <input type="date" value={fechaAvance} max={hoy}
+                          onChange={e => setFechaAvance(e.target.value)}
+                          style={{ width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8,
+                                   background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13 }} />
+                      </div>
+                      <button onClick={guardarAvanceLinea}
+                        style={{ padding: '10px 18px', background: 'var(--accent)', color: '#fff', border: 'none',
+                                 borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        Guardar
+                      </button>
+                    </div>
+                    {fechaAvance !== hoy && (
+                      <div style={{ fontSize: 11, color: 'var(--warn, #d97706)', marginTop: 6 }}>
+                        Se guarda como si hubiera pasado el {fmtFechaLarga(fechaAvance)}, no hoy.
+                      </div>
+                    )}
+                    {(() => {
+                      const a = (avanceObra?.por_linea || []).find(x => x.linea_id === cargarAvanceEn.linea_id);
+                      const deCert = a && a.origen === 'certificado';
+                      const deSub = a && a.origen === 'subcontrato';
+                      return (
+                        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 9, lineHeight: 1.5 }}>
+                          {deCert && <>Sale del <b>último certificado</b> ({a.fecha}); lo que cargues acá manda a partir de su fecha.<br /></>}
+                          {deSub && <>Sale de <b>lo certificado a un contratista</b>; lo que cargues acá lo pisa.<br /></>}
+                          Es el mismo número que ven el resumen, la curva y el cliente en su portal.
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               );
             })()}
