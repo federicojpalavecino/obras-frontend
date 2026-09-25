@@ -507,6 +507,16 @@ export default function Gantt() {
     cont.scrollLeft = Math.max(0, x);
     yaCentre.current = true;
   });
+  // El centrado de arriba corre en cada render hasta que engancha la columna
+  // de HOY (sirve para la carga inicial, con la columna todavía sin pintar) y
+  // después queda trabado para no pelearle el scroll a quien está mirando
+  // otra parte del plan a propósito. Pero trabado para siempre traía un
+  // problema en obras largas: cambiar a «Día por día» para ver el detalle
+  // dejaba a la persona mirando el primer día del plan, a semanas de scroll
+  // de hoy, porque el scrollLeft en píxeles de la escala vieja ya no apunta a
+  // la fecha correcta en la nueva. Estos tres cambios sueltan el traba y
+  // fuerzan un recentrado, una sola vez cada uno.
+  useEffect(() => { yaCentre.current = false; }, [escala, periodo, verObraReal]);
 
   // Recalcula el plan (fechas, holguras, camino crítico) sin recargar todo
   const refrescarPlan = async () => {
@@ -955,13 +965,19 @@ export default function Gantt() {
   // si no, la barra real quedaba dibujada antes del borde izquierdo de la
   // grilla, en una zona de scroll a la que no se puede llegar, y parecía que
   // no se dibujaba nada.
+  //
+  // Pero esto SOLO cuenta si «Obra real» está prendido. Si no, ensanchar la
+  // ventana igual arruinaba la vista por defecto de cualquier obra con
+  // certificados viejos: un Gantt recién regenerado (tareas de un par de
+  // días) con certificados de hace tres meses quedaba mostrando un rango de
+  // tres meses enteros, aunque las barras reales ni siquiera se dibujaran.
   const planDesde = filas.reduce((a, t) => {
-    const real = realDeTarea(t);
+    const real = verObraReal ? realDeTarea(t) : null;
     const desde = real && real.inicio < t.fecha_inicio ? real.inicio : t.fecha_inicio;
     return desde < a ? desde : a;
   }, filas[0]?.fecha_inicio || config.fecha_inicio_obra);
   const planHasta = filas.reduce((a, t) => {
-    const real = realDeTarea(t);
+    const real = verObraReal ? realDeTarea(t) : null;
     const hasta = real && real.fin > t.fecha_fin ? real.fin : t.fecha_fin;
     return hasta > a ? hasta : a;
   }, addDias(planDesde, 30));
