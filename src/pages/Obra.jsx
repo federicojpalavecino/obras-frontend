@@ -1200,7 +1200,10 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               <div>
                 <div style={{ fontSize: 15, fontWeight: 700 }}>Cobros del cliente</div>
                 <div style={{ fontSize: 12, color: C.muted }}>
-                  Cobrado: {fmt(cc.total_cobrado || 0)} · Saldo: {fmt(cc.saldo_pendiente || 0)}
+                  Cobrado: {fmt(cc.total_cobrado || 0)} ·{" "}
+                  {aFavor > 0
+                    ? <>A favor del cliente: {fmt(aFavor)}</>
+                    : <>Saldo: {fmt(cc.saldo_pendiente || 0)}</>}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
