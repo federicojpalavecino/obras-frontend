@@ -62,6 +62,7 @@ export default function Obra() {
   const [presupuesto, setPresupuesto] = useState(null);
   const [contrato, setContrato] = useState(null);
   const [cobros, setCobros] = useState([]);
+  const [anticipoDisponible, setAnticipoDisponible] = useState(0);
   const [subcontratos, setSubcontratos] = useState([]);
   const [compras, setCompras] = useState([]);
   const [cuentaCorriente, setCuentaCorriente] = useState(null);
@@ -168,6 +169,7 @@ export default function Obra() {
       setCompras(Array.isArray(r5) ? r5 : []);
       const certsData = r6?.certificados || (Array.isArray(r6) ? r6 : []);
       setCertificados(certsData);
+      api.get(`/presupuestos/${id}/anticipo-disponible`).then(r => setAnticipoDisponible(r.data?.disponible || 0)).catch(() => {});
       api.get(`/presupuestos/${id}/panol`).then(r => setPanolObra(r.data)).catch(() => {});
       api.get(`/presupuestos/${id}/personal`).then(r => setPersonalObra(r.data)).catch(() => {});
       api.get(`/presupuestos/${id}/stock`).then(r => setStockObra(r.data || [])).catch(() => {});
@@ -387,6 +389,15 @@ export default function Obra() {
     if (!window.confirm("¿Eliminar este cobro?")) return;
     await api.delete(`/presupuestos/${id}/cobros/${cid}`);
     showToast("Cobro eliminado"); cargar();
+  };
+
+  const aplicarAnticipo = async (cert, monto) => {
+    if (!window.confirm(`¿Aplicar ${fmt(monto)} del anticipo ya cobrado al Certificado Nº ${cert.numero}?\n\nNo se registra un cobro nuevo: es la misma plata que ya entró como anticipo, ahora asignada a este certificado.`)) return;
+    try {
+      await api.post(`/presupuestos/${id}/certificados/${cert.numero}/aplicar-anticipo`, { monto });
+      showToast("✓ Anticipo aplicado al certificado");
+      cargar();
+    } catch (e) { showToast("⚠ " + (e.response?.data?.detail || "No se pudo aplicar")); }
   };
 
   // Ajustar una etapa pactada: pasa seguido que se renegocia, se le suma un
@@ -1825,6 +1836,14 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                             )}
                             {pendiente <= 0 && montoCobrado > 0 && (
                               <span style={{ fontSize: 12, color: C.green, fontWeight: 700, display:"flex", alignItems:"center", gap:3 }}><CheckCircle size={12} strokeWidth={2} /> Cobrado completo</span>
+                            )}
+                            {pendiente > 0 && anticipoDisponible > 0 && (
+                              <button
+                                onClick={() => aplicarAnticipo(cert, Math.min(pendiente, anticipoDisponible))}
+                                title={`Hay ${fmt(anticipoDisponible)} de anticipo sin aplicar a ningún certificado`}
+                                style={{ ...btn(C.accent2), padding: "4px 10px", fontSize: 11 }}>
+                                Aplicar anticipo
+                              </button>
                             )}
                             <button
                               onClick={() => {
