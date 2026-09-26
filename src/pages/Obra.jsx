@@ -2072,7 +2072,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
             <div style={{ display: "flex", gap: 7, marginBottom: 12 }}>
               {["Anticipo", "Adelanto", "Ajuste"].map(t => (
                 <button key={t} type="button"
-                  onClick={() => setCobForm(f => ({ ...f, desembolso_id: null, certificado_id: null, nota: t }))}
+                  onClick={() => setCobForm(f => ({ ...f, desembolso_id: null, certificado_id: null, nota: t, es_anticipo: t === "Anticipo" }))}
                   style={{ flex: 1, padding: "7px 0", borderRadius: 8, cursor: "pointer", font: "inherit",
                            fontSize: 12,
                            border: `1px solid ${cobForm.nota === t ? C.accent : C.border}`,
