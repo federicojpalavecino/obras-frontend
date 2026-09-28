@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../cotizador/api";
+import { imprimirHTML, plantillaDocumentoLegal } from "../utils/imprimir";
 
 // La pregunta del viernes es siempre la misma: a quién le tengo que pagar y
 // cuánto. La respuesta depende de CÓMO cobra cada uno, y no todos cobran
@@ -46,6 +47,7 @@ export default function Personal() {
   const [cargando, setCargando] = useState(true);
   const [aviso, setAviso] = useState("");
   const [ficha, setFicha] = useState(null);      // alta o edición
+  const [showContratoPersonal, setShowContratoPersonal] = useState(false);
   const [obraDelDia, setObraDelDia] = useState("");
   const [pagando, setPagando] = useState(null);   // { persona, monto }
   // Detalle de la semana de una persona: jornada, horas y obra, día por día.
@@ -806,6 +808,15 @@ export default function Personal() {
               </div>
             )}
 
+            {ficha.id && ficha.modalidad !== "subcontrato" && (
+              <button onClick={() => setShowContratoPersonal(true)}
+                style={{ width: "100%", marginBottom: 9, padding: "10px 0", borderRadius: 10, cursor: "pointer",
+                         fontFamily: "inherit", fontSize: 13, background: "transparent",
+                         border: `1px solid ${C.border}`, color: C.text }}>
+                Generar contrato de trabajo
+              </button>
+            )}
+
             <div style={{ display: "flex", gap: 9, marginTop: 6 }}>
               {ficha.id && (
                 <button onClick={async () => {
@@ -831,6 +842,125 @@ export default function Personal() {
           </div>
         </div>
       )}
+
+      {showContratoPersonal && ficha && (
+        <ContratoPersonalModal persona={ficha} obraNombre={obras.find(o => o.id === Number(ficha.presupuesto_id))?.nombre_obra}
+          onClose={() => setShowContratoPersonal(false)} />
+      )}
+    </div>
+  );
+}
+
+const CATEGORIAS_CONSTRUCCION = ["Ayudante", "Medio Oficial", "Oficial", "Oficial Especializado", "Capataz"];
+
+// Nombre, obra y valor del jornal ya están cargados en la ficha; lo único
+// nuevo es lo que hace falta para el papel (DNI, CUIL) y que no se guarda en
+// ningún lado más que en el documento impreso.
+function ContratoPersonalModal({ persona, obraNombre, onClose }) {
+  const [tipo, setTipo] = useState("jornal"); // jornal | corta_duracion
+  const [dni, setDni] = useState("");
+  const [cuil, setCuil] = useState("");
+  const [categoria, setCategoria] = useState("Oficial");
+  const [fechaIngreso, setFechaIngreso] = useState(hoy());
+  const [valorJornal, setValorJornal] = useState(persona.modalidad === "jornal" ? (persona.valor ?? "") : "");
+  const [tarea, setTarea] = useState("");
+  const [duracion, setDuracion] = useState("");
+
+  const generar = () => {
+    const tenant = JSON.parse(localStorage.getItem("obras_tenant") || "{}");
+    const corta = tipo === "corta_duracion";
+    const html = plantillaDocumentoLegal({
+      titulo: corta ? "CONTRATO DE TRABAJO POR OBRA DETERMINADA" : "CONTRATO DE TRABAJO POR JORNAL",
+      subtitulo: `Personal de la industria de la construcción — Ley N.° 22.250 y C.C.T. N.° 76/75${corta ? " — Corta duración" : ""}`,
+      tenant,
+      firmantes: [
+        { nombre: tenant.nombre, rol: "Empleador — Firma y aclaración" },
+        { nombre: persona.nombre, rol: "Trabajador — Firma y aclaración" },
+      ],
+      notaFinal: "Modelo general de referencia — no reemplaza la revisión de un profesional matriculado en la jurisdicción de la obra.",
+      secciones: [
+        { heading: "Partes", html: `
+          <div class="grid">
+            <div>
+              <div class="field"><div class="label">Empleador</div><div class="value">${tenant.nombre || "—"}</div></div>
+              ${tenant.cuit ? `<div class="field"><div class="label">CUIT</div><div class="value">${tenant.cuit}</div></div>` : ""}
+            </div>
+            <div>
+              <div class="field"><div class="label">Trabajador</div><div class="value">${persona.nombre}</div></div>
+              <div class="field"><div class="label">D.N.I.</div><div class="value">${dni || "_____________________"}</div></div>
+              <div class="field"><div class="label">C.U.I.L.</div><div class="value">${cuil || "_____________________"}</div></div>
+            </div>
+          </div>` },
+        { heading: "Artículo 1 — Objeto", html: corta
+          ? `<p>El presente contrato tiene por objeto la tarea determinada de <b>${tarea || "________________"}</b> en la obra <b>${obraNombre || "________________"}</b>, con una duración estimada de <b>${duracion || "________________"}</b>, a partir del ${fechaIngreso}.</p>`
+          : `<p>El Trabajador prestará servicios en la obra <b>${obraNombre || "________________"}</b>, a partir del ${fechaIngreso}, bajo la modalidad jornalizada propia de la industria de la construcción.</p>` },
+        { heading: "Artículo 2 — Categoría profesional", html: `<p>Categoría profesional: <b>${categoria}</b>.</p>` },
+        { heading: corta ? "Artículo 3 — Remuneración" : "Artículo 3 — Modalidad jornalizada y remuneración", html: `<p>Valor del jornal a la fecha de ingreso: <b>${fmt(valorJornal || 0)}</b> por jornada.</p>` },
+        { heading: "Fondo de Cese Laboral e inscripción registral", html: "<p>El Empleador efectuará los aportes al Fondo de Cese Laboral y mantendrá actualizada la Libreta de Aportes del Trabajador conforme a la Ley N.° 22.250.</p>" },
+        { heading: "Cobertura de riesgos y elementos de protección", html: "<p>El Empleador mantendrá vigente la cobertura de A.R.T. del Trabajador y le proveerá los elementos de protección personal correspondientes a la tarea asignada.</p>" },
+        ...(corta ? [{ heading: "Extinción", html: "<p>El contrato se extingue de pleno derecho a la finalización de la tarea determinada objeto del presente, sin obligación indemnizatoria adicional.</p>" }] : []),
+      ],
+    });
+    imprimirHTML(html, { titulo: "Contrato de trabajo" });
+    onClose();
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: C.surface, borderRadius: 16, padding: 24, width: "100%", maxWidth: 480, border: `1px solid ${C.border}`, maxHeight: "90vh", overflow: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>Contrato de trabajo — {persona.nombre}</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 22 }}>×</button>
+        </div>
+        <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
+          <label style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+            <input type="radio" checked={tipo === "jornal"} onChange={() => setTipo("jornal")} /> Por jornal
+          </label>
+          <label style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+            <input type="radio" checked={tipo === "corta_duracion"} onChange={() => setTipo("corta_duracion")} /> Obra de corta duración
+          </label>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+          <div>
+            <label style={lbl}>D.N.I.</label>
+            <input style={inp} value={dni} onChange={e => setDni(e.target.value)} />
+          </div>
+          <div>
+            <label style={lbl}>C.U.I.L.</label>
+            <input style={inp} value={cuil} onChange={e => setCuil(e.target.value)} />
+          </div>
+          <div>
+            <label style={lbl}>Categoría</label>
+            <select style={inp} value={categoria} onChange={e => setCategoria(e.target.value)}>
+              {CATEGORIAS_CONSTRUCCION.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={lbl}>Fecha de ingreso</label>
+            <input style={inp} type="date" value={fechaIngreso} onChange={e => setFechaIngreso(e.target.value)} />
+          </div>
+          <div>
+            <label style={lbl}>Valor del jornal</label>
+            <input style={inp} type="number" value={valorJornal} onChange={e => setValorJornal(e.target.value)} />
+          </div>
+        </div>
+        {tipo === "corta_duracion" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 6 }}>
+            <div>
+              <label style={lbl}>Tarea determinada</label>
+              <input style={inp} value={tarea} onChange={e => setTarea(e.target.value)} placeholder="Ej.: demolición interior" />
+            </div>
+            <div>
+              <label style={lbl}>Duración estimada</label>
+              <input style={inp} value={duracion} onChange={e => setDuracion(e.target.value)} placeholder="Ej.: 10 días" />
+            </div>
+          </div>
+        )}
+        <button onClick={generar} style={{ marginTop: 10, width: "100%", padding: "12px 0", borderRadius: 10, cursor: "pointer",
+                 fontFamily: "inherit", fontSize: 14, fontWeight: 700, background: C.accent, border: "none", color: "#fff" }}>
+          Generar e imprimir
+        </button>
+      </div>
     </div>
   );
 }

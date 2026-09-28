@@ -67,3 +67,44 @@ export function imprimirHTML(html, { titulo = '', esperar = 400 } = {}) {
     setTimeout(lanzar, esperar + 1200);
   }
 }
+
+// El papel en el que se imprime cualquier contrato, acta o pagaré: mismo
+// encabezado con el logo y el CUIT del tenant, mismas secciones subrayadas en
+// verde, mismo bloque de firmas al pie. Antes cada documento repetía este CSS
+// entero; con nueve modelos legales distintos eso significaba mantener nueve
+// copias del mismo estilo desincronizándose de a poco.
+export function plantillaDocumentoLegal({ titulo, subtitulo, tenant = {}, secciones = [], firmantes = [], notaFinal }) {
+  const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>${titulo}</title>
+<style>
+  body { font-family: 'Georgia', serif; color: #1a1a2e; padding: 48px; font-size: 13px; line-height: 1.8; }
+  h1 { font-size: 20px; text-align: center; margin-bottom: 4px; letter-spacing: 1px; }
+  .subtitle { text-align: center; color: #6b7280; font-size: 12px; margin-bottom: 36px; }
+  .header { display: flex; justify-content: space-between; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid #059669; }
+  .logo { font-size: 18px; font-weight: 900; color: #059669; }
+  .section { margin-bottom: 20px; }
+  .section h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #059669; margin-bottom: 8px; border-bottom: 1px solid #e0e0e8; padding-bottom: 4px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .field { margin-bottom: 8px; }
+  .label { font-size: 10px; text-transform: uppercase; color: #6b7280; letter-spacing: 1px; }
+  .value { font-size: 13px; font-weight: 600; }
+  .firma { margin-top: 80px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 24px; }
+  .firma-box { text-align: center; width: 220px; }
+  .firma-line { border-top: 1px solid #1a1a2e; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; padding: 6px 8px; text-align: left; border-bottom: 1px solid #e0e0e8; }
+  td { padding: 6px 8px; font-size: 12px; border-bottom: 1px solid #f1f3f5; }
+  @media print { body { padding: 24px; } }
+</style></head><body>
+<div class="header">
+  <div><div class="logo">${tenant.nombre || '—'}</div><div style="font-size:11px;color:#6b7280;margin-top:4px">${tenant.cuit ? `CUIT: ${tenant.cuit}` : ''}</div></div>
+  <div style="text-align:right;font-size:11px;color:#6b7280">${hoy}</div>
+</div>
+<h1>${titulo}</h1>
+${subtitulo ? `<div class="subtitle">${subtitulo}</div>` : ''}
+${secciones.map(s => `<div class="section">${s.heading ? `<h3>${s.heading}</h3>` : ''}${s.html}</div>`).join('\n')}
+${firmantes.length ? `<div class="firma">${firmantes.map(f => `<div class="firma-box"><div class="firma-line"></div><div>${f.nombre || '—'}</div><div style="font-size:11px;color:#6b7280">${f.rol || 'Firma y aclaración'}</div></div>`).join('')}</div>` : ''}
+${notaFinal ? `<div style="text-align:center;margin-top:60px;font-size:10px;color:#9ca3af">${notaFinal}</div>` : ''}
+</body></html>`;
+}

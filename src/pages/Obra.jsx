@@ -4,7 +4,7 @@ import { ArrowLeft, Printer, TrendingUp, Award, BarChart2, FileText, DollarSign,
 import api from "../cotizador/api";
 import MenuAcciones from "../shared/MenuAcciones";
 import VideoTutorial from "../components/VideoTutorial";
-import { imprimirHTML } from '../utils/imprimir';
+import { imprimirHTML, plantillaDocumentoLegal } from '../utils/imprimir';
 const fmt = (n) => "$" + Math.round(n || 0).toLocaleString("es-AR");
 const today = () => new Date().toISOString().split("T")[0];
 
@@ -99,6 +99,9 @@ export default function Obra() {
   const [showPagoSub, setShowPagoSub] = useState(null); // subcontrato id
   const [pagoSubForm, setPagoSubForm] = useState({ monto: "", fecha: today(), concepto: "Pago parcial", forma_pago: "transferencia", pct_avance_al_pagar: "" });
   const [showContrato, setShowContrato] = useState(false);
+  const [showActa, setShowActa] = useState(false);
+  const [showExtension, setShowExtension] = useState(false);
+  const [showPagareGeneral, setShowPagareGeneral] = useState(false);
   const [certificados, setCertificados] = useState([]);
   // Lo que está físicamente en esta obra: herramientas del pañol y material
   // que salió del depósito. Se carga aparte porque no todos los estudios lo
@@ -476,94 +479,134 @@ export default function Obra() {
     if (!presupuesto || !contrato) return;
     const tenant = presupuesto.tenant || {};
     const cliente = presupuesto.cliente || {};
-    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-<title>Contrato de Obra — ${presupuesto.nombre_obra}</title>
-<style>
-  body { font-family: 'Georgia', serif; color: #1a1a2e; padding: 48px; font-size: 13px; line-height: 1.8; }
-  h1 { font-size: 20px; text-align: center; margin-bottom: 4px; letter-spacing: 1px; }
-  .subtitle { text-align: center; color: #6b7280; font-size: 12px; margin-bottom: 36px; }
-  .header { display: flex; justify-content: space-between; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid #059669; }
-  .logo { font-size: 18px; font-weight: 900; color: #059669; }
-  .section { margin-bottom: 20px; }
-  .section h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #059669; margin-bottom: 8px; border-bottom: 1px solid #e0e0e8; padding-bottom: 4px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .field { margin-bottom: 8px; }
-  .label { font-size: 10px; text-transform: uppercase; color: #6b7280; letter-spacing: 1px; }
-  .value { font-size: 13px; font-weight: 600; }
-  .firma { margin-top: 80px; display: flex; justify-content: space-around; }
-  .firma-box { text-align: center; width: 200px; }
-  .firma-line { border-top: 1px solid #1a1a2e; margin-bottom: 6px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; padding: 6px 8px; text-align: left; border-bottom: 1px solid #e0e0e8; }
-  td { padding: 6px 8px; font-size: 12px; border-bottom: 1px solid #f1f3f5; }
-  @media print { body { padding: 24px; } }
-</style></head><body>
-<div class="header">
-  <div><div class="logo">${tenant.nombre || "FAIM OBRAS"}</div><div style="font-size:11px;color:#6b7280;margin-top:4px">${tenant.cuit ? `CUIT: ${tenant.cuit}` : ""}</div></div>
-  <div style="text-align:right;font-size:11px;color:#6b7280">
-    ${new Date().toLocaleDateString("es-AR",{day:"2-digit",month:"long",year:"numeric"})}
-  </div>
-</div>
-<h1>CONTRATO DE LOCACIÓN DE OBRA</h1>
-<div class="subtitle">Nº ${id} — ${presupuesto.nombre_obra}</div>
-
-<div class="section">
-  <h3>Partes</h3>
-  <div class="grid">
-    <div>
-      <div class="field"><div class="label">Comitente (Cliente)</div><div class="value">${cliente.nombre || "—"}</div></div>
-      ${cliente.cuit ? `<div class="field"><div class="label">CUIT</div><div class="value">${cliente.cuit}</div></div>` : ""}
-    </div>
-    <div>
-      <div class="field"><div class="label">Profesional / Empresa</div><div class="value">${tenant.nombre || "—"}</div></div>
-      ${tenant.cuit ? `<div class="field"><div class="label">CUIT</div><div class="value">${tenant.cuit}</div></div>` : ""}
-    </div>
-  </div>
-</div>
-
-<div class="section">
-  <h3>Objeto del contrato</h3>
-  <div class="field"><div class="label">Obra</div><div class="value">${presupuesto.nombre_obra}</div></div>
-  ${presupuesto.ubicacion ? `<div class="field"><div class="label">Ubicación</div><div class="value">${presupuesto.ubicacion}</div></div>` : ""}
-  ${contrato.lugar_ejecucion ? `<div class="field"><div class="label">Lugar de ejecución</div><div class="value">${contrato.lugar_ejecucion}</div></div>` : ""}
-</div>
-
-<div class="section">
-  <h3>Monto y forma de pago</h3>
-  <div class="grid">
-    <div class="field"><div class="label">Monto total</div><div class="value" style="font-size:18px;color:#059669">${fmt(contrato.monto_total)}</div></div>
-    <div class="field"><div class="label">Forma de pago</div><div class="value">${contrato.tipo_pago === "por_certificado" ? "Por certificado de avance" : contrato.tipo_pago === "desembolsos" ? "Desembolsos acordados" : "Mixto"}</div></div>
-  </div>
-  ${contrato.anticipo_pct ? `<div class="field"><div class="label">Anticipo</div><div class="value">${contrato.anticipo_pct}% — ${fmt(contrato.monto_total * contrato.anticipo_pct / 100)}</div></div>` : ""}
-  ${(contrato.desembolsos || []).length > 0 ? `
-  <h4 style="font-size:11px;color:#6b7280;margin-top:12px">Calendario de pagos</h4>
-  <table>
-    <thead><tr><th>Cuota</th><th>Descripción</th><th>Monto</th><th>Vencimiento</th></tr></thead>
-    <tbody>
-      ${(contrato.desembolsos || []).map(d => `<tr><td>${d.numero}</td><td>${d.descripcion}</td><td>${fmt(d.monto)}</td><td>${d.fecha_vencimiento || "—"}</td></tr>`).join("")}
-    </tbody>
-  </table>` : ""}
-</div>
-
-${contrato.plazo_obra_dias ? `<div class="section"><h3>Plazo</h3><div class="value">${contrato.plazo_obra_dias} días corridos desde el inicio de obra</div></div>` : ""}
-
-${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adicionales</h3><p style="white-space:pre-line">${contrato.clausulas_adicionales}</p></div>` : ""}
-
-<div class="section">
-  <h3>Conformidad</h3>
-  <p>Las partes declaran estar de acuerdo con los términos del presente contrato y se obligan a cumplirlo.</p>
-</div>
-
-<div class="firma">
-  <div class="firma-box"><div class="firma-line"></div><div>${cliente.nombre || "Comitente"}</div><div style="font-size:11px;color:#6b7280">Firma y aclaración</div></div>
-  <div class="firma-box"><div class="firma-line"></div><div>${tenant.nombre || "Profesional"}</div><div style="font-size:11px;color:#6b7280">Firma y aclaración</div></div>
-</div>
-
-<div style="text-align:center;margin-top:60px;font-size:10px;color:#9ca3af">
-  Emitido con FAIM OBRAS · ${new Date().toLocaleDateString("es-AR")}
-</div>
-</body></html>`;
+    const html = plantillaDocumentoLegal({
+      titulo: `CONTRATO DE LOCACIÓN DE OBRA${contrato.incluye_materiales ? " Y PROVISIÓN DE MATERIALES" : ""}`,
+      subtitulo: `Nº ${id} — ${presupuesto.nombre_obra}`,
+      tenant,
+      firmantes: [
+        { nombre: cliente.nombre, rol: "Comitente — Firma y aclaración" },
+        { nombre: tenant.nombre, rol: "Profesional — Firma y aclaración" },
+      ],
+      notaFinal: `Emitido con FAIM OBRAS · ${new Date().toLocaleDateString("es-AR")}`,
+      secciones: [
+        { heading: "Partes", html: `
+          <div class="grid">
+            <div>
+              <div class="field"><div class="label">Comitente (Cliente)</div><div class="value">${cliente.nombre || "—"}</div></div>
+              ${cliente.cuit ? `<div class="field"><div class="label">CUIT</div><div class="value">${cliente.cuit}</div></div>` : ""}
+            </div>
+            <div>
+              <div class="field"><div class="label">Profesional / Empresa</div><div class="value">${tenant.nombre || "—"}</div></div>
+              ${tenant.cuit ? `<div class="field"><div class="label">CUIT</div><div class="value">${tenant.cuit}</div></div>` : ""}
+            </div>
+          </div>` },
+        { heading: "Objeto del contrato", html: `
+          <div class="field"><div class="label">Obra</div><div class="value">${presupuesto.nombre_obra}</div></div>
+          ${presupuesto.ubicacion ? `<div class="field"><div class="label">Ubicación</div><div class="value">${presupuesto.ubicacion}</div></div>` : ""}
+          ${contrato.lugar_ejecucion ? `<div class="field"><div class="label">Lugar de ejecución</div><div class="value">${contrato.lugar_ejecucion}</div></div>` : ""}` },
+        ...(contrato.incluye_materiales ? [{ heading: "Provisión de materiales", html:
+          `<p>Los materiales necesarios para la ejecución de la obra serán provistos por el Contratista con cargo al Comitente, quien podrá requerir la rendición de cuentas documentada de su aplicación a la obra. El Contratista asume la custodia de los materiales acopiados en obra hasta su incorporación definitiva.</p>` }] : []),
+        { heading: "Monto y forma de pago", html: `
+          <div class="grid">
+            <div class="field"><div class="label">Monto total</div><div class="value" style="font-size:18px;color:#059669">${fmt(contrato.monto_total)}</div></div>
+            <div class="field"><div class="label">Forma de pago</div><div class="value">${contrato.tipo_pago === "por_certificado" ? "Por certificado de avance" : contrato.tipo_pago === "desembolsos" ? "Desembolsos acordados" : "Mixto"}</div></div>
+          </div>
+          ${contrato.anticipo_pct ? `<div class="field"><div class="label">Anticipo</div><div class="value">${contrato.anticipo_pct}% — ${fmt(contrato.monto_total * contrato.anticipo_pct / 100)}</div></div>` : ""}
+          ${(contrato.desembolsos || []).length > 0 ? `
+          <h4 style="font-size:11px;color:#6b7280;margin-top:12px">Calendario de pagos</h4>
+          <table>
+            <thead><tr><th>Cuota</th><th>Descripción</th><th>Monto</th><th>Vencimiento</th></tr></thead>
+            <tbody>
+              ${(contrato.desembolsos || []).map(d => `<tr><td>${d.numero}</td><td>${d.descripcion}</td><td>${fmt(d.monto)}</td><td>${d.fecha_vencimiento || "—"}</td></tr>`).join("")}
+            </tbody>
+          </table>` : ""}` },
+        ...(contrato.plazo_obra_dias ? [{ heading: "Plazo", html: `<div class="value">${contrato.plazo_obra_dias} días corridos desde el inicio de obra</div>` }] : []),
+        ...(contrato.clausulas_adicionales ? [{ heading: "Cláusulas adicionales", html: `<p style="white-space:pre-line">${contrato.clausulas_adicionales}</p>` }] : []),
+        { heading: "Conformidad", html: `<p>Las partes declaran estar de acuerdo con los términos del presente contrato y se obligan a cumplirlo.</p>` },
+      ],
+    });
     imprimirHTML(html, { titulo: "Obra" });
+  };
+
+  // El contrato de subcontratación no pide un solo dato nuevo: nombre, CUIT,
+  // rubro, monto y forma de pago ya están cargados al crear el subcontrato.
+  const imprimirContratoSubcontratacion = (sub) => {
+    if (!presupuesto || !sub) return;
+    const tenant = presupuesto.tenant || {};
+    const domicilioTenant = [tenant.direccion, tenant.ciudad, tenant.provincia ? `Provincia de ${tenant.provincia}` : ""].filter(Boolean).join(", ");
+    const jurisdiccion = tenant.ciudad ? `${tenant.ciudad}${tenant.provincia ? `, Provincia de ${tenant.provincia}` : ""}` : "el domicilio del Contratista Principal";
+    const html = plantillaDocumentoLegal({
+      titulo: "CONTRATO DE SUBCONTRATACIÓN DE OBRA",
+      subtitulo: `Ejecución por cuadrilla autónoma — obra ${presupuesto.nombre_obra}`,
+      tenant,
+      firmantes: [
+        { nombre: tenant.nombre, rol: "Contratista Principal — Firma y aclaración" },
+        { nombre: sub.nombre_contratista, rol: "Subcontratista — Firma y aclaración" },
+      ],
+      notaFinal: "Modelo general de referencia — no reemplaza la revisión de un profesional matriculado en la jurisdicción de la obra.",
+      secciones: [
+        { heading: "Partes", html: `
+          <div class="grid">
+            <div>
+              <div class="field"><div class="label">Contratista principal</div><div class="value">${tenant.nombre || "—"}</div></div>
+              ${tenant.cuit ? `<div class="field"><div class="label">CUIT</div><div class="value">${tenant.cuit}</div></div>` : ""}
+              ${domicilioTenant ? `<div class="field"><div class="label">Domicilio</div><div class="value">${domicilioTenant}</div></div>` : ""}
+            </div>
+            <div>
+              <div class="field"><div class="label">Subcontratista</div><div class="value">${sub.nombre_contratista}</div></div>
+              ${sub.cuit_contratista ? `<div class="field"><div class="label">CUIT</div><div class="value">${sub.cuit_contratista}</div></div>` : ""}
+              <div class="field"><div class="label">D.N.I. (si es persona física)</div><div class="value">_____________________</div></div>
+            </div>
+          </div>` },
+        { heading: "Artículo 1 — Objeto", html: `<p>El Contratista Principal encomienda al Subcontratista, quien acepta, la ejecución de los trabajos de <b>${sub.descripcion_trabajo || "________________"}</b> correspondientes a la obra <b>${presupuesto.nombre_obra}</b>, ubicada en ${presupuesto.ubicacion || "________________"}, con inicio previsto el ${sub.fecha_inicio || "____/____/______"}.</p>` },
+        { heading: "Artículo 2 — Autonomía del subcontratista", html: `<p>El Subcontratista ejecutará los trabajos con organización, medios técnicos y personal propios, bajo su exclusiva dirección, sin que se genere relación de dependencia con el Contratista Principal ni con el comitente de la obra.</p>` },
+        { heading: "Artículo 3 — Obligaciones laborales, previsionales y de seguros", html: `<p>El Subcontratista es responsable exclusivo del cumplimiento de las obligaciones laborales y previsionales de su personal, de su inscripción en el I.E.R.I.C. y de mantener vigente la cobertura de A.R.T. correspondiente, cuya acreditación pondrá a disposición del Contratista Principal cuando le sea requerida.</p>` },
+        { heading: "Artículo 4 — Control documental", html: `<p>El Contratista Principal podrá requerir en cualquier momento la documentación laboral y previsional del personal afectado a los trabajos, y retener los pagos pendientes mientras dicha documentación no se encuentre en regla.</p>` },
+        { heading: "Artículo 5 — Indemnidad", html: `<p>El Subcontratista mantendrá indemne al Contratista Principal y al comitente de la obra frente a cualquier reclamo laboral, previsional o por daños originado en la ejecución de los trabajos subcontratados.</p>` },
+        { heading: "Artículo 6 — Precio y forma de pago", html: `
+          <div class="grid">
+            <div class="field"><div class="label">Precio total pactado</div><div class="value" style="font-size:18px;color:#059669">${fmt(sub.monto_total)}</div></div>
+            <div class="field"><div class="label">Forma de pago</div><div class="value">${sub.tipo_pago === "por_avance" ? "Por certificaciones parciales de avance" : sub.tipo_pago === "monto_fijo" ? "Contra entrega total" : sub.tipo_pago || "—"}</div></div>
+          </div>` },
+        { heading: "Artículo 7 — Materiales y garantía", html: `<p>Salvo acuerdo en contrario dejado por escrito entre las partes, la provisión de materiales para los trabajos subcontratados corre por cuenta de: ________________. El Subcontratista responde por la calidad de su trabajo durante el plazo de garantía convenido en el contrato principal de la obra.</p>` },
+        { heading: "Artículo 8 — Resolución", html: `<p>Cualquiera de las partes podrá resolver el presente por incumplimiento grave de la otra, previa intimación fehaciente a subsanarlo en un plazo razonable.</p>` },
+        { heading: "Artículo 9 — Cesión", html: `<p>El Subcontratista no podrá ceder este contrato ni subcontratar los trabajos aquí asumidos sin autorización previa y escrita del Contratista Principal.</p>` },
+        { heading: "Artículo 10 — Mediación previa, domicilios y jurisdicción", html: `<p>Previo a todo reclamo judicial, las partes se someterán a la instancia de mediación prejudicial obligatoria vigente en la jurisdicción de la obra. Para todo lo no previsto se someten a los tribunales ordinarios con competencia en ${jurisdiccion}, renunciando a cualquier otro fuero.</p>` },
+        { heading: "Conformidad", html: `<p>Las partes declaran estar de acuerdo con los términos del presente contrato y se obligan a cumplirlo, firmando dos ejemplares de un mismo tenor y a un solo efecto en ${tenant.ciudad || "________________"}, a la fecha indicada.</p>` },
+      ],
+    });
+    imprimirHTML(html, { titulo: "Subcontrato" });
+  };
+
+  // El pagaré complementario no pide nada que no esté ya en la cuota del
+  // calendario de pagos: el importe y el vencimiento son los de esa etapa.
+  const imprimirPagareComplementario = (d) => {
+    if (!presupuesto || !contrato) return;
+    const tenant = presupuesto.tenant || {};
+    const cliente = presupuesto.cliente || {};
+    const html = plantillaDocumentoLegal({
+      titulo: "PAGARÉ DE OBRA E INTEGRACIÓN DEL TÍTULO",
+      subtitulo: `Complementario del contrato de obra — cuota "${d.descripcion || ('Etapa ' + d.numero)}"`,
+      tenant,
+      firmantes: [
+        { nombre: cliente.nombre, rol: "Suscriptor (deudor) — Firma y aclaración" },
+      ],
+      notaFinal: "Modelo general de referencia — no reemplaza la revisión de un profesional matriculado en la jurisdicción de la obra. El importe en letras y el lugar de pago se completan a mano antes de la firma.",
+      secciones: [
+        { heading: "Pagaré", html: `
+          <div class="grid">
+            <div class="field"><div class="label">Beneficiario</div><div class="value">${tenant.nombre || "—"}</div></div>
+            <div class="field"><div class="label">Suscriptor (deudor)</div><div class="value">${cliente.nombre || "—"}</div></div>
+            <div class="field"><div class="label">Importe</div><div class="value" style="font-size:16px;color:#059669">${fmt(d.saldo ?? d.monto)}</div></div>
+            <div class="field"><div class="label">Vencimiento</div><div class="value">${d.fecha_vencimiento || "____/____/______"}</div></div>
+          </div>
+          <p>Por este pagaré, el suscriptor abonará al beneficiario o a su orden, a su vencimiento, la cantidad indicada, correspondiente a la cuota "${d.descripcion || ('Etapa ' + d.numero)}" del contrato de obra de la obra <b>${presupuesto.nombre_obra}</b>.</p>` },
+        { heading: "Cláusula sin protesto", html: `<p>El presente pagaré queda liberado del protesto, de acuerdo al art. 50 del Decreto Ley 5965/63.</p>` },
+        { heading: "Anexo de integración del título (art. 36, Ley 24.240)", html: `
+          <p>Este instrumento integra e interpreta junto con el contrato de obra suscripto${contrato.fecha_firma ? ` el ${contrato.fecha_firma}` : ""}. Precio total del contrato: ${fmt(contrato.monto_total)}. En caso de divergencia entre el pagaré y el contrato de obra, prevalecerán los términos de este último.</p>` },
+      ],
+    });
+    imprimirHTML(html, { titulo: "Pagaré" });
   };
 
   // Cómo nombrar un cobro que no diga simplemente "transferencia": a qué
@@ -1036,8 +1079,11 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
                   <div style={{ fontSize: 15, fontWeight: 700 }}>Contrato de obra</div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button onClick={imprimirContrato} style={{ ...btn(C.surface2), color: C.text, border: `1px solid ${C.border}`, display:"flex", alignItems:"center", gap:5 }}><Printer size={13} strokeWidth={1.5} /> Imprimir</button>
+                    <button onClick={() => setShowExtension(true)} style={{ ...btn(C.surface2), color: C.text, border: `1px solid ${C.border}` }}>+ Adicional</button>
+                    <button onClick={() => setShowActa(true)} style={{ ...btn(C.surface2), color: C.text, border: `1px solid ${C.border}` }}>+ Acta de recepción</button>
+                    <button onClick={() => setShowPagareGeneral(true)} style={{ ...btn(C.surface2), color: C.text, border: `1px solid ${C.border}` }}>+ Pagaré</button>
                     <button onClick={() => setShowContrato(true)} style={btn(C.accent)}>Editar</button>
                   </div>
                 </div>
@@ -1112,6 +1158,12 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                                   <button onClick={() => cobrarDesembolso(d)}
                                     style={{ padding: "5px 12px", background: "none", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, color: C.green, cursor: "pointer", fontFamily: "inherit" }}>
                                     Registrar cobro de {fmt(d.saldo)}
+                                  </button>
+                                )}
+                                {d.saldo > 0 && (
+                                  <button onClick={() => imprimirPagareComplementario(d)}
+                                    style={{ padding: "5px 12px", background: "none", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 12, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>
+                                    Generar pagaré
                                   </button>
                                 )}
                               </div>
@@ -1298,6 +1350,7 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
                   {s.tipo_pago === "por_avance" && (
                     <button onClick={() => abrirCertSub(s.id)} style={{ ...btn(C.accent2), fontSize: 12 }}>Certificar avance</button>
                   )}
+                  <button onClick={() => imprimirContratoSubcontratacion(s)} style={{ ...btn(C.surface2), color: C.text, border: `1px solid ${C.border}`, fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}><Printer size={12} strokeWidth={1.5} /> Contrato</button>
                   <button onClick={() => eliminarSubcontrato(s.id)} style={{ ...btn("#fee2e2"), color: C.red, fontSize: 12 }}>Eliminar</button>
                 </div>
               </div>
@@ -2358,6 +2411,21 @@ ${contrato.clausulas_adicionales ? `<div class="section"><h3>Cláusulas adiciona
           onClose={() => setShowContrato(false)} onSave={() => { setShowContrato(false); cargar(); showToast("✓ Contrato guardado"); }} />
       )}
 
+      {showActa && (
+        <ActaRecepcionModal presupuesto={presupuesto} contrato={contrato}
+          onClose={() => setShowActa(false)} />
+      )}
+
+      {showExtension && (
+        <ConvenioExtensionModal presupuesto={presupuesto} contrato={contrato}
+          onClose={() => setShowExtension(false)} />
+      )}
+
+      {showPagareGeneral && (
+        <PagareGeneralModal presupuesto={presupuesto}
+          onClose={() => setShowPagareGeneral(false)} />
+      )}
+
       {toast && (
         <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: C.text, color: "#fff", borderRadius: 20, padding: "10px 20px", fontSize: 13, zIndex: 999 }}>
           {toast}
@@ -2378,6 +2446,7 @@ function ContratoModal({ presupuestoId, presupuesto, existing, onClose, onSave }
     fecha_firma: existing?.fecha_firma || new Date().toISOString().split("T")[0],
     estado: existing?.estado || "borrador",
     clausulas_adicionales: existing?.clausulas_adicionales || "",
+    incluye_materiales: existing?.incluye_materiales || false,
     desembolsos: existing?.desembolsos || [],
   });
 
@@ -2489,6 +2558,11 @@ function ContratoModal({ presupuestoId, presupuesto, existing, onClose, onSave }
             </select>
           </div>
         </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 12.5, cursor: "pointer" }}>
+          <input type="checkbox" checked={!!form.incluye_materiales}
+                 onChange={e => setForm(f => ({ ...f, incluye_materiales: e.target.checked }))} />
+          Incluye provisión de materiales por parte del contratista
+        </label>
         <div style={{ marginBottom: 10 }}>
           <label style={{ fontSize: 11, color: "#6b7280", display: "block", marginBottom: 4 }}>Lugar de ejecución</label>
           <input style={inp2} value={form.lugar_ejecucion} onChange={e => setForm(f => ({ ...f, lugar_ejecucion: e.target.value }))} />
@@ -2612,6 +2686,240 @@ function ContratoModal({ presupuestoId, presupuesto, existing, onClose, onSave }
         <button onClick={guardar} disabled={guardando}
                 style={{ background: guardando ? "#6b7280" : "#059669", color: "#fff", border: "none", borderRadius: 8, padding: "12px", width: "100%", fontSize: 15, fontWeight: 700, cursor: guardando ? "default" : "pointer" }}>
           {guardando ? "Guardando…" : "Guardar contrato"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const inpDoc = { background: "#f1f3f5", border: "1px solid #d0d0dc", borderRadius: 8, color: "#1a1a2e", padding: "8px 10px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box", width: "100%" };
+const lblDoc = { fontSize: 11, color: "#6b7280", display: "block", marginBottom: 4 };
+
+// El acta y el convenio de extensión no se guardan en ningún lado: se completan
+// con lo que ya está en el contrato, se generan al vuelo y se imprimen. Así el
+// estudio tiene el documento sin que haya una tabla nueva que romper.
+function ActaRecepcionModal({ presupuesto, contrato, onClose }) {
+  const [reservas, setReservas] = useState("sin");
+  const [observaciones, setObservaciones] = useState("");
+  const [fecha, setFecha] = useState(today());
+  const [montoAbonado, setMontoAbonado] = useState(contrato?.monto_total || 0);
+  const [doc, setDoc] = useState({ planos: true, garantias: true, manuales: false, certificado: true });
+  const [otra, setOtra] = useState("");
+
+  const toggleDoc = (k) => setDoc(d => ({ ...d, [k]: !d[k] }));
+
+  const generar = () => {
+    const tenant = presupuesto?.tenant || {};
+    const cliente = presupuesto?.cliente || {};
+    const items = [
+      doc.planos && "Planos conforme a obra",
+      doc.garantias && "Garantías de instalaciones y equipos",
+      doc.manuales && "Manuales de uso y mantenimiento",
+      doc.certificado && "Certificado final de habilitación municipal",
+      otra && otra,
+    ].filter(Boolean);
+    const html = plantillaDocumentoLegal({
+      titulo: "ACTA DE CONFORMIDAD Y RECEPCIÓN DEFINITIVA DE OBRA",
+      subtitulo: presupuesto?.nombre_obra,
+      tenant,
+      firmantes: [
+        { nombre: cliente.nombre, rol: "Comitente — Firma y aclaración" },
+        { nombre: tenant.nombre, rol: "Profesional — Firma y aclaración" },
+      ],
+      notaFinal: "Modelo general de referencia — no reemplaza la revisión de un profesional matriculado en la jurisdicción de la obra.",
+      secciones: [
+        { heading: "Contrato que se cierra", html: `
+          <div class="field"><div class="label">Obra</div><div class="value">${presupuesto?.nombre_obra}</div></div>
+          <div class="field"><div class="label">Contrato</div><div class="value">${contrato?.incluye_materiales ? "Locación de obra y provisión de materiales" : "Locación de obra"}${contrato?.fecha_firma ? `, suscripto el ${contrato.fecha_firma}` : ""}</div></div>` },
+        { heading: "Inspección, recepción y conformidad", html: `
+          <p>Las partes dejan constancia de que la obra fue inspeccionada y se recibe <b>${reservas === "sin" ? "SIN RESERVAS" : "CON RESERVAS"}</b>${reservas === "con" && observaciones ? `, dejándose asentadas las siguientes observaciones: ${observaciones}` : "."}</p>` },
+        { heading: "Estado de cuenta", html: `<div class="field"><div class="label">Total abonado a la fecha</div><div class="value" style="font-size:16px;color:#059669">${fmt(montoAbonado)}</div></div>` },
+        { heading: "Documentación entregada en este acto", html: items.length ? `<ul style="margin:0;padding-left:18px">${items.map(i => `<li>${i}</li>`).join("")}</ul>` : "<p>Sin documentación adicional entregada en este acto.</p>" },
+        { heading: "Finiquito", html: "<p>Las partes se otorgan recíproco y total finiquito respecto de las obligaciones derivadas del contrato de obra, sin nada más que reclamarse en virtud del mismo.</p>" },
+      ],
+    });
+    imprimirHTML(html, { titulo: "Acta de recepción" });
+    onClose();
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 480, border: "1px solid #e0e0e8", maxHeight: "90vh", overflow: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>Acta de recepción definitiva</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 22 }}>×</button>
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <label style={lblDoc}>Fecha de recepción</label>
+          <input style={inpDoc} type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+        </div>
+        <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
+          <label style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+            <input type="radio" checked={reservas === "sin"} onChange={() => setReservas("sin")} /> Sin reservas
+          </label>
+          <label style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+            <input type="radio" checked={reservas === "con"} onChange={() => setReservas("con")} /> Con reservas
+          </label>
+        </div>
+        {reservas === "con" && (
+          <div style={{ marginBottom: 10 }}>
+            <label style={lblDoc}>Observaciones y plazo de subsanación</label>
+            <textarea style={{ ...inpDoc, height: 70, resize: "vertical" }} value={observaciones} onChange={e => setObservaciones(e.target.value)} />
+          </div>
+        )}
+        <div style={{ marginBottom: 14 }}>
+          <label style={lblDoc}>Total abonado a la fecha</label>
+          <input style={inpDoc} type="number" value={montoAbonado} onChange={e => setMontoAbonado(e.target.value)} />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={lblDoc}>Documentación entregada en este acto</label>
+          {[["planos", "Planos conforme a obra"], ["garantias", "Garantías de instalaciones y equipos"],
+            ["manuales", "Manuales de uso y mantenimiento"], ["certificado", "Certificado final de habilitación municipal"]].map(([k, label]) => (
+            <label key={k} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, marginBottom: 5, cursor: "pointer" }}>
+              <input type="checkbox" checked={doc[k]} onChange={() => toggleDoc(k)} /> {label}
+            </label>
+          ))}
+          <input style={{ ...inpDoc, marginTop: 4 }} placeholder="Otra documentación (opcional)" value={otra} onChange={e => setOtra(e.target.value)} />
+        </div>
+        <button onClick={generar} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 8, padding: "12px", width: "100%", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+          Generar e imprimir
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ConvenioExtensionModal({ presupuesto, contrato, onClose }) {
+  const [descripcion, setDescripcion] = useState("");
+  const [montoAdicional, setMontoAdicional] = useState("");
+  const [diasAdicionales, setDiasAdicionales] = useState("");
+
+  const generar = () => {
+    const tenant = presupuesto?.tenant || {};
+    const cliente = presupuesto?.cliente || {};
+    const montoOriginal = parseFloat(contrato?.monto_total) || 0;
+    const montoNuevo = montoOriginal + (parseFloat(montoAdicional) || 0);
+    const html = plantillaDocumentoLegal({
+      titulo: "CONVENIO DE EXTENSIÓN DE OBRA Y TRABAJOS ADICIONALES",
+      subtitulo: `Anexo complementario — obra ${presupuesto?.nombre_obra}`,
+      tenant,
+      firmantes: [
+        { nombre: cliente.nombre, rol: "Comitente — Firma y aclaración" },
+        { nombre: tenant.nombre, rol: "Profesional — Firma y aclaración" },
+      ],
+      notaFinal: "Modelo general de referencia — no reemplaza la revisión de un profesional matriculado en la jurisdicción de la obra.",
+      secciones: [
+        { heading: "Contrato principal y ratificación", html: `<p>Las partes ratifican en todos sus términos el contrato de ${contrato?.incluye_materiales ? "locación de obra y provisión de materiales" : "locación de obra"}${contrato?.fecha_firma ? ` suscripto el ${contrato.fecha_firma}` : ""}, que se amplía por el presente convenio.</p>` },
+        { heading: "Detalle de los trabajos adicionales", html: `<p style="white-space:pre-line">${descripcion || "________________"}</p>` },
+        { heading: "Precio de la extensión", html: `
+          <div class="grid">
+            <div class="field"><div class="label">Monto adicional</div><div class="value" style="font-size:16px;color:#059669">${fmt(montoAdicional || 0)}</div></div>
+            <div class="field"><div class="label">Nuevo monto total del contrato</div><div class="value" style="font-size:16px">${fmt(montoNuevo)}</div></div>
+          </div>` },
+        ...(diasAdicionales ? [{ heading: "Ampliación del plazo", html: `<p>El plazo de obra se prorroga de pleno derecho en <b>${diasAdicionales}</b> días hábiles.</p>` }] : []),
+        { heading: "Ratificación de condiciones generales", html: "<p>En todo lo no modificado por el presente, rigen las condiciones pactadas en el contrato principal.</p>" },
+      ],
+    });
+    imprimirHTML(html, { titulo: "Convenio de extensión" });
+    onClose();
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 480, border: "1px solid #e0e0e8", maxHeight: "90vh", overflow: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>Convenio de extensión de obra</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 22 }}>×</button>
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <label style={lblDoc}>Detalle de los trabajos adicionales o la reforma</label>
+          <textarea style={{ ...inpDoc, height: 90, resize: "vertical" }} value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Ej.: cerramiento de galería con carpintería de aluminio" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+          <div>
+            <label style={lblDoc}>Monto adicional</label>
+            <input style={inpDoc} type="number" value={montoAdicional} onChange={e => setMontoAdicional(e.target.value)} />
+          </div>
+          <div>
+            <label style={lblDoc}>Días hábiles que se suman al plazo</label>
+            <input style={inpDoc} type="number" value={diasAdicionales} onChange={e => setDiasAdicionales(e.target.value)} />
+          </div>
+        </div>
+        <button onClick={generar} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 8, padding: "12px", width: "100%", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+          Generar e imprimir
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// El pagaré modelo general sirve para instrumentar cualquier deuda, no solo
+// la de esta obra — por eso el deudor y el importe se cargan a mano en vez de
+// salir de un dato ya guardado.
+function PagareGeneralModal({ presupuesto, onClose }) {
+  const [deudor, setDeudor] = useState(presupuesto?.cliente?.nombre || "");
+  const [dniDeudor, setDniDeudor] = useState("");
+  const [importe, setImporte] = useState("");
+  const [vencimiento, setVencimiento] = useState("");
+  const [lugarPago, setLugarPago] = useState("");
+
+  const generar = () => {
+    const tenant = presupuesto?.tenant || {};
+    const html = plantillaDocumentoLegal({
+      titulo: "PAGARÉ",
+      subtitulo: "Modelo de uso general — Decreto Ley N.° 5965/63, artículos 101 a 104",
+      tenant,
+      firmantes: [{ nombre: deudor, rol: "Suscriptor (deudor) — Firma y aclaración" }],
+      notaFinal: "Modelo general de referencia — el importe en letras se completa a mano antes de la firma.",
+      secciones: [
+        { heading: "Pagaré", html: `
+          <div class="grid">
+            <div class="field"><div class="label">Beneficiario</div><div class="value">${tenant.nombre || "—"}</div></div>
+            <div class="field"><div class="label">Suscriptor (deudor)</div><div class="value">${deudor || "—"}</div></div>
+            <div class="field"><div class="label">D.N.I. / C.U.I.T. del deudor</div><div class="value">${dniDeudor || "_____________________"}</div></div>
+            <div class="field"><div class="label">Importe</div><div class="value" style="font-size:16px;color:#059669">${fmt(importe || 0)}</div></div>
+            <div class="field"><div class="label">Vencimiento</div><div class="value">${vencimiento || "____/____/______"}</div></div>
+            <div class="field"><div class="label">Lugar de pago</div><div class="value">${lugarPago || "_____________________"}</div></div>
+          </div>
+          <p>Por este pagaré, el suscriptor abonará a ${tenant.nombre || "el beneficiario"} o a su orden, a su vencimiento, la cantidad indicada.</p>` },
+        { heading: "Cláusula sin protesto", html: "<p>El presente pagaré queda liberado del protesto, de acuerdo al art. 50 del Decreto Ley 5965/63.</p>" },
+      ],
+    });
+    imprimirHTML(html, { titulo: "Pagaré" });
+    onClose();
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 460, border: "1px solid #e0e0e8", maxHeight: "90vh", overflow: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>Pagaré — modelo general</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 22 }}>×</button>
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <label style={lblDoc}>Deudor (suscriptor)</label>
+          <input style={inpDoc} value={deudor} onChange={e => setDeudor(e.target.value)} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+          <div>
+            <label style={lblDoc}>D.N.I. / C.U.I.T.</label>
+            <input style={inpDoc} value={dniDeudor} onChange={e => setDniDeudor(e.target.value)} />
+          </div>
+          <div>
+            <label style={lblDoc}>Importe</label>
+            <input style={inpDoc} type="number" value={importe} onChange={e => setImporte(e.target.value)} />
+          </div>
+          <div>
+            <label style={lblDoc}>Vencimiento</label>
+            <input style={inpDoc} type="date" value={vencimiento} onChange={e => setVencimiento(e.target.value)} />
+          </div>
+          <div>
+            <label style={lblDoc}>Lugar de pago</label>
+            <input style={inpDoc} value={lugarPago} onChange={e => setLugarPago(e.target.value)} />
+          </div>
+        </div>
+        <button onClick={generar} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 8, padding: "12px", width: "100%", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+          Generar e imprimir
         </button>
       </div>
     </div>
