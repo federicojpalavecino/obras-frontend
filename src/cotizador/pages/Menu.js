@@ -72,16 +72,16 @@ export default function Menu() {
       }
       // Más recientes primero (por fecha de creación, con id como desempate)
       const byNew = (a, b) => (new Date(b.created_at || 0) - new Date(a.created_at || 0)) || ((b.id || 0) - (a.id || 0));
-      // El número de presupuesto ("el 2 de este cliente") sale del orden en
-      // que se crearon, no del que se ve en pantalla — la lista se muestra
-      // con el más nuevo arriba, pero si el número se recalculara con ese
-      // mismo orden, el más viejo pasaría a ser "el 1" recién cuando se
-      // borra todo lo demás. Así el número de cada presupuesto queda fijo.
+      // El número de presupuesto ("el 2 de este cliente") sale, por defecto,
+      // del orden en que se crearon — no del que se ve en pantalla, que es al
+      // revés. `numero_cliente` (si el estudio lo cargó a mano, porque su
+      // propia numeración de etapas no coincide con el orden de creación)
+      // siempre le gana a este automático.
       const conNumero = (lista) => {
         const porFecha = lista.slice().sort((a, b) => (new Date(a.created_at || 0) - new Date(b.created_at || 0)) || ((a.id || 0) - (b.id || 0)));
         const numeroPorId = {};
         porFecha.forEach((p, i) => { numeroPorId[p.id] = i + 1; });
-        return lista.map(p => ({ ...p, numero_cliente: numeroPorId[p.id] }));
+        return lista.map(p => ({ ...p, numero_auto: numeroPorId[p.id] }));
       };
       const menuCompleto = clientesRes.data.map(c => ({
         ...c,
@@ -214,6 +214,19 @@ export default function Menu() {
       await actualizarPresupuesto(p.id, { nombre_obra: nombre });
       cargar();
     } catch (err) { alert('Error al renombrar: ' + (errMsg(err))); }
+  };
+
+  const handleNumerar = async (p, e) => {
+    e.stopPropagation();
+    const actual = p.numero_cliente ?? p.numero_auto;
+    const nuevo = window.prompt('Número de este presupuesto para este cliente:', actual ?? '');
+    if (nuevo === null) return; // canceló
+    const n = parseInt(nuevo, 10);
+    if (!n || n === p.numero_cliente) return;
+    try {
+      await actualizarPresupuesto(p.id, { numero_cliente: n });
+      cargar();
+    } catch (err) { alert('Error al numerar: ' + (errMsg(err))); }
   };
 
   const handleEliminarPresupuesto = async (pid, nombre, e) => {
@@ -424,8 +437,11 @@ export default function Menu() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             {cliente.presupuestos.length > 1 && (
-                              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: 'var(--surface2)', color: 'var(--muted)', flexShrink: 0 }}>
-                                N° {p.numero_cliente}
+                              <span onClick={e => handleNumerar(p, e)} title="Tocá para poner tu propio número"
+                                style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10, cursor: 'pointer',
+                                         background: p.numero_cliente ? 'rgba(5,150,105,.14)' : 'var(--surface2)',
+                                         color: p.numero_cliente ? 'var(--accent)' : 'var(--muted)', flexShrink: 0 }}>
+                                N° {p.numero_cliente ?? p.numero_auto}
                               </span>
                             )}
                             <span style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{p.nombre_obra}</span>
