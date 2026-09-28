@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../cotizador/api";
+import { imprimirHTML, plantillaDocumentoLegal } from "../utils/imprimir";
 
 // El pañol y el depósito son la misma pregunta hecha de dos formas: ¿dónde
 // está lo que tengo? Con las herramientas, dónde está cada andamio y desde
@@ -33,6 +34,7 @@ export default function Panol() {
   const [asignar, setAsignar] = useState(null);       // herramienta a mandar
   const [mover, setMover] = useState(null);           // { item, tipo }
   const [abierta, setAbierta] = useState(null);       // fila desplegada
+  const [remito, setRemito] = useState(null);         // { tipo: 'material'|'herramienta', item, datos } — para ofrecer imprimir
 
   const irA = (t) => { setTab(t); localStorage.setItem("obras_panol_tab", t); };
   const avisar = (m) => { setAviso(m); setTimeout(() => setAviso(""), 4000); };
@@ -68,7 +70,9 @@ export default function Panol() {
         cantidad: parseFloat(asignar.cantidad) || 1,
         desde: asignar.desde, nota: asignar.nota,
       });
+      const datos = { ...asignar };
       setAsignar(null); cargar(); avisar("✓ Anotado: la herramienta está en la obra");
+      if (datos.presupuesto_id) setRemito({ tipo: "herramienta", item: datos.h, datos });
     } catch (e) { avisar("⚠ " + (e.response?.data?.detail || "No se pudo asignar")); }
   };
 
@@ -97,12 +101,14 @@ export default function Panol() {
         proveedor: mover.proveedor,
         fecha: mover.fecha, nota: mover.nota,
       });
+      const datos = { ...mover };
       setMover(null); cargar();
       avisar(mover.tipo === "ingreso"
         ? (r.data?.en_control_financiero
             ? "✓ Entró al depósito · la compra ya está en el control financiero"
             : "✓ Entró al depósito")
         : mover.tipo === "retiro" ? "✓ Salió del depósito" : "✓ Ajustado");
+      if (datos.tipo === "retiro" && datos.presupuesto_id) setRemito({ tipo: "material", item: datos.item, datos });
     } catch (e) { avisar("⚠ " + (e.response?.data?.detail || "No se pudo guardar")); }
   };
 
@@ -394,6 +400,91 @@ export default function Panol() {
             onChange={v => setMover(f => ({ ...f, nota: v }))} />
         </Hoja>
       )}
+
+      {remito && (
+        <RemitoModal remito={remito} obras={obras} stock={stock} herr={herr} onClose={() => setRemito(null)} />
+      )}
+    </div>
+  );
+}
+
+// Remito de lo que acaba de salir del pañol/depósito hacia una obra. Se
+// ofrece imprimir apenas se guarda el movimiento — es el momento en que la
+// mercadería o la herramienta está saliendo de verdad, no algo para buscar
+// después entre el historial.
+function RemitoModal({ remito, obras, stock, herr, onClose }) {
+  const { tipo, item, datos } = remito;
+  const esMaterial = tipo === "material";
+  const [conStock, setConStock] = useState(false);
+  const [conHerr, setConHerr] = useState(false);
+  const obraNombre = obras.find(o => o.id === Number(datos.presupuesto_id))?.nombre_obra || "—";
+
+  const imprimir = () => {
+    const tenant = JSON.parse(localStorage.getItem("obras_tenant") || "{}");
+    const secciones = [
+      { heading: esMaterial ? "Material retirado" : "Herramienta entregada", html: `
+        <div class="grid">
+          <div class="field"><div class="label">${esMaterial ? "Material" : "Herramienta"}</div><div class="value">${item.nombre}</div></div>
+          <div class="field"><div class="label">Cantidad</div><div class="value" style="font-size:16px;color:#059669">${fmtNum(datos.cantidad)} ${item.unidad}</div></div>
+          <div class="field"><div class="label">Obra de destino</div><div class="value">${obraNombre}</div></div>
+          <div class="field"><div class="label">Fecha</div><div class="value">${datos.fecha || datos.desde || "—"}</div></div>
+        </div>
+        ${datos.nota ? `<p style="margin-top:8px">${datos.nota}</p>` : ""}` },
+    ];
+    if (conStock) {
+      secciones.push({ heading: "Materiales en depósito", html: `
+        <table><thead><tr><th>Material</th><th>Disponible</th></tr></thead><tbody>
+        ${(stock?.items || []).map(m => `<tr><td>${m.nombre}</td><td>${fmtNum(m.disponible)} ${m.unidad}</td></tr>`).join("")}
+        </tbody></table>` });
+    }
+    if (conHerr) {
+      secciones.push({ heading: "Herramientas — pañol y obra", html: `
+        <table><thead><tr><th>Herramienta</th><th>En pañol</th><th>En obra</th></tr></thead><tbody>
+        ${(herr?.herramientas || []).map(h => `<tr><td>${h.nombre}</td><td>${fmtNum(h.disponible)}</td><td>${fmtNum(h.en_obra)}</td></tr>`).join("")}
+        </tbody></table>` });
+    }
+    const html = plantillaDocumentoLegal({
+      titulo: esMaterial ? "REMITO DE SALIDA DE MATERIALES" : "REMITO DE SALIDA DE HERRAMIENTAS",
+      subtitulo: `${tenant.nombre || ""} — ${obraNombre}`,
+      tenant,
+      firmantes: [
+        { nombre: "", rol: "Entrega — Firma y aclaración" },
+        { nombre: "", rol: "Recibe — Firma y aclaración" },
+      ],
+      secciones,
+    });
+    imprimirHTML(html, { titulo: "Remito" });
+    onClose();
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: C.surface, borderRadius: 16, padding: 22, width: "100%", maxWidth: 420, border: `1px solid ${C.border}` }}>
+        <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>¿Imprimir el remito?</div>
+        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 16 }}>
+          {fmtNum(datos.cantidad)} {item.unidad} de {item.nombre} → {obraNombre}
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 8, cursor: "pointer" }}>
+          <input type="checkbox" checked={conStock} onChange={e => setConStock(e.target.checked)} />
+          Incluir resumen de materiales en depósito
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 18, cursor: "pointer" }}>
+          <input type="checkbox" checked={conHerr} onChange={e => setConHerr(e.target.checked)} />
+          Incluir resumen de herramientas (pañol y obra)
+        </label>
+        <div style={{ display: "flex", gap: 9 }}>
+          <button onClick={onClose}
+            style={{ flex: 1, padding: "11px 0", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                     fontSize: 13.5, background: "transparent", border: `1px solid ${C.border}`, color: C.muted }}>
+            No, gracias
+          </button>
+          <button onClick={imprimir}
+            style={{ flex: 1.4, padding: "11px 0", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                     fontSize: 13.5, fontWeight: 700, background: C.accent, border: "none", color: "#fff" }}>
+            Imprimir remito
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

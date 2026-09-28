@@ -102,6 +102,8 @@ export default function Obra() {
   const [showActa, setShowActa] = useState(false);
   const [showExtension, setShowExtension] = useState(false);
   const [showPagareGeneral, setShowPagareGeneral] = useState(false);
+  const [remitoPago, setRemitoPago] = useState(null); // { sub, pago } — para ofrecer el comprobante
+  const [remitoCobro, setRemitoCobro] = useState(null); // el cobro recién guardado — para ofrecer el recibo
   const [certificados, setCertificados] = useState([]);
   // Lo que está físicamente en esta obra: herramientas del pañol y material
   // que salió del depósito. Se carga aparte porque no todos los estudios lo
@@ -380,12 +382,14 @@ export default function Obra() {
 
   const crearCobro = async () => {
     if (!cobForm.monto) return;
-    const r = await api.post(`/presupuestos/${id}/cobros`, { ...cobForm, monto: parseFloat(cobForm.monto) });
+    const cobroGuardado = { ...cobForm, monto: parseFloat(cobForm.monto) };
+    const r = await api.post(`/presupuestos/${id}/cobros`, cobroGuardado);
     setShowCobro(false); setCobForm({ monto: "", fecha: today(), forma_pago: "transferencia", referencia: "", nota: "", certificado_id: null, desembolso_id: null, es_anticipo: false });
     showToast(r.data?.en_control_financiero
       ? "✓ Cobro registrado · ya está en el control financiero"
       : "✓ Cobro registrado");
     cargar();
+    setRemitoCobro(cobroGuardado);
   };
 
   const eliminarCobro = async (cid) => {
@@ -447,9 +451,12 @@ export default function Obra() {
 
   const crearPagoSubcontrato = async (sid) => {
     if (!pagoSubForm.monto) return;
-    await api.post(`/presupuestos/${id}/subcontratos/${sid}/pagos`, { ...pagoSubForm, monto: parseFloat(pagoSubForm.monto), pct_avance_al_pagar: parseFloat(pagoSubForm.pct_avance_al_pagar) || 0 });
+    const subAntes = subcontratos.find(s => s.id === sid);
+    const pagoGuardado = { ...pagoSubForm, monto: parseFloat(pagoSubForm.monto) };
+    await api.post(`/presupuestos/${id}/subcontratos/${sid}/pagos`, { ...pagoGuardado, pct_avance_al_pagar: parseFloat(pagoSubForm.pct_avance_al_pagar) || 0 });
     setShowPagoSub(null); setPagoSubForm({ monto: "", fecha: today(), concepto: "Pago parcial", forma_pago: "transferencia", pct_avance_al_pagar: "" });
     showToast("✓ Pago registrado"); cargar();
+    if (subAntes) setRemitoPago({ sub: subAntes, pago: pagoGuardado });
   };
 
   const crearCompra = async () => {
@@ -625,10 +632,34 @@ export default function Obra() {
     return c.nota || "Pago a cuenta";
   };
 
-  const imprimirRecibo = (c) => {
+  const imprimirRecibo = (c, { conCobrosObra, conPagosSub } = {}) => {
     const tenant = presupuesto?.tenant || {};
     const cliente = presupuesto?.cliente || {};
     const hoy = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+    const cobrado = cobros.reduce((s, cb) => s + parseFloat(cb.monto || 0), 0);
+    const pendienteObra = Math.max(0, parseFloat(contrato?.monto_total || 0) - cobrado);
+    const pagadoSub = subcontratos.reduce((s, sb) => s + parseFloat(sb.pagado || 0), 0);
+    const pendienteSub = subcontratos.reduce((s, sb) => s + Math.max(0, parseFloat(sb.monto_total || 0) - parseFloat(sb.pagado || 0)), 0);
+    // Los extras opcionales van con el mismo estilo .section que ya usa el
+    // recibo — no se toca el diseño de lo que ya imprimía, solo se le puede
+    // sumar más abajo.
+    const extraCobrosObra = conCobrosObra ? `
+<div class="section">
+  <h3>Cuenta de la obra con el comitente</h3>
+  <div class="grid">
+    <div class="field"><div class="label">Contrato</div><div class="value">${fmt(contrato?.monto_total)}</div></div>
+    <div class="field"><div class="label">Cobrado a la fecha</div><div class="value" style="color:#059669">${fmt(cobrado)}</div></div>
+    <div class="field"><div class="label">Saldo pendiente de cobro</div><div class="value" style="color:${pendienteObra > 0 ? "#d97706" : "#059669"}">${fmt(pendienteObra)}</div></div>
+  </div>
+</div>` : "";
+    const extraPagosSub = conPagosSub ? `
+<div class="section">
+  <h3>Pagos a subcontratistas de esta obra</h3>
+  <div class="grid">
+    <div class="field"><div class="label">Pagado a la fecha</div><div class="value" style="color:#059669">${fmt(pagadoSub)}</div></div>
+    <div class="field"><div class="label">Saldo pendiente de pago</div><div class="value" style="color:${pendienteSub > 0 ? "#ef4444" : "#059669"}">${fmt(pendienteSub)}</div></div>
+  </div>
+</div>` : "";
     const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <title>Recibo — ${presupuesto?.nombre_obra}</title>
 <style>
@@ -675,7 +706,8 @@ export default function Obra() {
   <div class="field"><div class="label">Forma de pago</div><div class="value" style="text-transform:capitalize">${c.forma_pago || "—"}</div></div>
   ${c.referencia ? `<div class="field"><div class="label">Referencia</div><div class="value">${c.referencia}</div></div>` : ""}
 </div>
-
+${extraCobrosObra}
+${extraPagosSub}
 <div class="firma">
   <div class="firma-box"><div class="firma-line"></div><div>${tenant.nombre || "Profesional"}</div><div style="font-size:11px;color:#6b7280">Firma y aclaración</div></div>
   <div class="firma-box"><div class="firma-line"></div><div>${cliente.nombre || "Comitente"}</div><div style="font-size:11px;color:#6b7280">Firma y aclaración</div></div>
@@ -686,6 +718,60 @@ export default function Obra() {
 </div>
 </body></html>`;
     imprimirHTML(html, { titulo: "Recibo" });
+  };
+
+  // Comprobante de lo que le pagamos a un subcontratista — el espejo del
+  // recibo de cobro, pero mirado desde el otro lado del mostrador.
+  const imprimirComprobantePago = (sub, pago, { conPagosSub, conCobrosObra } = {}) => {
+    const tenant = presupuesto?.tenant || {};
+    const hoy = new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" });
+    const pagadoPrevio = parseFloat(sub.pagado || 0);
+    const pendienteSub = Math.max(0, parseFloat(sub.monto_total || 0) - pagadoPrevio - pago.monto);
+    const cobrado = cobros.reduce((s, cb) => s + parseFloat(cb.monto || 0), 0);
+    const pendienteObra = Math.max(0, parseFloat(contrato?.monto_total || 0) - cobrado);
+    const secciones = [
+      { heading: "Partes", html: `
+        <div class="grid">
+          <div class="field"><div class="label">Pagador</div><div class="value">${tenant.nombre || "—"}</div></div>
+          <div class="field"><div class="label">Beneficiario</div><div class="value">${sub.nombre_contratista}</div></div>
+        </div>` },
+      { heading: "Pago", html: `
+        <div class="grid">
+          <div class="field"><div class="label">Monto</div><div class="value" style="font-size:18px;color:#059669">${fmt(pago.monto)}</div></div>
+          <div class="field"><div class="label">Fecha</div><div class="value">${pago.fecha ? new Date(pago.fecha + "T12:00:00").toLocaleDateString("es-AR") : "—"}</div></div>
+          <div class="field"><div class="label">Concepto</div><div class="value">${pago.concepto || "—"}</div></div>
+          <div class="field"><div class="label">Forma de pago</div><div class="value" style="text-transform:capitalize">${pago.forma_pago || "—"}</div></div>
+        </div>
+        <div class="field" style="margin-top:8px"><div class="label">Obra</div><div class="value">${presupuesto?.nombre_obra}</div></div>` },
+    ];
+    if (conPagosSub) {
+      secciones.push({ heading: "Cuenta con este contratista", html: `
+        <div class="grid">
+          <div class="field"><div class="label">Contrato</div><div class="value">${fmt(sub.monto_total)}</div></div>
+          <div class="field"><div class="label">Pagado a la fecha (con este pago)</div><div class="value" style="color:#059669">${fmt(pagadoPrevio + pago.monto)}</div></div>
+          <div class="field"><div class="label">Saldo pendiente</div><div class="value" style="color:${pendienteSub > 0 ? "#ef4444" : "#059669"}">${fmt(pendienteSub)}</div></div>
+        </div>` });
+    }
+    if (conCobrosObra) {
+      secciones.push({ heading: "Cuenta de la obra con el comitente", html: `
+        <div class="grid">
+          <div class="field"><div class="label">Contrato</div><div class="value">${fmt(contrato?.monto_total)}</div></div>
+          <div class="field"><div class="label">Cobrado a la fecha</div><div class="value" style="color:#059669">${fmt(cobrado)}</div></div>
+          <div class="field"><div class="label">Saldo pendiente de cobro</div><div class="value" style="color:${pendienteObra > 0 ? "#d97706" : "#059669"}">${fmt(pendienteObra)}</div></div>
+        </div>` });
+    }
+    const html = plantillaDocumentoLegal({
+      titulo: "COMPROBANTE DE PAGO",
+      subtitulo: presupuesto?.nombre_obra,
+      tenant,
+      firmantes: [
+        { nombre: tenant.nombre, rol: "Pagador — Firma y aclaración" },
+        { nombre: sub.nombre_contratista, rol: "Recibí conforme — Firma y aclaración" },
+      ],
+      notaFinal: `Emitido con FAIM OBRAS · ${hoy}`,
+      secciones,
+    });
+    imprimirHTML(html, { titulo: "Comprobante de pago" });
   };
 
   const imprimirResumenCuenta = () => {
@@ -2426,6 +2512,32 @@ export default function Obra() {
           onClose={() => setShowPagareGeneral(false)} />
       )}
 
+      {remitoPago && (
+        <ComprobanteOpcionesModal
+          titulo="¿Imprimir el comprobante de pago?"
+          resumen={`${fmt(remitoPago.pago.monto)} a ${remitoPago.sub.nombre_contratista}`}
+          opciones={[
+            { key: "conPagosSub", label: "Incluir cuenta con este contratista (pagado / pendiente)" },
+            { key: "conCobrosObra", label: "Incluir cuenta de la obra con el comitente (cobrado / pendiente)" },
+          ]}
+          onImprimir={(op) => { imprimirComprobantePago(remitoPago.sub, remitoPago.pago, op); setRemitoPago(null); }}
+          onClose={() => setRemitoPago(null)}
+        />
+      )}
+
+      {remitoCobro && (
+        <ComprobanteOpcionesModal
+          titulo="¿Imprimir el recibo de este cobro?"
+          resumen={fmt(remitoCobro.monto)}
+          opciones={[
+            { key: "conCobrosObra", label: "Incluir cuenta de la obra con el comitente (cobrado / pendiente)" },
+            { key: "conPagosSub", label: "Incluir pagos a subcontratistas de esta obra (pagado / pendiente)" },
+          ]}
+          onImprimir={(op) => { imprimirRecibo(remitoCobro, op); setRemitoCobro(null); }}
+          onClose={() => setRemitoCobro(null)}
+        />
+      )}
+
       {toast && (
         <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: C.text, color: "#fff", borderRadius: 20, padding: "10px 20px", fontSize: 13, zIndex: 999 }}>
           {toast}
@@ -2921,6 +3033,38 @@ function PagareGeneralModal({ presupuesto, onClose }) {
         <button onClick={generar} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 8, padding: "12px", width: "100%", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
           Generar e imprimir
         </button>
+      </div>
+    </div>
+  );
+}
+
+// Genérico: se ofrece justo después de guardar un movimiento (cobro, pago,
+// salida de material o de herramienta), con casilleros para sumarle al
+// comprobante el estado de cuenta que corresponda — nunca obligatorio.
+function ComprobanteOpcionesModal({ titulo, resumen, opciones, onImprimir, onClose }) {
+  const [marcadas, setMarcadas] = useState({});
+  const toggle = (k) => setMarcadas(m => ({ ...m, [k]: !m[k] }));
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: 22, width: "100%", maxWidth: 420, border: "1px solid #e0e0e8" }}>
+        <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>{titulo}</div>
+        {resumen && <div style={{ fontSize: 12.5, color: "#6b7280", marginBottom: 16 }}>{resumen}</div>}
+        {opciones.map(o => (
+          <label key={o.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 10, cursor: "pointer" }}>
+            <input type="checkbox" checked={!!marcadas[o.key]} onChange={() => toggle(o.key)} />
+            {o.label}
+          </label>
+        ))}
+        <div style={{ display: "flex", gap: 9, marginTop: 10 }}>
+          <button onClick={onClose}
+            style={{ flex: 1, padding: "11px 0", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, background: "transparent", border: "1px solid #e0e0e8", color: "#6b7280" }}>
+            No, gracias
+          </button>
+          <button onClick={() => onImprimir(marcadas)}
+            style={{ flex: 1.4, padding: "11px 0", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, background: "#059669", border: "none", color: "#fff" }}>
+            Imprimir
+          </button>
+        </div>
       </div>
     </div>
   );
