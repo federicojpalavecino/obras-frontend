@@ -102,30 +102,6 @@ export default function Presupuesto() {
 
   useEffect(() => { cargar(); cargarAdicionales(); }, [id]);
 
-  // Si cambiás un precio de material en otra pestaña (o en /cotizador/materiales)
-  // y volvés a esta sin recargar, quedabas viendo los precios viejos: el
-  // backend calcula todo en vivo, pero el `data` de acá no se pedía de nuevo
-  // solo. Al volver a esta pestaña se trae una versión fresca — salvo que haya
-  // un panel de edición abierto, para no pisarle algo a medio cargar.
-  const hayModalAbierto = !!(
-    modalLibre || lineaSeleccionada || computoLinea || lineaSeleccionadaAdic ||
-    computoAdicLinea || modalNuevoRubro || modalAdicional || modalCierre ||
-    modalNuevaTarea || editandoNombreId || editandoRubroNum || agregandoTarea || editandoTareaId
-  );
-  const hayModalAbiertoRef = useRef(hayModalAbierto);
-  hayModalAbiertoRef.current = hayModalAbierto;
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible' && !hayModalAbiertoRef.current) cargar(true);
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('focus', onVisible);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('focus', onVisible);
-    };
-  }, []);
-
   useEffect(() => {
     getItems(null, 'propio').then(r => setHayPropios((r.data || []).length > 0)).catch(() => {});
   }, []);
@@ -358,6 +334,31 @@ export default function Presupuesto() {
   const [nuevaTareaForm, setNuevaTareaForm] = useState({ nombre: '', modo: 'pct_obra', valor: '' });
   const [editandoTareaId, setEditandoTareaId] = useState(null);
   const [editTareaValor, setEditTareaValor] = useState('');
+
+  // Si cambiás un precio de material en otra pestaña (o en /cotizador/materiales)
+  // y volvés a esta sin recargar, quedabas viendo los precios viejos: el
+  // backend calcula todo en vivo, pero el `data` de acá no se pedía de nuevo
+  // solo. Al volver a esta pestaña se trae una versión fresca — salvo que haya
+  // un panel de edición abierto, para no pisarle algo a medio cargar.
+  const hayModalAbierto = !!(
+    modalLibre || lineaSeleccionada || computoLinea || lineaSeleccionadaAdic ||
+    computoAdicLinea || modalNuevoRubro || modalAdicional || modalCierre ||
+    modalNuevaTarea || editandoNombreId || editandoRubroNum || agregandoTarea || editandoTareaId
+  );
+  const hayModalAbiertoRef = useRef(hayModalAbierto);
+  hayModalAbiertoRef.current = hayModalAbierto;
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && !hayModalAbiertoRef.current) cargar(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, []);
+
   // El K y los m2 van juntos: de los dos sale el monto de obra, y del monto la
   // escala. Se guardan en el presupuesto para que quede escrito con que valor
   // se aranceló.
