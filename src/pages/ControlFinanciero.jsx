@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Printer, ArrowDownLeft, ArrowUpRight, Users, Wrench, BarChart2, FileDown } from "lucide-react";
+import { Printer, ArrowDownLeft, ArrowUpRight, ArrowUpDown, Users, Wrench, BarChart2, FileDown } from "lucide-react";
 import api from "../cotizador/api";
 import MenuAcciones from "../shared/MenuAcciones";
 import NumeroInput from "../cotizador/NumeroInput";
@@ -296,6 +296,7 @@ export default function ControlFinanciero({ user }) {
     } catch { return user?.nombre || ""; }
   })();
   const [resumenObraFiltro, setResumenObraFiltro] = useState("");
+  const [detalleAbierto, setDetalleAbierto] = useState(null); // clave "imputacion:ref" de la fila que se está viendo en detalle
   const tenant = getTenant();
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
@@ -457,6 +458,24 @@ export default function ControlFinanciero({ user }) {
   const rangoAnio = () => { const a = new Date().getFullYear();
     setRango({ desde: `${a}-01-01`, hasta: `${a}-12-31` }); };
   const rangoTodo = () => setRango({ desde: '', hasta: '' });
+
+  // Con muchos movimientos cargados, el que se acaba de agregar quedaba
+  // siempre al final de la lista: había que scrollear cada vez para verlo.
+  // El dato se sigue guardando en el mismo orden de siempre (lo necesitan la
+  // impresión y el resumen); esto solo cambia el orden en que se MUESTRA acá,
+  // y se recuerda por estudio.
+  const [ordenDesc, setOrdenDesc] = useState(() => {
+    try { return localStorage.getItem("cf_orden_desc") !== "0"; } catch { return true; }
+  });
+  const toggleOrden = () => setOrdenDesc(v => {
+    const nv = !v;
+    try { localStorage.setItem("cf_orden_desc", nv ? "1" : "0"); } catch {}
+    return nv;
+  });
+  const conIndice = (arr) => {
+    const pares = arr.map((row, i) => ({ row, i }));
+    return ordenDesc ? pares.slice().reverse() : pares;
+  };
 
   const addIngreso = () => setWeek(w => { const nw = { ...w, ingresos: [...w.ingresos, { concepto: "", monto: "", fecha: hoyISO(), estado: "PENDIENTE", obra: "", cliente: "" , usuario: usuarioActual }] }; programarGuardado(nw, 300); return nw; });
   const updIngreso = (i, f, v) => setWeek(w => { const a = [...w.ingresos]; a[i] = { ...a[i], [f]: v }; const nw = { ...w, ingresos: a }; programarGuardado(nw); return nw; });
@@ -653,12 +672,21 @@ export default function ControlFinanciero({ user }) {
     </button>
   );
 
-  const SectionHeader = ({ label, total, onAdd }) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+  const SectionHeader = ({ label, total, onAdd, conOrden }) => (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
       <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: C.muted }}>
         {label} {total !== undefined && <span style={{ color: C.accent, fontFamily: "'IBM Plex Mono', monospace" }}>({fmt(total)})</span>}
       </div>
-      {onAdd && <button onClick={onAdd} style={{ padding: "4px 14px", background: C.accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Agregar</button>}
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        {conOrden && (
+          <button onClick={toggleOrden} title="Cambiar el orden en que se muestran"
+            style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "none", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 11, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>
+            <ArrowUpDown size={11} strokeWidth={1.75} />
+            {ordenDesc ? "Nuevo arriba" : "Nuevo abajo"}
+          </button>
+        )}
+        {onAdd && <button onClick={onAdd} style={{ padding: "4px 14px", background: C.accent, color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Agregar</button>}
+      </div>
     </div>
   );
 
@@ -756,7 +784,7 @@ export default function ControlFinanciero({ user }) {
 
             {/* Ingresos */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
-              <SectionHeader label="Ingresos" total={calc.totalIng} onAdd={addIngreso} />
+              <SectionHeader label="Ingresos" total={calc.totalIng} onAdd={addIngreso} conOrden />
               {(week.ingresos.some(r => !seMovio(r)) || week.egresos.some(r => !seMovio(r))) && (
                 <div style={{ fontSize: 11.5, color: C.warn, marginBottom: 9, lineHeight: 1.45 }}>
                   Las filas en amarillo están pendientes: todavía no suman al resultado.
@@ -764,7 +792,7 @@ export default function ControlFinanciero({ user }) {
                 </div>
               )}
               {week.ingresos.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin ingresos — tocá Agregar</div>}
-              {week.ingresos.map((row, i) => (
+              {conIndice(week.ingresos).map(({ row, i }) => (
                 <div key={i} style={{ ...rowGrid, ...(row.origen === "obra" ? { opacity: .82 } : {}),
                                       ...(!seMovio(row) ? { background: "#fffbeb", borderRadius: 8 } : {}) }}
                   title={row.origen === "obra" ? "Viene de la obra: se edita desde ahí"
@@ -789,9 +817,9 @@ export default function ControlFinanciero({ user }) {
 
             {/* Egresos */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
-              <SectionHeader label="Egresos" total={calc.totalEg} onAdd={addEgreso} />
+              <SectionHeader label="Egresos" total={calc.totalEg} onAdd={addEgreso} conOrden />
               {week.egresos.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin egresos</div>}
-              {week.egresos.map((row, i) => (
+              {conIndice(week.egresos).map(({ row, i }) => (
                 <div key={i} style={{ ...rowGrid, ...(row.origen === "obra" ? { opacity: .82 } : {}),
                                       ...(!seMovio(row) ? { background: "#fffbeb", borderRadius: 8 } : {}) }}
                   title={row.origen === "obra" ? "Viene de la obra: se edita desde ahí"
@@ -1294,7 +1322,7 @@ export default function ControlFinanciero({ user }) {
                   <div style={{ fontSize: 14, fontWeight: 700 }}>Contra qué se gastó</div>
                   <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Obras, clientes, proyectos y lo del estudio, en el período de arriba.</div>
                 </div>
-                <input style={{ ...inp, width: 200 }} placeholder="Filtrar..." value={resumenObraFiltro} onChange={e => setResumenObraFiltro(e.target.value)} />
+                <input style={{ ...inp, width: 220 }} placeholder="Filtrar por obra, cliente o proyecto..." value={resumenObraFiltro} onChange={e => setResumenObraFiltro(e.target.value)} />
               </div>
               {resumenFiltrado.length === 0 ? (
                 <div style={{ textAlign: "center", color: C.muted, padding: 32 }}>Sin datos</div>
@@ -1308,20 +1336,26 @@ export default function ControlFinanciero({ user }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {resumenFiltrado.map((r, i) => (
-                      <tr key={`${r.imputacion}:${r.ref_id ?? r.ref_nombre}`} style={{ borderBottom: `1px solid ${C.border2}`, background: i % 2 === 0 ? "transparent" : C.surface2 }}>
-                        <td style={{ padding: "9px 12px", fontSize: 13, fontWeight: 600 }}>
-                          {r.ref_nombre}
-                          <span style={{ fontSize: 10, color: { obra: C.accent, cliente: C.accent2, proyecto: C.warn, estudio: C.text, sin_imputar: C.muted }[r.imputacion] || C.muted, textTransform: "uppercase", letterSpacing: ".4px", marginLeft: 7 }}>
-                            {r.imputacion === "sin_imputar" ? "sin imputar" : r.imputacion}
-                          </span>
-                        </td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", fontSize: 13, color: C.green, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(r.ingresos)}</td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", fontSize: 13, color: C.red, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(r.egresos)}</td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", fontSize: 13, color: C.warn, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(r.personal)}</td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", fontSize: 14, fontWeight: 800, color: r.resultado >= 0 ? C.accent : C.red, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(r.resultado)}</td>
-                      </tr>
-                    ))}
+                    {resumenFiltrado.map((r, i) => {
+                      const clave = `${r.imputacion}:${r.ref_id ?? r.ref_nombre}`;
+                      const abierta = detalleAbierto === clave;
+                      return (
+                        <tr key={clave} onClick={() => setDetalleAbierto(abierta ? null : clave)}
+                          style={{ borderBottom: `1px solid ${C.border2}`, background: abierta ? "rgba(5,150,105,0.08)" : (i % 2 === 0 ? "transparent" : C.surface2), cursor: "pointer" }}
+                          title="Tocá para ver el detalle de cada movimiento">
+                          <td style={{ padding: "9px 12px", fontSize: 13, fontWeight: 600 }}>
+                            {r.ref_nombre}
+                            <span style={{ fontSize: 10, color: { obra: C.accent, cliente: C.accent2, proyecto: C.warn, estudio: C.text, sin_imputar: C.muted }[r.imputacion] || C.muted, textTransform: "uppercase", letterSpacing: ".4px", marginLeft: 7 }}>
+                              {r.imputacion === "sin_imputar" ? "sin imputar" : r.imputacion}
+                            </span>
+                          </td>
+                          <td style={{ padding: "9px 12px", textAlign: "right", fontSize: 13, color: C.green, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(r.ingresos)}</td>
+                          <td style={{ padding: "9px 12px", textAlign: "right", fontSize: 13, color: C.red, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(r.egresos)}</td>
+                          <td style={{ padding: "9px 12px", textAlign: "right", fontSize: 13, color: C.warn, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(r.personal)}</td>
+                          <td style={{ padding: "9px 12px", textAlign: "right", fontSize: 14, fontWeight: 800, color: r.resultado >= 0 ? C.accent : C.red, fontFamily: "'IBM Plex Mono', monospace" }}>{fmt(r.resultado)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr style={{ borderTop: `2px solid ${C.border}` }}>
@@ -1335,6 +1369,42 @@ export default function ControlFinanciero({ user }) {
                   </tfoot>
                 </table>
               )}
+              {/* Detalle de la fila elegida: cada movimiento que compone esos
+                  totales, para no tener que ir período por período buscándolos. */}
+              {detalleAbierto && (() => {
+                const fila = resumenFiltrado.find(r => `${r.imputacion}:${r.ref_id ?? r.ref_nombre}` === detalleAbierto);
+                if (!fila) return null;
+                return (
+                  <div style={{ marginTop: 14, borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700 }}>Detalle — {fila.ref_nombre}</div>
+                      <button onClick={() => setDetalleAbierto(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 18, lineHeight: 1 }}>×</button>
+                    </div>
+                    {(fila.detalle || []).length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted, textAlign: "center", padding: 16 }}>Sin movimientos individuales para mostrar.</div>
+                    ) : (
+                      <div style={{ maxHeight: 360, overflowY: "auto" }}>
+                        {fila.detalle.map((m, i) => (
+                          <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", padding: "7px 4px", borderBottom: `1px solid ${C.border2}` }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".4px", color: m.tipo === "ingresos" ? C.green : m.tipo === "personal" ? C.warn : C.red, marginRight: 7 }}>
+                                {m.tipo === "ingresos" ? "Ingreso" : m.tipo === "personal" ? "Personal" : "Egreso"}
+                              </span>
+                              <span style={{ fontSize: 13 }}>{m.concepto || "(sin concepto)"}</span>
+                              <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
+                                {m.fecha || m.periodo_fecha} · {m.usuario}{m.estado ? ` · ${m.estado}` : ""}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 13.5, fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace", color: m.tipo === "ingresos" ? C.green : m.tipo === "personal" ? C.warn : C.red, flexShrink: 0 }}>
+                              {fmt(m.monto)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}

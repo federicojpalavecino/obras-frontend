@@ -4,7 +4,21 @@ import { parseNum } from './num';
 // Formatea con separador de miles (.) y decimal (,) al estilo argentino.
 // "1000000" -> "1.000.000" · "1234,5" -> "1.234,5"
 export function formatMiles(raw) {
-  let s = String(raw ?? '').replace(/[^\d,]/g, '');
+  let s = String(raw ?? '');
+  // Si todavía no hay coma, un punto seguido de 0, 1 o 2 dígitos es casi
+  // siempre el separador decimal que alguien tipeó con el punto del teclado
+  // numérico (muy común en celular) — una agrupación de miles real siempre
+  // viene de a 3 dígitos exactos. Sin este ajuste ese punto se borraba solo
+  // más abajo y el importe terminaba mil veces más chico o más grande sin
+  // que se note ("1234.56" pasaba a valer 123.456, no 1234,56).
+  if (!s.includes(',')) {
+    const ult = s.lastIndexOf('.');
+    if (ult > -1) {
+      const tras = s.slice(ult + 1).replace(/\D/g, '');
+      if (tras.length <= 2) s = s.slice(0, ult).replace(/\./g, '') + ',' + tras;
+    }
+  }
+  s = s.replace(/[^\d,]/g, '');
   const i = s.indexOf(',');
   let ent, dec;
   if (i >= 0) {
