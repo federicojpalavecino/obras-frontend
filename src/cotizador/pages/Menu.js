@@ -72,12 +72,23 @@ export default function Menu() {
       }
       // Más recientes primero (por fecha de creación, con id como desempate)
       const byNew = (a, b) => (new Date(b.created_at || 0) - new Date(a.created_at || 0)) || ((b.id || 0) - (a.id || 0));
+      // El número de presupuesto ("el 2 de este cliente") sale del orden en
+      // que se crearon, no del que se ve en pantalla — la lista se muestra
+      // con el más nuevo arriba, pero si el número se recalculara con ese
+      // mismo orden, el más viejo pasaría a ser "el 1" recién cuando se
+      // borra todo lo demás. Así el número de cada presupuesto queda fijo.
+      const conNumero = (lista) => {
+        const porFecha = lista.slice().sort((a, b) => (new Date(a.created_at || 0) - new Date(b.created_at || 0)) || ((a.id || 0) - (b.id || 0)));
+        const numeroPorId = {};
+        porFecha.forEach((p, i) => { numeroPorId[p.id] = i + 1; });
+        return lista.map(p => ({ ...p, numero_cliente: numeroPorId[p.id] }));
+      };
       const menuCompleto = clientesRes.data.map(c => ({
         ...c,
-        presupuestos: (presupPorCliente[c.id] || []).slice().sort(byNew),
+        presupuestos: conNumero(presupPorCliente[c.id] || []).sort(byNew),
       }));
       const sinCliente = presupPorCliente['sin_cliente'] || [];
-      if (sinCliente.length > 0) menuCompleto.push({ id: 'sin_cliente', nombre: 'Sin cliente', email: '', presupuestos: sinCliente.slice().sort(byNew) });
+      if (sinCliente.length > 0) menuCompleto.push({ id: 'sin_cliente', nombre: 'Sin cliente', email: '', presupuestos: conNumero(sinCliente).sort(byNew) });
       // Clientes con actividad más reciente arriba
       menuCompleto.sort((a, b) => {
         const af = a.presupuestos[0]?.created_at ? new Date(a.presupuestos[0].created_at).getTime() : 0;
@@ -412,6 +423,11 @@ export default function Menu() {
                         onClick={() => navigate(`/cotizador/presupuesto/${p.id}`)}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            {cliente.presupuestos.length > 1 && (
+                              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: 'var(--surface2)', color: 'var(--muted)', flexShrink: 0 }}>
+                                N° {p.numero_cliente}
+                              </span>
+                            )}
                             <span style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{p.nombre_obra}</span>
                             {p.proyecto_nombre && (
                               <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: (p.proyecto_color || '#6ee7b7') + '22', color: p.proyecto_color || '#059669', flexShrink: 0 }}>
