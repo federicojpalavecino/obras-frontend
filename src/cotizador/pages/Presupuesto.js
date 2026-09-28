@@ -1,6 +1,6 @@
 // FAIM OBRAS build 1778463399
 import '../index.css';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   getPresupuesto, actualizarPresupuesto, cerrarPresupuesto, reabrirPresupuesto,
@@ -101,6 +101,31 @@ export default function Presupuesto() {
   const [hayPropios, setHayPropios] = useState(false);
 
   useEffect(() => { cargar(); cargarAdicionales(); }, [id]);
+
+  // Si cambiás un precio de material en otra pestaña (o en /cotizador/materiales)
+  // y volvés a esta sin recargar, quedabas viendo los precios viejos: el
+  // backend calcula todo en vivo, pero el `data` de acá no se pedía de nuevo
+  // solo. Al volver a esta pestaña se trae una versión fresca — salvo que haya
+  // un panel de edición abierto, para no pisarle algo a medio cargar.
+  const hayModalAbierto = !!(
+    modalLibre || lineaSeleccionada || computoLinea || lineaSeleccionadaAdic ||
+    computoAdicLinea || modalNuevoRubro || modalAdicional || modalCierre ||
+    modalNuevaTarea || editandoNombreId || editandoRubroNum || agregandoTarea || editandoTareaId
+  );
+  const hayModalAbiertoRef = useRef(hayModalAbierto);
+  hayModalAbiertoRef.current = hayModalAbierto;
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && !hayModalAbiertoRef.current) cargar(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, []);
+
   useEffect(() => {
     getItems(null, 'propio').then(r => setHayPropios((r.data || []).length > 0)).catch(() => {});
   }, []);
