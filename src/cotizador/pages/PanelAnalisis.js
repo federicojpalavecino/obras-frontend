@@ -530,12 +530,25 @@ function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, camp
               {/* Campo 2 (precio/costo) */}
               <td style={{ padding: '5px 4px', textAlign: 'right', width: 90 }}>
                 {isEdit2 ? (
-                  <div style={{ display: 'flex', gap: 2 }}>
-                    <input type="text" inputMode="decimal" autoFocus value={editVal}
-                      onChange={e => setEditVal(e.target.value)}
-                      style={{ width: 70, background: 'var(--bg)', border: '1px solid var(--warn)', borderRadius: 3, padding: '2px 4px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'right' }} />
-                    <button style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer' }} onClick={() => onEditar(l.id, campo2, editVal)}><Check size={11} /></button>
-                    <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }} onClick={() => setEditando(null)}><X size={10} /></button>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ display: 'flex', gap: 2 }}>
+                      <input type="text" inputMode="decimal" autoFocus value={editVal}
+                        onChange={e => setEditVal(e.target.value)}
+                        style={{ width: 70, background: 'var(--bg)', border: '1px solid var(--warn)', borderRadius: 3, padding: '2px 4px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'right' }} />
+                      <button style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer' }} onClick={() => onEditar(l.id, campo2, editVal)}><Check size={11} /></button>
+                      <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }} onClick={() => setEditando(null)}><X size={10} /></button>
+                    </div>
+                    {/* Recién ahora, mientras lo está tipeando, es el único
+                        momento en que de verdad puede leer esto — después el
+                        precio queda naranja para siempre y nadie vuelve a ver
+                        una explicación de por qué. */}
+                    {l.val2_manual == null && (
+                      <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 3, background: 'var(--warn)', color: '#fff',
+                                    fontSize: 9, lineHeight: 1.3, padding: '4px 7px', borderRadius: 4, width: 150, zIndex: 5,
+                                    boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>
+                        Va a dejar de seguir el precio del catálogo para este ítem
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
