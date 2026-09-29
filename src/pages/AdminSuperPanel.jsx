@@ -26,6 +26,13 @@ function Badge({ plan }) {
   return <span style={{ fontSize:11, fontWeight:700, padding:"3px 8px", borderRadius:20, background:s.bg, color:s.color, border:`1px solid ${s.border}` }}>{s.label}</span>;
 }
 
+const CATEGORIAS_TENANT = [
+  { id:"normal",      label:"Normal" },
+  { id:"tester",      label:"Tester" },
+  { id:"promo",       label:"Promo" },
+  { id:"condicional", label:"Condicional" },
+];
+
 // ── Panel de Mano de Obra ──────────────────────────────────────────────────────
 const CS_REF = 65; // % cargas sociales referencia UOCRA construcción Argentina
 
@@ -624,6 +631,162 @@ function PanelAnuncio({ token }) {
   );
 }
 
+const MEDIOS_PAGO = [["transferencia","Transferencia"],["mercadopago","MercadoPago"],["otro","Otro"]];
+const hoyISO = () => new Date().toISOString().slice(0,10);
+
+// Plata del NEGOCIO FAIM OBRAS — lo que cobran los estudios (transferencia o
+// MercadoPago, cargado a mano acá) contra lo que se gasta en publicidad,
+// herramientas, etc. Nada de esto es de ningún tenant.
+function PanelFinanzas({ token, tenants }) {
+  const [datos, setDatos] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [form, setForm] = useState({ tipo: "ingreso", concepto: "", monto: "", medio_pago: "mercadopago", tenant_id: "", fecha: hoyISO(), nota: "" });
+  const [guardando, setGuardando] = useState(false);
+  const [rango, setRango] = useState({ desde: "", hasta: "" });
+
+  const cargar = async () => {
+    setCargando(true);
+    const q = [];
+    if (rango.desde) q.push(`desde=${rango.desde}`);
+    if (rango.hasta) q.push(`hasta=${rango.hasta}`);
+    const r = await fetch(`${API}/admin/movimientos${q.length ? "?" + q.join("&") : ""}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) setDatos(await r.json());
+    setCargando(false);
+  };
+  useEffect(() => { cargar(); }, [rango.desde, rango.hasta]); // eslint-disable-line
+
+  const guardar = async () => {
+    if (!form.concepto.trim() || !form.monto) return;
+    setGuardando(true);
+    try {
+      await fetch(`${API}/admin/movimientos`, {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, monto: parseFloat(form.monto) || 0, tenant_id: form.tenant_id || null }),
+      });
+      setForm(f => ({ ...f, concepto: "", monto: "", tenant_id: "", nota: "" }));
+      cargar();
+    } catch {}
+    setGuardando(false);
+  };
+
+  const eliminar = async (mid) => {
+    if (!window.confirm("¿Eliminar este movimiento?")) return;
+    await fetch(`${API}/admin/movimientos/${mid}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+    cargar();
+  };
+
+  const inp = { width:"100%", padding:"8px 10px", border:`1px solid ${C.border}`, borderRadius:7, fontSize:13, background:C.surface2, outline:"none", boxSizing:"border-box", fontFamily:"inherit" };
+  const lbl = { fontSize:10.5, color:C.muted, textTransform:"uppercase", letterSpacing:"0.4px", display:"block", marginBottom:4 };
+
+  return (
+    <div>
+      <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap", alignItems:"flex-end" }}>
+        <div>
+          <label style={lbl}>Desde</label>
+          <input type="date" style={inp} value={rango.desde} onChange={e=>setRango(r=>({...r, desde:e.target.value}))} />
+        </div>
+        <div>
+          <label style={lbl}>Hasta</label>
+          <input type="date" style={inp} value={rango.hasta} onChange={e=>setRango(r=>({...r, hasta:e.target.value}))} />
+        </div>
+        {(rango.desde || rango.hasta) && (
+          <button onClick={()=>setRango({desde:"",hasta:""})} style={{ padding:"8px 14px", background:"none", border:`1px solid ${C.border}`, borderRadius:7, fontSize:12, color:C.muted, cursor:"pointer" }}>Ver todo</button>
+        )}
+      </div>
+
+      {datos?.totales && (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:12, marginBottom:20 }}>
+          {[
+            { label:"Ingresos", value:datos.totales.ingresos, color:C.green },
+            { label:"Gastos", value:datos.totales.egresos, color:C.red },
+            { label:"Balance", value:datos.totales.balance, color:datos.totales.balance >= 0 ? C.accent : C.red },
+          ].map(s => (
+            <div key={s.label} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"14px 16px" }}>
+              <div style={{ fontSize:20, fontWeight:800, color:s.color, fontFamily:"'IBM Plex Mono',monospace" }}>{fmt(s.value)}</div>
+              <div style={{ fontSize:11, color:C.muted, fontWeight:600, textTransform:"uppercase", letterSpacing:"0.5px" }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:16, marginBottom:20 }}>
+        <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>Cargar movimiento</div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:10, marginBottom:10 }}>
+          <div>
+            <label style={lbl}>Tipo</label>
+            <select style={inp} value={form.tipo} onChange={e=>setForm(f=>({...f, tipo:e.target.value}))}>
+              <option value="ingreso">Ingreso</option>
+              <option value="egreso">Gasto</option>
+            </select>
+          </div>
+          <div>
+            <label style={lbl}>Monto</label>
+            <input type="number" style={inp} value={form.monto} onChange={e=>setForm(f=>({...f, monto:e.target.value}))} />
+          </div>
+          <div>
+            <label style={lbl}>Fecha</label>
+            <input type="date" style={inp} value={form.fecha} onChange={e=>setForm(f=>({...f, fecha:e.target.value}))} />
+          </div>
+          {form.tipo === "ingreso" && (
+            <div>
+              <label style={lbl}>Medio de pago</label>
+              <select style={inp} value={form.medio_pago} onChange={e=>setForm(f=>({...f, medio_pago:e.target.value}))}>
+                {MEDIOS_PAGO.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"2fr 1.4fr", gap:10, marginBottom:10 }}>
+          <div>
+            <label style={lbl}>Concepto</label>
+            <input style={inp} placeholder={form.tipo === "ingreso" ? "Cuota mensual, alta, etc." : "Publicidad Instagram, suscripción Claude, etc."}
+              value={form.concepto} onChange={e=>setForm(f=>({...f, concepto:e.target.value}))} />
+          </div>
+          {form.tipo === "ingreso" && (
+            <div>
+              <label style={lbl}>Estudio (opcional)</label>
+              <select style={inp} value={form.tenant_id} onChange={e=>setForm(f=>({...f, tenant_id:e.target.value}))}>
+                <option value="">Sin asociar</option>
+                {tenants.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+        <button onClick={guardar} disabled={guardando || !form.concepto.trim() || !form.monto}
+          style={{ padding:"9px 20px", background:C.accent, color:"white", border:"none", borderRadius:8, fontSize:14, fontWeight:700, cursor:"pointer", opacity: guardando ? 0.6 : 1 }}>
+          {guardando ? "Guardando..." : "Agregar"}
+        </button>
+      </div>
+
+      <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"0.9fr 2fr 1fr 1fr 1.2fr auto", gap:0, borderBottom:`1px solid ${C.border}`, padding:"10px 16px", background:C.surface2 }}>
+          {["Fecha","Concepto","Medio","Monto","Estudio","Acciones"].map(h => (
+            <div key={h} style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.5px" }}>{h}</div>
+          ))}
+        </div>
+        {cargando ? (
+          <div style={{ padding:32, textAlign:"center", color:C.muted }}>Cargando...</div>
+        ) : !datos?.movimientos?.length ? (
+          <div style={{ padding:32, textAlign:"center", color:C.muted }}>Sin movimientos cargados</div>
+        ) : datos.movimientos.map((m, i) => (
+          <div key={m.id} style={{ display:"grid", gridTemplateColumns:"0.9fr 2fr 1fr 1fr 1.2fr auto", gap:0, padding:"10px 16px", borderBottom: i < datos.movimientos.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center" }}>
+            <div style={{ fontSize:12, color:C.muted, fontFamily:"'IBM Plex Mono',monospace" }}>{m.fecha}</div>
+            <div style={{ fontSize:13 }}>{m.concepto}{m.nota ? <span style={{ color:C.muted }}> — {m.nota}</span> : null}</div>
+            <div style={{ fontSize:12, color:C.muted, textTransform:"capitalize" }}>{m.medio_pago || "—"}</div>
+            <div style={{ fontSize:13, fontWeight:700, fontFamily:"'IBM Plex Mono',monospace", color: m.tipo === "ingreso" ? C.green : C.red }}>
+              {m.tipo === "ingreso" ? "+" : "−"}{fmt(m.monto)}
+            </div>
+            <div style={{ fontSize:12, color:C.muted }}>{m.tenant_nombre || "—"}</div>
+            <button onClick={()=>eliminar(m.id)} style={{ padding:"4px 10px", fontSize:11, fontWeight:700, background:"#fef2f2", border:"1px solid #fecaca", color:C.red, borderRadius:6, cursor:"pointer" }}>
+              Eliminar
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function AdminPanel() {
   const [tab, setTab]               = useState("cuentas");
@@ -637,6 +800,7 @@ export default function AdminPanel() {
   const [loginError, setLoginError] = useState("");
   const [search, setSearch]         = useState("");
   const [filterPlan, setFilterPlan] = useState("todos");
+  const [filterCategoria, setFilterCategoria] = useState("todas");
   const [precioEdit, setPrecioEdit] = useState({}); // { [tid]: valor }
   const [precioSaving, setPrecioSaving] = useState({});
   const [precioSaved, setPrecioSaved]   = useState({});
@@ -686,6 +850,14 @@ export default function AdminPanel() {
   const cambiarPlan = async (tid, plan) => {
     await fetch(`${API}/admin/tenants/${tid}/plan?plan=${plan}`, {
       method: "PUT", headers: { Authorization: `Bearer ${token}` }
+    });
+    cargar(token);
+  };
+
+  const cambiarCategoria = async (tid, categoria) => {
+    await fetch(`${API}/admin/tenants/${tid}/categoria`, {
+      method: "PUT", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ categoria }),
     });
     cargar(token);
   };
@@ -759,7 +931,8 @@ export default function AdminPanel() {
   const tenantsFiltrados = tenants.filter(t => {
     const matchSearch = search === "" || t.nombre?.toLowerCase().includes(search.toLowerCase()) || t.email_admin?.toLowerCase().includes(search.toLowerCase());
     const matchPlan = filterPlan === "todos" || t.plan_estado === filterPlan;
-    return matchSearch && matchPlan;
+    const matchCategoria = filterCategoria === "todas" || (t.categoria || "normal") === filterCategoria;
+    return matchSearch && matchPlan && matchCategoria;
   });
 
   if (!token) return (
@@ -806,6 +979,9 @@ export default function AdminPanel() {
               { label:"En trial",      value:stats.en_trial ?? tenants.filter(t=>t.plan_estado==="trial").length, color:C.warn },
               { label:"Activos",       value:stats.activos  ?? tenants.filter(t=>t.plan_estado==="activo").length, color:C.green },
               { label:"Vencidos",      value:stats.vencidos ?? tenants.filter(t=>t.plan_estado==="vencido").length, color:C.red },
+              { label:"Tester",        value:stats.por_categoria?.tester ?? tenants.filter(t=>t.categoria==="tester").length, color:C.accent2 },
+              { label:"Promo",         value:stats.por_categoria?.promo ?? tenants.filter(t=>t.categoria==="promo").length, color:C.warn },
+              { label:"Condicional",   value:stats.por_categoria?.condicional ?? tenants.filter(t=>t.categoria==="condicional").length, color:C.muted },
             ].map(s => (
               <div key={s.label} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"14px 16px" }}>
                 <div style={{ fontSize:24, fontWeight:800, color:s.color }}>{s.value}</div>
@@ -818,12 +994,15 @@ export default function AdminPanel() {
         {/* Tabs */}
         <div style={{ display:"flex", gap:4, background:C.surface2, borderRadius:8, padding:4, marginBottom:20, width:"fit-content" }}>
           <button style={tabStyle("cuentas")} onClick={()=>setTab("cuentas")}>Cuentas</button>
+          <button style={tabStyle("finanzas")} onClick={()=>setTab("finanzas")}>Finanzas</button>
           <button style={tabStyle("precios")} onClick={()=>setTab("precios")}>Precios</button>
           <button style={tabStyle("anuncio")} onClick={()=>setTab("anuncio")}>Anuncio</button>
           <button style={tabStyle("flujo")} onClick={()=>setTab("flujo")}>Flujo</button>
         </div>
 
         {tab === "anuncio" && <PanelAnuncio token={token} />}
+
+        {tab === "finanzas" && <PanelFinanzas token={token} tenants={tenants} />}
 
         {tab === "flujo" && (
           <Suspense fallback={
@@ -850,14 +1029,19 @@ export default function AdminPanel() {
                 <option value="activo">Activo</option>
                 <option value="vencido">Vencido</option>
               </select>
+              <select value={filterCategoria} onChange={e=>setFilterCategoria(e.target.value)}
+                style={{ padding:"8px 12px", border:`1px solid ${C.border}`, borderRadius:8, fontSize:13, background:C.surface, outline:"none", cursor:"pointer" }}>
+                <option value="todas">Todas las categorías</option>
+                {CATEGORIAS_TENANT.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
               <button onClick={()=>cargar(token)} style={{ padding:"8px 16px", background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, fontSize:13, cursor:"pointer", color:C.muted }}>
                 Actualizar
               </button>
             </div>
 
             <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"1.6fr 1.8fr 0.9fr 1.3fr 0.6fr 1.4fr auto", gap:0, borderBottom:`1px solid ${C.border}`, padding:"10px 16px", background:C.surface2 }}>
-                {["Estudio","Email","Plan","Trial hasta","Usuarios","Precio/mes","Acciones"].map(h => (
+              <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1.6fr 0.8fr 1fr 1.1fr 0.6fr 1.2fr auto", gap:0, borderBottom:`1px solid ${C.border}`, padding:"10px 16px", background:C.surface2 }}>
+                {["Estudio","Email","Plan","Categoría","Trial hasta","Usuarios","Precio/mes","Acciones"].map(h => (
                   <div key={h} style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.5px" }}>{h}</div>
                 ))}
               </div>
@@ -870,10 +1054,16 @@ export default function AdminPanel() {
                 const precioChanged = parseFloat(precioVal || 0) !== Math.round(t.precio_mensual || 0);
                 const trialISO = aISO(t.trial_hasta);
                 return (
-                <div key={t.id} style={{ display:"grid", gridTemplateColumns:"1.6fr 1.8fr 0.9fr 1.3fr 0.6fr 1.4fr auto", gap:0, padding:"12px 16px", borderBottom: i < tenantsFiltrados.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center", background: t.activo===false ? "#fef2f2" : "white" }}>
+                <div key={t.id} style={{ display:"grid", gridTemplateColumns:"1.4fr 1.6fr 0.8fr 1fr 1.1fr 0.6fr 1.2fr auto", gap:0, padding:"12px 16px", borderBottom: i < tenantsFiltrados.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center", background: t.activo===false ? "#fef2f2" : "white" }}>
                   <div style={{ fontWeight:600, fontSize:14, color:C.text }}>{t.nombre}</div>
                   <div style={{ fontSize:13, color:C.muted }}>{t.email_admin}</div>
                   <div><Badge plan={t.plan_estado} /></div>
+                  <div>
+                    <select value={t.categoria || "normal"} onChange={e => cambiarCategoria(t.id, e.target.value)}
+                      style={{ fontSize:11, padding:"4px 6px", border:`1px solid ${C.border}`, borderRadius:6, background:C.surface, outline:"none", cursor:"pointer", width:"100%", boxSizing:"border-box" }}>
+                      {CATEGORIAS_TENANT.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    </select>
+                  </div>
                   <div>
                     <input type="date" defaultValue={trialISO}
                       onChange={e => e.target.value && guardarTrial(t.id, e.target.value)}
