@@ -409,6 +409,12 @@ export default function Gantt() {
   // del plan y había que arrastrar semanas para llegar a donde está la obra.
   const colHoyRef = useRef(null);
   const yaCentre = useRef(false);
+  // El mouseup que termina un arrastre dispara también el click de la barra
+  // (son eventos distintos; frenar el mousedown no frena el click). Sin este
+  // freno, mover una tarea siempre terminaba abriendo encima el panel de
+  // avance — tapando el diagrama justo después de mover algo, y pareciendo
+  // que el arrastre "no anduvo" aunque la fecha sí se hubiera guardado.
+  const arrastroRef = useRef(false);
 
   const showToast = msg => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
@@ -641,8 +647,12 @@ export default function Gantt() {
     e.preventDefault(); e.stopPropagation();
     const x0 = e.clientX;
     const inicio0 = tarea.fecha_inicio;
+    arrastroRef.current = false;
     setArrastre({ id: tarea.id, dx: 0 });
-    const mover = (ev) => setArrastre({ id: tarea.id, dx: ev.clientX - x0 });
+    const mover = (ev) => {
+      if (ev.clientX !== x0) arrastroRef.current = true;
+      setArrastre({ id: tarea.id, dx: ev.clientX - x0 });
+    };
     const soltar = async (ev) => {
       document.removeEventListener('mousemove', mover);
       document.removeEventListener('mouseup', soltar);
@@ -1625,6 +1635,13 @@ export default function Gantt() {
             {filasVisibles.map(t => (
               <div key={t.id} style={{ height: ROW_H, borderBottom: '1px solid var(--border2)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, cursor: 'pointer' }}
                 onClick={() => {
+                  // En modo vincular el clic lo maneja el nombre (más abajo),
+                  // que llama a clickVincular. Sin este freno acá arriba, el
+                  // mismo clic —al burbujear— también abría el modal de avance
+                  // o edición por encima del flujo de "elegí la tarea de
+                  // después", tapando el aviso y rompiendo el vínculo a medio
+                  // hacer.
+                  if (modoVincular) return;
                   if (t.linea_id) {
                     setCargarAvanceEn(t);
                     setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0)));
@@ -1928,6 +1945,7 @@ export default function Gantt() {
                         setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0)));
                       }}
                       onClick={e => {
+                        if (arrastroRef.current) { arrastroRef.current = false; return; }
                         if (modoVincular) return clickVincular(t);
                         // Alt+click hace lo mismo que el boton derecho, para
                         // el que usa trackpad.
