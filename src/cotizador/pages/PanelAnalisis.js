@@ -538,12 +538,27 @@ function TablaLineas({ lineas, editando, setEditando, onEditar, onEliminar, camp
                     <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer' }} onClick={() => setEditando(null)}><X size={10} /></button>
                   </div>
                 ) : (
-                  <span
-                    style={{ fontFamily: 'var(--mono)', fontSize: 11, cursor: 'pointer', padding: '2px 4px', borderRadius: 3, color: l.val2_manual ? 'var(--warn)' : 'var(--muted)' }}
-                    onClick={() => { setEditando({ id: l.id, campo: campo2 }); setEditVal(l.val2_manual || l.val2); }}
-                    title={l.val2_manual ? 'Precio manual — click para editar' : 'Precio de maestro — click para personalizar'}>
-                    {fmt2(l.val2)}
-                    {l.val2_manual && <span style={{ fontSize: 9, marginLeft: 2 }}>✎</span>}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                    <span
+                      style={{ fontFamily: 'var(--mono)', fontSize: 11, cursor: 'pointer', padding: '2px 4px', borderRadius: 3, color: l.val2_manual ? 'var(--warn)' : 'var(--muted)' }}
+                      onClick={() => { setEditando({ id: l.id, campo: campo2 }); setEditVal(l.val2_manual || l.val2); }}
+                      title={l.val2_manual ? 'Precio manual — click para editar' : 'Precio de maestro — click para personalizar'}>
+                      {fmt2(l.val2)}
+                      {l.val2_manual && <span style={{ fontSize: 9, marginLeft: 2 }}>✎</span>}
+                    </span>
+                    {/* Un precio puesto a mano deja de seguir al catálogo para
+                        siempre — bajarlo o subirlo allá no cambia nada acá. Sin
+                        este botón, la única forma de volver a engancharlo era
+                        entrar a editar y borrar el campo, algo que nadie
+                        adivina solo. */}
+                    {l.val2_manual != null && (
+                      <button
+                        style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 0, display: 'flex' }}
+                        onClick={(e) => { e.stopPropagation(); onEditar(l.id, campo2, ''); }}
+                        title="Quitar precio manual — volver a seguir el precio del catálogo">
+                        <RotateCcw size={10} />
+                      </button>
+                    )}
                   </span>
                 )}
               </td>
