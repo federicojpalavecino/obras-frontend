@@ -353,9 +353,18 @@ export default function Presupuesto() {
     };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onVisible);
+    // Además del "volviste a la pestaña": en el celular, o con dos ventanas
+    // abiertas a la vez sin cambiar el foco entre ellas, ese evento puede no
+    // llegar nunca. Con un estudio esperando ver reflejado un cambio de
+    // precio, no alcanza con "normalmente funciona" — se refresca solo cada
+    // 45s pase lo que pase, sin depender de ningún evento del navegador.
+    const intervalo = setInterval(() => {
+      if (!hayModalAbiertoRef.current) cargar(true);
+    }, 45000);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onVisible);
+      clearInterval(intervalo);
     };
   }, []);
 

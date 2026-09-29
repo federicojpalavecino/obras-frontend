@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import { X, Plus, Trash2, Check, RotateCcw, AlertTriangle } from 'lucide-react';
 import { coincide } from '../buscar';
@@ -37,6 +37,22 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
     if (lineaId) cargar();
   }, [lineaId]);
 
+  // Si alguien deja este panel abierto mientras cambia un precio en el
+  // catálogo (en otra pestaña, o en el celular), acá no había nada que lo
+  // refrescara solo: cargar() corre una sola vez, al abrir. Con un panel
+  // abierto todo el rato es justo el peor caso — el estudio mira el precio
+  // acá para confirmar el cambio, y ve el mismo número viejo. Se refresca
+  // solo cada 30s, salvo que haya algo a medio escribir.
+  const editandoRef = useRef(editando);
+  editandoRef.current = editando;
+  useEffect(() => {
+    if (!lineaId) return;
+    const id = setInterval(() => {
+      if (!editandoRef.current) cargar(true);
+    }, 30000);
+    return () => clearInterval(id);
+  }, [lineaId]); // eslint-disable-line
+
   useEffect(() => {
     Promise.all([
       api.get('/maestros/materiales'),
@@ -51,13 +67,13 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
     api.get('/analisis/items').then(r => setItemsCatalogo(r.data || [])).catch(() => {});
   }, []);
 
-  const cargar = async () => {
-    setLoading(true);
+  const cargar = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await api.get(`/presupuestos/${presupuestoId}/lineas/${linea.id}/analisis`);
       setData(res.data);
     } catch (e) { console.error(e); }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   const recargar = async () => {
