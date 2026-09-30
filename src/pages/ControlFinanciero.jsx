@@ -242,6 +242,9 @@ ${period.herramientas?.length ? `<section>
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function ControlFinanciero({ user }) {
+  const esAdminCF = (user?.rol || "admin").toLowerCase() === "admin";
+  const puedeIngresos = esAdminCF || user?.permisos?.finanzas_ingresos !== false;
+  const puedeEgresos = esAdminCF || user?.permisos?.finanzas_egresos !== false;
   const isMobile = useIsMobile();
   // Mobile: grid de 2 columnas. Concepto/nombre ocupan toda la fila arriba, el resto fluye de a 2.
   const mobileRow = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 12, alignItems: "center", paddingBottom: 12, borderBottom: "1px dashed var(--border, #e0e0e8)" };
@@ -783,6 +786,7 @@ export default function ControlFinanciero({ user }) {
             </div>
 
             {/* Ingresos */}
+            {puedeIngresos && (
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
               <SectionHeader label="Ingresos" total={calc.totalIng} onAdd={addIngreso} conOrden />
               {(week.ingresos.some(r => !seMovio(r)) || week.egresos.some(r => !seMovio(r))) && (
@@ -814,8 +818,10 @@ export default function ControlFinanciero({ user }) {
                 </div>
               ))}
             </div>
+            )}
 
             {/* Egresos */}
+            {puedeEgresos && (
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
               <SectionHeader label="Egresos" total={calc.totalEg} onAdd={addEgreso} conOrden />
               {week.egresos.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin egresos</div>}
@@ -841,8 +847,10 @@ export default function ControlFinanciero({ user }) {
                 </div>
               ))}
             </div>
+            )}
 
             {/* Personal */}
+            {(esAdminCF || user?.permisos?.personal !== false) && (
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
               <SectionHeader label="Personal" total={calc.totalPersonal} onAdd={addPersonal} />
               {week.personal.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "10px 0" }}>Sin personal</div>}
@@ -858,6 +866,7 @@ export default function ControlFinanciero({ user }) {
                 </div>
               ))}
             </div>
+            )}
 
             {/* Herramientas */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 14 }}>

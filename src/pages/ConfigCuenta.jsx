@@ -11,6 +11,35 @@ const C = {
 
 const MAX_BASE = 2;
 
+// Mismas claves que PERMISOS_DISPONIBLES en el backend (auth.py). Agregar acá
+// una herramienta nueva alcanza para que aparezca en el checklist de todos.
+const PERMISOS = [
+  ["presupuestos",       "Presupuestos",              "Cotizar, crear y editar obras"],
+  ["certificados",       "Certificados y desembolsos", "Certificar avance y registrar desembolsos de una obra"],
+  ["finanzas_ingresos",  "Cargar ingresos",           "Anotar cobros en Control Financiero"],
+  ["finanzas_egresos",   "Cargar egresos",            "Anotar gastos en Control Financiero"],
+  ["personal",           "Pago de personal",          "Asistencia, jornales y pagos al personal"],
+  ["panol",              "Pañol y depósito",          "Herramientas y materiales en obra"],
+  ["planner",            "Planner",                   "Tablero de tareas y calendario"],
+  ["clientes",           "Clientes",                  "Clientes, obras y accesos al portal"],
+];
+const todoPermitido = () => Object.fromEntries(PERMISOS.map(([k]) => [k, true]));
+
+function ChecklistPermisos({ permisos, onChange }) {
+  const C2 = C;
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 14px', background:C2.surface2, borderRadius:8, padding:'10px 12px', marginTop:6 }}>
+      {PERMISOS.map(([clave, label, desc]) => (
+        <label key={clave} title={desc} style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, cursor:'pointer', fontFamily:"'Syne',sans-serif" }}>
+          <input type="checkbox" checked={permisos[clave] !== false}
+            onChange={e => onChange({ ...permisos, [clave]: e.target.checked })} />
+          {label}
+        </label>
+      ))}
+    </div>
+  );
+}
+
 function UsuariosSection() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,9 +47,13 @@ function UsuariosSection() {
   // muchas veces no tiene mail, y pedirle uno para poder fichar era pedirle que
   // se abra una casilla. El usuario es único dentro del estudio, no de todo el
   // sistema, así que dos estudios pueden tener cada uno su "juan".
-  const [form, setForm] = useState({ nombre:'', email:'', usuario:'', password:'', rol:'admin', modo:'usuario' });
+  const [form, setForm] = useState({ nombre:'', email:'', usuario:'', password:'', rol:'admin', modo:'usuario', permisos: todoPermitido() });
   const [msg, setMsg] = useState('');
   const [msgErr, setMsgErr] = useState(false);
+  // Id del usuario cuyo checklist está abierto, y una copia local de sus
+  // permisos mientras los edita (recién se manda al guardar).
+  const [editandoId, setEditandoId] = useState(null);
+  const [permisosEdit, setPermisosEdit] = useState({});
   const aviso = (texto, esError=false) => {
     setMsg(texto); setMsgErr(esError);
     setTimeout(() => setMsg(''), 4000);
@@ -43,11 +76,12 @@ function UsuariosSection() {
         nombre: form.nombre.trim(), password: form.password, rol: form.rol,
         email: form.modo === 'email' ? credencial : '',
         usuario: form.modo === 'usuario' ? credencial : '',
+        ...(form.rol === 'arquitecto' ? { permisos: form.permisos } : {}),
       });
       aviso(r.data?.reactivado
         ? `${form.nombre.trim()} vuelve a tener acceso. Entra con ${credencial}.`
         : `Listo. ${form.nombre.trim()} entra en faimobras.com con ${credencial} y la contraseña que le pusiste.`);
-      setForm(f => ({ nombre:'', email:'', usuario:'', password:'', rol:'admin', modo: f.modo }));
+      setForm(f => ({ nombre:'', email:'', usuario:'', password:'', rol:'admin', modo: f.modo, permisos: todoPermitido() }));
       cargar();
     } catch(err) {
       const st = err.response?.status;
@@ -64,6 +98,20 @@ function UsuariosSection() {
       await api.patch(`/estudio/usuarios/${u.id}`, { rol });
       aviso(`${u.nombre} ahora es ${rol}`); cargar();
     } catch(err) { aviso(err.response?.data?.detail || 'Error', true); cargar(); }
+  };
+
+  const abrirPermisos = (u) => {
+    if (editandoId === u.id) { setEditandoId(null); return; }
+    setPermisosEdit(u.permisos || todoPermitido());
+    setEditandoId(u.id);
+  };
+
+  const guardarPermisos = async (u) => {
+    try {
+      await api.patch(`/estudio/usuarios/${u.id}`, { permisos: permisosEdit });
+      aviso(`Permisos de ${u.nombre} actualizados`);
+      setEditandoId(null); cargar();
+    } catch(err) { aviso(err.response?.data?.detail || 'No se pudo guardar', true); }
   };
 
   const eliminar = async (u) => {
@@ -96,18 +144,35 @@ function UsuariosSection() {
 
       {usuarios.length === 0 && <div style={{color:C.muted, fontSize:13, marginBottom:16}}>No hay usuarios adicionales configurados.</div>}
       {usuarios.map(u => (
-        <div key={u.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'8px 0', borderBottom:`1px solid ${C.border}`, flexWrap:'wrap' }}>
-          <div style={{ minWidth:0, flex:1 }}>
-            <div style={{ fontSize:14, fontWeight:600 }}>{u.nombre}</div>
-            <div style={{ fontSize:12, color:C.muted }}>{u.email || u.usuario}</div>
+        <div key={u.id} style={{ padding:'8px 0', borderBottom:`1px solid ${C.border}` }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
+            <div style={{ minWidth:0, flex:1 }}>
+              <div style={{ fontSize:14, fontWeight:600 }}>{u.nombre}</div>
+              <div style={{ fontSize:12, color:C.muted }}>{u.email || u.usuario}</div>
+            </div>
+            {u.rol === 'arquitecto' && (
+              <button onClick={() => abrirPermisos(u)}
+                style={{ padding:'5px 10px', background:'none', border:`1px solid ${C.border}`, borderRadius:6, color:C.accent2, cursor:'pointer', fontSize:12, fontFamily:"'Syne',sans-serif" }}>
+                {editandoId === u.id ? 'Cerrar' : 'Qué puede usar'}
+              </button>
+            )}
+            <select value={u.rol} onChange={e => cambiarRol(u, e.target.value)}
+              style={{ ...inp, width:'auto', minWidth:190, padding:'6px 10px', fontSize:12.5 }}>
+              <option value="admin">Admin</option>
+              <option value="arquitecto">Arquitecto — checklist propio</option>
+              <option value="personal">Personal — solo egresos</option>
+            </select>
+            <button onClick={() => eliminar(u)} style={{ padding:'4px 10px', background:'none', border:`1px solid ${C.border}`, borderRadius:6, color:'#ef4444', cursor:'pointer', fontSize:12, fontFamily:"'Syne',sans-serif" }}>Eliminar</button>
           </div>
-          <select value={u.rol} onChange={e => cambiarRol(u, e.target.value)}
-            style={{ ...inp, width:'auto', minWidth:190, padding:'6px 10px', fontSize:12.5 }}>
-            <option value="admin">Admin</option>
-            <option value="arquitecto">Arquitecto — sin Configuración</option>
-            <option value="personal">Personal — solo egresos</option>
-          </select>
-          <button onClick={() => eliminar(u)} style={{ padding:'4px 10px', background:'none', border:`1px solid ${C.border}`, borderRadius:6, color:'#ef4444', cursor:'pointer', fontSize:12, fontFamily:"'Syne',sans-serif" }}>Eliminar</button>
+          {editandoId === u.id && (
+            <div>
+              <ChecklistPermisos permisos={permisosEdit} onChange={setPermisosEdit} />
+              <button onClick={() => guardarPermisos(u)}
+                style={{ marginTop:8, padding:'7px 14px', background:C.accent2, color:'white', border:'none', borderRadius:8, fontSize:12.5, fontWeight:600, cursor:'pointer', fontFamily:"'Syne',sans-serif" }}>
+                Guardar permisos
+              </button>
+            </div>
+          )}
         </div>
       ))}
       <div style={{ marginTop:16, display:'grid', gap:10 }}>
@@ -137,10 +202,16 @@ function UsuariosSection() {
           <input value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder="Contraseña" type="password" style={inp} />
           <select value={form.rol} onChange={e=>setForm(f=>({...f,rol:e.target.value}))} style={inp}>
             <option value="admin">Admin — todo, incluida esta pantalla</option>
-            <option value="arquitecto">Arquitecto — todo menos Configuración</option>
+            <option value="arquitecto">Arquitecto — checklist propio</option>
             <option value="personal">Personal — solo cargar egresos y herramientas</option>
           </select>
         </div>
+        {form.rol === 'arquitecto' && (
+          <div>
+            <div style={{ fontSize:11.5, color:C.muted, marginBottom:2 }}>Qué puede usar (desmarcá lo que no):</div>
+            <ChecklistPermisos permisos={form.permisos} onChange={p => setForm(f => ({ ...f, permisos: p }))} />
+          </div>
+        )}
         {msg && <div style={{ fontSize:13, color: msgErr ? '#ef4444' : C.accent }}>{msg}</div>}
         <button onClick={agregar} style={{ padding:'9px 16px', background:C.accent, color:'white', border:'none', borderRadius:8, fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'Syne',sans-serif", textAlign:'left' }}>
           + Agregar usuario

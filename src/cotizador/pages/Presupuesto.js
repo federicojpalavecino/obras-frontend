@@ -53,6 +53,7 @@ export default function Presupuesto() {
   const [libreAbrirAnalisis, setLibreAbrirAnalisis] = useState(false); // abrir panel tras crear
   const [itemPendiente, setItemPendiente] = useState(null); // ítem catálogo esperando rubro destino
   const [rubroLibreSelec, setRubroLibreSelec] = useState(''); // rubro destino para ítem libre
+  const [rubroLibreNuevoNombre, setRubroLibreNuevoNombre] = useState(''); // nombre si eligió "+ Nuevo rubro"
   const [modalNuevoRubro, setModalNuevoRubro] = useState(false);
   const [nuevoRubroNombre, setNuevoRubroNombre] = useState('');
   const [coefs, setCoefs] = useState(null);
@@ -503,8 +504,15 @@ export default function Presupuesto() {
       // Determinar rubro destino
       let catNum = null, catNom = null;
       if (rubroLibreSelec === '__nuevo__') {
-        // nuevo rubro con nombre personalizado — se genera número automático via backend
-        catNum = null; catNom = null;
+        // El rubro nuevo no existe todavía en data.rubros (ese select solo
+        // lista rubros que ya tienen alguna línea) — hay que crearlo primero,
+        // igual que hace el botón "Crear rubro", y recién ahí asignarle el
+        // ítem. Antes esto mandaba categoria_numero/nombre en null, que es
+        // exactamente lo mismo que "Sin rubro específico": la opción existía
+        // en el código pero nunca creaba nada.
+        if (!rubroLibreNuevoNombre.trim()) return;
+        const rNuevo = await api.post(`/presupuestos/${id}/rubros`, { nombre: rubroLibreNuevoNombre.trim() });
+        catNum = rNuevo.data.categoria_numero; catNom = rNuevo.data.categoria_nombre;
       } else if (rubroLibreSelec) {
         // Mismo cuidado que en el selector de ítems de catálogo: r.numero es
         // la posición en la lista, no el categoria_numero real de sus líneas.
@@ -522,6 +530,7 @@ export default function Presupuesto() {
       });
       setModalLibre(false);
       setItemLibre({ nombre_libre: '', unidad_libre: 'Gl', costo_directo_libre: '', cantidad: 1, es_material: false });
+      setRubroLibreSelec(''); setRubroLibreNuevoNombre('');
       await cargar(true);
       // Si eligió desglosar, abrir PanelAnalisis automáticamente
       if (modoLibre === 'desglosado' && res?.id) {
@@ -1938,7 +1947,7 @@ ${firma}
               </div>
 
               {/* Selector de rubro destino — solo al crear */}
-              {!itemLibre._editId && (data?.rubros || []).length > 0 && (
+              {!itemLibre._editId && (
                 <div className="form-group">
                   <label>Rubro</label>
                   <select className="input" value={rubroLibreSelec} onChange={e => setRubroLibreSelec(e.target.value)}>
@@ -1946,7 +1955,18 @@ ${firma}
                     {(data?.rubros || []).map(r => (
                       <option key={r.numero} value={r.numero}>{r.numero} — {r.nombre}</option>
                     ))}
+                    <option value="__nuevo__">+ Crear un rubro nuevo</option>
                   </select>
+                  {/* Este selector solo lista los rubros que ya tienen algún
+                      ítem cargado — uno recién creado en la obra (ninguna
+                      compra de catálogo todavía) no aparece ahí, así que
+                      "+ Crear un rubro nuevo" es la única forma de mandar
+                      este ítem libre a un rubro que todavía no existe. */}
+                  {rubroLibreSelec === '__nuevo__' && (
+                    <input className="input" style={{ marginTop: 6 }} autoFocus
+                      value={rubroLibreNuevoNombre} onChange={e => setRubroLibreNuevoNombre(e.target.value)}
+                      placeholder="Nombre del rubro nuevo, ej: Instalaciones" />
+                  )}
                 </div>
               )}
 

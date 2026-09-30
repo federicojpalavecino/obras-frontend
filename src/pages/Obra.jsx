@@ -54,10 +54,14 @@ const CLAUSULAS_FRECUENTES = [
     texto: "RESCISIÓN: Cualquiera de las partes podrá rescindir el contrato por incumplimiento grave de la otra, previa intimación fehaciente a subsanarlo en un plazo razonable." },
 ];
 
-export default function Obra() {
+export default function Obra({ user } = {}) {
   const { id } = useParams();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  // El admin y quien no tenga el checklist de permisos cargado (ver
+  // ConfigCuenta → Usuarios) tienen esto habilitado; se apaga solo con un
+  // `false` explícito.
+  const puedeCertificados = (user?.rol || "admin").toLowerCase() === "admin" || user?.permisos?.certificados !== false;
   const [tab, setTab] = useState("resumen");
   const [presupuesto, setPresupuesto] = useState(null);
   const [contrato, setContrato] = useState(null);
@@ -196,6 +200,7 @@ export default function Obra() {
   };
 
   useEffect(() => { cargar(); }, [id]);
+  useEffect(() => { if (tab === "certificados" && !puedeCertificados) setTab("avance"); }, [tab, puedeCertificados]);
 
   const guardarAvance = async () => {
     const lineas = Object.entries(avForm)

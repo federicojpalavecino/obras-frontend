@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, MessageSquare, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X, Package } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
@@ -218,6 +218,14 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   // en las obras pero no entra. Esconder el módulo es la mitad cómoda; la que
   // manda es el candado del backend (get_tenant_admin).
   const esAdmin = (user?.rol || "admin").toLowerCase() === "admin";
+  // El admin siempre tiene todo. Para el resto, lo que no esté explícitamente
+  // apagado en `permisos` (ver ConfigCuenta → Usuarios) se toma como
+  // permitido — es un checklist de excepciones, no una lista para completar.
+  const tienePermiso = (clave) => esAdmin || !clave || user?.permisos?.[clave] !== false;
+  const tieneAlguno = (claves) => esAdmin || claves.some(c => user?.permisos?.[c] !== false);
+  // Si alguien pega la URL directo sin el permiso, lo manda al inicio en vez
+  // de renderizar la pantalla: esconder el mosaico no alcanza como candado.
+  const rutaSi = (permitido, el) => permitido ? el : <Navigate to="/" replace/>;
   // Con quien saludamos y que ponemos en el circulito. Los subusuarios pueden
   // no tener mail, asi que nada de esto puede salir de `email` a secas: se
   // prueba nombre, despues usuario, despues mail, y si no hay nada igual se
@@ -243,16 +251,18 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   }, []);
 
   const modules = [
-    { id:"cotizador", path:"/cotizador", Icon:FileText,      label:"Presupuestos",          desc:"Obras y proyectos: cotizar, certificar y ejecutar",       color:C.accent2 },
-    { id:"finanzas",  path:"/finanzas",  Icon:TrendingUp,    label:"Control Financiero",    desc:"Ingresos, egresos y distribución semanal",               color:C.accent },
-    { id:"planner",   path:"/planner",   Icon:Calendar,      label:"Planner",               desc:"Tablero de tareas y calendario",                         color:C.warn },
-    { id:"personal",  path:"/personal",  Icon:Users,         label:"Personal",              desc:"Quién vino, cuántos días y cuánto hay que pagarle",      color:C.accent },
-    { id:"panol",     path:"/panol",     Icon:Package,       label:"Pañol y depósito",      desc:"Herramientas, materiales y en qué obra está cada cosa",  color:C.warn },
-    { id:"clientes",  path:"/clientes",  Icon:Users,         label:"Clientes",              desc:"Clientes, obras y el acceso de cada uno a su portal",    color:C.green },
+    { id:"cotizador", path:"/cotizador", Icon:FileText,      label:"Presupuestos",          desc:"Obras y proyectos: cotizar, certificar y ejecutar",       color:C.accent2, permiso:"presupuestos" },
+    { id:"finanzas",  path:"/finanzas",  Icon:TrendingUp,    label:"Control Financiero",    desc:"Ingresos, egresos y distribución semanal",               color:C.accent,  permisoAlguno:["finanzas_ingresos","finanzas_egresos"] },
+    { id:"planner",   path:"/planner",   Icon:Calendar,      label:"Planner",               desc:"Tablero de tareas y calendario",                         color:C.warn,    permiso:"planner" },
+    { id:"personal",  path:"/personal",  Icon:Users,         label:"Personal",              desc:"Quién vino, cuántos días y cuánto hay que pagarle",      color:C.accent,  permiso:"personal" },
+    { id:"panol",     path:"/panol",     Icon:Package,       label:"Pañol y depósito",      desc:"Herramientas, materiales y en qué obra está cada cosa",  color:C.warn,    permiso:"panol" },
+    { id:"clientes",  path:"/clientes",  Icon:Users,         label:"Clientes",              desc:"Clientes, obras y el acceso de cada uno a su portal",    color:C.green,   permiso:"clientes" },
     { id:"mensajes",  path:"/mensajes",  Icon:MessageSquare, label:"Mensajes" + (noLeidos ? ` (${noLeidos})` : ""), desc:"Dejale un aviso a alguien del estudio", color:C.accent2 },
     { id:"config",    path:"/config",    Icon:Settings,      label:"Configuración",         desc:"Logo, nombre y datos del estudio",                       color:C.muted, soloAdmin:true },
     { id:"soporte",   path:"/soporte",   Icon:MessageCircle, label:"Soporte técnico",       desc:"Contacto, ayuda y sugerencias",                          color:C.blue },
-  ].filter(m => !m.soloAdmin || esAdmin);
+  ].filter(m => !m.soloAdmin || esAdmin)
+   .filter(m => !m.permiso || tienePermiso(m.permiso))
+   .filter(m => !m.permisoAlguno || esAdmin || m.permisoAlguno.some(p => user?.permisos?.[p] !== false));
 
   // Las pantallas con una barra fija abajo —el presupuesto y su tablero de
   // precios— piden el alto entero de la ventana. Si arriba hay un anuncio o el
@@ -336,25 +346,25 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
           </div>
         }/>
         <Route path="/soporte" element={<PaginaSoporte />}/>
-        <Route path="/finanzas/*" element={<ControlFinanciero user={user} />}/>
-        <Route path="/panol" element={<Panol />}/>
-        <Route path="/personal" element={<Personal />}/>
+        <Route path="/finanzas/*" element={rutaSi(tieneAlguno(["finanzas_ingresos","finanzas_egresos"]), <ControlFinanciero user={user} />)}/>
+        <Route path="/panol" element={rutaSi(tienePermiso("panol"), <Panol />)}/>
+        <Route path="/personal" element={rutaSi(tienePermiso("personal"), <Personal />)}/>
         <Route path="/mensajes" element={<Mensajes />}/>
-        <Route path="/cotizador" element={<Menu />}/>
-        <Route path="/cotizador/presupuesto/:id" element={<Presupuesto />}/>
-        <Route path="/cotizador/materiales" element={<Materiales />}/>
-        <Route path="/cotizador/mano-obra" element={<ManoObra />}/>
-        <Route path="/cotizador/analisis-costos" element={<AnalisisCostos />}/>
-        <Route path="/cotizador/presupuesto/:id/certificado" element={<Certificado />}/>
-        <Route path="/cotizador/presupuesto/:id/obra" element={<Obra />}/>
-        <Route path="/cotizador/gantt/:id" element={<Gantt />}/>
-        <Route path="/cotizador/presupuesto/:id/curva" element={<CurvaInversion />}/>
-        <Route path="/cotizador/presupuesto/:id/materiales" element={<ListadoMateriales />}/>
-        <Route path="/cotizador/maquinaria" element={<Maquinaria />}/>
-        <Route path="/planner/*" element={<Planner user={user} />}/>
+        <Route path="/cotizador" element={rutaSi(tienePermiso("presupuestos"), <Menu />)}/>
+        <Route path="/cotizador/presupuesto/:id" element={rutaSi(tienePermiso("presupuestos"), <Presupuesto />)}/>
+        <Route path="/cotizador/materiales" element={rutaSi(tienePermiso("presupuestos"), <Materiales />)}/>
+        <Route path="/cotizador/mano-obra" element={rutaSi(tienePermiso("presupuestos"), <ManoObra />)}/>
+        <Route path="/cotizador/analisis-costos" element={rutaSi(tienePermiso("presupuestos"), <AnalisisCostos />)}/>
+        <Route path="/cotizador/presupuesto/:id/certificado" element={rutaSi(tienePermiso("presupuestos"), <Certificado />)}/>
+        <Route path="/cotizador/presupuesto/:id/obra" element={rutaSi(tienePermiso("presupuestos"), <Obra user={user} />)}/>
+        <Route path="/cotizador/gantt/:id" element={rutaSi(tienePermiso("presupuestos"), <Gantt />)}/>
+        <Route path="/cotizador/presupuesto/:id/curva" element={rutaSi(tienePermiso("presupuestos"), <CurvaInversion />)}/>
+        <Route path="/cotizador/presupuesto/:id/materiales" element={rutaSi(tienePermiso("presupuestos"), <ListadoMateriales />)}/>
+        <Route path="/cotizador/maquinaria" element={rutaSi(tienePermiso("presupuestos"), <Maquinaria />)}/>
+        <Route path="/planner/*" element={rutaSi(tienePermiso("planner"), <Planner user={user} />)}/>
         <Route path="/fiscal/*" element={<Fiscal user={user} />}/>
-        <Route path="/clientes/*" element={<Clientes user={user} />}/>
-        <Route path="/accesos-clientes" element={<AccesosClientes user={user} />}/>
+        <Route path="/clientes/*" element={rutaSi(tienePermiso("clientes"), <Clientes user={user} />)}/>
+        <Route path="/accesos-clientes" element={rutaSi(tienePermiso("clientes"), <AccesosClientes user={user} />)}/>
         <Route path="/config" element={esAdmin
           ? <ConfigCuenta user={user} onUpdate={onTenantUpdate} />
           : <div style={{maxWidth:520, margin:"80px auto", padding:24, textAlign:"center", color:C.muted, fontSize:14}}>
@@ -519,7 +529,7 @@ export default function App() {
       const estudioRes = await intentar('/estudio/login', { email: emailLower, password: pass, estudio: estudioTxt });
       if (estudioRes) {
         const data = estudioRes.data;
-        const ei = { nombre: data.nombre, rol: data.rol, presupuestos_asignados: data.presupuestos_asignados, email: data.email, usuario: data.usuario };
+        const ei = { nombre: data.nombre, rol: data.rol, presupuestos_asignados: data.presupuestos_asignados, email: data.email, usuario: data.usuario, permisos: data.permisos || null };
         localStorage.setItem("obras_estudio", JSON.stringify(ei));
         // Check subscription using the token from estudio login
         if (data.token) {
