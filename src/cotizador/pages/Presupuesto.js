@@ -8,6 +8,16 @@ import {
 } from '../api';
 import api from '../api';
 import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check, Edit2 } from 'lucide-react';
+// Paleta fija para marcar ítems en la pantalla del presupuesto (ej. "falta
+// cómputo", "precio a confirmar"): el color no tiene un significado fijo, lo
+// define cada estudio a su gusto.
+const PALETA_MARCAS = ['#ef4444', '#f59e0b', '#eab308', '#3b82f6', '#10b981', '#8b5cf6'];
+const hexToRgba = (hex, alpha) => {
+  const h = (hex || '').replace('#', '');
+  if (h.length !== 6) return 'transparent';
+  const r = parseInt(h.substring(0, 2), 16), g = parseInt(h.substring(2, 4), 16), b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
 import PrintPresupuesto from './PrintPresupuesto';
 import PanelAnalisis from './PanelAnalisis';
 import PanelComputo from './PanelComputo';
@@ -86,6 +96,7 @@ export default function Presupuesto() {
   const [nombreEditVal, setNombreEditVal] = useState('');
   const [editandoRubroNum, setEditandoRubroNum] = useState(null);
   const [rubroEditVal, setRubroEditVal] = useState('');
+  const [marcaPickerId, setMarcaPickerId] = useState(null); // id de línea con el selector de color abierto
 
   // Adicionales
   const [adicionales, setAdicionales] = useState([]);
@@ -932,6 +943,16 @@ ${firma}
     }
   };
 
+  const handleMarcarColor = async (lineaId, color) => {
+    setMarcaPickerId(null);
+    try {
+      await actualizarLinea(id, lineaId, { marca_color: color });
+      await cargar(true);
+    } catch(e) {
+      alert('Error al guardar: ' + (e.response?.data?.detail || e.message));
+    }
+  };
+
   const handleRenombrarRubro = async (rubroNumero, nuevoNombre) => {
     if (!nuevoNombre || !nuevoNombre.trim()) return;
     const rubro = data?.rubros?.find(r => r.numero === rubroNumero);
@@ -1688,10 +1709,31 @@ ${firma}
                           const isSelected = lineaSeleccionada?.id === linea.id;
                           return (
                             <tr key={linea.id} className="fila-item"
-                              style={{ borderBottom: '1px solid rgba(46,46,56,0.6)', background: isSelected ? 'rgba(167,139,250,0.08)' : undefined }}>
+                              style={{ borderBottom: '1px solid rgba(46,46,56,0.6)',
+                                       background: isSelected ? 'rgba(167,139,250,0.08)' : (linea.marca_color ? hexToRgba(linea.marca_color, 0.10) : undefined) }}>
                               <td style={{ ...td, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }} className="col-cod">{linea.tipo === 'libre' ? '—' : linea.item_obra_id}</td>
                               <td style={td} className="celda-nombre">
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                                      <button
+                                        onClick={e => { e.stopPropagation(); if (!cerrado) setMarcaPickerId(marcaPickerId === linea.id ? null : linea.id); }}
+                                        title={cerrado ? '' : (linea.marca_color ? 'Cambiar o quitar la marca' : 'Marcar este ítem (ej: falta cómputo, precio a confirmar)')}
+                                        style={{ width: 11, height: 11, borderRadius: '50%', padding: 0, flexShrink: 0,
+                                                 cursor: cerrado ? 'default' : 'pointer',
+                                                 border: linea.marca_color ? 'none' : '1.5px dashed var(--border2)',
+                                                 background: linea.marca_color || 'transparent' }} />
+                                      {marcaPickerId === linea.id && (
+                                        <div onClick={e => e.stopPropagation()}
+                                          style={{ position: 'absolute', top: 16, left: 0, zIndex: 20, display: 'flex', gap: 4, padding: 6, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.25)' }}>
+                                          {PALETA_MARCAS.map(c => (
+                                            <span key={c} onClick={() => handleMarcarColor(linea.id, c)} title="Marcar con este color"
+                                              style={{ width: 16, height: 16, borderRadius: '50%', background: c, cursor: 'pointer', border: linea.marca_color === c ? '2px solid var(--text)' : '1px solid rgba(0,0,0,0.15)' }} />
+                                          ))}
+                                          <span onClick={() => handleMarcarColor(linea.id, null)} title="Quitar marca"
+                                            style={{ width: 16, height: 16, borderRadius: '50%', cursor: 'pointer', border: '1.5px dashed var(--border2)' }} />
+                                        </div>
+                                      )}
+                                    </div>
                                     {editandoNombreId === linea.id ? (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => e.stopPropagation()}>
                                         <input
