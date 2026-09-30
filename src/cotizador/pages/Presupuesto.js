@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   getPresupuesto, actualizarPresupuesto, cerrarPresupuesto, reabrirPresupuesto,
-  getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea, moverRubro
+  getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea, moverRubro,
+  duplicarPresupuesto, getVariacionPrecios, actualizarPrecios
 } from '../api';
 import api from '../api';
 import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check, Edit2 } from 'lucide-react';
@@ -459,6 +460,46 @@ export default function Presupuesto() {
   const handleReabrir = async () => {
     if (!window.confirm('¿Reabrir el presupuesto?')) return;
     await reabrirPresupuesto(id); cargar(true);
+  };
+
+  // Aviso de "Actualizar precios": abrir un presupuesto cerrado nunca cambia
+  // sus números solo — hace falta pedirlo acá, viendo antes cuánto varía.
+  const [modalPrecios, setModalPrecios] = useState(null); // { fecha_cierre, variacion_pct, ... } | 'cargando'
+  const [precioAccion, setPrecioAccion] = useState(''); // '' | 'aca' | 'copia'
+
+  const abrirModalPrecios = async () => {
+    setModalPrecios('cargando');
+    try {
+      const r = await getVariacionPrecios(id);
+      setModalPrecios(r.data);
+    } catch (e) {
+      setModalPrecios(null);
+      alert('No se pudo calcular la variación: ' + (e.response?.data?.detail || e.message));
+    }
+  };
+
+  const handleActualizarAca = async () => {
+    setPrecioAccion('aca');
+    try {
+      await actualizarPrecios(id);
+      setModalPrecios(null);
+      await cargar(true);
+    } catch (e) {
+      alert('No se pudo actualizar: ' + (e.response?.data?.detail || e.message));
+    }
+    setPrecioAccion('');
+  };
+
+  const handleActualizarComoCopia = async () => {
+    setPrecioAccion('copia');
+    try {
+      const r = await duplicarPresupuesto(id, `${data.nombre_obra} (precios actualizados)`);
+      setModalPrecios(null);
+      navigate(`/cotizador/presupuesto/${r.data.id}`);
+    } catch (e) {
+      alert('No se pudo copiar: ' + (e.response?.data?.detail || e.message));
+    }
+    setPrecioAccion('');
   };
 
   const handleAgregarItem = async (item, rubroDestino) => {
@@ -1575,8 +1616,63 @@ ${firma}
                   </div>
                 )}
                 {cerrado && (
-                  <div style={{ margin: 10, padding: '7px 12px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--warn)', textAlign: 'center' }}>
-                    <Lock size={10} strokeWidth={2} style={{ display:'inline', verticalAlign:'middle', marginRight:4 }} />Precios congelados al {new Date(data.fecha_cierre).toLocaleDateString('es-AR')}
+                  <div style={{ margin: 10, padding: '7px 12px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--warn)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span>
+                      <Lock size={10} strokeWidth={2} style={{ display:'inline', verticalAlign:'middle', marginRight:4 }} />
+                      Precios congelados al {new Date(data.fecha_cierre).toLocaleDateString('es-AR')}
+                      {data.fecha_actualizacion_precios && ` · actualizados el ${new Date(data.fecha_actualizacion_precios).toLocaleDateString('es-AR')}`}
+                    </span>
+                    <button onClick={abrirModalPrecios}
+                      style={{ background: 'none', border: '1px solid rgba(251,191,36,0.4)', borderRadius: 5, padding: '2px 10px', color: 'var(--warn)', cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}>
+                      Actualizar precios
+                    </button>
+                  </div>
+                )}
+
+                {modalPrecios && (
+                  <div className="modal-overlay" onClick={() => !precioAccion && setModalPrecios(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+                      <h2>Actualizar precios</h2>
+                      {modalPrecios === 'cargando' ? (
+                        <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>Calculando variación…</div>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
+                            Cerrado el {new Date(modalPrecios.fecha_cierre).toLocaleDateString('es-AR')}
+                            {modalPrecios.fecha_actualizacion_precios && ` · última actualización ${new Date(modalPrecios.fecha_actualizacion_precios).toLocaleDateString('es-AR')}`}
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, margin: '14px 0', padding: '10px 12px', background: 'var(--bg2)', borderRadius: 8 }}>
+                            <div>
+                              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase' }}>Total actual</div>
+                              <div style={{ fontSize: 15, fontWeight: 700 }}>{fmt(modalPrecios.total_actual)}</div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase' }}>Con precios de hoy</div>
+                              <div style={{ fontSize: 15, fontWeight: 700 }}>{fmt(modalPrecios.total_con_precios_de_hoy)}</div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase' }}>Variación</div>
+                              <div style={{ fontSize: 15, fontWeight: 700, color: modalPrecios.variacion_pct > 0 ? 'var(--warn)' : modalPrecios.variacion_pct < 0 ? 'var(--accent)' : 'var(--text)' }}>
+                                {modalPrecios.variacion_pct > 0 ? '+' : ''}{modalPrecios.variacion_pct}%
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 14 }}>
+                            "Acá mismo" mueve el precio congelado de este presupuesto al de hoy — el número viejo no queda guardado en ningún lado.
+                            "Hacer una copia" deja este tal cual está y abre una copia editable con los precios de hoy.
+                          </div>
+                          <div className="modal-actions" style={{ flexWrap: 'wrap' }}>
+                            <button className="btn btn-secondary" disabled={!!precioAccion} onClick={() => setModalPrecios(null)}>Cancelar</button>
+                            <button className="btn btn-secondary" disabled={!!precioAccion} onClick={handleActualizarComoCopia}>
+                              {precioAccion === 'copia' ? 'Copiando…' : 'Hacer una copia'}
+                            </button>
+                            <button className="btn btn-primary" disabled={!!precioAccion} onClick={handleActualizarAca}>
+                              {precioAccion === 'aca' ? 'Actualizando…' : 'Actualizar acá mismo'}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
 

@@ -91,6 +91,8 @@ export const cerrarPresupuesto = (id, metodologia) =>
 export const reabrirPresupuesto = (id) => api.post(`/presupuestos/${id}/reabrir`);
 export const duplicarPresupuesto = (id, nombre, clienteId) => api.post(`/presupuestos/${id}/duplicar`, null,
   { params: { nuevo_nombre: nombre || undefined, cliente_id: clienteId || undefined } });
+export const getVariacionPrecios = (id) => api.get(`/presupuestos/${id}/variacion-precios`);
+export const actualizarPrecios = (id) => api.post(`/presupuestos/${id}/actualizar-precios`);
 
 // LÍNEAS
 export const agregarLinea = (pid, data) => api.post(`/presupuestos/${pid}/lineas`, data);
