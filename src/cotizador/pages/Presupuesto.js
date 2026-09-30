@@ -502,16 +502,26 @@ export default function Presupuesto() {
       }
     } else {
       // Determinar rubro destino
-      let catNum = null, catNom = null;
+      let catNum = null, catNom = null, nombreACrear = null;
       if (rubroLibreSelec === '__nuevo__') {
-        // El rubro nuevo no existe todavía en data.rubros (ese select solo
-        // lista rubros que ya tienen alguna línea) — hay que crearlo primero,
-        // igual que hace el botón "Crear rubro", y recién ahí asignarle el
-        // ítem. Antes esto mandaba categoria_numero/nombre en null, que es
-        // exactamente lo mismo que "Sin rubro específico": la opción existía
-        // en el código pero nunca creaba nada.
         if (!rubroLibreNuevoNombre.trim()) return;
-        const rNuevo = await api.post(`/presupuestos/${id}/rubros`, { nombre: rubroLibreNuevoNombre.trim() });
+        nombreACrear = rubroLibreNuevoNombre.trim();
+      } else if (rubroLibreSelec.startsWith('sistema:')) {
+        // Rubro del catálogo que esta obra todavía no usó: tampoco existe en
+        // data.rubros (ese solo trae los que ya tienen alguna línea), así que
+        // se crea igual que uno con nombre libre, pero con el nombre de la
+        // categoría del sistema en vez de uno tipeado a mano.
+        const cat = categorias.find(c => String(c.id) === rubroLibreSelec.slice('sistema:'.length));
+        if (!cat) return;
+        nombreACrear = cat.nombre;
+      }
+      if (nombreACrear) {
+        // El rubro no existe todavía en data.rubros — hay que crearlo primero,
+        // igual que hace el botón "Crear rubro", y recién ahí asignarle el
+        // ítem. Antes la opción "+ Nuevo rubro" mandaba categoria_numero/
+        // nombre en null, que es exactamente lo mismo que "Sin rubro
+        // específico": existía en el código pero nunca creaba nada.
+        const rNuevo = await api.post(`/presupuestos/${id}/rubros`, { nombre: nombreACrear });
         catNum = rNuevo.data.categoria_numero; catNom = rNuevo.data.categoria_nombre;
       } else if (rubroLibreSelec) {
         // Mismo cuidado que en el selector de ítems de catálogo: r.numero es
@@ -1947,28 +1957,44 @@ ${firma}
               </div>
 
               {/* Selector de rubro destino — solo al crear */}
-              {!itemLibre._editId && (
-                <div className="form-group">
-                  <label>Rubro</label>
-                  <select className="input" value={rubroLibreSelec} onChange={e => setRubroLibreSelec(e.target.value)}>
-                    <option value="">Sin rubro específico</option>
-                    {(data?.rubros || []).map(r => (
-                      <option key={r.numero} value={r.numero}>{r.numero} — {r.nombre}</option>
-                    ))}
-                    <option value="__nuevo__">+ Crear un rubro nuevo</option>
-                  </select>
-                  {/* Este selector solo lista los rubros que ya tienen algún
-                      ítem cargado — uno recién creado en la obra (ninguna
-                      compra de catálogo todavía) no aparece ahí, así que
-                      "+ Crear un rubro nuevo" es la única forma de mandar
-                      este ítem libre a un rubro que todavía no existe. */}
-                  {rubroLibreSelec === '__nuevo__' && (
-                    <input className="input" style={{ marginTop: 6 }} autoFocus
-                      value={rubroLibreNuevoNombre} onChange={e => setRubroLibreNuevoNombre(e.target.value)}
-                      placeholder="Nombre del rubro nuevo, ej: Instalaciones" />
-                  )}
-                </div>
-              )}
+              {!itemLibre._editId && (() => {
+                const usados = data?.rubros || [];
+                // Rubros del sistema (los mismos ~21 de "Todos los rubros" en
+                // el catálogo) que esta obra todavía no usó: antes el select
+                // solo ofrecía los que YA tenían algún ítem, así que un rubro
+                // preexistente sin nada cargado todavía (ej. "Instalaciones"
+                // en una obra que todavía no compró nada de eso) no aparecía.
+                const nombresUsados = new Set(usados.map(r => (r.nombre || '').trim().toLowerCase()));
+                const sistemaNoUsados = categorias.filter(c => !nombresUsados.has((c.nombre || '').trim().toLowerCase()));
+                return (
+                  <div className="form-group">
+                    <label>Rubro</label>
+                    <select className="input" value={rubroLibreSelec} onChange={e => setRubroLibreSelec(e.target.value)}>
+                      <option value="">Sin rubro específico</option>
+                      {usados.length > 0 && (
+                        <optgroup label="Ya tienen ítems en esta obra">
+                          {usados.map(r => (
+                            <option key={r.numero} value={r.numero}>{r.numero} — {r.nombre}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {sistemaNoUsados.length > 0 && (
+                        <optgroup label="Rubros del sistema (sin ítems todavía)">
+                          {sistemaNoUsados.map(c => (
+                            <option key={c.id} value={`sistema:${c.id}`}>{c.nombre}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <option value="__nuevo__">+ Rubro con otro nombre</option>
+                    </select>
+                    {rubroLibreSelec === '__nuevo__' && (
+                      <input className="input" style={{ marginTop: 6 }} autoFocus
+                        value={rubroLibreNuevoNombre} onChange={e => setRubroLibreNuevoNombre(e.target.value)}
+                        placeholder="Nombre del rubro nuevo, ej: Instalaciones" />
+                    )}
+                  </div>
+                );
+              })()}
 
               {modoLibre === 'global' ? (
                 <div className="form-group">
