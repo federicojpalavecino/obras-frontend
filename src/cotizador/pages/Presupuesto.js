@@ -4,11 +4,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   getPresupuesto, actualizarPresupuesto, cerrarPresupuesto, reabrirPresupuesto,
-  getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea, moverRubro,
+  getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea, moverRubro, eliminarRubro,
   duplicarPresupuesto, getVariacionPrecios, actualizarPrecios
 } from '../api';
 import api from '../api';
-import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check, Edit2 } from 'lucide-react';
+import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check, Edit2, Trash2 } from 'lucide-react';
 // Paleta fija para marcar ítems en la pantalla del presupuesto (ej. "falta
 // cómputo", "precio a confirmar"): el color no tiene un significado fijo, lo
 // define cada estudio a su gusto.
@@ -1027,6 +1027,18 @@ ${firma}
     }
   };
 
+  const handleEliminarRubro = async (rubro) => {
+    const categoriaNumero = rubro?.lineas?.[0]?.categoria_numero;
+    if (categoriaNumero == null) return;
+    if (!window.confirm(`¿Eliminar el rubro "${rubro.nombre}" y sus ${rubro.lineas.length} ítem(s)?`)) return;
+    try {
+      await eliminarRubro(id, categoriaNumero);
+      await cargar(true);
+    } catch(e) {
+      alert('Error: ' + (e.response?.data?.detail || e.message));
+    }
+  };
+
   // Tambien por rubro: el que escribe "albanileria" quiere los items de ese
   // rubro y no tiene por que saber que es una categoria y no un item. Eran 24
   // items que no aparecian.
@@ -1795,6 +1807,14 @@ ${firma}
                                       setEditandoRubroNum(rubro.numero);
                                     }}>
                                     ✏
+                                  </span>
+                                )}
+                                {!cerrado && (
+                                  <span title="Eliminar rubro" style={{ display: 'inline-flex', marginLeft: 2, color: 'var(--border2)', cursor: 'pointer', opacity: 0.6 }}
+                                    onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.opacity = '1'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--border2)'; e.currentTarget.style.opacity = '0.6'; }}
+                                    onClick={e => { e.stopPropagation(); handleEliminarRubro(rubro); }}>
+                                    <Trash2 size={11} />
                                   </span>
                                 )}
                               </span>
