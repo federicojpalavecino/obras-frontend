@@ -1028,11 +1028,12 @@ ${firma}
   };
 
   const handleEliminarRubro = async (rubro) => {
-    const categoriaNumero = rubro?.lineas?.[0]?.categoria_numero;
-    if (categoriaNumero == null) return;
+    // Items libres viejos (de antes de `crear_rubro_vacio`) pueden no tener
+    // categoria_numero: en ese caso el rubro se identifica solo por nombre.
+    const categoriaNumero = rubro?.lineas?.[0]?.categoria_numero ?? 0;
     if (!window.confirm(`¿Eliminar el rubro "${rubro.nombre}" y sus ${rubro.lineas.length} ítem(s)?`)) return;
     try {
-      await eliminarRubro(id, categoriaNumero);
+      await eliminarRubro(id, categoriaNumero, rubro.nombre);
       await cargar(true);
     } catch(e) {
       alert('Error: ' + (e.response?.data?.detail || e.message));
