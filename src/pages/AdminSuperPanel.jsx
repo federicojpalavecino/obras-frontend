@@ -804,6 +804,9 @@ export default function AdminPanel() {
   const [precioEdit, setPrecioEdit] = useState({}); // { [tid]: valor }
   const [precioSaving, setPrecioSaving] = useState({});
   const [precioSaved, setPrecioSaved]   = useState({});
+  const [usuariosEdit, setUsuariosEdit] = useState({}); // { [tid]: valor } — cupos de usuarios incluidos
+  const [usuariosSaving, setUsuariosSaving] = useState({});
+  const [usuariosSaved, setUsuariosSaved]   = useState({});
 
   useEffect(() => {
     const t = localStorage.getItem("obras_admin_token");
@@ -881,6 +884,29 @@ export default function AdminPanel() {
       }
     } catch { alert("Error de conexión"); }
     setPrecioSaving(s => ({ ...s, [tid]: false }));
+  };
+
+  // Cupos de usuarios incluidos en el plan (el excedente se cobra como usuario extra;
+  // no bloquea la creación de usuarios, solo cambia lo que el estudio ve en Suscripción).
+  const guardarUsuarios = async (tid, incluidos) => {
+    setUsuariosSaving(s => ({ ...s, [tid]: true }));
+    try {
+      const res = await fetch(`${API}/admin/tenants/${tid}/precio`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ usuarios_incluidos: parseInt(incluidos) || 0 }),
+      });
+      if (res.ok) {
+        setUsuariosSaved(s => ({ ...s, [tid]: true }));
+        setTimeout(() => setUsuariosSaved(s => ({ ...s, [tid]: false })), 1500);
+        setUsuariosEdit(p => { const n = { ...p }; delete n[tid]; return n; });
+        await cargar(token);
+      } else {
+        const e = await res.json().catch(() => ({}));
+        alert("Error al guardar los cupos de usuarios: " + (e.detail || res.status));
+      }
+    } catch { alert("Error de conexión"); }
+    setUsuariosSaving(s => ({ ...s, [tid]: false }));
   };
 
   const guardarTrial = async (tid, fecha) => {
@@ -1040,7 +1066,7 @@ export default function AdminPanel() {
             </div>
 
             <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1.6fr 0.8fr 1fr 1.1fr 0.6fr 1.2fr auto", gap:0, borderBottom:`1px solid ${C.border}`, padding:"10px 16px", background:C.surface2 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1.6fr 0.8fr 1fr 1.1fr 1fr 1.2fr auto", gap:0, borderBottom:`1px solid ${C.border}`, padding:"10px 16px", background:C.surface2 }}>
                 {["Estudio","Email","Plan","Categoría","Trial hasta","Usuarios","Precio/mes","Acciones"].map(h => (
                   <div key={h} style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.5px" }}>{h}</div>
                 ))}
@@ -1052,9 +1078,12 @@ export default function AdminPanel() {
               ) : tenantsFiltrados.map((t, i) => {
                 const precioVal = precioEdit[t.id] !== undefined ? precioEdit[t.id] : String(Math.round(t.precio_mensual || 0));
                 const precioChanged = parseFloat(precioVal || 0) !== Math.round(t.precio_mensual || 0);
+                const usuariosIncluidos = t.usuarios_incluidos ?? 2;
+                const usuariosVal = usuariosEdit[t.id] !== undefined ? usuariosEdit[t.id] : String(usuariosIncluidos);
+                const usuariosChanged = parseInt(usuariosVal || 0, 10) !== usuariosIncluidos;
                 const trialISO = aISO(t.trial_hasta);
                 return (
-                <div key={t.id} style={{ display:"grid", gridTemplateColumns:"1.4fr 1.6fr 0.8fr 1fr 1.1fr 0.6fr 1.2fr auto", gap:0, padding:"12px 16px", borderBottom: i < tenantsFiltrados.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center", background: t.activo===false ? "#fef2f2" : "white" }}>
+                <div key={t.id} style={{ display:"grid", gridTemplateColumns:"1.4fr 1.6fr 0.8fr 1fr 1.1fr 1fr 1.2fr auto", gap:0, padding:"12px 16px", borderBottom: i < tenantsFiltrados.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center", background: t.activo===false ? "#fef2f2" : "white" }}>
                   <div style={{ fontWeight:600, fontSize:14, color:C.text }}>{t.nombre}</div>
                   <div style={{ fontSize:13, color:C.muted }}>{t.email_admin}</div>
                   <div><Badge plan={t.plan_estado} /></div>
@@ -1069,7 +1098,21 @@ export default function AdminPanel() {
                       onChange={e => e.target.value && guardarTrial(t.id, e.target.value)}
                       style={{ fontSize:11, color:C.muted, fontFamily:"'IBM Plex Mono',monospace", border:`1px solid ${C.border}`, borderRadius:6, padding:"3px 6px", background:C.surface, outline:"none", width:"100%", boxSizing:"border-box" }} />
                   </div>
-                  <div style={{ fontSize:13, color:C.muted }}>{t.cant_usuarios ?? t.usuarios ?? "—"}</div>
+                  <div>
+                    <div style={{ fontSize:11, color:C.muted, marginBottom:3 }}>
+                      {t.cant_usuarios ?? 0} activo{(t.cant_usuarios ?? 0) === 1 ? "" : "s"}
+                    </div>
+                    <div style={{ display:"flex", gap:4, alignItems:"center" }}>
+                      <span style={{ fontSize:10, color:C.muted, whiteSpace:"nowrap" }}>cupos</span>
+                      <input type="number" min={0} value={usuariosVal}
+                        onChange={e => setUsuariosEdit(p => ({ ...p, [t.id]: e.target.value }))}
+                        style={{ width:40, padding:"3px 5px", border:`1px solid ${usuariosChanged ? C.accent : C.border}`, borderRadius:5, fontSize:11, fontFamily:"'IBM Plex Mono',monospace", outline:"none", boxSizing:"border-box" }} />
+                      <button onClick={() => guardarUsuarios(t.id, usuariosVal)} disabled={usuariosSaving[t.id] || !usuariosChanged}
+                        style={{ padding:"3px 7px", borderRadius:5, border:"none", fontSize:10, fontWeight:700, cursor: usuariosChanged ? "pointer" : "default", background: usuariosSaved[t.id] ? C.green : usuariosChanged ? C.accent : C.surface2, color: usuariosSaved[t.id] || usuariosChanged ? "white" : C.muted, opacity: usuariosSaving[t.id] ? 0.6 : 1 }}>
+                        {usuariosSaved[t.id] ? "✓" : usuariosSaving[t.id] ? "..." : "OK"}
+                      </button>
+                    </div>
+                  </div>
                   <div style={{ display:"flex", gap:5, alignItems:"center" }}>
                     <span style={{ fontSize:12, color:C.muted }}>$</span>
                     <input type="number" value={precioVal}
