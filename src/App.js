@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
-import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, MessageSquare, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X, Package } from "lucide-react";
+import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, MessageSquare, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X, Package, Gift, Zap, CreditCard } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
@@ -91,6 +91,167 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
           Cerrar sesión
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── Pantalla comercial post-registro ────────────────────────────────────────
+// Es la pantalla que convierte: se muestra UNA vez, apenas se crea la cuenta,
+// antes de entrar al sistema. Nada de reuniones acá — esa oferta se sacó del
+// flujo (ver prompt.py del bot). No hay trial en el auto-registro (el tenant
+// arranca en "vencido"), así que no hay a dónde "probar primero": quien no
+// paga ahora, cierra sesión y vuelve cuando quiera. La agenda de la reunión
+// de tutoría aparece después, cuando ya pagó (ver AvisoAgendarReunion).
+const WHATSAPP_COMPROBANTES = "5493625548783"; // mismo numero configurado en el bot (ADMIN_WHATSAPP_NUMBER)
+
+function PantallaVentaPostRegistro({ tenant, token, onContinuar, onLogout }) {
+  const [vista, setVista] = useState("inicio"); // inicio | transferencia
+  const [loading, setLoading] = useState(false);
+  const precioBase = tenant?.precio_mensual || 57000;
+  const precioPromo = Math.round(precioBase * 0.7 / 10) * 10;
+
+  const suscribirse = async () => {
+    setLoading(true);
+    try {
+      const res = await api.post('/suscripcion/crear?promo=true', {}, { headers: { Authorization: `Bearer ${token}` } });
+      const data = res.data;
+      if (data.init_point) window.location.href = data.init_point;
+      else if (data.ya_suscripto) onContinuar();
+      else alert("No se pudo generar el link de pago. Probá de nuevo o escribinos.");
+    } catch { alert("Error de conexión. Probá de nuevo o escribinos por WhatsApp."); }
+    setLoading(false);
+  };
+
+  const bonus = [
+    "Portal del cliente sin cargo, con tu logo y tus colores",
+    "Planner con sincronización a Google Calendar",
+    "Control financiero semanal, quincenal o mensual",
+    "Certificados de avance ilimitados",
+  ];
+
+  return (
+    <div style={{ background: "linear-gradient(160deg, #0f1f18 0%, #16211c 55%, #0f1f18 100%)", minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 16px", fontFamily: "'Syne', sans-serif" }}>
+      <style>{`
+        @keyframes faimPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.035); } }
+        @keyframes faimFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes faimGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.35); } 50% { box-shadow: 0 0 0 14px rgba(16,185,129,0); } }
+      `}</style>
+      <div style={{ width: "100%", maxWidth: 480, background: "#ffffff", borderRadius: 20, padding: "clamp(24px,5vw,40px)", boxShadow: "0 20px 60px rgba(0,0,0,0.35)", position: "relative", overflow: "hidden" }}>
+
+        <div style={{ textAlign: "center", marginBottom: 22 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: C.accent, letterSpacing: "-1px" }}>FAIM OBRAS</div>
+          <div style={{ fontSize: 14, color: C.muted, marginTop: 4 }}>¡Tu cuenta ya está lista{tenant?.nombre ? `, ${tenant.nombre}` : ""}!</div>
+        </div>
+
+        {vista === "inicio" ? (
+          <>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.red, color: "#fff", fontSize: 12, fontWeight: 800, padding: "6px 14px", borderRadius: 20, margin: "0 auto 18px", animation: "faimPulse 1.8s ease-in-out infinite" }}>
+              <Zap size={13} strokeWidth={2.5} /> 30% OFF EL PRIMER MES · SOLO HOY
+            </div>
+
+            <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{ fontSize: 16, color: C.muted, textDecoration: "line-through", fontFamily: "'IBM Plex Mono', monospace" }}>
+                $ {precioBase.toLocaleString("es-AR")} /mes
+              </div>
+              <div style={{ fontSize: 44, fontWeight: 800, color: C.accent, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "-1px", animation: "faimFloat 2.6s ease-in-out infinite" }}>
+                $ {precioPromo.toLocaleString("es-AR")}
+              </div>
+              <div style={{ fontSize: 12, color: C.muted }}>tu primer mes · después $ {precioBase.toLocaleString("es-AR")}/mes</div>
+            </div>
+
+            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 700, color: C.accent, marginBottom: 8 }}>
+                <Check size={15} strokeWidth={2.5} /> Presupuestos ilimitados, desde el día uno
+              </div>
+            </div>
+
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 22 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 10 }}>
+                <Gift size={14} strokeWidth={2.5} /> Y de regalo, incluido
+              </div>
+              {bonus.map(b => (
+                <div key={b} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: C.text, marginBottom: 7 }}>
+                  <Sparkles size={13} strokeWidth={2} color="#7c3aed" style={{ marginTop: 2, flexShrink: 0 }} /> {b}
+                </div>
+              ))}
+            </div>
+
+            <button onClick={suscribirse} disabled={loading} style={{ width: "100%", padding: 15, borderRadius: 12, border: "none", cursor: "pointer", background: C.accent, color: "#fff", fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.7 : 1, animation: loading ? "none" : "faimGlow 2.2s ease-in-out infinite", marginBottom: 10 }}>
+              <CreditCard size={17} strokeWidth={2.5} /> {loading ? "Generando link..." : "Suscribirme ahora con 30% OFF"}
+            </button>
+            <button onClick={() => setVista("transferencia")} style={{ width: "100%", padding: 11, borderRadius: 12, border: `1px solid ${C.border}`, cursor: "pointer", background: "transparent", color: C.text, fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 13.5, marginBottom: 14 }}>
+              Prefiero pagar por transferencia
+            </button>
+            <div style={{ textAlign: "center" }}>
+              <button onClick={onLogout} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Syne', sans-serif" }}>
+                Cerrar sesión
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12, padding: "16px 18px", marginBottom: 18 }}>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>Con el mismo 30% off del primer mes:</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 13, color: C.muted }}>Monto</span>
+                <span style={{ fontSize: 18, fontWeight: 800, fontFamily: "'IBM Plex Mono', monospace" }}>$ {precioPromo.toLocaleString("es-AR")}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 13, color: C.muted }}>Alias</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: C.accent, fontFamily: "'IBM Plex Mono', monospace" }}>Faimobras.app</span>
+              </div>
+            </div>
+            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6, marginBottom: 18 }}>
+              Hacé la transferencia y mandanos el comprobante por WhatsApp — en cuanto lo recibamos, te activamos la cuenta.
+            </div>
+            <a href={`https://wa.me/${WHATSAPP_COMPROBANTES}?text=${encodeURIComponent("Hola! Te mando el comprobante de la transferencia de FAIM OBRAS.")}`} target="_blank" rel="noreferrer"
+              style={{ width: "100%", boxSizing: "border-box", padding: 15, borderRadius: 12, border: "none", cursor: "pointer", background: "#25D366", color: "#fff", fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 10, textDecoration: "none" }}>
+              <MessageCircle size={17} strokeWidth={2.5} /> Mandar comprobante por WhatsApp
+            </a>
+            <button onClick={() => setVista("inicio")} style={{ width: "100%", padding: 11, borderRadius: 12, border: `1px solid ${C.border}`, cursor: "pointer", background: "transparent", color: C.text, fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 13.5, marginBottom: 14 }}>
+              ← Volver a la suscripción automática
+            </button>
+            <div style={{ textAlign: "center" }}>
+              <button onClick={onLogout} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Syne', sans-serif" }}>
+                Cerrar sesión
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Aviso para agendar la reunión de tutoría (solo post-pago) ──────────────
+function AvisoAgendarReunion({ token, onAgendada }) {
+  const [loading, setLoading] = useState(null); // slot en curso, o null
+  const [cerrado, setCerrado] = useState(false);
+  if (cerrado) return null;
+
+  const elegir = async (slot) => {
+    setLoading(slot);
+    try {
+      await api.post('/suscripcion/agendar-reunion', { slot }, { headers: { Authorization: `Bearer ${token}` } });
+      onAgendada(slot);
+    } catch { alert("No se pudo agendar. Probá de nuevo."); }
+    setLoading(null);
+  };
+
+  return (
+    <div className="aviso-arriba" style={{ background: "#eef2ff", borderBottom: "1px solid #c7d2fe", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 14, flexWrap: "wrap", fontFamily: "'Syne', sans-serif" }}>
+      <span style={{ fontSize: 13, color: "#3730a3", display: "flex", alignItems: "center", gap: 6 }}>
+        <Calendar size={14} strokeWidth={2.5} /> Coordinemos tu reunión de tutoría para arrancar con todo:
+      </span>
+      <button onClick={() => elegir("martes_manana")} disabled={!!loading} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #c7d2fe", background: "#fff", color: "#3730a3", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>
+        {loading === "martes_manana" ? "..." : "Martes a la mañana"}
+      </button>
+      <button onClick={() => elegir("jueves_tarde")} disabled={!!loading} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #c7d2fe", background: "#fff", color: "#3730a3", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>
+        {loading === "jueves_tarde" ? "..." : "Jueves a la tarde"}
+      </button>
+      <button onClick={() => setCerrado(true)} aria-label="Cerrar" style={{ background: "none", border: "none", cursor: "pointer", color: "#3730a3" }}>
+        <X size={15} />
+      </button>
     </div>
   );
 }
@@ -398,6 +559,8 @@ export default function App() {
   const [regEstudio, setRegEstudio] = useState("");
   const [regLoading, setRegLoading] = useState(false);
   const [anuncio, setAnuncio] = useState(null);
+  const [recienRegistrado, setRecienRegistrado] = useState(false);
+  const [reunionAgendada, setReunionAgendada] = useState(false);
 
   const checkSuscripcion = async () => {
     try {
@@ -600,6 +763,7 @@ export default function App() {
         localStorage.setItem("obras_session", JSON.stringify({ user: userData, tenant: data.tenant, token }));
         if (data.tenant) setTenant(data.tenant);
         await checkSuscripcion();
+        setRecienRegistrado(true);
         setUser(userData);
       } else {
         setError(data.detail || "Error al registrarse");
@@ -707,13 +871,23 @@ export default function App() {
     </div>
   );
 
+  // Pantalla comercial post-registro: una sola vez, apenas se crea la cuenta.
+  // Va ANTES que el paywall de trial vencido — si no, un tenant nuevo con el
+  // trial mal seteado cae directo en la pantalla vieja y nunca ve esta.
+  if (recienRegistrado) {
+    return <PantallaVentaPostRegistro tenant={tenant} token={localStorage.getItem("obras_token")} onContinuar={() => setRecienRegistrado(false)} onLogout={handleLogout} />;
+  }
+
   // Subscription wall — only for JWT users
   if (user && suscripcion && suscripcion.trial_vencido) {
     return <SuscripcionVencida suscripcion={suscripcion} onLogout={handleLogout} />;
   }
 
-  // Trial banner wrapper
-  const banner = suscripcion && suscripcion.en_trial ? <TrialBanner diasRestantes={suscripcion.dias_restantes} /> : null;
+  // Trial banner wrapper. El aviso de agendar reunión va pegado cuando ya
+  // pagó y todavía no eligió horario — no hay reuniones previas al pago.
+  const mostrarAvisoReunion = tenant?.plan_estado === "activo" && !tenant?.reunion_slot && !reunionAgendada;
+  const banner = (suscripcion && suscripcion.en_trial ? <TrialBanner diasRestantes={suscripcion.dias_restantes} /> : null) ||
+    (mostrarAvisoReunion ? <AvisoAgendarReunion token={localStorage.getItem("obras_token")} onAgendada={() => setReunionAgendada(true)} /> : null);
 
   // Los dos portales van envueltos igual que el resto. Cuando el boundary
   // cubria solo las rutas de adentro, un error en el portal del personal
