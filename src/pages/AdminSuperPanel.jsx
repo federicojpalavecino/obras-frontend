@@ -826,8 +826,26 @@ function PanelBotWhatsApp({ token }) {
   const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [textoHumano, setTextoHumano] = useState("");
   const [enviando, setEnviando]     = useState(false);
+  const chatRef = useRef(null);          // contenedor con scroll de la conversación
+  const ultimoLeadScrolleado = useRef(null);
+  const cantMensajesPrevia = useRef(0);
 
   useEffect(() => { cargarLista(); }, [filtroEstado]);
+
+  // Como en WhatsApp: al abrir una conversación se ve el último mensaje. Cuando entra uno
+  // nuevo (polling) baja solo, salvo que el usuario esté leyendo más arriba.
+  useEffect(() => {
+    const el = chatRef.current;
+    if (!el || !seleccionado) return;
+    const cant = seleccionado.mensajes?.length || 0;
+    const abrioOtro = ultimoLeadScrolleado.current !== seleccionado.id;
+    const cercaDelFinal = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (abrioOtro || (cant > cantMensajesPrevia.current && cercaDelFinal)) {
+      el.scrollTop = el.scrollHeight;
+    }
+    ultimoLeadScrolleado.current = seleccionado.id;
+    cantMensajesPrevia.current = cant;
+  }, [seleccionado]);
 
   // Polling: la lista de leads y la conversación abierta se refrescan solas,
   // para no depender de que alguien recargue la página a mano para ver un
@@ -860,6 +878,23 @@ function PanelBotWhatsApp({ token }) {
       if (r.ok) setSeleccionado(await r.json());
     } catch {}
     if (!silencioso) setLoadingDetalle(false);
+  };
+
+  // Borra un mensaje del panel y de la memoria del bot. No lo saca del WhatsApp del
+  // cliente: la API de WhatsApp Business no permite "eliminar para todos".
+  const borrarMensaje = async (m) => {
+    if (!m.id) return;
+    if (!window.confirm("¿Borrar este mensaje del panel y de la memoria del bot?\n\nOjo: al cliente le sigue apareciendo en su WhatsApp (WhatsApp no permite borrarlo desde la API).")) return;
+    try {
+      const r = await fetch(`${API}/whatsapp/admin/mensajes/${m.id}`, {
+        method: "DELETE", headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        setSeleccionado(s => s ? { ...s, mensajes: s.mensajes.filter(x => x.id !== m.id) } : s);
+      } else {
+        alert("No se pudo borrar el mensaje");
+      }
+    } catch { alert("Error de conexión"); }
   };
 
   const refrescarDetalle = () => { if (seleccionado) abrirLead(seleccionado.id); };
@@ -996,13 +1031,17 @@ function PanelBotWhatsApp({ token }) {
               </div>
             )}
 
-            <div style={{ padding:16, display:"flex", flexDirection:"column", gap:10, maxHeight:380, overflowY:"auto" }}>
+            <div ref={chatRef} style={{ padding:16, display:"flex", flexDirection:"column", gap:10, maxHeight:380, overflowY:"auto" }}>
               {seleccionado.mensajes.length === 0 ? (
                 <div style={{ color:C.muted, fontSize:13, textAlign:"center" }}>Todavía no hay mensajes</div>
               ) : seleccionado.mensajes.map((m,i) => {
                 const deLead = m.direccion === "in";
                 return (
-                  <div key={i} style={{ display:"flex", justifyContent: deLead ? "flex-start" : "flex-end" }}>
+                  <div key={m.id || i} style={{ display:"flex", alignItems:"center", gap:6, justifyContent: deLead ? "flex-start" : "flex-end" }}>
+                    {!deLead && m.id && (
+                      <button onClick={() => borrarMensaje(m)} title="Borrar mensaje"
+                        style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:C.muted, padding:2, opacity:0.6 }}>🗑</button>
+                    )}
                     <div style={{ maxWidth:"70%", padding:"8px 12px", borderRadius:12, fontSize:13,
                       background: deLead ? C.surface2 : (m.autor === "humano" ? "#eef2ff" : "#f0fdf4"),
                       color: C.text }}>
@@ -1010,6 +1049,10 @@ function PanelBotWhatsApp({ token }) {
                       <div>{m.contenido || (m.media_url ? "[archivo adjunto]" : "")}</div>
                       <div style={{ fontSize:10, color:C.muted, marginTop:4, textAlign:"right" }}>{fmtHora(m.created_at)}</div>
                     </div>
+                    {deLead && m.id && (
+                      <button onClick={() => borrarMensaje(m)} title="Borrar mensaje"
+                        style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:C.muted, padding:2, opacity:0.6 }}>🗑</button>
+                    )}
                   </div>
                 );
               })}
