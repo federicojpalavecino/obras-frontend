@@ -808,7 +808,11 @@ function BadgeEstadoLead({ estado }) {
 
 function fmtHora(iso) {
   if (!iso) return "";
-  const d = new Date(iso);
+  // El backend manda el datetime sin zona (naive UTC, como lo guarda Postgres
+  // con server_default=func.now()). Sin la "Z", new Date() lo toma como hora
+  // local y el horario del bot queda mostrado 3hs adelantado.
+  const conZona = /[Zz]|[+-]\d{2}:\d{2}$/.test(iso) ? iso : iso + "Z";
+  const d = new Date(conZona);
   if (isNaN(d.getTime())) return "";
   return d.toLocaleString("es-AR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
 }
@@ -825,23 +829,37 @@ function PanelBotWhatsApp({ token }) {
 
   useEffect(() => { cargarLista(); }, [filtroEstado]);
 
-  const cargarLista = async () => {
-    setLoadingLista(true);
+  // Polling: la lista de leads y la conversación abierta se refrescan solas,
+  // para no depender de que alguien recargue la página a mano para ver un
+  // mensaje nuevo entrar.
+  useEffect(() => {
+    const t = setInterval(() => { cargarLista(true); }, 8000);
+    return () => clearInterval(t);
+  }, [filtroEstado]);
+
+  useEffect(() => {
+    if (!seleccionado) return;
+    const t = setInterval(() => { abrirLead(seleccionado.id, true); }, 5000);
+    return () => clearInterval(t);
+  }, [seleccionado?.id]);
+
+  const cargarLista = async (silencioso) => {
+    if (!silencioso) setLoadingLista(true);
     try {
       const qs = filtroEstado !== "todos" ? `?estado=${filtroEstado}` : "";
       const r = await fetch(`${API}/whatsapp/admin/leads${qs}`, { headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) setLeads(await r.json());
     } catch {}
-    setLoadingLista(false);
+    if (!silencioso) setLoadingLista(false);
   };
 
-  const abrirLead = async (id) => {
-    setLoadingDetalle(true);
+  const abrirLead = async (id, silencioso) => {
+    if (!silencioso) setLoadingDetalle(true);
     try {
       const r = await fetch(`${API}/whatsapp/admin/leads/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) setSeleccionado(await r.json());
     } catch {}
-    setLoadingDetalle(false);
+    if (!silencioso) setLoadingDetalle(false);
   };
 
   const refrescarDetalle = () => { if (seleccionado) abrirLead(seleccionado.id); };
