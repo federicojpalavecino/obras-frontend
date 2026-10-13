@@ -72,6 +72,10 @@ export default function DemoTour() {
         const el = document.querySelector(selector);
         if (!el) return;
         el.addEventListener("blur", () => setTimeout(() => tourDriver.moveNext(), demora), { once: true });
+        // El overlay del tour bloquea el click afuera del input (es lo único
+        // clickeable mientras está resaltado), así que Enter es la forma real
+        // de confirmar acá: dispara el blur de verdad (guarda el valor).
+        el.addEventListener("keydown", (e) => { if (e.key === "Enter") el.blur(); }, { once: true });
       };
 
       const baseConfig = {
@@ -112,7 +116,7 @@ export default function DemoTour() {
             onHighlighted: avanzarAlCambiarEn('[data-tour="cantidad-item"]'),
             popover: {
               title: "Cargá la cantidad",
-              description: "Cambiá el número y hacé click afuera: el costo y el precio se recalculan solos.",
+              description: "Cambiá el número y apretá Enter: el costo y el precio se recalculan solos.",
               side: "left",
             },
           },

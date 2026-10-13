@@ -933,7 +933,7 @@ export default function App() {
 
   // Trial banner wrapper. El aviso de agendar reunión va pegado cuando ya
   // pagó y todavía no eligió horario — no hay reuniones previas al pago.
-  const mostrarAvisoReunion = tenant?.plan_estado === "activo" && !tenant?.reunion_slot && !reunionAgendada;
+  const mostrarAvisoReunion = tenant?.plan_estado === "activo" && !tenant?.reunion_slot && !reunionAgendada && !tenant?.es_demo;
   const banner = (suscripcion && suscripcion.en_trial ? <TrialBanner diasRestantes={suscripcion.dias_restantes} /> : null) ||
     (mostrarAvisoReunion ? <AvisoAgendarReunion token={localStorage.getItem("obras_token")} onAgendada={() => setReunionAgendada(true)} /> : null);
 
