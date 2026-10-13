@@ -1285,7 +1285,7 @@ export default function Gantt() {
               </button>
             )}
             {tareas.length === 0 && (
-              <button className="btn btn-primary btn-sm" onClick={generarDesdePresupuesto} disabled={generando}>
+              <button data-tour="generar-gantt" className="btn btn-primary btn-sm" onClick={generarDesdePresupuesto} disabled={generando}>
                 {generando ? 'Generando...' : '⚡ Generar'}
               </button>
             )}

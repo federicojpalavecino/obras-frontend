@@ -125,19 +125,33 @@ export default function DemoTour() {
             },
           },
           {
+            popover: {
+              title: "¿De dónde salen los precios?",
+              description: "Los materiales tienen precios de referencia que se actualizan solos, y la mano de obra toma como referencia los valores de UOCRA. Si trabajás con tus propios proveedores o costos, podés cargar tus propios valores y pisan a los de referencia.",
+            },
+          },
+          {
             element: '[data-tour="nombre-item"]',
             onHighlighted: avanzarAlClickEn('[data-tour="nombre-item"]'),
             popover: {
               title: "Mirá el análisis de costos",
-              description: "Hacé click en el nombre del ítem para ver el detalle: materiales, mano de obra y equipo.",
+              description: "Hacé click en el nombre del ítem para ver cómo se compone: qué materiales lleva, cuánta mano de obra y qué equipo.",
               side: "right",
+            },
+          },
+          {
+            element: '[data-tour="analisis-totales"]',
+            popover: {
+              title: "Así se arma el precio de este ítem",
+              description: "Material, mano de obra y equipo, sumados. Podés agregar, sacar o cambiar cualquier línea de acá y el total del ítem (y el del presupuesto) se recalcula al toque.",
+              side: "left",
             },
           },
           {
             element: '[data-tour="total-obra"]',
             popover: {
-              title: "Se calcula todo solo",
-              description: "El costo de ejecución y el precio al cliente se actualizan automáticamente con cada ítem que agregás.",
+              title: "Y la barra de abajo, todo el presupuesto",
+              description: "Material, mano de obra, costo de ejecución, precio sin IVA, el IVA, el total con IVA y el margen — los siete, siempre a la vista y recalculados solos con cada ítem que agregás.",
               side: "left",
             },
           },
@@ -169,9 +183,18 @@ export default function DemoTour() {
         ],
         gantt: [
           {
+            element: '[data-tour="generar-gantt"]',
+            onHighlighted: avanzarAlClickEn('[data-tour="generar-gantt"]', 1500),
             popover: {
-              title: "Así planificás la obra",
-              description: "El Gantt: tareas, fechas y dependencias. Es la hoja de ruta de la obra, y de acá sale la curva de inversión.",
+              title: "Generá el cronograma",
+              description: 'Hacé click en "⚡ Generar": arma las tareas y las fechas solo, a partir de los ítems del presupuesto.',
+              side: "bottom",
+            },
+          },
+          {
+            popover: {
+              title: "¡Listo, tu obra planificada!",
+              description: "Las tareas, las fechas y las dependencias salieron solas del presupuesto. Podés arrastrar las barras para ajustarlas, y de acá sale la curva de inversión.",
               doneBtnText: "Ver curva de inversión",
               onDoneClick: () => navigate(rutaCurva),
             },

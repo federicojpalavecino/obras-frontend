@@ -252,7 +252,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
 
       {/* Totales */}
       {data && (
-        <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 16 }}>
+        <div data-tour="analisis-totales" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 16 }}>
           {[
             { label: 'Mat', val: data.totales.materiales, color: 'var(--mat)' },
             { label: 'MO', val: data.totales.mano_obra, color: 'var(--mo)' },
