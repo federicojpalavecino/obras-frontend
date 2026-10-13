@@ -51,7 +51,7 @@ export default function ResumenDemo({ onRegistrarme }) {
       api.get(`/presupuestos/${id}`).then(r => r.data).catch(() => null),
       api.get(`/presupuestos/${id}/gantt/tareas`).then(r => r.data).catch(() => []),
       api.get(`/presupuestos/${id}/materiales-listado`).then(r => r.data).catch(() => null),
-      api.get(`/presupuestos/${id}/certificados`).then(r => r.data).catch(() => []),
+      api.get(`/presupuestos/${id}/certificados`).then(r => r.data?.certificados).catch(() => []),
     ]).then(([p, t, m, c]) => {
       if (!activo) return;
       setPresu(p); setTareas(t || []); setMateriales(m); setCertificados(c || []);
@@ -61,13 +61,12 @@ export default function ResumenDemo({ onRegistrarme }) {
   }, [id]);
 
   const totalObra = presu?.totales?.total_precio_con_iva || 0;
-  const cantItems = (presu?.rubros || []).reduce((s, r) => s + (r.lineas?.length || 0), 0);
+  const cantItems = presu?.cant_items ?? 0;
   const duracionDias = tareas.length
     ? Math.max(1, Math.round(tareas.reduce((max, t) => Math.max(max, t.duracion_dias || 0), 0)))
     : 0;
-  const listaMateriales = materiales?.materiales || [];
-  const totalMateriales = listaMateriales.reduce((s, it) => s + (it.subtotal || 0), 0);
-  const cantMateriales = listaMateriales.length;
+  const totalMateriales = materiales?.total_materiales ?? 0;
+  const cantMateriales = (materiales?.materiales || []).length;
 
   if (cargando) return (
     <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", color: C.accent, fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 22 }}>
