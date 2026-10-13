@@ -195,7 +195,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
   const numProps = { type: 'text', inputMode: 'decimal' };
 
   return (
-    <div className="panel-lateral" style={{
+    <div className="panel-lateral" data-tour="panel-computo" style={{
       width: 420, borderLeft: '1px solid var(--border)', background: 'var(--surface)',
       display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0,
     }}>
@@ -213,7 +213,7 @@ export default function PanelComputo({ presupuestoId, linea, onClose, onCantidad
           <button className="btn btn-secondary btn-sm" onClick={imprimir} title="Imprimir este ítem" style={{ fontSize: 10, letterSpacing: 0.3 }}>
             ∑ Imprimir
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={onClose}><X size={14} /></button>
+          <button data-tour="cerrar-computo" className="btn btn-secondary btn-sm" onClick={onClose}><X size={14} /></button>
         </div>
       </div>
 

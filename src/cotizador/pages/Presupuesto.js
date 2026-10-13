@@ -1916,7 +1916,7 @@ ${firma}
                                   onBlur={e => handleCantidad(linea.id, e.target.value)} />
                                 )}
                                 {!cerrado && (
-                                  <div
+                                  <div data-tour="boton-computo"
                                     onClick={e => { e.stopPropagation(); setComputoLinea(computoLinea?.id === linea.id ? null : linea); setLineaSeleccionada(null); }}
                                     style={{ fontSize: 9, fontFamily: 'var(--mono)', color: computoLinea?.id === linea.id ? 'var(--accent2)' : 'var(--border2)', cursor: 'pointer', textAlign: 'right', marginTop: 2, letterSpacing: 0.3, textTransform: 'uppercase', userSelect: 'none' }}
                                     onMouseEnter={e => e.currentTarget.style.color = 'var(--accent2)'}

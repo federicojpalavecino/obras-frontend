@@ -29,6 +29,8 @@ import DemoPortal from "./pages/DemoPortal";
 import Obra from "./pages/Obra";
 import Mensajes from "./pages/Mensajes";
 import DemoTour from "./components/DemoTour";
+import RegistroTour from "./components/RegistroTour";
+import ResumenDemo from "./cotizador/pages/ResumenDemo";
 import Asistente from "./components/Asistente";
 import Deshacer from "./components/Deshacer";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -523,6 +525,14 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
         <Route path="/cotizador/gantt/:id" element={rutaSi(tienePermiso("presupuestos"), <Gantt />)}/>
         <Route path="/cotizador/presupuesto/:id/curva" element={rutaSi(tienePermiso("presupuestos"), <CurvaInversion />)}/>
         <Route path="/cotizador/presupuesto/:id/materiales" element={rutaSi(tienePermiso("presupuestos"), <ListadoMateriales />)}/>
+        <Route path="/cotizador/presupuesto/:id/resumen-demo" element={rutaSi(tienePermiso("presupuestos"), <ResumenDemo onRegistrarme={() => {
+          sessionStorage.removeItem("obras_tour_demo");
+          sessionStorage.removeItem("obras_tour_presupuesto_id");
+          sessionStorage.setItem("obras_tour_registro", "1");
+          localStorage.removeItem("obras_token");
+          localStorage.removeItem("obras_session");
+          window.location.href = "/?registro=1";
+        }} />)}/>
         <Route path="/cotizador/maquinaria" element={rutaSi(tienePermiso("presupuestos"), <Maquinaria />)}/>
         <Route path="/planner/*" element={rutaSi(tienePermiso("planner"), <Planner user={user} />)}/>
         <Route path="/fiscal/*" element={<Fiscal user={user} />}/>
@@ -894,25 +904,25 @@ export default function App() {
           <>
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Nombre del estudio o empresa</label>
-              <input value={regEstudio} onChange={e=>setRegEstudio(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: MRA+Asociados"/>
+              <input data-tour="reg-estudio" value={regEstudio} onChange={e=>setRegEstudio(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: MRA+Asociados"/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Tu nombre</label>
-              <input value={regNombre} onChange={e=>setRegNombre(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: Matias"/>
+              <input data-tour="reg-nombre" value={regNombre} onChange={e=>setRegNombre(e.target.value)} type="text" className="input" style={{width:"100%",boxSizing:"border-box"}} placeholder="Ej: Matias"/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Email</label>
-              <input value={email} onChange={e=>setEmail(e.target.value)} type="email" className="input" style={{width:"100%",boxSizing:"border-box"}}/>
+              <input data-tour="reg-email" value={email} onChange={e=>setEmail(e.target.value)} type="email" className="input" style={{width:"100%",boxSizing:"border-box"}}/>
             </div>
             <div style={{marginBottom:14}}>
               <label style={{display:"block",fontSize:11,color:"#6b7280",marginBottom:6,fontWeight:600,letterSpacing:"1px",textTransform:"uppercase"}}>Contraseña</label>
-              <input value={pass} onChange={e=>setPass(e.target.value)} type="password" className="input" style={{width:"100%",boxSizing:"border-box"}} onKeyDown={e=>e.key==="Enter"&&registrar()}/>
+              <input data-tour="reg-pass" value={pass} onChange={e=>setPass(e.target.value)} type="password" className="input" style={{width:"100%",boxSizing:"border-box"}} onKeyDown={e=>e.key==="Enter"&&registrar()}/>
             </div>
             {error&&<div style={{fontSize:13,color:"#f87171",marginBottom:12,textAlign:"center"}}>{error}</div>}
-            <button onClick={registrar} disabled={regLoading} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center",opacity:regLoading?0.7:1}}>
+            <button data-tour="reg-crear" onClick={registrar} disabled={regLoading} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center",opacity:regLoading?0.7:1}}>
               {regLoading ? "Creando cuenta..." : "Crear cuenta y suscribirme"}
             </button>
-            
+            <RegistroTour />
           </>
         )}
       </div>

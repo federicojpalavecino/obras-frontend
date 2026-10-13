@@ -485,7 +485,7 @@ ${certEg ? `
                 <FileText size={12} strokeWidth={1.5} /> Cert. egresos
               </button>
               {presupuesto?.estado === 'cerrado' && (
-                <button className="btn btn-primary btn-sm" onClick={abrirModalNuevo}>
+                <button data-tour="nuevo-certificado" className="btn btn-primary btn-sm" onClick={abrirModalNuevo}>
                   <Plus size={14} /> Nuevo certificado
                 </button>
               )}
@@ -867,7 +867,7 @@ ${certEg ? `
               </div>
               <div className="modal-actions">
                 <button className="btn btn-secondary" onClick={() => setModalNuevo(false)}>Cancelar</button>
-                <button className="btn btn-success" onClick={handleCrearCertificado} disabled={guardando}>
+                <button data-tour="emitir-certificado" className="btn btn-success" onClick={handleCrearCertificado} disabled={guardando}>
                   <FileText size={14} /> {guardando ? 'Guardando...' : 'Emitir certificado'}
                 </button>
               </div>

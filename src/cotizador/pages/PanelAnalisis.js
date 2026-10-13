@@ -289,7 +289,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
       )}
 
       {/* Contenido */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+      <div data-tour="analisis-secciones" style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
         {loading ? <div className="loading">Cargando...</div> : data && (
           <>
             {/* MATERIALES */}

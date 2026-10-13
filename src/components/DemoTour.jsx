@@ -1,9 +1,10 @@
 // Tour guiado del demo público (ver App.js: ruta /demo y botón "Probar demo
 // guiada"). Entra directo al presupuesto de ejemplo y recorre, a mano, armar
-// un presupuesto de punta a punta: agregar un ítem, cargar su cantidad, ver
-// el análisis de costos, el total, cerrar el presupuesto, planificar la obra
-// (Gantt), ver la curva de inversión y el listado de materiales — y termina
-// invitando a registrarse con la promo vigente.
+// un presupuesto de punta a punta: agregar un ítem, cargar su cantidad (y la
+// calculadora de cómputos), ver el análisis de costos completo, la barra de
+// totales, cerrar el presupuesto, planificar la obra (Gantt), la curva de
+// inversión, el listado de materiales y un certificado — y termina en una
+// pantalla con todos los entregables, invitando a registrarse.
 import { useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -21,18 +22,27 @@ export default function DemoTour() {
     const rutaGantt = `/cotizador/gantt/${presuId}`;
     const rutaCurva = `/cotizador/presupuesto/${presuId}/curva`;
     const rutaMateriales = `/cotizador/presupuesto/${presuId}/materiales`;
+    const rutaCertificado = `/cotizador/presupuesto/${presuId}/certificado`;
+    const rutaResumen = `/cotizador/presupuesto/${presuId}/resumen-demo`;
 
     const segmentoDeRuta = (path) => {
       if (path === rutaPresu) return "presupuesto";
       if (path === rutaGantt) return "gantt";
       if (path === rutaCurva) return "curva";
       if (path === rutaMateriales) return "materiales";
+      if (path === rutaCertificado) return "certificado";
+      if (path === rutaResumen) return "resumen"; // pantalla final: nada que guiar, tiene su propio CTA
       return null;
     };
 
     const segmento = segmentoDeRuta(location.pathname);
     if (!segmento) {
       if (location.pathname !== rutaPresu) navigate(rutaPresu, { replace: true });
+      return;
+    }
+    if (segmento === "resumen") {
+      sessionStorage.removeItem("obras_tour_demo");
+      sessionStorage.removeItem("obras_tour_presupuesto_id");
       return;
     }
     if (segmentoActivo.current === segmento) return;
@@ -45,36 +55,35 @@ export default function DemoTour() {
         import("./DemoTour.css"),
       ]);
 
-      const terminarTour = () => {
-        sessionStorage.removeItem("obras_tour_demo");
-        sessionStorage.removeItem("obras_tour_presupuesto_id");
-      };
-      const irARegistro = () => {
-        terminarTour();
-        // Sale de la sesión demo para que "/" muestre el login/registro, no
-        // el dashboard del tenant demo (el token todavía estaría guardado).
-        localStorage.removeItem("obras_token");
-        localStorage.removeItem("obras_session");
-        window.location.href = "/?registro=1";
-      };
-
       let tourDriver; // los hooks de abajo lo referencian por closure
 
       // Avanza el tour solo cuando se hace la acción real (click o blur en el
-      // selector indicado), en vez de depender de un botón "Siguiente" — así
-      // el tour se siente parte del uso real del sistema, no un slideshow.
+      // selector indicado) — pero SOLO si todavía estamos en el paso que
+      // armó este listener. Sin este chequeo, si la persona salta el paso
+      // con "Siguiente" y más tarde clickea ese mismo elemento por su cuenta,
+      // el listener viejo seguía ahí y hacía saltar el tour para adelante de
+      // golpe, en cualquier paso en el que estuviera parado.
       const avanzarAlClickEn = (selector, demora = 80) => () => {
         const el = document.querySelector(selector);
         if (!el) return;
-        el.addEventListener("click", () => setTimeout(() => tourDriver.moveNext(), demora), { once: true });
+        const indice = tourDriver.getActiveIndex();
+        el.addEventListener("click", () => {
+          if (tourDriver.getActiveIndex() !== indice) return;
+          setTimeout(() => tourDriver.moveNext(), demora);
+        }, { once: true });
       };
       const avanzarAlCambiarEn = (selector, demora = 80) => () => {
         const el = document.querySelector(selector);
         if (!el) return;
-        el.addEventListener("blur", () => setTimeout(() => tourDriver.moveNext(), demora), { once: true });
-        // El overlay del tour bloquea el click afuera del input (es lo único
-        // clickeable mientras está resaltado), así que Enter es la forma real
-        // de confirmar acá: dispara el blur de verdad (guarda el valor).
+        const indice = tourDriver.getActiveIndex();
+        const avanzar = () => {
+          if (tourDriver.getActiveIndex() !== indice) return;
+          setTimeout(() => tourDriver.moveNext(), demora);
+        };
+        el.addEventListener("blur", avanzar, { once: true });
+        // El overlay del tour solo deja clickear el elemento resaltado, así
+        // que "hacer click afuera" para confirmar no es posible acá: Enter
+        // dispara el blur de verdad (el que guarda el valor).
         el.addEventListener("keydown", (e) => { if (e.key === "Enter") el.blur(); }, { once: true });
       };
 
@@ -87,31 +96,34 @@ export default function DemoTour() {
         overlayOpacity: 0.65,
         stagePadding: 6,
         stageRadius: 10,
-        // Un click afuera del elemento resaltado no cierra el tour de golpe:
-        // solo se avanza con la acción real o el botón.
         overlayClickBehavior: "none",
-        // driver.js usa Enter para su propio botón "Siguiente" — eso se come
-        // el Enter que el paso de cantidad necesita para confirmar el valor
-        // (dispara el blur real, que es lo que guarda y avanza). Lo apagamos.
         allowKeyboardControl: false,
         waitForElement: 1500,
-        onCloseClick: () => { terminarTour(); tourDriver.destroy(); },
+        // Si el elemento de un paso no aparece (por ejemplo, porque la
+        // persona se salteó el paso anterior sin hacer la acción), el tour
+        // no se queda esperando para siempre: pasa al siguiente paso solo.
+        skipMissingElement: true,
+        onCloseClick: () => {
+          sessionStorage.removeItem("obras_tour_demo");
+          sessionStorage.removeItem("obras_tour_presupuesto_id");
+          tourDriver.destroy();
+        },
       };
 
       const segmentos = {
         presupuesto: [
           {
             popover: {
-              title: "¡Bienvenido a FAIM Obras!",
-              description: "Te armamos una obra de ejemplo. Te mostramos cómo se arma un presupuesto de punta a punta, en vivo.",
+              title: "Bienvenido a FAIM Obras",
+              description: "Armamos una obra de ejemplo para mostrarte, en vivo, cómo se arma un presupuesto completo: desde el primer ítem hasta la planificación y los certificados.",
             },
           },
           {
             element: '[data-tour="agregar-item-panel"]',
             onHighlighted: avanzarAlClickEn('[data-tour="lista-items"]'),
             popover: {
-              title: "Agregá un ítem",
-              description: 'Buscá algo como "mampostería" o elegí cualquiera de la lista, y hacé click para agregarlo al presupuesto.',
+              title: "Agregar un ítem al presupuesto",
+              description: 'Buscá, por ejemplo, "mampostería", o elegí cualquier ítem de la lista. Hacé click sobre uno para agregarlo.',
               side: "right",
             },
           },
@@ -119,39 +131,68 @@ export default function DemoTour() {
             element: '[data-tour="cantidad-item"]',
             onHighlighted: avanzarAlCambiarEn('[data-tour="cantidad-item"]'),
             popover: {
-              title: "Cargá la cantidad",
-              description: "Cambiá el número y apretá Enter: el costo y el precio se recalculan solos.",
+              title: "Cargar la cantidad",
+              description: "Escribí un número y apretá Enter. El costo y el precio de ese ítem se recalculan solos.",
               side: "left",
+            },
+          },
+          {
+            element: '[data-tour="boton-computo"]',
+            onHighlighted: avanzarAlClickEn('[data-tour="boton-computo"]'),
+            popover: {
+              title: "La calculadora de cómputos",
+              description: 'Si la cantidad sale de medir distintos sectores (frente, patio, cisterna), hacé click en "cómputo": sumás cada medida por separado y el total se carga solo.',
+              side: "left",
+            },
+          },
+          {
+            element: '[data-tour="panel-computo"]',
+            popover: {
+              title: "Un total por cada sector",
+              description: "Cada fila es una medición — alto, ancho, largo, lo que corresponda según la unidad — y el sistema las suma todas. Cerramos este panel y seguimos.",
+              side: "left",
+              onNextClick: (el, step, { driver }) => {
+                document.querySelector('[data-tour="cerrar-computo"]')?.click();
+                driver.moveNext();
+              },
             },
           },
           {
             popover: {
               title: "¿De dónde salen los precios?",
-              description: "Los materiales tienen precios de referencia que se actualizan solos, y la mano de obra toma como referencia los valores de UOCRA. Si trabajás con tus propios proveedores o costos, podés cargar tus propios valores y pisan a los de referencia.",
+              description: "Los materiales tienen precios de referencia que se actualizan solos, y la mano de obra toma como referencia los valores de UOCRA. Si trabajás con tus propios proveedores o costos, podés cargar tus propios valores y esos pisan a los de referencia.",
             },
           },
           {
             element: '[data-tour="nombre-item"]',
             onHighlighted: avanzarAlClickEn('[data-tour="nombre-item"]'),
             popover: {
-              title: "Mirá el análisis de costos",
-              description: "Hacé click en el nombre del ítem para ver cómo se compone: qué materiales lleva, cuánta mano de obra y qué equipo.",
+              title: "El análisis de costos de un ítem",
+              description: "Hacé click en el nombre del ítem para ver exactamente de qué está hecho: qué materiales lleva, cuánta mano de obra y qué equipo.",
               side: "right",
             },
           },
           {
             element: '[data-tour="analisis-totales"]',
             popover: {
-              title: "Así se arma el precio de este ítem",
-              description: "Material, mano de obra y equipo, sumados. Podés agregar, sacar o cambiar cualquier línea de acá y el total del ítem (y el del presupuesto) se recalcula al toque.",
+              title: "Material, mano de obra y equipo",
+              description: "Estos tres números, sumados, dan el costo del ítem. Más abajo está el detalle línea por línea.",
+              side: "left",
+            },
+          },
+          {
+            element: '[data-tour="analisis-secciones"]',
+            popover: {
+              title: "Editable línea por línea",
+              description: "Podés agregar, sacar o cambiar cualquier material, hora de mano de obra o uso de equipo — el costo del ítem (y el del presupuesto entero) se actualiza al toque.",
               side: "left",
             },
           },
           {
             element: '[data-tour="total-obra"]',
             popover: {
-              title: "Y la barra de abajo, todo el presupuesto",
-              description: "Material, mano de obra, costo de ejecución, precio sin IVA, el IVA, el total con IVA y el margen — los siete, siempre a la vista y recalculados solos con cada ítem que agregás.",
+              title: "El resumen de todo el presupuesto",
+              description: "En la barra de abajo están los siete números clave: material, mano de obra, costo de ejecución, precio sin IVA, el IVA, el total con IVA y el margen. Se recalculan solos con cada ítem que agregás.",
               side: "left",
             },
           },
@@ -159,8 +200,8 @@ export default function DemoTour() {
             element: '[data-tour="boton-cerrar"]',
             onHighlighted: avanzarAlClickEn('[data-tour="boton-cerrar"]'),
             popover: {
-              title: "Cerrá el presupuesto",
-              description: "Al cerrarlo, los precios quedan congelados y se habilita planificar y ejecutar la obra. Hacé click en \"Cerrar\".",
+              title: "Cerrar el presupuesto",
+              description: 'Al cerrarlo, los precios quedan congelados y se habilitan la planificación y la certificación de la obra. Hacé click en "Cerrar".',
               side: "bottom",
             },
           },
@@ -168,15 +209,15 @@ export default function DemoTour() {
             element: '[data-tour="cerrar-metodologia"]',
             onHighlighted: avanzarAlClickEn('[data-tour="cerrar-metodologia"]'),
             popover: {
-              title: "¿Cómo vas a cobrar?",
-              description: 'Elegí "Por avance de obra" — es la más común. Después se puede cambiar desde la gestión de obra.',
+              title: "¿Cómo se va a cobrar esta obra?",
+              description: '"Por avance de obra" es la forma más común: se mide el avance y se emiten certificados. Esto se puede cambiar más adelante desde la gestión de obra.',
             },
           },
           {
             popover: {
-              title: "¡Presupuesto cerrado!",
-              description: "Ahora se desbloquea la planificación de la obra, la curva de inversión y el listado de materiales. Vamos a verlas.",
-              doneBtnText: "Ver planificación",
+              title: "Presupuesto cerrado",
+              description: "A partir de ahora están disponibles la planificación de la obra, la curva de inversión, el listado de materiales y la certificación. Vamos a recorrerlas.",
+              doneBtnText: "Ver la planificación",
               onDoneClick: () => navigate(rutaGantt),
             },
           },
@@ -186,16 +227,16 @@ export default function DemoTour() {
             element: '[data-tour="generar-gantt"]',
             onHighlighted: avanzarAlClickEn('[data-tour="generar-gantt"]', 1500),
             popover: {
-              title: "Generá el cronograma",
-              description: 'Hacé click en "⚡ Generar": arma las tareas y las fechas solo, a partir de los ítems del presupuesto.',
+              title: "Generar el cronograma",
+              description: 'Hacé click en "Generar": arma las tareas y las fechas automáticamente, a partir de los ítems del presupuesto.',
               side: "bottom",
             },
           },
           {
             popover: {
-              title: "¡Listo, tu obra planificada!",
-              description: "Las tareas, las fechas y las dependencias salieron solas del presupuesto. Podés arrastrar las barras para ajustarlas, y de acá sale la curva de inversión.",
-              doneBtnText: "Ver curva de inversión",
+              title: "La obra, planificada",
+              description: "Las tareas, las fechas y las dependencias salieron solas del presupuesto. Las barras se pueden arrastrar para ajustar fechas a mano. De acá sale, también, la curva de inversión.",
+              doneBtnText: "Ver la curva de inversión",
               onDoneClick: () => navigate(rutaCurva),
             },
           },
@@ -204,8 +245,8 @@ export default function DemoTour() {
           {
             popover: {
               title: "La curva de inversión",
-              description: "Cuánto vas a necesitar invertir mes a mes, calculado solo a partir del Gantt y el presupuesto.",
-              doneBtnText: "Ver materiales",
+              description: "Muestra cuánto dinero hace falta cada mes para sostener la obra, calculado automáticamente a partir del cronograma y el presupuesto.",
+              doneBtnText: "Ver el listado de materiales",
               onDoneClick: () => navigate(rutaMateriales),
             },
           },
@@ -213,10 +254,37 @@ export default function DemoTour() {
         materiales: [
           {
             popover: {
-              title: "Listado de materiales",
-              description: "Todo lo que hay que comprar, sumado automáticamente desde el presupuesto — ideal para pedir cotizaciones a proveedores.",
-              doneBtnText: "Quiero registrarme",
-              onDoneClick: irARegistro,
+              title: "El listado de materiales",
+              description: "Es la suma de todos los materiales del presupuesto, agrupados y con cantidades — listo para pedirle cotizaciones a los proveedores.",
+              doneBtnText: "Ver un certificado",
+              onDoneClick: () => navigate(rutaCertificado),
+            },
+          },
+        ],
+        certificado: [
+          {
+            element: '[data-tour="nuevo-certificado"]',
+            onHighlighted: avanzarAlClickEn('[data-tour="nuevo-certificado"]'),
+            popover: {
+              title: "Certificar el avance de obra",
+              description: 'Cada cierto tiempo se certifica cuánto se avanzó, y eso define cuánto corresponde cobrarle al cliente. Hacé click en "Nuevo certificado" para ver cómo se arma uno.',
+              side: "bottom",
+            },
+          },
+          {
+            element: '[data-tour="emitir-certificado"]',
+            onHighlighted: avanzarAlClickEn('[data-tour="emitir-certificado"]', 600),
+            popover: {
+              title: "Un certificado por ítem",
+              description: "Acá se carga el % de avance de cada ítem en este período; el sistema calcula el acumulado solo. Emitilo para ver el resultado.",
+            },
+          },
+          {
+            popover: {
+              title: "Así quedan los entregables de la obra",
+              description: "Presupuesto, planificación, curva de inversión, materiales y certificados — todo en un solo lugar, conectado. Vamos a verlo junto.",
+              doneBtnText: "Ver el resumen",
+              onDoneClick: () => navigate(`/cotizador/presupuesto/${presuId}/resumen-demo`),
             },
           },
         ],
