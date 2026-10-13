@@ -1229,7 +1229,7 @@ ${firma}
           )}
 
           <div className={`sidebar-presupuesto${sidebarOpen ? ' open' : ''}`}
-            data-open={sidebarOpen ? 'true' : 'false'}
+            data-open={sidebarOpen ? 'true' : 'false'} data-tour="agregar-item-panel"
             style={{
               width: 280,
               background: 'var(--surface)',

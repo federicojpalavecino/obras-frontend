@@ -43,6 +43,9 @@ export default function DemoTour() {
         doneBtnText: "Listo",
         allowClose: true,
         overlayOpacity: 0.65,
+        // Un click afuera del elemento resaltado no tiene que cerrar el tour
+        // de golpe: solo se avanza con el botón.
+        overlayClickBehavior: "none",
         onCloseClick: () => {
           sessionStorage.removeItem("obras_tour_demo");
           sessionStorage.removeItem("obras_tour_presupuesto_id");
@@ -56,10 +59,10 @@ export default function DemoTour() {
             },
           },
           {
-            element: '[data-tour="buscar-item"]',
+            element: '[data-tour="agregar-item-panel"]',
             popover: {
               title: "Agregá un ítem",
-              description: 'Buscá algo como "mampostería" o "contrapiso" y hacé click en un resultado para agregarlo.',
+              description: 'Buscá algo como "mampostería" o "contrapiso", o elegí cualquiera de la lista, y hacé click para agregarlo al presupuesto.',
               side: "right",
             },
           },
