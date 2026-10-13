@@ -90,6 +90,10 @@ export default function DemoTour() {
         // Un click afuera del elemento resaltado no cierra el tour de golpe:
         // solo se avanza con la acción real o el botón.
         overlayClickBehavior: "none",
+        // driver.js usa Enter para su propio botón "Siguiente" — eso se come
+        // el Enter que el paso de cantidad necesita para confirmar el valor
+        // (dispara el blur real, que es lo que guarda y avanza). Lo apagamos.
+        allowKeyboardControl: false,
         waitForElement: 1500,
         onCloseClick: () => { terminarTour(); tourDriver.destroy(); },
       };
