@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
-import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, MessageSquare, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X, Package, Gift, Zap, CreditCard } from "lucide-react";
+import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, MessageSquare, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X, Package, Gift, Zap, CreditCard, PlayCircle } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
@@ -608,6 +608,15 @@ export default function App() {
 
   useEffect(()=>{
     const restore = async () => {
+      // Si hay un tour de demo a medias y la pagina se recargo (este efecto
+      // solo corre una vez al abrir la app — una navegacion normal adentro
+      // de React Router no lo vuelve a disparar), no tiene sentido retomar
+      // el presupuesto tal como quedo: se manda a /demo de nuevo, que
+      // resetea y siembra todo de cero.
+      if (sessionStorage.getItem("obras_tour_demo") === "1" && window.location.pathname !== "/demo" && window.location.pathname !== "/demo/") {
+        window.location.href = "/demo";
+        return;
+      }
       const savedSession = localStorage.getItem("obras_session");
       const savedCliente = localStorage.getItem("obras_cliente");
       const savedEstudio = localStorage.getItem("obras_estudio");
@@ -865,8 +874,17 @@ export default function App() {
   if (!user) return (
     <div style={{background:"#f8f9fa",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Syne',sans-serif"}}>
       <div style={{width:"100%",maxWidth:360}}>
+        <style>{`@keyframes faimDemoGlow { 0%,100% { box-shadow: 0 8px 24px rgba(5,150,105,0.35), 0 0 0 0 rgba(5,150,105,0.4); } 50% { box-shadow: 0 8px 28px rgba(5,150,105,0.45), 0 0 0 8px rgba(5,150,105,0); } }`}</style>
         <div style={{fontSize:42,fontWeight:800,color:"#059669",letterSpacing:"-1px",marginBottom:4}}>FAIM OBRAS</div>
-        <div style={{fontSize:12,color:"#6b7280",marginBottom:32,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"2px"}}>GESTIÓN PARA ESTUDIOS Y EMPRESAS</div>
+        <div style={{fontSize:12,color:"#6b7280",marginBottom:20,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"2px"}}>GESTIÓN PARA ESTUDIOS Y EMPRESAS</div>
+
+        {/* CTA de la demo: el camino de menor fricción, así que va primero y
+            bien visible — no un link chiquito abajo del login. */}
+        <button onClick={entrarDemo} disabled={demoLoading} style={{width:"100%",padding:"16px",marginBottom:10,borderRadius:14,border:"none",cursor:"pointer",background:"linear-gradient(135deg, #059669 0%, #047857 100%)",color:"#fff",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15.5,display:"flex",alignItems:"center",justifyContent:"center",gap:9,opacity:demoLoading?0.75:1,animation:demoLoading?"none":"faimDemoGlow 2.2s ease-in-out infinite"}}>
+          <PlayCircle size={20} strokeWidth={2.25} />
+          {demoLoading ? "Entrando a la demo..." : "Probar la demo guiada"}
+        </button>
+        <div style={{textAlign:"center",fontSize:11.5,color:"#9ca3af",marginBottom:22}}>Sin registrarte · con datos de ejemplo · 5 minutos</div>
 
         {/* Tabs */}
         <div style={{display:"flex",gap:4,marginBottom:24,background:"#f1f3f5",borderRadius:8,padding:4}}>
@@ -896,9 +914,6 @@ export default function App() {
             </div>
             {error&&<div style={{fontSize:13,color:"#f87171",marginBottom:12,textAlign:"center"}}>{error}</div>}
             <button onClick={login} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center"}}>Ingresar</button>
-            <button onClick={entrarDemo} disabled={demoLoading} style={{width:"100%",padding:"11px",marginTop:10,fontSize:13.5,fontWeight:700,fontFamily:"'Syne',sans-serif",borderRadius:8,border:"1px solid #e0e0e8",background:"transparent",color:"#059669",cursor:"pointer",opacity:demoLoading?0.6:1}}>
-              {demoLoading ? "Entrando..." : "Probar demo guiada, sin registrarme"}
-            </button>
           </>
         ) : (
           <>
