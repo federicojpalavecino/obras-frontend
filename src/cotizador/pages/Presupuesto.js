@@ -1173,7 +1173,7 @@ ${firma}
                 <button className="btn btn-warn btn-sm" onClick={handleReabrir}><Unlock size={14} /> Reabrir</button>
               </>
             ) : (
-              <button className="btn btn-warn btn-sm" onClick={handleCerrar}><Lock size={14} /> Cerrar</button>
+              <button data-tour="boton-cerrar" className="btn btn-warn btn-sm" onClick={handleCerrar}><Lock size={14} /> Cerrar</button>
             )}
           </div>
 
@@ -1531,7 +1531,7 @@ ${firma}
                     {categorias.map(c => <option key={c.id} value={c.id}>{c.codigo || c.numero ? `${c.codigo || c.numero}. ` : ""}{c.nombre}</option>)}
                   </select>
                 </div>
-                <div style={{ flex: 1, overflowY: 'auto' }}>
+                <div data-tour="lista-items" style={{ flex: 1, overflowY: 'auto' }}>
                   {itemsFiltrados.slice(0, 80).map(item => (
                     <div key={item.id}
                       style={{ padding: '7px 14px', borderBottom: '1px solid rgba(46,46,56,0.5)', cursor: 'pointer' }}
@@ -1870,7 +1870,7 @@ ${firma}
                                       </div>
                                     ) : (
                                       <>
-                                        <span style={{ fontSize: 12, lineHeight: 1.3, cursor: !cerrado ? 'pointer' : 'default', color: isSelected ? 'var(--accent2)' : 'inherit' }}
+                                        <span data-tour="nombre-item" style={{ fontSize: 12, lineHeight: 1.3, cursor: !cerrado ? 'pointer' : 'default', color: isSelected ? 'var(--accent2)' : 'inherit' }}
                                           onClick={() => { if(cerrado) return; if(linea.tipo === 'catalogo') toggleLinea(linea); else { setModoLibre(linea.costo_directo_libre > 0 ? 'global' : 'desglosado'); setItemLibre({ ...linea, _editId: linea.id }); setModalLibre(true); } }}
                                           title={!cerrado ? (linea.tipo === 'catalogo' ? 'Click para editar análisis de costos' : 'Click para editar ítem') : ''}>
                                           {linea.nombre_override || linea.nombre_item || linea.nombre_libre}
@@ -1911,7 +1911,7 @@ ${firma}
                                     {linea.cantidad} {linea.unidad_item || linea.unidad_libre || ''}
                                   </span>
                                 ) : (
-                                <input key={`cant-${linea.id}-${linea.cantidad}`} type="number" min="0" step="0.01" defaultValue={linea.cantidad} disabled={cerrado}
+                                <input data-tour="cantidad-item" key={`cant-${linea.id}-${linea.cantidad}`} type="number" min="0" step="0.01" defaultValue={linea.cantidad} disabled={cerrado}
                                   style={{ width: 55, background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 4, padding: '3px 5px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'right' }}
                                   onBlur={e => handleCantidad(linea.id, e.target.value)} />
                                 )}
@@ -2311,7 +2311,7 @@ ${firma}
                   ['desembolsos', 'Por desembolsos pactados',
                    'Etapas acordadas con el cliente, cada una con su monto y su fecha. Sin certificar.'],
                 ].map(([valor, titulo, ayuda]) => (
-                  <button key={valor} onClick={() => confirmarCierre(valor)}
+                  <button key={valor} data-tour={valor === 'certificacion' ? 'cerrar-metodologia' : undefined} onClick={() => confirmarCierre(valor)}
                     style={{ textAlign: 'left', background: 'var(--surface2)', border: '1px solid var(--border)',
                              borderRadius: 10, padding: '14px 16px', cursor: 'pointer', font: 'inherit' }}>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{titulo}</div>

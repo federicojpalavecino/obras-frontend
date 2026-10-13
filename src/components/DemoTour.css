@@ -1,0 +1,76 @@
+/* Pinta el tour guiado (driver.js) con la estética de FAIM: Syne, acento
+   verde, bordes redondeados — en vez del look gris por defecto. */
+.driver-popover {
+  font-family: 'Syne', sans-serif;
+  border-radius: 14px;
+  padding: 20px 22px;
+  max-width: 320px;
+  min-width: 270px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  border: 1px solid #e0e0e8;
+  animation: faimTourPop .25s ease-out;
+}
+@keyframes faimTourPop {
+  0% { opacity: 0; transform: scale(.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.driver-popover-title {
+  color: #1a1a2e;
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.3px;
+}
+.driver-popover-description {
+  color: #6b7280;
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin-top: 6px;
+}
+.driver-popover-progress-text {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: #9ca3af;
+}
+.driver-popover-footer-btn {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 12.5px;
+  border-radius: 8px;
+  padding: 7px 14px;
+  border: 1px solid #e0e0e8;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.driver-popover-footer-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+.driver-popover-next-btn, .driver-popover-done-btn {
+  background: #059669 !important;
+  color: #fff !important;
+  border-color: #059669 !important;
+}
+.driver-popover-prev-btn {
+  background: #fff !important;
+  color: #1a1a2e !important;
+}
+.driver-popover-arrow-side-left.driver-popover-arrow {
+  border-right-color: #fff !important;
+}
+.driver-popover-arrow-side-right.driver-popover-arrow {
+  border-left-color: #fff !important;
+}
+.driver-popover-arrow-side-top.driver-popover-arrow {
+  border-bottom-color: #fff !important;
+}
+.driver-popover-arrow-side-bottom.driver-popover-arrow {
+  border-top-color: #fff !important;
+}
+/* El halo verde pulsante alrededor del elemento resaltado: más vivo que el
+   resaltado estático por defecto. */
+.driver-active-element {
+  animation: faimTourPulse 1.8s ease-in-out infinite;
+}
+@keyframes faimTourPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(5,150,105,0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(5,150,105,0); }
+}
