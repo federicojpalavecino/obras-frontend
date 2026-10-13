@@ -28,6 +28,7 @@ import Presentacion from "./pages/Presentacion";
 import DemoPortal from "./pages/DemoPortal";
 import Obra from "./pages/Obra";
 import Mensajes from "./pages/Mensajes";
+import DemoTour from "./components/DemoTour";
 import Asistente from "./components/Asistente";
 import Deshacer from "./components/Deshacer";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -108,7 +109,7 @@ function PantallaVentaPostRegistro({ tenant, token, onContinuar, onLogout }) {
   const [vista, setVista] = useState("inicio"); // inicio | transferencia
   const [loading, setLoading] = useState(false);
   const precioBase = tenant?.precio_mensual || 57000;
-  const precioPromo = Math.round(precioBase * 0.7 / 10) * 10;
+  const precioPromo = Math.round(precioBase * (35000 / 57000) / 10) * 10; // mismo precio promo que whatsapp_bot/config.PROMO_PRECIO
 
   const suscribirse = async () => {
     setLoading(true);
@@ -146,7 +147,7 @@ function PantallaVentaPostRegistro({ tenant, token, onContinuar, onLogout }) {
         {vista === "inicio" ? (
           <>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.red, color: "#fff", fontSize: 12, fontWeight: 800, padding: "6px 14px", borderRadius: 20, margin: "0 auto 18px", animation: "faimPulse 1.8s ease-in-out infinite" }}>
-              <Zap size={13} strokeWidth={2.5} /> 30% OFF EL PRIMER MES · SOLO HOY
+              <Zap size={13} strokeWidth={2.5} /> $ {precioPromo.toLocaleString("es-AR")}/MES LOS PRIMEROS 3 MESES · SOLO HOY
             </div>
 
             <div style={{ textAlign: "center", marginBottom: 20 }}>
@@ -156,7 +157,7 @@ function PantallaVentaPostRegistro({ tenant, token, onContinuar, onLogout }) {
               <div style={{ fontSize: 44, fontWeight: 800, color: C.accent, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "-1px", animation: "faimFloat 2.6s ease-in-out infinite" }}>
                 $ {precioPromo.toLocaleString("es-AR")}
               </div>
-              <div style={{ fontSize: 12, color: C.muted }}>tu primer mes · después $ {precioBase.toLocaleString("es-AR")}/mes</div>
+              <div style={{ fontSize: 12, color: C.muted }}>tus primeros 3 meses con débito automático · después $ {precioBase.toLocaleString("es-AR")}/mes</div>
             </div>
 
             <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
@@ -177,7 +178,7 @@ function PantallaVentaPostRegistro({ tenant, token, onContinuar, onLogout }) {
             </div>
 
             <button onClick={suscribirse} disabled={loading} style={{ width: "100%", padding: 15, borderRadius: 12, border: "none", cursor: "pointer", background: C.accent, color: "#fff", fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.7 : 1, animation: loading ? "none" : "faimGlow 2.2s ease-in-out infinite", marginBottom: 10 }}>
-              <CreditCard size={17} strokeWidth={2.5} /> {loading ? "Generando link..." : "Suscribirme ahora con 30% OFF"}
+              <CreditCard size={17} strokeWidth={2.5} /> {loading ? "Generando link..." : "Suscribirme ahora con débito automático"}
             </button>
             <button onClick={() => setVista("transferencia")} style={{ width: "100%", padding: 11, borderRadius: 12, border: `1px solid ${C.border}`, cursor: "pointer", background: "transparent", color: C.text, fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 13.5, marginBottom: 14 }}>
               Prefiero pagar por transferencia
@@ -191,7 +192,7 @@ function PantallaVentaPostRegistro({ tenant, token, onContinuar, onLogout }) {
         ) : (
           <>
             <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12, padding: "16px 18px", marginBottom: 18 }}>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>Con el mismo 30% off del primer mes:</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>Con el precio promo, solo tu primer mes (después $ {precioBase.toLocaleString("es-AR")}/mes):</div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <span style={{ fontSize: 13, color: C.muted }}>Monto</span>
                 <span style={{ fontSize: 18, fontWeight: 800, fontFamily: "'IBM Plex Mono', monospace" }}>$ {precioPromo.toLocaleString("es-AR")}</span>
@@ -446,6 +447,7 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
 
   return (
     <div style={{minHeight:"100dvh", background:C.bg, color:C.text, fontFamily:"'Syne', sans-serif"}}>
+      <DemoTour />
       {!isCotizador && (
         <div className="header" style={{borderBottom:"1px solid " + C.border, background:C.surface, padding:"0 clamp(16px,4vw,32px)", height:52, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
           <div onClick={()=>navigate("/")} style={{cursor:"pointer", display:"flex", alignItems:"center", gap:8}}>
@@ -539,6 +541,18 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   );
 }
 
+// ── Entrada directa a /demo ─────────────────────────────────────────────────
+// Link público (ads, WhatsApp, etc.): arranca la demo sola, sin login.
+function EntradaDemo({ onEntrar, error }) {
+  useEffect(() => { onEntrar(); }, []); // eslint-disable-line
+  return (
+    <div style={{background:"#f8f9fa",height:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14,fontFamily:"'Syne',sans-serif"}}>
+      <div style={{fontSize:32,fontWeight:800,color:"#059669",letterSpacing:-1}}>FAIM OBRAS</div>
+      <div style={{fontSize:13,color:"#6b7280"}}>{error || "Preparando tu demo guiada…"}</div>
+    </div>
+  );
+}
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [tenant, setTenant] = useState(null);
@@ -554,13 +568,15 @@ export default function App() {
   // avisa que ese nombre de usuario esta repetido entre estudios.
   const [estudioLogin, setEstudioLogin] = useState("");
   const [pideEstudio, setPideEstudio] = useState(false);
-  const [modo, setModo] = useState("login"); // "login" | "registro"
+  // El tour del demo manda para acá con ?registro=1 al terminar.
+  const [modo, setModo] = useState(() => new URLSearchParams(window.location.search).get("registro") ? "registro" : "login"); // "login" | "registro"
   const [regNombre, setRegNombre] = useState("");
   const [regEstudio, setRegEstudio] = useState("");
   const [regLoading, setRegLoading] = useState(false);
   const [anuncio, setAnuncio] = useState(null);
   const [recienRegistrado, setRecienRegistrado] = useState(false);
   const [reunionAgendada, setReunionAgendada] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   const checkSuscripcion = async () => {
     try {
@@ -772,14 +788,43 @@ export default function App() {
     setRegLoading(false);
   };
 
+  // Tour guiado público: entra directo al tenant demo (sin registro) y marca
+  // la bandera que arranca el tour apenas carga la app.
+  const entrarDemo = async () => {
+    setError(""); setDemoLoading(true);
+    try {
+      const res = await api.post('/demo/entrar');
+      const data = res.data;
+      const token = data.token;
+      localStorage.setItem("obras_token", token);
+      localStorage.setItem("obras_session", JSON.stringify({ user: data.usuario, tenant: data.tenant, token }));
+      sessionStorage.setItem("obras_tour_demo", "1");
+      if (data.presupuesto_id) sessionStorage.setItem("obras_tour_presupuesto_id", String(data.presupuesto_id));
+      if (data.tenant) setTenant(data.tenant);
+      await checkSuscripcion();
+      // Si se entró por /demo, dejar la URL en "/" para que el router normal
+      // (y el tour) tomen desde ahí.
+      if (window.location.pathname.startsWith("/demo")) window.history.replaceState(null, "", "/");
+      setUser(data.usuario);
+    } catch { setError("No se pudo iniciar la demo. Probá de nuevo."); }
+    setDemoLoading(false);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("obras_token");
     localStorage.removeItem("obras_session");
     localStorage.removeItem("obras_cliente");
     localStorage.removeItem("obras_estudio");
     sessionStorage.removeItem("susc_reload");
+    sessionStorage.removeItem("obras_tour_demo");
     setUser(null); setClienteInfo(null); setEstudioInfo(null); setSuscripcion(null); setTenant(null);
   };
+
+  // Link directo a la demo guiada (lo que se comparte en ads/WhatsApp): entra
+  // sola, sin pasar por el botón del login.
+  if (!user && ["/demo", "/demo/"].includes(window.location.pathname)) {
+    return <EntradaDemo onEntrar={entrarDemo} error={error} />;
+  }
 
   // Super admin panel — rutas directas
   if (window.location.pathname === "/admin-panel" || window.location.pathname === "/admin") {
@@ -841,6 +886,9 @@ export default function App() {
             </div>
             {error&&<div style={{fontSize:13,color:"#f87171",marginBottom:12,textAlign:"center"}}>{error}</div>}
             <button onClick={login} className="btn btn-primary" style={{width:"100%",padding:"12px",marginTop:8,fontSize:15,justifyContent:"center"}}>Ingresar</button>
+            <button onClick={entrarDemo} disabled={demoLoading} style={{width:"100%",padding:"11px",marginTop:10,fontSize:13.5,fontWeight:700,fontFamily:"'Syne',sans-serif",borderRadius:8,border:"1px solid #e0e0e8",background:"transparent",color:"#059669",cursor:"pointer",opacity:demoLoading?0.6:1}}>
+              {demoLoading ? "Entrando..." : "Probar demo guiada, sin registrarme"}
+            </button>
           </>
         ) : (
           <>

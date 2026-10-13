@@ -1522,7 +1522,7 @@ ${firma}
                   )}
                   <div style={{ position: 'relative', marginBottom: 7 }}>
                     <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
-                    <input className="input" style={{ paddingLeft: 26, fontSize: 11 }} placeholder="Buscar ítem..."
+                    <input className="input" data-tour="buscar-item" style={{ paddingLeft: 26, fontSize: 11 }} placeholder="Buscar ítem..."
                       value={busqueda} onChange={e => setBusqueda(e.target.value)} />
                   </div>
                   <select className="input" style={{ fontSize: 11 }} value={catSeleccionada || ''}
@@ -2017,7 +2017,7 @@ ${firma}
                     {/* La etiqueta al lado del número, no arriba: la barra baja
                         de dos renglones a uno y se recupera media pulgada de
                         pantalla en cada obra. */}
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                    <div data-tour={t.label === 'Total c/IVA' ? 'total-obra' : undefined} style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
                       <span style={{ fontSize: 9, letterSpacing: .6, textTransform: 'uppercase', color: 'var(--muted)' }}>{t.label}</span>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: t.size, fontWeight: 700, color: t.color }}>{t.extra || fmt(t.val)}</span>
                     </div>
