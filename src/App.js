@@ -608,15 +608,26 @@ export default function App() {
 
   useEffect(()=>{
     const restore = async () => {
-      // Si hay un tour de demo a medias y la pagina se recargo (este efecto
-      // solo corre una vez al abrir la app — una navegacion normal adentro
-      // de React Router no lo vuelve a disparar), no tiene sentido retomar
-      // el presupuesto tal como quedo: se manda a /demo de nuevo, que
-      // resetea y siembra todo de cero.
-      if (sessionStorage.getItem("obras_tour_demo") === "1" && window.location.pathname !== "/demo" && window.location.pathname !== "/demo/") {
-        window.location.href = "/demo";
-        return;
-      }
+      // La sesion del tenant demo no tiene que sobrevivir a un refresh (este
+      // efecto solo corre una vez al abrir la app — una navegacion normal
+      // adentro de React Router no lo vuelve a disparar): ni retomando el
+      // presupuesto tal como quedo, ni arrancando una demo nueva sola. Un
+      // refresh durante o despues del tour cierra la sesion directamente y
+      // deja ver el login, como si nunca hubiese entrado.
+      try {
+        const s = JSON.parse(localStorage.getItem("obras_session") || "null");
+        if (s?.tenant?.es_demo) {
+          localStorage.removeItem("obras_token");
+          localStorage.removeItem("obras_session");
+          localStorage.removeItem("obras_tenant");
+          sessionStorage.removeItem("obras_tour_demo");
+          sessionStorage.removeItem("obras_tour_presupuesto_id");
+          sessionStorage.removeItem("obras_tour_registro");
+          if (window.location.pathname !== "/") window.history.replaceState(null, "", "/");
+          setLoading(false);
+          return;
+        }
+      } catch {}
       const savedSession = localStorage.getItem("obras_session");
       const savedCliente = localStorage.getItem("obras_cliente");
       const savedEstudio = localStorage.getItem("obras_estudio");

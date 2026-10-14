@@ -2196,7 +2196,7 @@ ${firma}
               <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}><b>{itemPendiente.nombre}</b></div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>Elegí el rubro destino dentro de este presupuesto.</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
-                <button
+                <button data-tour="rubro-original"
                   onClick={() => handleAgregarItem(itemPendiente, null)}
                   style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface2)', cursor: 'pointer', textAlign: 'left' }}>
                   <div style={{ fontSize: 12, fontWeight: 600 }}>Rubro original del catálogo</div>

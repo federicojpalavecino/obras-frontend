@@ -150,6 +150,18 @@ export default function DemoTour() {
               },
             },
             {
+              // Solo aparece si el ítem elegido es de un rubro que todavía
+              // no está en este presupuesto (como la obra ya trae ítems
+              // cargados, esto pasa casi siempre). Si no aparece,
+              // skipMissingElement salta directo al paso siguiente.
+              element: '[data-tour="rubro-original"]',
+              onHighlighted: avanzarAlClickEn('[data-tour="rubro-original"]'),
+              popover: {
+                title: "¿En qué rubro va?",
+                description: "El sistema propone agruparlo en su rubro de catálogo. Hacé click para confirmarlo — después se puede mover a otro rubro cuando quieras.",
+              },
+            },
+            {
               element: () => ultimo('[data-tour="cantidad-item"]'),
               onHighlighted: avanzarAlCambiarEn('[data-tour="cantidad-item"]'),
               popover: {
