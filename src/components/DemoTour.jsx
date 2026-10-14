@@ -41,11 +41,13 @@ export default function DemoTour() {
 
     const segmento = segmentoDeRuta(location.pathname);
     if (!segmento) {
+      driverActivoRef.current?.destroy();
       setMostrarBoton(false);
       if (location.pathname !== rutaPresu) navigate(rutaPresu, { replace: true });
       return;
     }
     if (segmento === "resumen") {
+      driverActivoRef.current?.destroy();
       setMostrarBoton(false);
       sessionStorage.removeItem("obras_tour_demo");
       sessionStorage.removeItem("obras_tour_presupuesto_id");
