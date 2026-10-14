@@ -157,6 +157,7 @@ export default function DemoTour() {
                 title: "Agregar un ítem al presupuesto",
                 description: 'Buscá, por ejemplo, "contrapiso" o "revoque interior", o elegí cualquier ítem de la lista. Hacé click sobre uno para agregarlo.',
                 side: "right",
+                showButtons: ["previous", "close"],
               },
             },
             {
@@ -169,6 +170,7 @@ export default function DemoTour() {
               popover: {
                 title: "¿En qué rubro va?",
                 description: "El sistema propone agruparlo en su rubro de catálogo. Hacé click para confirmarlo — después se puede mover a otro rubro cuando quieras.",
+                showButtons: ["previous", "close"],
               },
             },
             {
@@ -178,6 +180,7 @@ export default function DemoTour() {
                 title: "Cargar la cantidad",
                 description: "Escribí un número y apretá Enter. El costo y el precio de ese ítem se recalculan solos.",
                 side: "left",
+                showButtons: ["previous", "close"],
               },
             },
             {
@@ -187,6 +190,7 @@ export default function DemoTour() {
                 title: "La calculadora de cómputos",
                 description: 'Si la cantidad sale de medir distintos sectores (frente, patio, cisterna), hacé click en "cómputo": sumás cada medida por separado y el total se carga solo.',
                 side: "left",
+                showButtons: ["previous", "close"],
               },
             },
             {
@@ -214,6 +218,7 @@ export default function DemoTour() {
                 title: "El análisis de costos de un ítem",
                 description: "Hacé click en el nombre del ítem para ver exactamente de qué está hecho: qué materiales lleva, cuánta mano de obra y qué equipo.",
                 side: "right",
+                showButtons: ["previous", "close"],
               },
             },
             {
@@ -249,6 +254,7 @@ export default function DemoTour() {
                 title: "Cerrar el presupuesto",
                 description: 'Al cerrarlo, los precios quedan congelados y se habilitan la planificación y la certificación de la obra. Hacé click en "Cerrar".',
                 side: "bottom",
+                showButtons: ["previous", "close"],
               },
             },
             {
@@ -257,6 +263,7 @@ export default function DemoTour() {
               popover: {
                 title: "¿Cómo se va a cobrar esta obra?",
                 description: '"Por avance de obra" es la forma más común: se mide el avance y se emiten certificados. Esto se puede cambiar más adelante desde la gestión de obra.',
+                showButtons: ["previous", "close"],
               },
             },
             {
@@ -276,6 +283,7 @@ export default function DemoTour() {
                 title: "Generar el cronograma",
                 description: 'Hacé click en "Generar": arma las tareas y las fechas automáticamente, a partir de los ítems del presupuesto.',
                 side: "bottom",
+                showButtons: ["previous", "close"],
               },
             },
             {
@@ -333,6 +341,7 @@ export default function DemoTour() {
                 title: "Certificar el avance de obra",
                 description: 'Cada cierto tiempo se certifica cuánto se avanzó, y eso define cuánto corresponde cobrarle al cliente. Hacé click en "Nuevo certificado" para ver cómo se arma uno.',
                 side: "bottom",
+                showButtons: ["previous", "close"],
               },
             },
             {
@@ -341,6 +350,7 @@ export default function DemoTour() {
               popover: {
                 title: "Un certificado por ítem",
                 description: "Acá se carga el % de avance de cada ítem en este período; el sistema calcula el acumulado solo. Emitilo para ver el resultado.",
+                showButtons: ["previous", "close"],
               },
             },
             {
