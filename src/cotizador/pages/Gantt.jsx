@@ -1195,7 +1195,7 @@ export default function Gantt() {
           <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/cotizador/presupuesto/${id}`)}>
             ← Volver
           </button>
-          <div>
+          <div data-tour="gantt-titulo">
             <div style={{ fontWeight: 700, fontSize: 15 }}>{presupuesto?.nombre_obra}</div>
             <div style={{ fontSize: 11, color: 'var(--muted)' }}>Diagrama de Gantt</div>
           </div>

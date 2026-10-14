@@ -1825,7 +1825,7 @@ ${firma}
                         {rubro.lineas?.map(linea => {
                           const isSelected = lineaSeleccionada?.id === linea.id;
                           return (
-                            <tr key={linea.id} className="fila-item"
+                            <tr key={linea.id} className="fila-item" data-linea-id={linea.id}
                               style={{ borderBottom: '1px solid rgba(46,46,56,0.6)',
                                        background: isSelected ? 'rgba(167,139,250,0.08)' : (linea.marca_color ? hexToRgba(linea.marca_color, 0.10) : undefined) }}>
                               <td style={{ ...td, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }} className="col-cod">{linea.tipo === 'libre' ? '—' : linea.item_obra_id}</td>

@@ -279,7 +279,7 @@ export default function CurvaInversion() {
         {curva.length > 0 && (
           <>
             {/* Resumen */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+            <div data-tour="curva-resumen" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
               {[
                 { label: 'Total obra', val: fmtK(totalObra), color: 'var(--precio)' },
                 { label: 'Períodos', val: curva.length, color: 'var(--accent2)' },

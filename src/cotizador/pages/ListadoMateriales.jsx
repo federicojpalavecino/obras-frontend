@@ -328,7 +328,7 @@ export default function ListadoMateriales() {
       </div>
 
       {/* Resumen */}
-      <div style={{ padding: '12px 16px', display: 'flex', gap: 20, flexWrap: 'wrap', background: 'var(--surface2)', borderBottom: '1px solid var(--border)' }}>
+      <div data-tour="materiales-resumen" style={{ padding: '12px 16px', display: 'flex', gap: 20, flexWrap: 'wrap', background: 'var(--surface2)', borderBottom: '1px solid var(--border)' }}>
         <div style={{ fontSize: 12 }}><span style={{ color: 'var(--muted)' }}>Total materiales: </span><span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--precio)' }}>{fmt(data?.total_materiales)}</span></div>
         <div style={{ fontSize: 12 }}><span style={{ color: 'var(--muted)' }}>Ítems: </span><span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{materialesFiltrados.length}</span></div>
         <div style={{ fontSize: 12 }}><span style={{ color: 'var(--muted)' }}>Rubros: </span><span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{Object.keys(porRubro).length}</span></div>

@@ -474,7 +474,7 @@ ${certEg ? `
             <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/cotizador/presupuesto/${id}`)}>
               <ArrowLeft size={14} /> Volver
             </button>
-            <div>
+            <div data-tour="certificado-titulo">
               <div style={{ fontWeight: 800, fontSize: 16 }}>{presupuesto?.nombre_obra}</div>
               <div style={{ fontSize: 11, color: 'var(--muted)' }}>Certificados de avance</div>
             </div>

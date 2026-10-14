@@ -64,15 +64,25 @@ export default function DemoTour() {
         driverActivoRef.current?.destroy();
         let tourDriver; // los hooks de abajo lo referencian por closure
 
-        // La obra de ejemplo ya trae un par de ítems cargados (para que la
-        // tabla y la barra de totales no arranquen vacías) — por eso varios
-        // selectores tienen más de un match (uno por fila). El último es
-        // siempre el que la persona acaba de agregar con sus propias manos,
-        // que es al que se refiere el tour en estos pasos.
-        const ultimo = (selector) => {
-          const els = document.querySelectorAll(selector);
-          return els[els.length - 1] || null;
+        // La obra de ejemplo ya trae ítems cargados de varios rubros (para
+        // que la tabla y la barra de totales no arranquen vacías), así que
+        // "la última fila del DOM" no es confiable como "la que la persona
+        // acaba de agregar": el orden de las filas depende del rubro, no de
+        // cuándo se cargaron. En cambio, se guarda una foto de qué filas
+        // (por su data-linea-id) existían antes de agregar, y después se
+        // busca la que no estaba — esa sí es, sin importar en qué rubro
+        // haya caído.
+        let idsFilasAntes = null;
+        const capturarFilasExistentes = () => {
+          idsFilasAntes = new Set([...document.querySelectorAll('tr[data-linea-id]')].map(tr => tr.dataset.lineaId));
         };
+        const filaNueva = () => {
+          if (!idsFilasAntes) return null;
+          return [...document.querySelectorAll('tr[data-linea-id]')].find(tr => !idsFilasAntes.has(tr.dataset.lineaId)) || null;
+        };
+        const enFilaNueva = (selector) => () => filaNueva()?.querySelector(selector) || null;
+
+        const resolver = (sel) => typeof sel === "function" ? sel() : document.querySelector(sel);
 
         // Avanza el tour solo cuando se hace la acción real (click o blur en
         // el selector indicado) — pero SOLO si todavía estamos en el paso
@@ -89,8 +99,8 @@ export default function DemoTour() {
         // certificado): si esperábamos aunque sea un instante, React ya
         // había sacado el botón y el tour se quedaba sin elemento activo y
         // se cerraba solo en vez de pasar al siguiente paso.
-        const avanzarAlClickEn = (selector, soloUltimo = false) => () => {
-          const el = soloUltimo ? ultimo(selector) : document.querySelector(selector);
+        const avanzarAlClickEn = (sel) => () => {
+          const el = resolver(sel);
           if (!el) return;
           const indice = tourDriver.getActiveIndex();
           el.addEventListener("click", () => {
@@ -98,8 +108,8 @@ export default function DemoTour() {
             tourDriver.moveNext();
           }, { once: true });
         };
-        const avanzarAlCambiarEn = (selector, demora = 80) => () => {
-          const el = ultimo(selector);
+        const avanzarAlCambiarEn = (sel, demora = 80) => () => {
+          const el = resolver(sel);
           if (!el) return;
           const indice = tourDriver.getActiveIndex();
           const avanzar = () => {
@@ -142,10 +152,10 @@ export default function DemoTour() {
             },
             {
               element: '[data-tour="agregar-item-panel"]',
-              onHighlighted: avanzarAlClickEn('[data-tour="lista-items"]'),
+              onHighlighted: () => { capturarFilasExistentes(); avanzarAlClickEn('[data-tour="lista-items"]')(); },
               popover: {
                 title: "Agregar un ítem al presupuesto",
-                description: 'Buscá, por ejemplo, "mampostería", o elegí cualquier ítem de la lista. Hacé click sobre uno para agregarlo.',
+                description: 'Buscá, por ejemplo, "contrapiso" o "revoque interior", o elegí cualquier ítem de la lista. Hacé click sobre uno para agregarlo.',
                 side: "right",
               },
             },
@@ -162,8 +172,8 @@ export default function DemoTour() {
               },
             },
             {
-              element: () => ultimo('[data-tour="cantidad-item"]'),
-              onHighlighted: avanzarAlCambiarEn('[data-tour="cantidad-item"]'),
+              element: enFilaNueva('[data-tour="cantidad-item"]'),
+              onHighlighted: avanzarAlCambiarEn(enFilaNueva('[data-tour="cantidad-item"]')),
               popover: {
                 title: "Cargar la cantidad",
                 description: "Escribí un número y apretá Enter. El costo y el precio de ese ítem se recalculan solos.",
@@ -171,8 +181,8 @@ export default function DemoTour() {
               },
             },
             {
-              element: () => ultimo('[data-tour="boton-computo"]'),
-              onHighlighted: avanzarAlClickEn('[data-tour="boton-computo"]', true),
+              element: enFilaNueva('[data-tour="boton-computo"]'),
+              onHighlighted: avanzarAlClickEn(enFilaNueva('[data-tour="boton-computo"]')),
               popover: {
                 title: "La calculadora de cómputos",
                 description: 'Si la cantidad sale de medir distintos sectores (frente, patio, cisterna), hacé click en "cómputo": sumás cada medida por separado y el total se carga solo.',
@@ -198,8 +208,8 @@ export default function DemoTour() {
               },
             },
             {
-              element: () => ultimo('[data-tour="nombre-item"]'),
-              onHighlighted: avanzarAlClickEn('[data-tour="nombre-item"]', true),
+              element: enFilaNueva('[data-tour="nombre-item"]'),
+              onHighlighted: avanzarAlClickEn(enFilaNueva('[data-tour="nombre-item"]')),
               popover: {
                 title: "El análisis de costos de un ítem",
                 description: "Hacé click en el nombre del ítem para ver exactamente de qué está hecho: qué materiales lleva, cuánta mano de obra y qué equipo.",
@@ -269,9 +279,11 @@ export default function DemoTour() {
               },
             },
             {
+              element: '[data-tour="gantt-titulo"]',
               popover: {
                 title: "La obra, planificada",
-                description: "Las tareas, las fechas y las dependencias salieron solas del presupuesto. Las barras se pueden arrastrar para ajustar fechas a mano. De acá sale, también, la curva de inversión.",
+                description: "Cada barra es una tarea, con su fecha de inicio y su duración, calculadas a partir de la cantidad de cada ítem. Se pueden arrastrar para ajustar fechas a mano, y encadenar una tarea con otra para armar dependencias.",
+                side: "right",
                 doneBtnText: "Ver la curva de inversión",
                 onDoneClick: () => navigate(rutaCurva),
               },
@@ -279,9 +291,17 @@ export default function DemoTour() {
           ],
           curva: [
             {
+              element: '[data-tour="curva-resumen"]',
               popover: {
                 title: "La curva de inversión",
-                description: "Muestra cuánto dinero hace falta cada mes para sostener la obra, calculado automáticamente a partir del cronograma y el presupuesto.",
+                description: "El total de la obra, repartido mes a mes según cuándo transcurre cada tarea del cronograma — así sabés cuánto vas a necesitar en cada etapa, no solo el total.",
+                side: "right",
+              },
+            },
+            {
+              popover: {
+                title: "Barra por barra",
+                description: "Cada barra morada es lo que se desembolsa ese período; la línea es el acumulado. El total de cada ítem del presupuesto se reparte en los días que dura su tarea en el Gantt.",
                 doneBtnText: "Ver el listado de materiales",
                 onDoneClick: () => navigate(rutaMateriales),
               },
@@ -289,9 +309,17 @@ export default function DemoTour() {
           ],
           materiales: [
             {
+              element: '[data-tour="materiales-resumen"]',
               popover: {
                 title: "El listado de materiales",
-                description: "Es la suma de todos los materiales del presupuesto, agrupados y con cantidades — listo para pedirle cotizaciones a los proveedores.",
+                description: "Es la suma de todos los materiales de todos los ítems del presupuesto, agrupados por rubro y con sus cantidades — listo para pedirle cotizaciones a los proveedores.",
+                side: "bottom",
+              },
+            },
+            {
+              popover: {
+                title: "Con o sin precios",
+                description: '"Copiar todo" te lo pasa al portapapeles, y "Con precios" o "Pedido/Cotizar" lo imprimen en formatos distintos — uno para vos, otro para mandarle al proveedor.',
                 doneBtnText: "Ver un certificado",
                 onDoneClick: () => navigate(rutaCertificado),
               },
@@ -316,9 +344,11 @@ export default function DemoTour() {
               },
             },
             {
+              element: '[data-tour="certificado-titulo"]',
               popover: {
                 title: "Así quedan los entregables de la obra",
                 description: "Presupuesto, planificación, curva de inversión, materiales y certificados — todo en un solo lugar, conectado. Vamos a verlo junto.",
+                side: "right",
                 doneBtnText: "Ver el resumen",
                 onDoneClick: () => navigate(`/cotizador/presupuesto/${presuId}/resumen-demo`),
               },
