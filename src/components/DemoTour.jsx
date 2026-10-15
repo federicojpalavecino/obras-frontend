@@ -289,18 +289,49 @@ export default function DemoTour() {
               },
             },
             {
-              element: '[data-tour="gantt-titulo"]',
+              element: '[data-tour="gantt-barras"]',
               popover: {
-                title: "¿De dónde sale cada fecha?",
-                description: "Cada barra es una tarea. Su duración no es un número inventado: sale de la cantidad de ese ítem en el presupuesto y del rendimiento de la cuadrilla que lo hace — por eso un ítem con más cantidad tarda más días. Se pueden arrastrar para ajustar a mano.",
+                title: "Cada barra es una tarea",
+                description: "Su duración no es un número inventado: sale de la cantidad de ese ítem en el presupuesto y del rendimiento de la cuadrilla que lo hace — por eso un ítem con más cantidad tarda más días. Se pueden arrastrar para ajustar a mano, y encadenar una con otra para armar dependencias.",
                 side: "right",
+              },
+            },
+            {
+              element: '[data-tour="gantt-horas"]',
+              onHighlighted: avanzarAlClickEn('[data-tour="gantt-horas"]'),
+              popover: {
+                title: "Traé las horas de mano de obra",
+                description: 'Sin esto el plazo queda fijo. Hacé click en "Horas": trae la mano de obra del análisis de costos de cada ítem, para que sumar o sacar gente de la cuadrilla sí mueva las fechas.',
+                side: "bottom",
+                showButtons: ["previous", "close"],
+              },
+            },
+            {
+              element: '[data-tour="tarea-detalle"]',
+              onHighlighted: avanzarAlClickEn('[data-tour="tarea-detalle"]'),
+              popover: {
+                title: "El detalle de una tarea",
+                description: "Hacé click acá para ver, de esta tarea puntual, las fechas, quién la hace y cuánto se avanzó.",
+                side: "right",
+                showButtons: ["previous", "close"],
+              },
+            },
+            {
+              element: '[data-tour="cuadrilla"]',
+              popover: {
+                title: "Cuántos trabajan",
+                description: 'Sumá o sacá gente con los botones — como ya trajiste las horas, el plazo de esta tarea se acorta o se alarga solo, al toque.',
+                onNextClick: (el, step, { driver }) => {
+                  document.querySelector('[data-tour="cerrar-tarea-detalle"]')?.click();
+                  driver.moveNext();
+                },
               },
             },
             {
               element: '[data-tour="gantt-herramientas"]',
               popover: {
                 title: "Más herramientas de planificación",
-                description: '"Vincular" encadena una tarea con otra para que una dependa de la anterior, "Horas" trae la mano de obra del análisis de costos, "Días perdidos" carga lluvia o feriados, y "Obra real" compara lo planificado contra lo que pasó de verdad.',
+                description: '"Vincular" encadena una tarea con otra para que una dependa de la anterior, "Días perdidos" carga lluvia o feriados, y "Obra real" compara lo planificado contra lo que pasó de verdad.',
                 side: "bottom",
               },
             },
@@ -359,6 +390,23 @@ export default function DemoTour() {
               },
             },
             {
+              element: '[data-tour="rubro-materiales-header"]',
+              onHighlighted: avanzarAlClickEn('[data-tour="rubro-materiales-header"]'),
+              popover: {
+                title: "Cada rubro se puede abrir",
+                description: "Hacé click para ver el detalle completo de ese rubro: material por material.",
+                showButtons: ["previous", "close"],
+              },
+            },
+            {
+              element: '[data-tour="materiales-tabla"]',
+              popover: {
+                title: "Todo lo que necesitás para comprar",
+                description: "Código, cantidad ya con el desperdicio sumado, unidad, precio unitario, subtotal, la presentación comercial (bolsa, barra, rollo) y en qué ítems del presupuesto se usa cada material.",
+                side: "top",
+              },
+            },
+            {
               popover: {
                 title: "Con o sin precios",
                 description: '"Copiar todo" te lo pasa al portapapeles, y "Con precios" o "Pedido/Cotizar" lo imprimen en formatos distintos — uno para vos, otro para mandarle al proveedor.',
@@ -383,7 +431,7 @@ export default function DemoTour() {
               onHighlighted: avanzarAlCambiarEn('[data-tour="pct-avance-item"]'),
               popover: {
                 title: "Cargá cuánto avanzó",
-                description: 'Elegí un ítem y escribí cuánto se avanzó en este período — por ejemplo 30. Con eso alcanza: el sistema suma el acumulado solo, ítem por ítem.',
+                description: 'Escribí cuánto se avanzó este ítem en este período — por ejemplo 30 — y apretá Enter para confirmarlo. El acumulado se suma solo.',
                 showButtons: ["previous", "close"],
               },
             },

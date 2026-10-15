@@ -1256,7 +1256,7 @@ export default function Gantt() {
               </button>
             )}
             {tareas.length > 1 && (
-              <button className="btn btn-secondary btn-sm" onClick={cargarHoras}
+              <button data-tour="gantt-horas" className="btn btn-secondary btn-sm" onClick={cargarHoras}
                 title="Trae las horas de mano de obra desde el análisis de costos para calcular la duración por cuadrilla">⏱ Horas</button>
             )}
             {tareas.length > 1 && (
@@ -1664,7 +1664,7 @@ export default function Gantt() {
                 {/* Acceso visible al panel de la tarea. Antes solo se abria con
                     boton derecho sobre la barra, que no lo encuentra nadie. */}
                 {t.linea_id ? (
-                  <button title="Avance, quién la ejecuta, dividir o suspender"
+                  <button data-tour={t.id === filasVisibles.find(x => x.linea_id)?.id ? "tarea-detalle" : undefined} title="Avance, quién la ejecuta, dividir o suspender"
                     onClick={e => { e.stopPropagation();
                       setCargarAvanceEn(t);
                       setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0))); }}
@@ -1725,7 +1725,7 @@ export default function Gantt() {
           </div>
 
           {/* Grid */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div data-tour="gantt-barras" style={{ flex: 1, minWidth: 0 }}>
           <div ref={scrollRef} style={{ overflowX: 'auto', overflowY: 'hidden' }}>
             <div style={{ width: totalDias * PX_DIA, position: 'relative' }}>
               {/* Header fechas */}
@@ -2092,7 +2092,7 @@ export default function Gantt() {
       {/* MODAL EDITAR TAREA */}
       {/* Cargar avance desde el Gantt */}
       {cargarAvanceEn && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 600,
+        <div data-tour="cerrar-tarea-detalle" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 600,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={() => { setCargarAvanceEn(null); setFormPartir(null); setFormSuspender(null); setAvisoTarea(''); }}>
           <div style={{ background: 'var(--surface)', borderRadius: 14, padding: 22, width: 'min(430px,100%)',
@@ -2142,7 +2142,7 @@ export default function Gantt() {
                 )}
 
                 {!cargarAvanceEn.es_resumen && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
+                  <div data-tour="cuadrilla" style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12, fontWeight: 700 }}>Cuántos trabajan</div>
                       <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 1 }}>

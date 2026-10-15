@@ -415,10 +415,10 @@ export default function ListadoMateriales() {
             <p>Los análisis de costos de este presupuesto no tienen materiales cargados.</p></div>
         )}
 
-        {!vistaPorItem && Object.entries(porRubro).map(([rubro, mats]) => (
+        {!vistaPorItem && Object.entries(porRubro).map(([rubro, mats], iRubro) => (
           <div key={rubro} style={{ marginBottom: 16 }}>
             {/* Header rubro */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--surface2)', borderRadius: expandidos[rubro] ? '8px 8px 0 0' : 8, cursor: 'pointer', border: '1px solid var(--border)', borderBottom: expandidos[rubro] ? 'none' : '1px solid var(--border)' }}
+            <div data-tour={iRubro === 0 ? "rubro-materiales-header" : undefined} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--surface2)', borderRadius: expandidos[rubro] ? '8px 8px 0 0' : 8, cursor: 'pointer', border: '1px solid var(--border)', borderBottom: expandidos[rubro] ? 'none' : '1px solid var(--border)' }}
               onClick={() => setExpandidos(e => ({ ...e, [rubro]: !e[rubro] }))}>
               <span style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>{rubro}</span>
               <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{mats.length} materiales · {fmt(mats.reduce((a, m) => a + m.subtotal, 0))}</span>
@@ -426,7 +426,7 @@ export default function ListadoMateriales() {
             </div>
 
             {expandidos[rubro] && (
-              <div style={{ border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
+              <div data-tour={iRubro === 0 ? "materiales-tabla" : undefined} style={{ border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
                 <table className="tabla-materiales" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'var(--surface)' }}>
