@@ -26,10 +26,14 @@ function useCuentaRegresivaPromo() {
   const [restante, setRestante] = useState(null);
   useEffect(() => {
     const KEY = "obras_demo_promo_deadline";
-    let limite = Number(localStorage.getItem(KEY) || 0);
+    // localStorage puede fallar (privado estricto, storage bloqueado, cuota
+    // llena) — si pasa, la cuenta regresiva sigue andando en memoria nomás,
+    // sin persistir entre visitas, en vez de romper toda la pantalla.
+    let limite;
+    try { limite = Number(localStorage.getItem(KEY) || 0); } catch { limite = 0; }
     if (!limite || limite < Date.now()) {
       limite = Date.now() + 47.5 * 3600 * 1000; // ~2 días
-      localStorage.setItem(KEY, String(limite));
+      try { localStorage.setItem(KEY, String(limite)); } catch {}
     }
     const tick = () => {
       const ms = Math.max(0, limite - Date.now());
