@@ -291,9 +291,25 @@ export default function DemoTour() {
             {
               element: '[data-tour="gantt-titulo"]',
               popover: {
-                title: "La obra, planificada",
-                description: "Cada barra es una tarea, con su fecha de inicio y su duración, calculadas a partir de la cantidad de cada ítem. Se pueden arrastrar para ajustar fechas a mano, y encadenar una tarea con otra para armar dependencias.",
+                title: "¿De dónde sale cada fecha?",
+                description: "Cada barra es una tarea. Su duración no es un número inventado: sale de la cantidad de ese ítem en el presupuesto y del rendimiento de la cuadrilla que lo hace — por eso un ítem con más cantidad tarda más días. Se pueden arrastrar para ajustar a mano.",
                 side: "right",
+              },
+            },
+            {
+              element: '[data-tour="gantt-herramientas"]',
+              popover: {
+                title: "Más herramientas de planificación",
+                description: '"Vincular" encadena una tarea con otra para que una dependa de la anterior, "Horas" trae la mano de obra del análisis de costos, "Días perdidos" carga lluvia o feriados, y "Obra real" compara lo planificado contra lo que pasó de verdad.',
+                side: "bottom",
+              },
+            },
+            {
+              element: '[data-tour="gantt-config"]',
+              popover: {
+                title: "Los parámetros del cálculo",
+                description: "Desde cuándo arranca la obra, cuántas horas se trabaja por día y si se trabaja sábados o domingos — estos tres valores son los que alimentan el cálculo de todas las fechas de arriba.",
+                side: "bottom",
                 doneBtnText: "Ver la curva de inversión",
                 onDoneClick: () => navigate(rutaCurva),
               },
@@ -312,6 +328,22 @@ export default function DemoTour() {
               popover: {
                 title: "Barra por barra",
                 description: "Cada barra morada es lo que se desembolsa ese período; la línea es el acumulado. El total de cada ítem del presupuesto se reparte en los días que dura su tarea en el Gantt.",
+              },
+            },
+            {
+              element: '[data-tour="curva-periodicidad"]',
+              popover: {
+                title: "Semanal, quincenal o mensual",
+                description: "El mismo cálculo, agrupado distinto — elegí la periodicidad que más te sirva para pedirle plata al cliente o planear tu caja.",
+                side: "bottom",
+              },
+            },
+            {
+              element: '[data-tour="curva-tabla"]',
+              popover: {
+                title: "El detalle, período por período",
+                description: "Cuánto se desembolsa en cada período, el acumulado, el % de avance de la obra a esa altura y una barra de distribución — todo lo que necesitás para una reunión de obra.",
+                side: "top",
                 doneBtnText: "Ver el listado de materiales",
                 onDoneClick: () => navigate(rutaMateriales),
               },
@@ -347,11 +379,20 @@ export default function DemoTour() {
               },
             },
             {
+              element: '[data-tour="pct-avance-item"]',
+              onHighlighted: avanzarAlCambiarEn('[data-tour="pct-avance-item"]'),
+              popover: {
+                title: "Cargá cuánto avanzó",
+                description: 'Elegí un ítem y escribí cuánto se avanzó en este período — por ejemplo 30. Con eso alcanza: el sistema suma el acumulado solo, ítem por ítem.',
+                showButtons: ["previous", "close"],
+              },
+            },
+            {
               element: '[data-tour="emitir-certificado"]',
               onHighlighted: avanzarAlClickEn('[data-tour="emitir-certificado"]'),
               popover: {
                 title: "Un certificado por ítem",
-                description: "Acá se carga el % de avance de cada ítem en este período; el sistema calcula el acumulado solo. Emitilo para ver el resultado.",
+                description: 'El resto de los ítems quedan en 0% si no les cargaste nada — está bien para la demo. Hacé click en "Emitir certificado" para ver el resultado.',
                 showButtons: ["previous", "close"],
               },
             },

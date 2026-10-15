@@ -251,7 +251,7 @@ export default function CurvaInversion() {
             <div style={{ fontSize: 11, color: 'var(--muted)' }}>Curva de inversión</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div data-tour="curva-periodicidad" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ display: 'flex', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
             {['semanal', 'quincenal', 'mensual'].map(m => (
               <button key={m} onClick={() => setModo(m)}
@@ -346,7 +346,7 @@ export default function CurvaInversion() {
             </div>
 
             {/* Tabla */}
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div data-tour="curva-tabla" className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <table className="tabla-numeros" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: 'var(--surface2)' }}>

@@ -759,7 +759,7 @@ ${certEg ? `
                               <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' }}>{fmtPct(pctAnt)}</td>
                               <td style={{ padding: '8px 12px', textAlign: 'right' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
-                                  <input type="number" min="0" max={100 - pctAnt} step="1"
+                                  <input data-tour="pct-avance-item" type="number" min="0" max={100 - pctAnt} step="1"
                                     value={avances[linea.id] || 0}
                                     onChange={e => setAvances(prev => ({ ...prev, [linea.id]: e.target.value }))}
                                     style={{ width: 70, background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 4, padding: '4px 8px', color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 12, textAlign: 'right' }} />

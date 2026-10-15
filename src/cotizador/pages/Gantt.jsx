@@ -1239,7 +1239,7 @@ export default function Gantt() {
               {verDiagrama ? '☰ Lista' : '▤ Diagrama'}
             </button>
           )}
-          <div className="header-actions-desktop" style={{ gap: 8 }}>
+          <div data-tour="gantt-herramientas" className="header-actions-desktop" style={{ gap: 8 }}>
             <button className="btn btn-secondary btn-sm" onClick={() => setEditando({})}>+ Tarea</button>
             {faltaPlanificar.length > 0 && (
               <button className={`btn btn-sm ${faltaPlanificar.some(l => l.es_adicional) ? 'btn-warn' : 'btn-secondary'}`}
@@ -1456,7 +1456,7 @@ export default function Gantt() {
             a la vista y a un click. Meterla en el menú era resolver un problema
             del celular a costa de la computadora. */}
         {!esCelular ? (
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div data-tour="gantt-config" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <label style={{ color: 'var(--muted)' }}>Arranca</label>
               <input type="date" value={config.fecha_inicio_obra}
