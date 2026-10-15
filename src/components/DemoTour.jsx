@@ -93,22 +93,35 @@ export default function DemoTour() {
         // cuenta, el listener viejo seguía ahí y hacía saltar el tour para
         // adelante de golpe, en cualquier paso en el que estuviera parado.
         //
-        // Se llama a moveNext() de forma SINCRÓNICA, no con un setTimeout:
-        // este listener se agrega directo sobre el botón, así que corre
-        // antes que el onClick de React (que está delegado más arriba, en
-        // la raíz). Eso importa en los pasos donde el click hace que el
-        // propio botón desaparezca del DOM (generar el Gantt, emitir un
-        // certificado): si esperábamos aunque sea un instante, React ya
-        // había sacado el botón y el tour se quedaba sin elemento activo y
-        // se cerraba solo en vez de pasar al siguiente paso.
+        // Se escucha en fase de CAPTURA sobre `document` — no sobre el botón
+        // directo — por dos razones. Primero, captura corre antes que el
+        // onClick de React (delegado más arriba, en la raíz): importa en los
+        // pasos donde el click hace que el propio botón desaparezca del DOM
+        // (generar el Gantt, emitir un certificado), porque moveNext() tiene
+        // que llamarse ANTES de que React lo saque, o el tour se queda sin
+        // elemento activo y se cierra solo. Segundo, y es el motivo de que
+        // esto viva en `document` y no en el nodo: si entre que se arma este
+        // listener y el click real del usuario pasa un fetch que re-renderiza
+        // esa parte del árbol (p. ej. "traer horas" recalculando las filas
+        // del Gantt), React puede reemplazar el nodo del botón por uno
+        // nuevo — y un listener puesto directo en el viejo nodo se pierde
+        // con él. Resolviendo `sel` de nuevo en cada click (no una sola vez
+        // al armar el listener) el paso sigue funcionando aunque el nodo
+        // real haya cambiado.
         const avanzarAlClickEn = (sel) => () => {
-          const el = resolver(sel);
-          if (!el) return;
           const indice = tourDriver.getActiveIndex();
-          el.addEventListener("click", () => {
-            if (tourDriver.getActiveIndex() !== indice) return;
-            tourDriver.moveNext();
-          }, { once: true });
+          const handler = (e) => {
+            if (tourDriver.getActiveIndex() !== indice) {
+              document.removeEventListener("click", handler, true);
+              return;
+            }
+            const el = resolver(sel);
+            if (el && (el === e.target || el.contains(e.target))) {
+              document.removeEventListener("click", handler, true);
+              tourDriver.moveNext();
+            }
+          };
+          document.addEventListener("click", handler, true);
         };
         const avanzarAlCambiarEn = (sel, demora = 80) => () => {
           const el = resolver(sel);
