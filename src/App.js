@@ -390,6 +390,23 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
   // Si alguien pega la URL directo sin el permiso, lo manda al inicio en vez
   // de renderizar la pantalla: esconder el mosaico no alcanza como candado.
   const rutaSi = (permitido, el) => permitido ? el : <Navigate to="/" replace/>;
+
+  // El tenant demo público no puede pisar el resto de la app — ni el menú
+  // principal, ni Clientes, ni Config: solo el circuito guiado del tour (ver
+  // DemoTour.jsx). El propio DemoTour ya redirige mientras el tour está
+  // activo, pero esa guarda se basa en una bandera de sessionStorage que se
+  // borra al llegar al resumen final; esta corre siempre que el tenant sea
+  // demo, así que cubre cualquier link suelto (incluso después del resumen).
+  useEffect(() => {
+    if (!tenant?.es_demo) return;
+    const permitido = /^\/cotizador\/(presupuesto\/\d+(\/(curva|materiales|certificado|resumen-demo))?|gantt\/\d+)$/
+      .test(location.pathname);
+    if (!permitido) {
+      const presuId = sessionStorage.getItem("obras_tour_presupuesto_id");
+      navigate(presuId ? `/cotizador/presupuesto/${presuId}` : "/demo", { replace: true });
+    }
+  }, [location.pathname, tenant?.es_demo, navigate]);
+
   // Con quien saludamos y que ponemos en el circulito. Los subusuarios pueden
   // no tener mail, asi que nada de esto puede salir de `email` a secas: se
   // prueba nombre, despues usuario, despues mail, y si no hay nada igual se
