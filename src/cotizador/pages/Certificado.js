@@ -490,9 +490,9 @@ ${certEg ? `
                 </button>
               )}
             </div>
-            <MobileMenu actions={[
+            <MobileMenu triggerDataTour="certificado-menu-mobile" actions={[
               { label: 'Cert. egresos', icon: <FileText size={16} strokeWidth={1.5} />, onClick: () => setShowEgresos(true) },
-              ...(presupuesto?.estado === 'cerrado' ? [{ label: 'Nuevo certificado', icon: <Plus size={16} strokeWidth={1.5} />, onClick: abrirModalNuevo, color: 'var(--accent2)' }] : []),
+              ...(presupuesto?.estado === 'cerrado' ? [{ label: 'Nuevo certificado', dataTour: 'nuevo-certificado-mobile', icon: <Plus size={16} strokeWidth={1.5} />, onClick: abrirModalNuevo, color: 'var(--accent2)' }] : []),
             ]} />
           </div>
         </div>

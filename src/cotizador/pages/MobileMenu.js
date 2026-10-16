@@ -3,10 +3,13 @@ import { useState, useEffect, useRef } from 'react';
 /**
  * MobileMenu — botón "⋯" que despliega acciones en pantalla chica
  * Props:
- *   actions: [{ label, icon, onClick, color, disabled }]
+ *   actions: [{ label, icon, onClick, color, disabled, dataTour }]
  *   breakpoint: número en px (default 768)
+ *   triggerDataTour: data-tour del botón "⋯" — lo usa el tour guiado de la
+ *     demo para señalar "abrí el menú" antes de que la acción de adentro
+ *     exista en el DOM.
  */
-export default function MobileMenu({ actions = [], breakpoint = 768 }) {
+export default function MobileMenu({ actions = [], breakpoint = 768, triggerDataTour }) {
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= breakpoint);
   const ref = useRef(null);
@@ -29,6 +32,7 @@ export default function MobileMenu({ actions = [], breakpoint = 768 }) {
   return (
     <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
       <button
+        data-tour={triggerDataTour}
         onClick={() => setOpen(o => !o)}
         style={{
           background: open ? 'var(--surface2)' : 'transparent',
@@ -77,6 +81,7 @@ export default function MobileMenu({ actions = [], breakpoint = 768 }) {
               {actions.map((a, i) => (
                 <button
                   key={i}
+                  data-tour={a.dataTour}
                   disabled={a.disabled}
                   onClick={() => { a.onClick(); setOpen(false); }}
                   style={{

@@ -1305,13 +1305,13 @@ export default function Gantt() {
               </button>
             )}
           </div>
-          <MobileMenu actions={[
+          <MobileMenu triggerDataTour="gantt-menu-mobile" actions={[
             { label: 'Nueva tarea', icon: '+', onClick: () => setEditando({}) },
             { label: `Días que no se trabajó${diasPerdidos.length ? ` (${diasPerdidos.length})` : ''}`,
               icon: '☂', onClick: () => setPanelDias(true), color: diasPerdidos.length ? 'var(--warn)' : undefined },
             ...(esCelular ? [{ label: 'Cómo se trabaja', icon: '⚙', onClick: () => setPanelConfig(true) }] : []),
             ...(tareas.length > 1 ? [
-              { label: 'Traer horas del análisis', icon: '⏱', onClick: cargarHoras },
+              { label: 'Traer horas del análisis', dataTour: 'gantt-horas-mobile', icon: '⏱', onClick: cargarHoras },
               { label: 'Encadenar tareas en orden', icon: '⛓', onClick: encadenarTodo },
             ] : []),
             ...(vinculos.length > 0 ? [
@@ -1324,7 +1324,7 @@ export default function Gantt() {
               { label: 'Exportar al Planner', icon: <Calendar size={16} strokeWidth={1.5} />, onClick: exportarAlPlanner },
             ] : []),
             tareas.length === 0
-              ? { label: 'Generar desde presupuesto', icon: '⚡', onClick: generarDesdePresupuesto, disabled: generando }
+              ? { label: 'Generar desde presupuesto', dataTour: 'generar-gantt-mobile', icon: '⚡', onClick: generarDesdePresupuesto, disabled: generando }
               : { label: 'Regenerar Gantt', icon: '↺', onClick: generarDesdePresupuesto, disabled: generando, color: 'var(--warn)' },
           ]} />
         </div>
@@ -1529,7 +1529,7 @@ export default function Gantt() {
             const terminada = t.fecha_fin < hoy;
             const enCurso = arrancada && !terminada;
             return (
-              <div key={t.id}
+              <div key={t.id} data-tour={t.id === filas.find(x => x.linea_id)?.id ? "tarea-detalle" : undefined}
                 style={{ background: enCurso ? 'rgba(16,185,129,.06)' : 'var(--surface)',
                          border: `1px solid ${enCurso ? 'var(--accent)' : t.critica && verCritico ? '#f8717188' : 'var(--border)'}`,
                          borderLeft: `4px solid ${t.color}`, borderRadius: 10, padding: '8px 11px', marginBottom: 6 }}>

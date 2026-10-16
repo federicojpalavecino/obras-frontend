@@ -1179,7 +1179,7 @@ ${firma}
 
           {/* Mobile action buttons */}
           <div className="header-actions-mobile" style={{ gap: 6 }}>
-            <MobileMenu actions={[
+            <MobileMenu triggerDataTour="presupuesto-menu-mobile" actions={[
               { label: vista === 'comercial' ? 'Mostrando: lo que le cobro'
                        : vista === 'ejec' ? 'Mostrando: lo que me cuesta'
                        : 'Mostrando: costo, precio y margen',
@@ -1212,7 +1212,7 @@ ${firma}
                 { label: creandoAdic ? 'Creando adicional...' : (esServicio ? 'Trabajo adicional' : 'Crear adicional'), icon: <Plus size={18} strokeWidth={1.5} />, onClick: crearAdicional, disabled: creandoAdic, color: 'var(--accent2)' },
                 { label: 'Reabrir presupuesto', icon: <Unlock size={18} strokeWidth={1.5} />, onClick: handleReabrir, color: 'var(--warn)' },
               ] : [
-                { label: 'Cerrar presupuesto',  icon: <Lock size={18} strokeWidth={1.5} />, onClick: handleCerrar, color: 'var(--warn)' },
+                { label: 'Cerrar presupuesto', dataTour: 'boton-cerrar-mobile', icon: <Lock size={18} strokeWidth={1.5} />, onClick: handleCerrar, color: 'var(--warn)' },
               ]),
             ]} />
           </div>

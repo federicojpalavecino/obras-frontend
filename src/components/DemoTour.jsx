@@ -86,6 +86,32 @@ export default function DemoTour() {
 
         const resolver = (sel) => typeof sel === "function" ? sel() : document.querySelector(sel);
 
+        // Algunos botones (Cerrar, Generar, Horas, Nuevo certificado) solo
+        // existen en la barra de escritorio: en el celular esa barra tiene
+        // display:none y la acción real está adentro del menú "⋯"
+        // (MobileMenu), que ni siquiera renderiza sus botones hasta que se
+        // abre. Esta función devuelve, en orden: el botón de escritorio si
+        // está visible, el de mobile si el menú ya está abierto, o el
+        // trigger "⋯" como último recurso — para que el tour señale "abrí
+        // el menú" en vez de quedarse esperando un elemento que no existe.
+        const enMobilOEscritorio = (selDesktop, selMovil, selTrigger) => () => {
+          const d = document.querySelector(selDesktop);
+          if (d && d.offsetParent !== null) return d;
+          const m = document.querySelector(selMovil);
+          if (m && m.offsetParent !== null) return m;
+          return document.querySelector(selTrigger);
+        };
+        // Misma lógica pero SIN el trigger de último recurso: para detectar
+        // el click real hay que distinguir "tocó el ⋯" (no cuenta) de "tocó
+        // la acción de adentro" (sí cuenta).
+        const accionMobilOEscritorio = (selDesktop, selMovil) => () => {
+          const d = document.querySelector(selDesktop);
+          if (d && d.offsetParent !== null) return d;
+          const m = document.querySelector(selMovil);
+          if (m && m.offsetParent !== null) return m;
+          return null;
+        };
+
         // Avanza el tour solo cuando se hace la acción real (click o blur en
         // el selector indicado) — pero SOLO si todavía estamos en el paso
         // que armó este listener. Sin este chequeo, si la persona salta el
@@ -284,11 +310,11 @@ export default function DemoTour() {
               },
             },
             {
-              element: '[data-tour="boton-cerrar"]',
-              onHighlighted: avanzarAlClickEn('[data-tour="boton-cerrar"]'),
+              element: enMobilOEscritorio('[data-tour="boton-cerrar"]', '[data-tour="boton-cerrar-mobile"]', '[data-tour="presupuesto-menu-mobile"]'),
+              onHighlighted: avanzarAlClickEn(accionMobilOEscritorio('[data-tour="boton-cerrar"]', '[data-tour="boton-cerrar-mobile"]')),
               popover: {
                 title: "Cerrar el presupuesto",
-                description: 'Al cerrarlo, los precios quedan congelados y se habilitan la planificación y la certificación de la obra. Hacé click en "Cerrar".',
+                description: 'Al cerrarlo, los precios quedan congelados y se habilitan la planificación y la certificación de la obra. Hacé click en "Cerrar" (en el celular, abrí el menú "⋯" y elegí "Cerrar presupuesto").',
                 side: "bottom",
                 showButtons: ["previous", "close"],
               },
@@ -313,11 +339,11 @@ export default function DemoTour() {
           ],
           gantt: [
             {
-              element: '[data-tour="generar-gantt"]',
-              onHighlighted: avanzarAlClickEn('[data-tour="generar-gantt"]'),
+              element: enMobilOEscritorio('[data-tour="generar-gantt"]', '[data-tour="generar-gantt-mobile"]', '[data-tour="gantt-menu-mobile"]'),
+              onHighlighted: avanzarAlClickEn(accionMobilOEscritorio('[data-tour="generar-gantt"]', '[data-tour="generar-gantt-mobile"]')),
               popover: {
                 title: "Generar el cronograma",
-                description: 'Hacé click en "Generar": arma las tareas y las fechas automáticamente, a partir de los ítems del presupuesto.',
+                description: 'Hacé click en "Generar" (en el celular, en el menú "⋯"): arma las tareas y las fechas automáticamente, a partir de los ítems del presupuesto.',
                 side: "bottom",
                 showButtons: ["previous", "close"],
               },
@@ -331,11 +357,11 @@ export default function DemoTour() {
               },
             },
             {
-              element: '[data-tour="gantt-horas"]',
-              onHighlighted: avanzarAlClickEn('[data-tour="gantt-horas"]', 800),
+              element: enMobilOEscritorio('[data-tour="gantt-horas"]', '[data-tour="gantt-horas-mobile"]', '[data-tour="gantt-menu-mobile"]'),
+              onHighlighted: avanzarAlClickEn(accionMobilOEscritorio('[data-tour="gantt-horas"]', '[data-tour="gantt-horas-mobile"]'), 800),
               popover: {
                 title: "Traé las horas de mano de obra",
-                description: 'Sin esto el plazo queda fijo. Hacé click en "Horas": trae la mano de obra del análisis de costos de cada ítem, para que sumar o sacar gente de la cuadrilla sí mueva las fechas.',
+                description: 'Sin esto el plazo queda fijo. Hacé click en "Horas" (en el celular, en el menú "⋯"): trae la mano de obra del análisis de costos de cada ítem, para que sumar o sacar gente de la cuadrilla sí mueva las fechas.',
                 side: "bottom",
                 showButtons: ["previous", "close"],
               },
@@ -472,11 +498,11 @@ export default function DemoTour() {
           ],
           certificado: [
             {
-              element: '[data-tour="nuevo-certificado"]',
-              onHighlighted: avanzarAlClickEn('[data-tour="nuevo-certificado"]'),
+              element: enMobilOEscritorio('[data-tour="nuevo-certificado"]', '[data-tour="nuevo-certificado-mobile"]', '[data-tour="certificado-menu-mobile"]'),
+              onHighlighted: avanzarAlClickEn(accionMobilOEscritorio('[data-tour="nuevo-certificado"]', '[data-tour="nuevo-certificado-mobile"]')),
               popover: {
                 title: "Certificar el avance de obra",
-                description: 'Cada cierto tiempo se certifica cuánto se avanzó, y eso define cuánto corresponde cobrarle al cliente. Hacé click en "Nuevo certificado" para ver cómo se arma uno.',
+                description: 'Cada cierto tiempo se certifica cuánto se avanzó, y eso define cuánto corresponde cobrarle al cliente. Hacé click en "Nuevo certificado" (en el celular, en el menú "⋯") para ver cómo se arma uno.',
                 side: "bottom",
                 showButtons: ["previous", "close"],
               },

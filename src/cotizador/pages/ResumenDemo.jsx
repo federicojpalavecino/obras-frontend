@@ -273,10 +273,10 @@ export default function ResumenDemo({ onRegistrarme }) {
                 {" "}<strong style={{ color: "#6ee7b7", fontSize: 16 }}>{fmt(PRECIO_PROMO)}/mes</strong> los primeros 3 meses · débito automático
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
-              <Clock size={14} strokeWidth={2.25} color="#f87171" />
-              <span style={{ fontSize: 10.5, opacity: 0.7 }}>Termina en</span>
-              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 800, fontSize: 15, color: "#f87171", minWidth: 64, textAlign: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, background: "rgba(0,0,0,0.2)", padding: "7px 14px", borderRadius: 10 }}>
+              <Clock size={16} strokeWidth={2.5} color="#fde047" />
+              <span style={{ fontSize: 11.5, opacity: 0.85 }}>Termina en</span>
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 800, fontSize: 22, color: "#fde047", minWidth: 82, textAlign: "center", letterSpacing: 0.3 }}>
                 {restante || "—"}
               </span>
             </div>
