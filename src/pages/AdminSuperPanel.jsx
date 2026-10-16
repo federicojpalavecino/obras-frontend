@@ -1081,6 +1081,7 @@ export default function AdminPanel() {
   const [preciosTab, setPreciosTab] = useState("mo");
   const [tenants, setTenants]       = useState([]);
   const [stats, setStats]           = useState(null);
+  const [demoStats, setDemoStats]   = useState(null);
   const [loading, setLoading]       = useState(true);
   const [token, setToken]           = useState(null);
   const [loginEmail, setLoginEmail] = useState("");
@@ -1105,19 +1106,21 @@ export default function AdminPanel() {
   const cargar = async (t) => {
     setLoading(true);
     try {
-      const [r1, r2] = await Promise.all([
+      const [r1, r2, r3] = await Promise.all([
         fetch(`${API}/admin/tenants`, { headers: { Authorization: `Bearer ${t}` } }),
         fetch(`${API}/admin/stats`,   { headers: { Authorization: `Bearer ${t}` } }),
+        fetch(`${API}/admin/demo/estadisticas`, { headers: { Authorization: `Bearer ${t}` } }),
       ]);
       if (r1.status === 401 || r2.status === 401) {
         // Sesión expirada — limpiar y pedir relogin
         localStorage.removeItem("obras_admin_token");
-        setToken(null); setTenants([]); setStats(null);
+        setToken(null); setTenants([]); setStats(null); setDemoStats(null);
         setLoading(false);
         return;
       }
       if (r1.ok) setTenants(await r1.json());
       if (r2.ok) setStats(await r2.json());
+      if (r3.ok) setDemoStats(await r3.json());
     } catch {}
     setLoading(false);
   };
@@ -1302,6 +1305,40 @@ export default function AdminPanel() {
                 <div style={{ fontSize:11, color:C.muted, fontWeight:600, textTransform:"uppercase", letterSpacing:"0.5px" }}>{s.label}</div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Embudo de la demo pública */}
+        {demoStats && (
+          <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"16px 18px", marginBottom:24 }}>
+            <div style={{ fontSize:12, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.5px", marginBottom:12 }}>
+              Demo pública — faimobras.com/demo
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:16 }}>
+              {[
+                { label:"Total", d:demoStats.total },
+                { label:"Últimos 30 días", d:demoStats.ultimos_30_dias },
+                { label:"Últimos 7 días", d:demoStats.ultimos_7_dias },
+              ].map(({ label, d }) => (
+                <div key={label}>
+                  <div style={{ fontSize:11, color:C.muted, fontWeight:600, marginBottom:6 }}>{label}</div>
+                  <div style={{ display:"flex", alignItems:"baseline", gap:14 }}>
+                    <div>
+                      <div style={{ fontSize:22, fontWeight:800, color:C.accent2 }}>{d.visitas}</div>
+                      <div style={{ fontSize:10, color:C.muted }}>entraron a la demo</div>
+                    </div>
+                    <div style={{ fontSize:16, color:C.muted }}>→</div>
+                    <div>
+                      <div style={{ fontSize:22, fontWeight:800, color:C.green }}>{d.llego_a_pago}</div>
+                      <div style={{ fontSize:10, color:C.muted }}>llegaron a la pantalla de pago</div>
+                    </div>
+                    <div style={{ marginLeft:"auto", fontSize:13, fontWeight:700, color: d.conversion_pct >= 10 ? C.green : C.warn }}>
+                      {d.conversion_pct}%
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
