@@ -175,7 +175,7 @@ body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
     <div class="r-med">
       <div class="golpeViejo" id="golpeViejo">2 días<i class="tacho" id="tacho"></i></div>
       <div class="golpeNuevo" id="golpeNuevo">15 minutos</div>
-      <div style="font-size:40px;color:var(--mut);margin-top:22px" id="golpeTxt">Buscar precios. Computar. Revisar fórmulas.</div>
+      <div style="margin-top:26px" id="golpeTxt"><span style="font-size:40px;color:var(--mut)">Buscar precios. Computar. Revisar fórmulas.</span></div>
     </div>
     <div class="r-pie">Mirá esto 👇</div>
   </div>
@@ -269,7 +269,7 @@ function limpiar(){
   $('q').textContent = '';
   $('tacho').classList.remove('on');
   $('golpeNuevo').classList.remove('on');
-  $('golpeTxt').textContent = 'Buscar precios. Computar. Revisar fórmulas.';
+  $('golpeTxt').innerHTML = '<span style="font-size:40px;color:var(--mut)">Buscar precios. Computar. Revisar fórmulas.</span>';
   $('pie2').textContent = 'Cada ítem ya trae su análisis de costos';
 }
 const t = (ms, fn) => timers.push(setTimeout(fn, ms));
@@ -306,7 +306,7 @@ function play(){
   t(1400, () => { $('tacho').classList.add('on'); });
   t(2000, () => {
     $('golpeNuevo').classList.add('on');
-    $('golpeTxt').textContent = 'en FAIM OBRAS, con el análisis ya cargado';
+    $('golpeTxt').innerHTML = '<span style="font-family:var(--m);font-weight:700;font-size:56px;color:var(--ink)">Con FAIM OBRAS</span><br><span style="font-size:34px;color:var(--mut)">el análisis ya viene cargado</span>';
   });
 
   // ── 2 · cotizando (3.5 s) ──
