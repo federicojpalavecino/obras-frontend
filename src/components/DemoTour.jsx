@@ -263,53 +263,16 @@ export default function DemoTour() {
                   : 'Buscá, por ejemplo, "contrapiso" o "revoque interior", o elegí cualquier ítem de la lista. Hacé click sobre uno para agregarlo.',
                 side: esMobil ? "bottom" : "right",
                 showButtons: ["previous", "close"],
-                // En mobile el panel ocupa toda la altura de la pantalla
-                // (top:0 a bottom:0): no hay "al lado" ni "abajo" posible
-                // sin tapar la lista, que es lo que hay que poder tocar.
-                // Por default driver.js centra el cartel contra TODO el
-                // panel resaltado, tapando varias filas. Lo clavamos en
-                // cambio pegado justo abajo del buscador — angosto y
-                // corto — para que tape como mucho el borde superior de
-                // la lista, no toda ella.
-                // driver.js llama a onPopoverRender ANTES de aplicarle su
-                // propia posición calculada (que pisaría cualquier estilo
-                // que se ponga acá mismo) — por eso el pin real va en un
-                // setTimeout(0), después de que termine su propio cálculo.
-                // También se reaplica en "resize": en el celular, abrir el
-                // teclado para escribir en el buscador dispara uno, y
-                // driver.js vuelve a recalcular su posición por su cuenta.
-                onPopoverRender: esMobil ? (popover) => {
-                  const pin = () => {
-                    const input = document.querySelector('[data-tour="buscar-item"]');
-                    if (!input || !document.body.contains(popover.wrapper)) return;
-                    const r = input.getBoundingClientRect();
-                    // "left" + "width" explícitos (no "right"): con left Y
-                    // right puestos juntos en un elemento fixed sin ancho
-                    // propio, el cartel se ESTIRA para llenar todo el hueco
-                    // entre los dos bordes en vez de quedar angosto — se
-                    // vio de más al probarlo con el ancho real del celular
-                    // simulado por CSS (ventana real ancha, panel angosto
-                    // nomás por estilo). Con un ancho fijo, ancho real o
-                    // falso da lo mismo.
-                    popover.wrapper.style.position = "fixed";
-                    popover.wrapper.style.top = `${r.bottom + 8}px`;
-                    popover.wrapper.style.left = `${r.left}px`;
-                    popover.wrapper.style.right = "auto";
-                    popover.wrapper.style.width = `${r.width}px`;
-                    popover.wrapper.style.maxWidth = "none";
-                    popover.wrapper.style.margin = "0";
-                    // La flechita apunta hacia el elemento resaltado
-                    // (el panel entero) — con la posición clavada a mano
-                    // ya no señala nada real, mejor ocultarla.
-                    popover.arrow.style.display = "none";
-                  };
-                  setTimeout(pin, 0);
-                  const onResize = () => {
-                    if (!document.body.contains(popover.wrapper)) { window.removeEventListener("resize", onResize); return; }
-                    pin();
-                  };
-                  window.addEventListener("resize", onResize);
-                } : undefined,
+                // En mobile el panel ocupa toda la pantalla: no hay dónde
+                // poner el cartel sin tapar algo de la lista, sea cual sea
+                // el lado. En vez de perseguir una posición exacta (que no
+                // se pudo verificar bien ni en desktop simulando mobile por
+                // CSS — el propio overlay de driver.js queda desalineado),
+                // "demo-tour-passthrough" (ver DemoTour.css) deja que los
+                // clicks lo atraviesen: tape lo que tape el cartel, el tap
+                // llega igual a la fila real de abajo. Solo sus botones
+                // (Atrás/cerrar) seguimos pudiendo tocarlos.
+                popoverClass: esMobil ? "demo-tour-passthrough" : undefined,
               },
             },
             {
@@ -354,6 +317,7 @@ export default function DemoTour() {
                 // (hasta 82dvh): "left" no tiene dónde ir y tapa las filas.
                 // Arriba del todo queda libre, por eso "top" ahí.
                 side: esMobil ? "top" : "left",
+                popoverClass: esMobil ? "demo-tour-passthrough" : undefined,
                 onNextClick: (el, step, { driver }) => {
                   document.querySelector('[data-tour="cerrar-computo"]')?.click();
                   driver.moveNext();
@@ -384,6 +348,7 @@ export default function DemoTour() {
                 // Mismo panel-lateral que "panel-computo": en mobile es
                 // una hoja casi de ancho completo, "left" tapa el contenido.
                 side: esMobil ? "top" : "left",
+                popoverClass: esMobil ? "demo-tour-passthrough" : undefined,
               },
             },
             {
@@ -392,6 +357,7 @@ export default function DemoTour() {
                 title: "Editable línea por línea",
                 description: "Podés agregar, sacar o cambiar cualquier material, hora de mano de obra o uso de equipo — el costo del ítem (y el del presupuesto entero) se actualiza al toque.",
                 side: esMobil ? "top" : "left",
+                popoverClass: esMobil ? "demo-tour-passthrough" : undefined,
               },
             },
             {

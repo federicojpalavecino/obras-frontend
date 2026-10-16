@@ -65,6 +65,21 @@
 .driver-popover-arrow-side-bottom.driver-popover-arrow {
   border-top-color: #fff !important;
 }
+/* En el celular, varios pasos resaltan un panel que ocupa toda la pantalla
+   (el drawer de "agregar ítem", el panel de cómputo, el de análisis de
+   costos): no hay dónde poner el cartel sin tapar parte del contenido real
+   que hay que tocar o scrollear. En vez de perseguir una posición exacta,
+   el cartel deja pasar los clicks a través suyo — tape lo que tape, el tap
+   llega igual a lo que está debajo. Sus propios botones (Atrás/cerrar)
+   quedan como excepción, para poder seguir usándolos. */
+.demo-tour-passthrough {
+  pointer-events: none;
+}
+.demo-tour-passthrough .driver-popover-close-btn,
+.demo-tour-passthrough .driver-popover-footer {
+  pointer-events: auto;
+}
+
 /* El halo verde pulsante alrededor del elemento resaltado: más vivo que el
    resaltado estático por defecto. */
 .driver-active-element {
