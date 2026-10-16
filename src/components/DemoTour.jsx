@@ -363,6 +363,20 @@ export default function DemoTour() {
                 description: "Podés agregar, sacar o cambiar cualquier material, hora de mano de obra o uso de equipo — el costo del ítem (y el del presupuesto entero) se actualiza al toque.",
                 side: esMobil ? "top" : "left",
                 popoverClass: esMobil ? "demo-tour-passthrough" : undefined,
+                // El análisis de costos (igual que el panel de cómputo) se
+                // queda abierto hasta que lo cerrás a mano — bien para el
+                // uso normal, pero acá el tour sigue de largo hacia otros
+                // paneles (el resumen, después "Cerrar el presupuesto" con
+                // su propio menú en el celular) y dejarlo abierto de fondo
+                // apila paneles encima de paneles: en mobile cada uno ocupa
+                // casi toda la pantalla, así que el de más arriba termina
+                // tapando el contenido real que el paso siguiente pide
+                // tocar. Se cierra solo al avanzar, como ya se hace con el
+                // panel de cómputo.
+                onNextClick: (el, step, { driver }) => {
+                  document.querySelector('[data-tour="cerrar-analisis"]')?.click();
+                  driver.moveNext();
+                },
               },
             },
             {

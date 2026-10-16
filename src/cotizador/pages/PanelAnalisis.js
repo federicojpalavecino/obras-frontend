@@ -238,7 +238,7 @@ export default function PanelAnalisis({ presupuestoId, linea, onClose, onCostoCh
               <RotateCcw size={12} />
             </button>
           )}
-          <button className="btn btn-secondary btn-sm" onClick={onClose}><X size={14} /></button>
+          <button data-tour="cerrar-analisis" className="btn btn-secondary btn-sm" onClick={onClose}><X size={14} /></button>
         </div>
       </div>
 
