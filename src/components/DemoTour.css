@@ -1,3 +1,21 @@
+/* driver.js trae su PROPIO CSS (driver.css) que, mientras el tour está
+   activo, apaga pointer-events en TODA la página (".driver-active *") y
+   solo lo reactiva para el elemento resaltado puntual y el cartel. En
+   desktop eso nunca se notó porque ahí no hace falta tocar nada fuera de
+   lo resaltado — pero en el celular real seguía bloqueando el scroll y
+   el toque sobre la lista aun con el agujero del fondo oscuro ya
+   apagado (reportado en producción: "aparece la lista pero no puedo
+   deslizar ni seleccionar"). Acá se neutraliza esa regla de raíz en
+   pantallas angostas: TODO vuelve a ser tocable, no solo lo resaltado.
+   ".driver-active.driver-fade *" (dos clases) le gana en especificidad
+   a sus reglas (una clase + *), así que no importa en qué orden el
+   navegador haya cargado las hojas de estilo. */
+@media (max-width: 900px) {
+  .driver-active.driver-fade * {
+    pointer-events: auto !important;
+  }
+}
+
 /* Pinta el tour guiado (driver.js) con la estética de FAIM: Syne, acento
    verde, bordes redondeados — en vez del look gris por defecto. */
 .driver-popover {
@@ -80,7 +98,10 @@
    Se pierde el "click afuera no hace nada": en el celular cualquier toque
    llega directo a la app de abajo, resaltado o no. */
 @media (max-width: 900px) {
-  .driver-overlay path {
+  /* Prefijo ".driver-active.driver-fade" (3 clases) para ganarle en
+     especificidad a la regla de más arriba que vuelve todo "auto" —
+     si no, esa regla más genérica se la comería a esta. */
+  .driver-active.driver-fade .driver-overlay path {
     pointer-events: none !important;
   }
 }
@@ -92,12 +113,14 @@
    el cartel deja pasar los clicks a través suyo — tape lo que tape, el tap
    llega igual a lo que está debajo. Sus propios botones (Atrás/cerrar)
    quedan como excepción, para poder seguir usándolos. */
-.demo-tour-passthrough {
-  pointer-events: none;
+/* Mismo motivo que arriba: prefijo de 3 clases para ganarle a la regla
+   genérica ".driver-active.driver-fade *" que vuelve todo "auto". */
+.driver-active.driver-fade .demo-tour-passthrough {
+  pointer-events: none !important;
 }
-.demo-tour-passthrough .driver-popover-close-btn,
-.demo-tour-passthrough .driver-popover-footer {
-  pointer-events: auto;
+.driver-active.driver-fade .demo-tour-passthrough .driver-popover-close-btn,
+.driver-active.driver-fade .demo-tour-passthrough .driver-popover-footer {
+  pointer-events: auto !important;
 }
 
 /* El halo verde pulsante alrededor del elemento resaltado: más vivo que el
