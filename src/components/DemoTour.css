@@ -104,10 +104,21 @@
      SVG entero, no solo el <path> de adentro: un <svg> sin pointer-events
      propio puede seguir capturando clicks sobre su caja completa en
      algunos motores (Safari/WebKit de iOS entre ellos), aunque el path
-     de adentro ya esté en "none" — por las dudas, los dos. */
+     de adentro ya esté en "none" — por las dudas, los dos.
+     También la opacidad, no solo los clicks: varios pasos resaltan el
+     botón "⋯" (Cerrar presupuesto, Generar, Horas, Nuevo certificado) —
+     ahí el "agujero" recortado en el fondo oscuro queda SOLO alrededor
+     del botón, no del menú que se despliega recién después de tocarlo.
+     El menú terminaba tapado por el fondo oscuro al 65% (técnicamente
+     tocable gracias al pointer-events de acá arriba, pero invisible en
+     la práctica — "toco los 3 puntitos y no pasa nada" reportado en
+     producción). Apagar la opacidad entera en mobile es consistente con
+     ya haber renunciado al "click afuera cierra": tampoco queda nada
+     que oscurecer. */
   .driver-active.driver-fade .driver-overlay,
   .driver-active.driver-fade .driver-overlay path {
     pointer-events: none !important;
+    opacity: 0 !important;
   }
 }
 
