@@ -283,10 +283,19 @@ export default function DemoTour() {
                     const input = document.querySelector('[data-tour="buscar-item"]');
                     if (!input || !document.body.contains(popover.wrapper)) return;
                     const r = input.getBoundingClientRect();
+                    // "left" + "width" explícitos (no "right"): con left Y
+                    // right puestos juntos en un elemento fixed sin ancho
+                    // propio, el cartel se ESTIRA para llenar todo el hueco
+                    // entre los dos bordes en vez de quedar angosto — se
+                    // vio de más al probarlo con el ancho real del celular
+                    // simulado por CSS (ventana real ancha, panel angosto
+                    // nomás por estilo). Con un ancho fijo, ancho real o
+                    // falso da lo mismo.
                     popover.wrapper.style.position = "fixed";
                     popover.wrapper.style.top = `${r.bottom + 8}px`;
                     popover.wrapper.style.left = `${r.left}px`;
-                    popover.wrapper.style.right = "16px";
+                    popover.wrapper.style.right = "auto";
+                    popover.wrapper.style.width = `${r.width}px`;
                     popover.wrapper.style.maxWidth = "none";
                     popover.wrapper.style.margin = "0";
                     // La flechita apunta hacia el elemento resaltado
