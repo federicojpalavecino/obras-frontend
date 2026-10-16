@@ -826,6 +826,13 @@ export default function App() {
         localStorage.setItem("obras_session", JSON.stringify({ user: userData, tenant: data.tenant, token }));
         if (data.tenant) setTenant(data.tenant);
         await checkSuscripcion();
+        // `recienRegistrado` es estado de React: si la persona vuelve de
+        // MercadoPago (redirect real, recarga la página) o simplemente
+        // refresca antes de pagar, se pierde — y como un tenant nuevo ya
+        // nace en estado "vencido" (ver /auth/register), cae derecho al
+        // paywall de precio completo sin volver a ver la promo nunca más.
+        // Esto lo persiste unas horas para que sobreviva esa vuelta.
+        localStorage.setItem("obras_promo_hasta", String(Date.now() + 1000 * 60 * 60 * 48));
         setRecienRegistrado(true);
         setUser(userData);
       } else {
@@ -972,10 +979,23 @@ export default function App() {
     </div>
   );
 
-  // Pantalla comercial post-registro: una sola vez, apenas se crea la cuenta.
-  // Va ANTES que el paywall de trial vencido — si no, un tenant nuevo con el
-  // trial mal seteado cae directo en la pantalla vieja y nunca ve esta.
-  if (recienRegistrado) {
+  // Pantalla comercial post-registro: va ANTES que el paywall de trial
+  // vencido — si no, un tenant nuevo (que ya nace "vencido", sin trial) cae
+  // directo en la pantalla de precio completo y nunca ve la promo.
+  //
+  // `recienRegistrado` es estado de React y no sobrevive una vuelta real de
+  // MercadoPago (redirect) ni un refresh antes de pagar — por eso también
+  // se respeta `obras_promo_hasta` en localStorage, una ventana de 48hs
+  // desde el registro para que la promo no se pierda por eso. Se limpia
+  // sola una vez que el estudio ya pagó (plan_estado activo).
+  let promoVigente = false;
+  try {
+    const hasta = parseInt(localStorage.getItem("obras_promo_hasta") || "0", 10);
+    promoVigente = hasta > Date.now();
+    if (tenant?.plan_estado === "activo" && hasta) localStorage.removeItem("obras_promo_hasta");
+  } catch {}
+
+  if (recienRegistrado || (promoVigente && user && suscripcion && suscripcion.trial_vencido)) {
     return <PantallaVentaPostRegistro tenant={tenant} token={localStorage.getItem("obras_token")} onContinuar={() => setRecienRegistrado(false)} onLogout={handleLogout} />;
   }
 
