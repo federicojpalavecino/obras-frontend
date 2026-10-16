@@ -2157,7 +2157,7 @@ export default function Gantt() {
                       <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 14, fontWeight: 700, minWidth: 18, textAlign: 'center' }}>
                         {cargarAvanceEn.personas || 1}
                       </span>
-                      <button onClick={() => cambiarCuadrilla(cargarAvanceEn.id, (cargarAvanceEn.personas || 1) + 1, cargarAvanceEn.horas_totales)}
+                      <button data-tour="cuadrilla-mas" onClick={() => cambiarCuadrilla(cargarAvanceEn.id, (cargarAvanceEn.personas || 1) + 1, cargarAvanceEn.horas_totales)}
                         style={{ width: 28, height: 28, borderRadius: 7, cursor: 'pointer', fontSize: 15, lineHeight: 1,
                                  background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}>+</button>
                     </div>

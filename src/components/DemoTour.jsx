@@ -164,7 +164,13 @@ export default function DemoTour() {
           stageRadius: 10,
           overlayClickBehavior: "none",
           allowKeyboardControl: false,
-          waitForElement: 1500,
+          // "Generar" el cronograma es la operación más pesada de todo el
+          // tour (arma TODAS las tareas de la obra de una). Con 1500ms, en
+          // una conexión lenta o un Railway recién despertando, el paso
+          // informativo siguiente ("Cada barra es una tarea") se llega a
+          // saltear solo porque el elemento todavía no existía — no por
+          // haberse saltado la acción, que es el caso real que esto cubre.
+          waitForElement: 4000,
           // Si el elemento de un paso no aparece (por ejemplo, porque la
           // persona se salteó el paso anterior sin hacer la acción), el
           // tour no se queda esperando para siempre: pasa solo al siguiente.
@@ -345,14 +351,35 @@ export default function DemoTour() {
               },
             },
             {
-              element: '[data-tour="cuadrilla"]',
+              // Antes era un paso informativo ("leé y apretá Siguiente"). El
+              // momento más convincente de todo el sistema —sumar gente y ver
+              // la fecha moverse sola— se explicaba en vez de vivirse. Ahora
+              // hay que apretar el "+" de verdad para avanzar.
+              element: '[data-tour="cuadrilla-mas"]',
+              onHighlighted: () => {
+                const indice = tourDriver.getActiveIndex();
+                const handler = (e) => {
+                  if (tourDriver.getActiveIndex() !== indice) {
+                    document.removeEventListener("click", handler, true);
+                    return;
+                  }
+                  const el = resolver('[data-tour="cuadrilla-mas"]');
+                  if (el && (el === e.target || el.contains(e.target))) {
+                    document.removeEventListener("click", handler, true);
+                    // Una pausa antes de cerrar el modal: que la fecha nueva
+                    // se alcance a ver un momento, que es todo el punto.
+                    setTimeout(() => {
+                      document.querySelector('[data-tour="cerrar-tarea-detalle"]')?.click();
+                      tourDriver.moveNext();
+                    }, 900);
+                  }
+                };
+                document.addEventListener("click", handler, true);
+              },
               popover: {
-                title: "Cuántos trabajan",
-                description: 'Sumá o sacá gente con los botones — como ya trajiste las horas, el plazo de esta tarea se acorta o se alarga solo, al toque.',
-                onNextClick: (el, step, { driver }) => {
-                  document.querySelector('[data-tour="cerrar-tarea-detalle"]')?.click();
-                  driver.moveNext();
-                },
+                title: "Mirá la fecha moverse",
+                description: 'Apretá "+" para sumar una persona a la cuadrilla — mirá arriba: el plazo de esta tarea se acorta solo, al toque.',
+                showButtons: ["previous", "close"],
               },
             },
             {
