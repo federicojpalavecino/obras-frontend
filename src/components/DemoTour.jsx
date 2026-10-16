@@ -15,6 +15,7 @@ export default function DemoTour() {
   const segmentoActivo = useRef(null);
   const arrancarRef = useRef(null); // arranca (o re-arranca) el tour del segmento actual
   const driverActivoRef = useRef(null); // instancia en pantalla, para no duplicar si se aprieta "Retomar"
+  const desbloqueoMobilRef = useRef(null); // MutationObserver que neutraliza el bloqueo de interacción de driver.js en el celular (ver más abajo)
   const [mostrarBoton, setMostrarBoton] = useState(false);
 
   useEffect(() => {
@@ -42,12 +43,14 @@ export default function DemoTour() {
     const segmento = segmentoDeRuta(location.pathname);
     if (!segmento) {
       driverActivoRef.current?.destroy();
+      desbloqueoMobilRef.current?.disconnect();
       setMostrarBoton(false);
       if (location.pathname !== rutaPresu) navigate(rutaPresu, { replace: true });
       return;
     }
     if (segmento === "resumen") {
       driverActivoRef.current?.destroy();
+      desbloqueoMobilRef.current?.disconnect();
       setMostrarBoton(false);
       sessionStorage.removeItem("obras_tour_demo");
       sessionStorage.removeItem("obras_tour_presupuesto_id");
@@ -64,6 +67,8 @@ export default function DemoTour() {
 
       const arrancarTour = () => {
         driverActivoRef.current?.destroy();
+        desbloqueoMobilRef.current?.disconnect();
+        desbloqueoMobilRef.current = null;
         let tourDriver; // los hooks de abajo lo referencian por closure
 
         // La obra de ejemplo ya trae ítems cargados de varios rubros (para
@@ -607,6 +612,37 @@ export default function DemoTour() {
         tourDriver = driver({ ...baseConfig, steps: segmentos[segmento] });
         driverActivoRef.current = tourDriver;
         tourDriver.drive();
+
+        // driver.js (la librería, no este código) le pone a <body> la
+        // clase "driver-active" mientras el tour corre, y su propio CSS
+        // (driver.css) apaga pointer-events en TODA la página con esa
+        // clase puesta — solo lo reactiva para el elemento resaltado
+        // puntual y el cartel. En desktop nunca se nota (ahí no hace
+        // falta tocar nada fuera de lo resaltado), pero en el celular eso
+        // bloqueaba el scroll y el toque sobre la lista real, reportado
+        // en producción. Pelear esto con especificidad de CSS (intentado
+        // antes) no se pudo verificar bien sin un celular real a mano, así
+        // que se resuelve con JS directo, sin ambigüedad de cascada: un
+        // observer que, apenas <body> gana esa clase, se la saca de nuevo
+        // — y de paso apaga a mano el pointer-events inline (puesto por
+        // driver.js, no por CSS, así que una regla de hoja de estilos no
+        // alcanza para pisarlo) del `<path>` del fondo oscuro. El cartel
+        // sigue andando igual: su propia regla de interacción no depende
+        // de esta clase.
+        if (esMobil) {
+          const desbloquear = () => {
+            if (document.body.classList.contains("driver-active")) {
+              document.body.classList.remove("driver-active");
+            }
+            document.querySelectorAll(".driver-overlay path").forEach(p => {
+              p.style.setProperty("pointer-events", "none");
+            });
+          };
+          desbloquear();
+          const observer = new MutationObserver(desbloquear);
+          observer.observe(document.body, { attributes: true, attributeFilter: ["class"], childList: true, subtree: true });
+          desbloqueoMobilRef.current = observer;
+        }
       };
 
       arrancarRef.current = arrancarTour;

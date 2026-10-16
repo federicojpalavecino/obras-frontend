@@ -100,7 +100,12 @@
 @media (max-width: 900px) {
   /* Prefijo ".driver-active.driver-fade" (3 clases) para ganarle en
      especificidad a la regla de más arriba que vuelve todo "auto" —
-     si no, esa regla más genérica se la comería a esta. */
+     si no, esa regla más genérica se la comería a esta. Se apaga el
+     SVG entero, no solo el <path> de adentro: un <svg> sin pointer-events
+     propio puede seguir capturando clicks sobre su caja completa en
+     algunos motores (Safari/WebKit de iOS entre ellos), aunque el path
+     de adentro ya esté en "none" — por las dudas, los dos. */
+  .driver-active.driver-fade .driver-overlay,
   .driver-active.driver-fade .driver-overlay path {
     pointer-events: none !important;
   }
