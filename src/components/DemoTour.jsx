@@ -119,6 +119,19 @@ export default function DemoTour() {
             if (el && (el === e.target || el.contains(e.target))) {
               document.removeEventListener("click", handler, true);
               tourDriver.moveNext();
+              // El click que acabamos de avanzar puede disparar un fetch que
+              // recién más tarde re-renderiza (y desplaza) lo que quedó
+              // resaltado — p. ej. "Horas" trae la mano de obra y las filas
+              // del Gantt cambian de alto. Si eso pasa, el recuadro del tour
+              // queda dibujado donde ESTABA el elemento, no donde está
+              // ahora, y los clicks dentro del recuadro visual no caen sobre
+              // nada clickeable. refresh() recalcula esa posición contra el
+              // DOM actual; se dispara en cada mutación, con ventana corta
+              // porque no hace falta más que eso para que el re-render del
+              // fetch ya haya pasado.
+              const obs = new MutationObserver(() => tourDriver.refresh());
+              obs.observe(document.body, { childList: true, subtree: true, attributes: true });
+              setTimeout(() => obs.disconnect(), 1500);
             }
           };
           document.addEventListener("click", handler, true);
