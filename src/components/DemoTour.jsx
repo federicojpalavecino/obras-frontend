@@ -204,6 +204,15 @@ export default function DemoTour() {
           onCloseClick: () => { tourDriver.destroy(); },
         };
 
+        // Varios pasos necesitan saber si están en el breakpoint mobile
+        // (mismo que usa el CSS, 900px) para elegir de qué lado poner el
+        // cartel: en desktop hay una columna lateral angosta con lugar de
+        // sobra a los costados, pero en mobile ese mismo panel pasa a ser
+        // una hoja que ocupa casi todo el ancho — un cartel "left"/"right"
+        // ahí no tiene dónde ir y termina tapando la lista o la tabla de
+        // adentro, bloqueando el scroll y los clicks.
+        const esMobil = window.matchMedia("(max-width: 900px)").matches;
+
         const segmentos = {
           presupuesto: [
             {
@@ -216,9 +225,17 @@ export default function DemoTour() {
               // Solo existe (visible) en el celular: el panel de agregar
               // ítems ahí es un drawer que arranca cerrado, con este botón
               // aparte para abrirlo. En desktop el botón sigue en el DOM
-              // pero con display:none, así que skipMissingElement salta
-              // este paso solo — no hace falta chequear el ancho a mano.
-              element: '[data-tour="agregar-item-trigger-mobile"]',
+              // pero con display:none inline — y skipMissingElement de
+              // driver.js solo mira si el selector devuelve un nodo, no si
+              // está visible, así que un selector de texto plano NO alcanza
+              // para saltarlo ahí (se vio en producción: el tour se quedaba
+              // esperando un click imposible en desktop). Por eso el
+              // elemento es una función que devuelve null si no está
+              // realmente visible.
+              element: () => {
+                const el = document.querySelector('[data-tour="agregar-item-trigger-mobile"]');
+                return el && el.offsetParent !== null ? el : null;
+              },
               onHighlighted: avanzarAlClickEn('[data-tour="agregar-item-trigger-mobile"]'),
               popover: {
                 title: "Agregar un ítem al presupuesto",
@@ -228,12 +245,20 @@ export default function DemoTour() {
               },
             },
             {
-              element: '[data-tour="agregar-item-panel"]',
+              // En desktop el panel entero tiene lugar de sobra a la
+              // derecha. En mobile es una hoja casi de ancho completo: un
+              // cartel apuntando a todo el panel tapa la lista de
+              // resultados y bloquea el scroll y el click (reportado en
+              // producción). Ahí apunta solo al buscador, arriba del todo,
+              // y el cartel va abajo — dejando la lista libre.
+              element: () => esMobil
+                ? (document.querySelector('[data-tour="buscar-item"]') || document.querySelector('[data-tour="agregar-item-panel"]'))
+                : document.querySelector('[data-tour="agregar-item-panel"]'),
               onHighlighted: () => { capturarFilasExistentes(); avanzarAlClickEn('[data-tour="lista-items"]')(); },
               popover: {
                 title: "Agregar un ítem al presupuesto",
                 description: 'Buscá, por ejemplo, "contrapiso" o "revoque interior", o elegí cualquier ítem de la lista. Hacé click sobre uno para agregarlo.',
-                side: "right",
+                side: esMobil ? "bottom" : "right",
                 showButtons: ["previous", "close"],
               },
             },
@@ -275,7 +300,10 @@ export default function DemoTour() {
               popover: {
                 title: "Un total por cada sector",
                 description: "Cada fila es una medición — alto, ancho, largo, lo que corresponda según la unidad — y el sistema las suma todas. Cerramos este panel y seguimos.",
-                side: "left",
+                // En mobile este panel es una hoja que sube desde abajo
+                // (hasta 82dvh): "left" no tiene dónde ir y tapa las filas.
+                // Arriba del todo queda libre, por eso "top" ahí.
+                side: esMobil ? "top" : "left",
                 onNextClick: (el, step, { driver }) => {
                   document.querySelector('[data-tour="cerrar-computo"]')?.click();
                   driver.moveNext();
@@ -303,7 +331,9 @@ export default function DemoTour() {
               popover: {
                 title: "Material, mano de obra y equipo",
                 description: "Estos tres números, sumados, dan el costo del ítem. Más abajo está el detalle línea por línea.",
-                side: "left",
+                // Mismo panel-lateral que "panel-computo": en mobile es
+                // una hoja casi de ancho completo, "left" tapa el contenido.
+                side: esMobil ? "top" : "left",
               },
             },
             {
@@ -311,7 +341,7 @@ export default function DemoTour() {
               popover: {
                 title: "Editable línea por línea",
                 description: "Podés agregar, sacar o cambiar cualquier material, hora de mano de obra o uso de equipo — el costo del ítem (y el del presupuesto entero) se actualiza al toque.",
-                side: "left",
+                side: esMobil ? "top" : "left",
               },
             },
             {
