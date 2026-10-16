@@ -135,15 +135,22 @@ export default function DemoTour() {
           const el = resolver(sel);
           if (!el) return;
           const indice = tourDriver.getActiveIndex();
+          const onEnter = (e) => { if (e.key === "Enter") el.blur(); };
           const avanzar = () => {
+            el.removeEventListener("keydown", onEnter);
             if (tourDriver.getActiveIndex() !== indice) return;
             setTimeout(() => tourDriver.moveNext(), demora);
           };
           el.addEventListener("blur", avanzar, { once: true });
           // El overlay del tour solo deja clickear el elemento resaltado,
           // así que "hacer click afuera" para confirmar no es posible acá:
-          // Enter dispara el blur de verdad (el que guarda el valor).
-          el.addEventListener("keydown", (e) => { if (e.key === "Enter") el.blur(); }, { once: true });
+          // Enter dispara el blur de verdad (el que guarda el valor). OJO:
+          // este listener NO puede ir con {once:true} — eso lo mata en la
+          // primera tecla que se aprieta, sea la que sea (no en el primer
+          // Enter), así que alcanza con escribir un dígito del porcentaje
+          // para que Enter deje de hacer cualquier cosa. Se limpia solo en
+          // `avanzar()`, cuando el blur real ya se disparó.
+          el.addEventListener("keydown", onEnter);
         };
 
         const baseConfig = {
