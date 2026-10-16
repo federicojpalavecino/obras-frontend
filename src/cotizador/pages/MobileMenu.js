@@ -58,7 +58,11 @@ export default function MobileMenu({ actions = [], breakpoint = 768, triggerData
         <div style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
-          zIndex: 998,
+          // Más alto que cualquier elemento flotante de la página (el
+          // asistente, z-index 1000, el botón "Retomar la guía" del tour
+          // demo, 999999): un menú abierto es lo más "encima" que hay en
+          // pantalla, no puede quedar tapado por chrome persistente.
+          zIndex: 1000000,
           background: 'rgba(0,0,0,0.3)',
         }} onClick={() => setOpen(false)}>
           <div
@@ -69,7 +73,7 @@ export default function MobileMenu({ actions = [], breakpoint = 768, triggerData
               borderRadius: '16px 16px 0 0',
               padding: '16px 16px 32px',
               boxShadow: '0 -4px 24px rgba(0,0,0,0.15)',
-              zIndex: 999,
+              zIndex: 1000001,
             }}
             onClick={e => e.stopPropagation()}
           >
