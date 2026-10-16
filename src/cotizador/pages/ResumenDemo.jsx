@@ -240,7 +240,7 @@ export default function ResumenDemo({ onRegistrarme }) {
 
         {/* La oferta — acá se vende, todo junto y sin que haga falta más
             scroll: qué más trae el sistema, precio y los dos CTA. */}
-        <div style={{ background: "linear-gradient(160deg, #0f1f18 0%, #16211c 55%, #0f1f18 100%)", borderRadius: 18, padding: "clamp(20px,3.5vw,32px)", color: "#fff" }}>
+        <div style={{ background: "linear-gradient(160deg, #047857 0%, #059669 55%, #047857 100%)", borderRadius: 18, padding: "clamp(20px,3.5vw,32px)", color: "#fff" }}>
 
           <div style={{ textAlign: "center", marginBottom: 18 }}>
             <div style={{ fontSize: "clamp(18px,3vw,23px)", fontWeight: 800, marginBottom: 4 }}>
@@ -283,7 +283,7 @@ export default function ResumenDemo({ onRegistrarme }) {
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
-            <button onClick={onRegistrarme} style={{ background: C.accent, color: "#06281f", border: "none", borderRadius: 10, padding: "15px 30px", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "'Syne', sans-serif", display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <button onClick={onRegistrarme} style={{ background: "#fff", color: "#047857", border: "none", borderRadius: 10, padding: "15px 30px", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "'Syne', sans-serif", display: "inline-flex", alignItems: "center", gap: 8 }}>
               Quiero registrarme <ArrowRight size={17} strokeWidth={2.5} />
             </button>
             <a href={`https://wa.me/${WHATSAPP}?text=${WHATSAPP_MSG_DEMO}`} target="_blank" rel="noreferrer"
