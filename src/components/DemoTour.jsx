@@ -465,7 +465,12 @@ export default function DemoTour() {
             },
             {
               element: '[data-tour="emitir-certificado"]',
-              onHighlighted: avanzarAlClickEn('[data-tour="emitir-certificado"]'),
+              // "Emitir" crea el certificado (fetch) y recién al resolver
+              // cierra el modal (.modal-overlay, z-index 1000). Si el tour
+              // avanza antes de eso, el overlay oscuro del paso siguiente
+              // (z-index 10000) se dibuja ARRIBA del modal todavía abierto
+              // y lo deja completamente intratable hasta que cierre solo.
+              onHighlighted: avanzarAlClickEn('[data-tour="emitir-certificado"]', 700),
               popover: {
                 title: "Un certificado por ítem",
                 description: 'El resto de los ítems quedan en 0% si no les cargaste nada — está bien para la demo. Hacé click en "Emitir certificado" para ver el resultado.',
