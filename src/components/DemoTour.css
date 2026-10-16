@@ -65,6 +65,26 @@
 .driver-popover-arrow-side-bottom.driver-popover-arrow {
   border-top-color: #fff !important;
 }
+/* El fondo oscuro de driver.js (el SVG de 10000 de z-index que cubre toda
+   la pantalla) solo deja clickear por el "agujero" recortado alrededor del
+   elemento resaltado — y ese recorte se calcula en el momento en que el
+   paso cambia, mientras el panel/drawer todavía puede estar animando su
+   propia apertura (250ms) encima de la transición del tour (400ms). En el
+   celular eso se tradujo en un bug real reportado en producción: el
+   recorte queda desalineado y los toques sobre la lista (o cualquier otro
+   contenido real) caen en el fondo oscuro en vez de llegar abajo. En vez
+   de perseguir ese cálculo (ya se intentó: side, popoverClass, y sigue
+   fallando en el teléfono real), se apaga directamente la captura de
+   clicks del fondo oscuro en pantallas angostas — con media query pura,
+   sin depender de ningún estado de React/JS que se pueda desincronizar.
+   Se pierde el "click afuera no hace nada": en el celular cualquier toque
+   llega directo a la app de abajo, resaltado o no. */
+@media (max-width: 900px) {
+  .driver-overlay path {
+    pointer-events: none !important;
+  }
+}
+
 /* En el celular, varios pasos resaltan un panel que ocupa toda la pantalla
    (el drawer de "agregar ítem", el panel de cómputo, el de análisis de
    costos): no hay dónde poner el cartel sin tapar parte del contenido real
