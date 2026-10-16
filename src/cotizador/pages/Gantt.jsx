@@ -1633,7 +1633,8 @@ export default function Gantt() {
               Tarea
             </div>
             {filasVisibles.map(t => (
-              <div key={t.id} style={{ height: ROW_H, borderBottom: '1px solid var(--border2)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, cursor: 'pointer' }}
+              <div key={t.id} data-tour={t.id === filasVisibles.find(x => x.linea_id)?.id ? "tarea-detalle" : undefined}
+                style={{ height: ROW_H, borderBottom: '1px solid var(--border2)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, cursor: 'pointer' }}
                 onClick={() => {
                   // En modo vincular el clic lo maneja el nombre (más abajo),
                   // que llama a clickVincular. Sin este freno acá arriba, el
@@ -1664,7 +1665,7 @@ export default function Gantt() {
                 {/* Acceso visible al panel de la tarea. Antes solo se abria con
                     boton derecho sobre la barra, que no lo encuentra nadie. */}
                 {t.linea_id ? (
-                  <button data-tour={t.id === filasVisibles.find(x => x.linea_id)?.id ? "tarea-detalle" : undefined} title="Avance, quién la ejecuta, dividir o suspender"
+                  <button title="Avance, quién la ejecuta, dividir o suspender"
                     onClick={e => { e.stopPropagation();
                       setCargarAvanceEn(t);
                       setPctNuevo(String(Math.round(avancePorLinea[t.linea_id] ?? t.progreso ?? 0))); }}

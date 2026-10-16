@@ -324,7 +324,7 @@ export default function DemoTour() {
               onHighlighted: avanzarAlClickEn('[data-tour="tarea-detalle"]'),
               popover: {
                 title: "El detalle de una tarea",
-                description: "Hacé click acá para ver, de esta tarea puntual, las fechas, quién la hace y cuánto se avanzó.",
+                description: "Hacé click sobre esta tarea para ver sus fechas, quién la hace y cuánto se avanzó.",
                 side: "right",
                 showButtons: ["previous", "close"],
               },
