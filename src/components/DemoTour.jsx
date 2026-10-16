@@ -634,7 +634,12 @@ export default function DemoTour() {
             if (document.body.classList.contains("driver-active")) {
               document.body.classList.remove("driver-active");
             }
-            document.querySelectorAll(".driver-overlay path").forEach(p => {
+            // El <svg> en sí (no solo el <path> de adentro) también hay
+            // que apagarlo: confirmado a mano que un <svg> de pantalla
+            // completa sigue recibiendo el click aunque su <path> interno
+            // ya esté en "none" — el contenedor cuenta como "pintado" para
+            // el hit-test por su cuenta.
+            document.querySelectorAll(".driver-overlay, .driver-overlay path").forEach(p => {
               p.style.setProperty("pointer-events", "none");
             });
           };
