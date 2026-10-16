@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAIM OBRAS — Reel: probá la demo gratis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ac:#059669;--ac-cl:#10b981;--ac2:#7c3aed;--red:#ef4444;--warn:#d97706;
+  --ink:#1a1a2e;--bg:#f8f9fa;--sup2:#f1f3f5;--bord:#e0e0e8;--mut:#6b7280;
+  --s:'Syne',system-ui,sans-serif;--m:'IBM Plex Mono',Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2a2d33;font-family:var(--s);padding:24px;display:flex;gap:26px;
+  align-items:flex-start;justify-content:center;flex-wrap:wrap}
+
+.panel{background:#fff;border-radius:15px;padding:22px 24px;width:390px;flex-shrink:0}
+.panel h1{font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.panel p{font-size:13.5px;color:var(--mut);line-height:1.6;margin-bottom:14px}
+.panel code{font-family:var(--m);font-size:12px;background:var(--sup2);padding:1px 5px;border-radius:4px}
+.panel ol{margin:0 0 16px 18px;font-size:13.5px;color:var(--mut);line-height:1.75}
+.panel li b{color:var(--ink)}
+.btn{width:100%;background:var(--ac);color:#fff;border:none;border-radius:10px;padding:14px;
+  font-family:var(--s);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:9px}
+.btn:hover{background:#047857}
+.btn.sec{background:var(--sup2);color:var(--ink)}
+.aviso{background:#fef3c7;border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
+  padding:12px 14px;font-size:12.5px;color:#78350f;line-height:1.55}
+.txt{background:var(--sup2);border-radius:9px;padding:13px 15px;font-size:12.5px;
+  line-height:1.6;color:var(--ink);margin-top:14px}
+.txt b{display:block;margin-bottom:6px;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mut)}
+
+/* ══ LIENZO 1080×1920 ═════════════════════════════════════════════════════ */
+.marco{background:#000;border-radius:20px;padding:10px;flex-shrink:0;
+  width:calc(1080px * .33 + 20px);height:calc(1920px * .33 + 20px)}
+#reel{width:1080px;height:1920px;position:relative;overflow:hidden;
+  transform:scale(.33);transform-origin:top left;background:var(--bg);color:var(--ink)}
+#reel::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--bord) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--bord) 1px,transparent 1px);background-size:60px 60px}
+
+.esc{position:absolute;inset:0;padding:150px 82px 190px;display:flex;flex-direction:column;
+  opacity:0;z-index:2}
+.esc.on{opacity:1}
+/* Solo el cierre usa color de fondo entero — el resto queda claro, a pedido. */
+.esc.verde{background:var(--ac);color:#fff}
+.esc.verde::before{content:'';position:absolute;inset:0;opacity:1;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);background-size:60px 60px}
+
+.r-logo{font-size:32px;font-weight:800;letter-spacing:-.02em;color:var(--ac);position:relative}
+.r-logo span{color:var(--ink);font-weight:700}
+.verde .r-logo{color:#fff} .verde .r-logo span{color:rgba(255,255,255,.72)}
+.r-tit{font-size:94px;font-weight:800;line-height:1.02;letter-spacing:-.035em;margin-top:56px;position:relative}
+.r-tit.ch{font-size:66px}
+.r-tit em{font-style:normal;color:var(--ac)}
+.verde .r-tit em{color:rgba(255,255,255,.75)}
+.r-baj{font-size:38px;color:var(--mut);line-height:1.4;margin-top:30px;position:relative}
+.verde .r-baj{color:rgba(255,255,255,.9)}
+.r-med{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative}
+.r-pie{padding-top:30px;border-top:5px solid var(--ink);font-size:30px;font-weight:700;position:relative}
+.verde .r-pie{border-color:rgba(255,255,255,.6)}
+
+/* Buscador del catálogo */
+.busca{background:#fff;border:4px solid var(--bord);border-radius:16px;padding:24px 28px;
+  font-size:34px;color:var(--mut);display:flex;align-items:center;gap:18px;position:relative;
+  margin-bottom:30px;box-shadow:0 8px 20px rgba(26,26,46,.05)}
+.busca .cur{display:inline-block;width:4px;height:38px;background:var(--ac);
+  animation:parp 1s steps(2) infinite}
+@keyframes parp{0%,100%{opacity:1}50%{opacity:0}}
+.busca .q{color:var(--ink);font-weight:600}
+
+/* Ítems que se van agregando */
+.item{display:flex;align-items:baseline;gap:18px;padding:18px 0;
+  border-bottom:2px solid var(--bord);opacity:0;transform:translateY(14px);
+  transition:opacity .35s ease,transform .35s ease}
+.item.on{opacity:1;transform:none}
+.item .nm{flex:1;font-size:29px;font-weight:600;line-height:1.2}
+.item .im{font-family:var(--m);font-size:29px;font-weight:600;color:var(--ac);
+  white-space:nowrap;min-width:230px;text-align:right}
+
+/* Total que sube */
+.total{margin-top:24px;padding-top:26px;border-top:5px solid var(--ink);position:relative}
+.total .lb{font-family:var(--m);font-size:24px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.total .vl{font-family:var(--m);font-size:80px;font-weight:600;color:var(--ac);
+  line-height:1.05;margin-top:8px;font-variant-numeric:tabular-nums}
+.verde .total{border-color:rgba(255,255,255,.6)} .verde .total .vl{color:#fff} .verde .total .lb{color:rgba(255,255,255,.75)}
+
+.badge{display:inline-flex;align-items:center;gap:10px;background:var(--sup2);
+  border-radius:40px;padding:14px 26px;font-family:var(--m);font-size:27px;color:var(--ink);
+  margin-top:28px;position:relative}
+.badge b{color:var(--ac);font-weight:600}
+
+/* Gantt — barras de planificación */
+.tarea{margin-bottom:28px;position:relative}
+.tarea .nm{font-size:29px;font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between}
+.tarea .dd{font-family:var(--m);font-size:24px;color:var(--ac)}
+.pista{height:44px;background:var(--sup2);border-radius:9px;position:relative;overflow:hidden}
+.bg{position:absolute;top:0;height:100%;border-radius:9px;width:0;left:0;
+  transition:width .8s cubic-bezier(.4,0,.2,1),left .8s cubic-bezier(.4,0,.2,1)}
+.bg.a{background:var(--ac)} .bg.b{background:var(--ac2)} .bg.c{background:var(--warn)} .bg.d{background:#2563eb}
+
+/* Curva de inversión — histograma */
+.curvaWrap{display:flex;align-items:flex-end;gap:16px;height:340px;margin-top:6px;position:relative}
+.curvaWrap .b{flex:1;background:var(--sup2);border-radius:10px 10px 0 0;position:relative;
+  overflow:hidden;height:100%;display:flex;align-items:flex-end}
+.curvaWrap .b i{display:block;width:100%;height:0;background:var(--ac2);border-radius:10px 10px 0 0;
+  transition:height .7s cubic-bezier(.4,0,.2,1)}
+.curvaWrap .b.pico i{background:var(--ac)}
+
+/* Cierre */
+.cta{display:flex;align-items:center;gap:18px;background:#fff;color:var(--ac);
+  border-radius:20px;padding:34px 40px;font-size:46px;font-weight:800;margin-top:10px;
+  box-shadow:0 0 0 0 rgba(255,255,255,.5);animation:pulso 1.4s ease-in-out infinite;position:relative}
+@keyframes pulso{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+.play{width:0;height:0;border-top:20px solid transparent;border-bottom:20px solid transparent;
+  border-left:32px solid var(--ac)}
+.gratis{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.18);
+  border:3px solid rgba(255,255,255,.55);border-radius:40px;padding:14px 28px;
+  font-family:var(--m);font-size:30px;font-weight:600;margin-bottom:26px;position:relative}
+
+.safe{position:absolute;left:0;right:0;height:250px;z-index:9;pointer-events:none;
+  border:2px dashed rgba(239,68,68,.4);background:rgba(239,68,68,.05)}
+.safe.t{top:0} .safe.b{bottom:0} .safe.off{display:none}
+
+/* Gancho — tachado del "2 días" y aparición del "15 minutos" */
+.golpeViejo{font-family:var(--m);font-weight:600;font-size:150px;line-height:1;
+  color:var(--red);position:relative;display:inline-block}
+.tacho{position:absolute;top:50%;left:-6px;height:14px;width:0;background:var(--red);
+  transform:translateY(-50%);border-radius:7px;transition:width .4s cubic-bezier(.4,0,.2,1)}
+.tacho.on{width:calc(100% + 12px)}
+.golpeNuevo{font-family:var(--m);font-weight:600;font-size:230px;line-height:1;
+  color:var(--ac-cl);margin-top:26px;opacity:0;transform:translateY(16px);
+  transition:opacity .45s ease,transform .45s ease}
+.golpeNuevo.on{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){ .item,.bg,.curvaWrap i{transition:none} }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <h1>Reel — «Probá la demo, gratis»</h1>
+  <p>Animación de <b>~26 segundos</b> a 1080×1920. Se graba con la pantalla y queda lista para subir.</p>
+  <ol>
+    <li>Tocá <b>Reproducir</b> para verlo.</li>
+    <li>Grabadora: <code>Win+Alt+R</code> en Windows.</li>
+    <li>Encuadrá <b>solo el rectángulo negro</b>.</li>
+    <li>Grabá y tocá <b>Reproducir</b>.</li>
+  </ol>
+  <button class="btn" onclick="play()">▶ Reproducir</button>
+  <button class="btn sec" onclick="toggleSafe()">Mostrar / ocultar zonas seguras</button>
+  <div class="aviso"><b>Antes de grabar:</b> ocultá las zonas seguras. Subilo como Reel,
+    no como historia.</div>
+  <div class="txt"><b>Texto del posteo</b>
+    Un presupuesto de obra, de cero a planificado, en 15 minutos.<br><br>
+    Elegís los ítems del catálogo (ya vienen con su análisis de costos), armás el
+    cronograma y la curva de inversión sale sola.<br><br>
+    No hace falta registrarte para probarlo: entrás directo a una obra de ejemplo
+    y recorrés el sistema real.<br><br>
+    👉 Probá la demo gratis — link en la bio.
+  </div>
+</div>
+
+<div class="marco">
+<div id="reel">
+  <div class="safe t" id="s1"></div>
+  <div class="safe b" id="s2"></div>
+
+  <!-- 0-3.5 s · gancho -->
+  <div class="esc" id="e1">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit" style="margin-top:40px">Un presupuesto <em>en Excel</em> te lleva</div>
+    <div class="r-med">
+      <div class="golpeViejo" id="golpeViejo">2 días<i class="tacho" id="tacho"></i></div>
+      <div class="golpeNuevo" id="golpeNuevo">15 minutos</div>
+      <div style="font-size:40px;color:var(--mut);margin-top:22px" id="golpeTxt">Buscar precios. Computar. Revisar fórmulas.</div>
+    </div>
+    <div class="r-pie">Mirá esto 👇</div>
+  </div>
+
+  <!-- 3.5-10 s · cotizando -->
+  <div class="esc" id="e2">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch" style="margin-top:34px">Elegís del <em>catálogo</em></div>
+    <div class="r-med">
+      <div class="busca"><span>🔍</span><span class="q" id="q"></span><span class="cur"></span></div>
+      <div id="items">
+        <div class="item" id="i1"><div class="nm">Viga fundación</div><div class="im">$ 34.128.816</div></div>
+        <div class="item" id="i2"><div class="nm">Mampostería de fundación</div><div class="im">$ 17.663.832</div></div>
+        <div class="item" id="i3"><div class="nm">Mampostería de elevación</div><div class="im">$ 79.487.245</div></div>
+        <div class="item" id="i4"><div class="nm">Revoque exterior completo</div><div class="im">$ 8.225.433</div></div>
+      </div>
+      <div class="total"><div class="lb">Total de la obra</div><div class="vl" id="tot">$ 0</div></div>
+    </div>
+    <div class="r-pie" id="pie2">Cada ítem ya trae su análisis de costos</div>
+  </div>
+
+  <!-- 10-15 s · planificación -->
+  <div class="esc" id="e3">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch"><em>La obra</em> se planifica sola</div>
+    <div class="r-med">
+      <div class="tarea"><div class="nm"><span>Viga fundación</span><span class="dd">18 días</span></div>
+        <div class="pista"><div class="bg a" id="g1"></div></div></div>
+      <div class="tarea"><div class="nm"><span>Mampost. fundación</span><span class="dd">25 días</span></div>
+        <div class="pista"><div class="bg b" id="g2"></div></div></div>
+      <div class="tarea"><div class="nm"><span>Mampost. elevación</span><span class="dd">40 días</span></div>
+        <div class="pista"><div class="bg c" id="g3"></div></div></div>
+      <div class="tarea"><div class="nm"><span>Revoque exterior</span><span class="dd">20 días</span></div>
+        <div class="pista"><div class="bg d" id="g4"></div></div></div>
+      <div class="r-baj" style="font-size:32px;margin-top:10px">Las fechas salen de la cantidad de cada ítem.</div>
+    </div>
+    <div class="r-pie">En minutos, no en días</div>
+  </div>
+
+  <!-- 15-20.5 s · curva de inversión -->
+  <div class="esc" id="e4">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch">La curva de inversión se <em>calcula sola</em></div>
+    <div class="r-med">
+      <div class="curvaWrap">
+        <div class="b"><i id="c1"></i></div>
+        <div class="b"><i id="c2"></i></div>
+        <div class="b"><i id="c3"></i></div>
+        <div class="b pico"><i id="c4"></i></div>
+        <div class="b"><i id="c5"></i></div>
+        <div class="b"><i id="c6"></i></div>
+      </div>
+      <div class="total"><div class="lb">Total a invertir</div><div class="vl" id="tot2">$ 0</div></div>
+    </div>
+    <div class="r-pie">El listado de materiales, también</div>
+  </div>
+
+  <!-- 20.5-26 s · cierre -->
+  <div class="esc verde" id="e5">
+    <div class="r-logo">FAIM <span>OBRAS</span></div>
+    <div class="r-tit ch" style="margin-top:34px">Probalo con una obra de ejemplo</div>
+    <div class="r-med">
+      <div class="gratis">✓ GRATIS · SIN REGISTRARTE</div>
+      <div class="cta"><span class="play"></span>Probar la demo guiada</div>
+      <div class="r-baj" style="margin-top:28px;font-size:34px">5 minutos. Entrás directo, sin reunión ni tarjeta.</div>
+    </div>
+    <div class="r-pie">faimobras.com/demo</div>
+  </div>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const escenas = ['e1','e2','e3','e4','e5'];
+const IMPORTES = [34128816, 17663832, 79487245, 8225433];
+const TOTAL_OBRA = IMPORTES.reduce((a,b)=>a+b,0);
+// Curva ilustrativa: sube, pica, baja — como una obra real se desembolsa.
+const CURVA_PCT = [28, 58, 85, 100, 62, 32];
+const fmt = n => '$ ' + Math.round(n).toLocaleString('es-AR');
+let timers = [], rafs = [];
+
+function limpiar(){
+  timers.forEach(clearTimeout); timers = [];
+  rafs.forEach(cancelAnimationFrame); rafs = [];
+  escenas.forEach(e => $(e).classList.remove('on'));
+  [1,2,3,4].forEach(i => $('i'+i)?.classList.remove('on'));
+  ['g1','g2','g3','g4'].forEach(id => { $(id).style.width = '0'; $(id).style.left = '0'; });
+  ['c1','c2','c3','c4','c5','c6'].forEach(id => { $(id).style.height = '0'; });
+  $('tot').textContent = '$ 0';
+  $('tot2').textContent = '$ 0';
+  $('q').textContent = '';
+  $('tacho').classList.remove('on');
+  $('golpeNuevo').classList.remove('on');
+  $('golpeTxt').textContent = 'Buscar precios. Computar. Revisar fórmulas.';
+  $('pie2').textContent = 'Cada ítem ya trae su análisis de costos';
+}
+const t = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+// Sube un número de a poco: lo que sostiene la mirada mientras se arma el total.
+function subirNumero(el, desde, hasta, ms){
+  const t0 = performance.now();
+  const paso = () => {
+    const p = Math.min(1, (performance.now() - t0) / ms);
+    const suave = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(desde + (hasta - desde) * suave);
+    if (p < 1) rafs.push(requestAnimationFrame(paso));
+  };
+  rafs.push(requestAnimationFrame(paso));
+}
+
+// Escribe el nombre del ítem letra por letra, como si lo buscaran.
+function tipear(texto, ms){
+  let i = 0;
+  const cada = ms / texto.length;
+  const paso = () => {
+    $('q').textContent = texto.slice(0, ++i);
+    if (i < texto.length) timers.push(setTimeout(paso, cada));
+  };
+  paso();
+}
+
+function play(){
+  limpiar();
+  const ver = e => { escenas.forEach(x => $(x).classList.remove('on')); $(e).classList.add('on'); };
+
+  // ── 1 · gancho (0 s) ──
+  ver('e1');
+  t(1400, () => { $('tacho').classList.add('on'); });
+  t(2000, () => {
+    $('golpeNuevo').classList.add('on');
+    $('golpeTxt').textContent = 'en FAIM OBRAS, con el análisis ya cargado';
+  });
+
+  // ── 2 · cotizando (3.5 s) ──
+  t(3500, () => { ver('e2'); tipear('viga fundacion', 650); });
+  let acum = 0;
+  const MOMENTOS = [4600, 5800, 7000, 8200];
+  const BUSQUEDAS = ['mamposteria fundacion', 'mamposteria elevacion', 'revoque exterior'];
+  MOMENTOS.forEach((ms, k) => {
+    t(ms, () => {
+      $('i' + (k+1)).classList.add('on');
+      const antes = acum; acum += IMPORTES[k];
+      subirNumero($('tot'), antes, acum, 700);
+      if (BUSQUEDAS[k]) { $('q').textContent=''; tipear(BUSQUEDAS[k], 600); }
+    });
+  });
+  t(9200, () => { $('q').textContent = ''; $('pie2').textContent = '436 ítems de catálogo · 829 materiales'; });
+
+  // ── 3 · planificación (10.5 s) ──
+  t(10500, () => ver('e3'));
+  t(11100, () => { $('g1').style.width = '18%'; });
+  t(11700, () => { $('g2').style.left = '18%'; $('g2').style.width = '25%'; });
+  t(12300, () => { $('g3').style.left = '43%'; $('g3').style.width = '40%'; });
+  t(12900, () => { $('g4').style.left = '83%'; $('g4').style.width = '17%'; });
+
+  // ── 4 · curva de inversión (15.5 s) ──
+  t(15500, () => ver('e4'));
+  let acumCurva = 0;
+  const idsCurva = ['c1','c2','c3','c4','c5','c6'];
+  idsCurva.forEach((id, k) => {
+    t(16100 + k * 650, () => {
+      $(id).style.height = CURVA_PCT[k] + '%';
+      const parte = TOTAL_OBRA * (CURVA_PCT[k] / CURVA_PCT.reduce((a,b)=>a+b,0));
+      const antes = acumCurva; acumCurva += parte;
+      subirNumero($('tot2'), antes, acumCurva, 550);
+    });
+  });
+
+  // ── 5 · cierre (20.5 s) ──
+  t(20500, () => ver('e5'));
+  t(26000, () => {});
+}
+function toggleSafe(){ ['s1','s2'].forEach(s => $(s).classList.toggle('off')); }
+</script>
+</body>
+</html>
