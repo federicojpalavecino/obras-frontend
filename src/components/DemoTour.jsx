@@ -245,21 +245,62 @@ export default function DemoTour() {
               },
             },
             {
-              // En desktop el panel entero tiene lugar de sobra a la
-              // derecha. En mobile es una hoja casi de ancho completo: un
-              // cartel apuntando a todo el panel tapa la lista de
-              // resultados y bloquea el scroll y el click (reportado en
-              // producción). Ahí apunta solo al buscador, arriba del todo,
-              // y el cartel va abajo — dejando la lista libre.
-              element: () => esMobil
-                ? (document.querySelector('[data-tour="buscar-item"]') || document.querySelector('[data-tour="agregar-item-panel"]'))
-                : document.querySelector('[data-tour="agregar-item-panel"]'),
+              // El resaltado (y el agujero que deja clickear/scrollear a
+              // través del overlay oscuro) tiene que ser el PANEL ENTERO
+              // en los dos casos — buscador y lista — porque el agujero de
+              // driver.js solo cubre el elemento resaltado: si antes se
+              // apuntaba solo al buscador para que el cartel no tapara la
+              // lista, el agujero también quedaba chico y los clicks sobre
+              // los resultados caían afuera (bloqueados por el overlay) —
+              // eso fue lo que se reportó en producción ("deja buscar pero
+              // no deja clickear"). El panel entero resuelve eso.
+              element: '[data-tour="agregar-item-panel"]',
               onHighlighted: () => { capturarFilasExistentes(); avanzarAlClickEn('[data-tour="lista-items"]')(); },
               popover: {
                 title: "Agregar un ítem al presupuesto",
-                description: 'Buscá, por ejemplo, "contrapiso" o "revoque interior", o elegí cualquier ítem de la lista. Hacé click sobre uno para agregarlo.',
+                description: esMobil
+                  ? 'Buscá y tocá un ítem de la lista para agregarlo.'
+                  : 'Buscá, por ejemplo, "contrapiso" o "revoque interior", o elegí cualquier ítem de la lista. Hacé click sobre uno para agregarlo.',
                 side: esMobil ? "bottom" : "right",
                 showButtons: ["previous", "close"],
+                // En mobile el panel ocupa toda la altura de la pantalla
+                // (top:0 a bottom:0): no hay "al lado" ni "abajo" posible
+                // sin tapar la lista, que es lo que hay que poder tocar.
+                // Por default driver.js centra el cartel contra TODO el
+                // panel resaltado, tapando varias filas. Lo clavamos en
+                // cambio pegado justo abajo del buscador — angosto y
+                // corto — para que tape como mucho el borde superior de
+                // la lista, no toda ella.
+                // driver.js llama a onPopoverRender ANTES de aplicarle su
+                // propia posición calculada (que pisaría cualquier estilo
+                // que se ponga acá mismo) — por eso el pin real va en un
+                // setTimeout(0), después de que termine su propio cálculo.
+                // También se reaplica en "resize": en el celular, abrir el
+                // teclado para escribir en el buscador dispara uno, y
+                // driver.js vuelve a recalcular su posición por su cuenta.
+                onPopoverRender: esMobil ? (popover) => {
+                  const pin = () => {
+                    const input = document.querySelector('[data-tour="buscar-item"]');
+                    if (!input || !document.body.contains(popover.wrapper)) return;
+                    const r = input.getBoundingClientRect();
+                    popover.wrapper.style.position = "fixed";
+                    popover.wrapper.style.top = `${r.bottom + 8}px`;
+                    popover.wrapper.style.left = `${r.left}px`;
+                    popover.wrapper.style.right = "16px";
+                    popover.wrapper.style.maxWidth = "none";
+                    popover.wrapper.style.margin = "0";
+                    // La flechita apunta hacia el elemento resaltado
+                    // (el panel entero) — con la posición clavada a mano
+                    // ya no señala nada real, mejor ocultarla.
+                    popover.arrow.style.display = "none";
+                  };
+                  setTimeout(pin, 0);
+                  const onResize = () => {
+                    if (!document.body.contains(popover.wrapper)) { window.removeEventListener("resize", onResize); return; }
+                    pin();
+                  };
+                  window.addEventListener("resize", onResize);
+                } : undefined,
               },
             },
             {
