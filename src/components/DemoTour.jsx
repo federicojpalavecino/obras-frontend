@@ -213,6 +213,21 @@ export default function DemoTour() {
               },
             },
             {
+              // Solo existe (visible) en el celular: el panel de agregar
+              // ítems ahí es un drawer que arranca cerrado, con este botón
+              // aparte para abrirlo. En desktop el botón sigue en el DOM
+              // pero con display:none, así que skipMissingElement salta
+              // este paso solo — no hace falta chequear el ancho a mano.
+              element: '[data-tour="agregar-item-trigger-mobile"]',
+              onHighlighted: avanzarAlClickEn('[data-tour="agregar-item-trigger-mobile"]'),
+              popover: {
+                title: "Agregar un ítem al presupuesto",
+                description: 'Tocá "+ Agregar ítem" para abrir el buscador del catálogo.',
+                side: "bottom",
+                showButtons: ["previous", "close"],
+              },
+            },
+            {
               element: '[data-tour="agregar-item-panel"]',
               onHighlighted: () => { capturarFilasExistentes(); avanzarAlClickEn('[data-tour="lista-items"]')(); },
               popover: {

@@ -1607,7 +1607,7 @@ ${firma}
                 </div>
                 {/* Mobile: botón para abrir sidebar */}
                 {!cerrado && (
-                  <button className="btn btn-primary btn-sm sidebar-toggle-btn"
+                  <button data-tour="agregar-item-trigger-mobile" className="btn btn-primary btn-sm sidebar-toggle-btn"
                     style={{ display: 'none' }}
                     onClick={() => { setSidebarOpen(true); setCoefsOpen(false); }}>
                     <Plus size={13} /> Agregar ítem
