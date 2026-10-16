@@ -108,7 +108,7 @@ export default function DemoTour() {
         // con él. Resolviendo `sel` de nuevo en cada click (no una sola vez
         // al armar el listener) el paso sigue funcionando aunque el nodo
         // real haya cambiado.
-        const avanzarAlClickEn = (sel) => () => {
+        const avanzarAlClickEn = (sel, demora = 0) => () => {
           const indice = tourDriver.getActiveIndex();
           const handler = (e) => {
             if (tourDriver.getActiveIndex() !== indice) {
@@ -118,27 +118,15 @@ export default function DemoTour() {
             const el = resolver(sel);
             if (el && (el === e.target || el.contains(e.target))) {
               document.removeEventListener("click", handler, true);
-              tourDriver.moveNext();
-              // El click que acabamos de avanzar puede disparar un fetch que
-              // recién más tarde re-renderiza (y desplaza) lo que quedó
-              // resaltado — p. ej. "Horas" trae la mano de obra y las filas
-              // del Gantt cambian de alto. Si eso pasa, el recuadro del tour
-              // queda dibujado donde ESTABA el elemento, no donde está
-              // ahora, y los clicks dentro del recuadro visual no caen sobre
-              // nada clickeable. refresh() recalcula esa posición contra el
-              // DOM actual.
-              //
-              // OJO: moveNext() dispara su propia animación de transición
-              // (400ms por default) que todavía usa la referencia al elemento
-              // VIEJO mientras dura. Si refresh() se llama en esa ventana,
-              // pisa la animación y el recuadro salta al elemento anterior
-              // en vez de seguir al nuevo — por eso se arranca a vigilar
-              // recién después de que esa animación termina.
-              setTimeout(() => {
-                const obs = new MutationObserver(() => tourDriver.refresh());
-                obs.observe(document.body, { childList: true, subtree: true, attributes: true });
-                setTimeout(() => obs.disconnect(), 1800);
-              }, 450);
+              // Algunos clicks (p. ej. "Horas") disparan un fetch que
+              // reacomoda el Gantt (las filas cambian de alto) recién
+              // después de que la respuesta llega. Si avanzamos al toque,
+              // driver.js calcula el recuadro del paso siguiente contra un
+              // layout que todavía se va a mover debajo — y el recuadro
+              // termina apuntando a otro lado. `demora` le da tiempo a la
+              // pantalla para asentarse antes de calcular nada.
+              if (demora > 0) setTimeout(() => tourDriver.moveNext(), demora);
+              else tourDriver.moveNext();
             }
           };
           document.addEventListener("click", handler, true);
@@ -331,7 +319,7 @@ export default function DemoTour() {
             },
             {
               element: '[data-tour="gantt-horas"]',
-              onHighlighted: avanzarAlClickEn('[data-tour="gantt-horas"]'),
+              onHighlighted: avanzarAlClickEn('[data-tour="gantt-horas"]', 800),
               popover: {
                 title: "Traé las horas de mano de obra",
                 description: 'Sin esto el plazo queda fijo. Hacé click en "Horas": trae la mano de obra del análisis de costos de cada ítem, para que sumar o sacar gente de la cuadrilla sí mueva las fechas.',
