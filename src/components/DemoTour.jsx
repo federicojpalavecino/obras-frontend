@@ -126,12 +126,19 @@ export default function DemoTour() {
               // queda dibujado donde ESTABA el elemento, no donde está
               // ahora, y los clicks dentro del recuadro visual no caen sobre
               // nada clickeable. refresh() recalcula esa posición contra el
-              // DOM actual; se dispara en cada mutación, con ventana corta
-              // porque no hace falta más que eso para que el re-render del
-              // fetch ya haya pasado.
-              const obs = new MutationObserver(() => tourDriver.refresh());
-              obs.observe(document.body, { childList: true, subtree: true, attributes: true });
-              setTimeout(() => obs.disconnect(), 1500);
+              // DOM actual.
+              //
+              // OJO: moveNext() dispara su propia animación de transición
+              // (400ms por default) que todavía usa la referencia al elemento
+              // VIEJO mientras dura. Si refresh() se llama en esa ventana,
+              // pisa la animación y el recuadro salta al elemento anterior
+              // en vez de seguir al nuevo — por eso se arranca a vigilar
+              // recién después de que esa animación termina.
+              setTimeout(() => {
+                const obs = new MutationObserver(() => tourDriver.refresh());
+                obs.observe(document.body, { childList: true, subtree: true, attributes: true });
+                setTimeout(() => obs.disconnect(), 1800);
+              }, 450);
             }
           };
           document.addEventListener("click", handler, true);
