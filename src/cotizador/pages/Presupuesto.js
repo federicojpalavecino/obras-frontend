@@ -518,6 +518,13 @@ export default function Presupuesto() {
       }
       await agregarLinea(id, payload);
       cargar(true);
+      // En el celular el panel de buscar/agregar es un drawer que tapa la
+      // tabla — una vez agregado el ítem hay que cerrarlo para poder ver
+      // la cantidad y el botón de cómputo de la fila nueva. En desktop el
+      // panel es una columna fija (siempre visible via display:flex, el
+      // open/cerrado de acá solo controla el drawer mobile), así que esto
+      // no le cambia nada ahí.
+      setSidebarOpen(false);
     } catch (e) { console.error(e); }
     setItemPendiente(null);
   };
