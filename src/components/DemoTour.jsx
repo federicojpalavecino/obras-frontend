@@ -233,8 +233,7 @@ export default function DemoTour() {
             {
               popover: {
                 title: "Bienvenido a FAIM Obras",
-                description: "Armamos una obra de ejemplo para mostrarte, en vivo, cómo se arma un presupuesto completo: desde el primer ítem hasta la planificación y los certificados."
-                  + (esMobil ? " El sistema funciona en el celular, pero para este recorrido guiado te va a resultar más cómodo desde una computadora." : ""),
+                description: "Armamos una obra de ejemplo para mostrarte, en vivo, cómo se arma un presupuesto completo: desde el primer ítem hasta la planificación y los certificados.",
               },
             },
             {

@@ -569,9 +569,38 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
 }
 
 // ── Entrada directa a /demo ─────────────────────────────────────────────────
-// Link público (ads, WhatsApp, etc.): arranca la demo sola, sin login.
+// Link público (ads, WhatsApp, etc.): arranca la demo sola, sin login. En
+// pantallas chicas, antes de arrancar, se avisa que conviene verla desde una
+// PC (es un sistema de tablas y paneles, no una landing) — con una salida
+// real para quien de verdad llegó desde el celular: hablar con el bot de
+// WhatsApp en vez de pelear con la demo ahí mismo, o seguir igual si prefiere.
 function EntradaDemo({ onEntrar, error }) {
-  useEffect(() => { onEntrar(); }, []); // eslint-disable-line
+  const [continuar, setContinuar] = useState(() => window.innerWidth > 900);
+  useEffect(() => { if (continuar) onEntrar(); }, [continuar]); // eslint-disable-line
+
+  if (!continuar) {
+    const msg = encodeURIComponent("Hola! Quería ver la demo de FAIM OBRAS pero estoy en el celular, ¿me ayudás?");
+    return (
+      <div style={{background:"#f8f9fa",minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,fontFamily:"'Syne',sans-serif",padding:"32px 24px",textAlign:"center"}}>
+        <div style={{fontSize:28,fontWeight:800,color:"#059669",letterSpacing:-1}}>FAIM OBRAS</div>
+        <div style={{maxWidth:360}}>
+          <div style={{fontSize:17,fontWeight:700,color:"#1a1a2e",marginBottom:8}}>Se ve mejor en una computadora</div>
+          <div style={{fontSize:13.5,color:"#6b7280",lineHeight:1.55}}>
+            Es un sistema de gestión con tablas, paneles y gráficos — en una pantalla grande se entiende mucho mejor de qué se trata. Si tenés una PC a mano, abrí este mismo link ahí.
+          </div>
+        </div>
+        <a href={`https://wa.me/${WHATSAPP_COMPROBANTES}?text=${msg}`} target="_blank" rel="noreferrer"
+          style={{display:"flex",alignItems:"center",gap:8,background:"#25D366",color:"#fff",padding:"13px 24px",borderRadius:10,fontWeight:700,fontSize:14,textDecoration:"none",boxShadow:"0 6px 18px rgba(37,211,102,0.3)"}}>
+          <MessageCircle size={18} strokeWidth={2.25} /> Escribinos por WhatsApp
+        </a>
+        <button onClick={() => setContinuar(true)}
+          style={{background:"none",border:"none",color:"#6b7280",fontSize:12.5,textDecoration:"underline",cursor:"pointer",padding:4}}>
+          Prefiero seguir desde el celular
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div style={{background:"#f8f9fa",height:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14,fontFamily:"'Syne',sans-serif"}}>
       <div style={{fontSize:32,fontWeight:800,color:"#059669",letterSpacing:-1}}>FAIM OBRAS</div>
