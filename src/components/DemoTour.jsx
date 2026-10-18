@@ -127,6 +127,47 @@ export default function DemoTour() {
           return null;
         };
 
+        // Pasos "Cerrar presupuesto" / "Generar" / "Nuevo certificado": en
+        // mobile resaltan el disparador "⋯" porque la acción real todavía
+        // no existe (está adentro de un menú cerrado). El cartel de
+        // driver.js se queda pegado a lo que resaltó al principio salvo que
+        // se le pida reposicionar — así que, apenas el menú se abre y el
+        // ítem real aparece, se vuelve a resaltar el MISMO paso: `element`
+        // es una función (enMobilOEscritorio), así que llamarla de nuevo
+        // encuentra ahora el ítem real en vez del disparador. No cambia de
+        // índice, así que avanzarAlClickEn sigue funcionando igual.
+        const pasoMenuMobile = (titulo, descripcion, selDesktop, selMovil, selTrigger) => {
+          const elementFn = enMobilOEscritorio(selDesktop, selMovil, selTrigger);
+          const accionFn = accionMobilOEscritorio(selDesktop, selMovil);
+          const step = {
+            element: elementFn,
+            popover: { title: titulo, description: descripcion, side: "bottom", showButtons: ["previous", "close"] },
+          };
+          // tourDriver.highlight(step) más abajo dispara el propio
+          // onHighlighted del step de nuevo (mismo ciclo de vida que un
+          // resaltado normal) — sin esta bandera se arma un segundo
+          // listener de click y un segundo observer sobre el mismo paso.
+          let reposicionando = false;
+          step.onHighlighted = () => {
+            if (reposicionando) { reposicionando = false; return; }
+            avanzarAlClickEn(accionFn)();
+            if (!esMobil) return;
+            const indice = tourDriver.getActiveIndex();
+            const elInicial = elementFn();
+            const obs = new MutationObserver(() => {
+              if (tourDriver.getActiveIndex() !== indice) { obs.disconnect(); return; }
+              const elAhora = elementFn();
+              if (elAhora && elAhora !== elInicial) {
+                obs.disconnect();
+                reposicionando = true;
+                tourDriver.highlight(step);
+              }
+            });
+            obs.observe(document.body, { childList: true, subtree: true });
+          };
+          return step;
+        };
+
         // Avanza el tour solo cuando se hace la acción real (click o blur en
         // el selector indicado) — pero SOLO si todavía estamos en el paso
         // que armó este listener. Sin este chequeo, si la persona salta el
@@ -342,7 +383,7 @@ export default function DemoTour() {
             {
               popover: {
                 title: "Un catálogo de más de 800 materiales",
-                description: "Cada análisis se arma con materiales de un catálogo de más de 800 ítems, con precios de referencia que se actualizan solos, y con la mano de obra a los valores oficiales de UOCRA — ya con las cargas sociales incluidas. Si trabajás con tus propios proveedores o costos, los tuyos pisan a los de referencia.",
+                description: "Cada análisis se arma con materiales de un catálogo de más de 800 ítems, con precios de referencia que se actualizan solos, y con la mano de obra a los valores oficiales de UOCRA — ya con las cargas sociales incluidas. También podés cargar tus propios precios si trabajás con proveedores particulares.",
               },
             },
             {
@@ -400,14 +441,11 @@ export default function DemoTour() {
               },
             },
             {
-              element: enMobilOEscritorio('[data-tour="boton-cerrar"]', '[data-tour="boton-cerrar-mobile"]', '[data-tour="presupuesto-menu-mobile"]'),
-              onHighlighted: avanzarAlClickEn(accionMobilOEscritorio('[data-tour="boton-cerrar"]', '[data-tour="boton-cerrar-mobile"]')),
-              popover: {
-                title: "Cerrar el presupuesto",
-                description: 'Al cerrarlo, los precios quedan congelados y se habilitan la planificación y la certificación de la obra. Hacé click en "Cerrar" (en el celular, abrí el menú "⋯" y elegí "Cerrar presupuesto").',
-                side: "bottom",
-                showButtons: ["previous", "close"],
-              },
+              ...pasoMenuMobile(
+                "Cerrar el presupuesto",
+                'Al cerrarlo, los precios quedan congelados y se habilitan la planificación y la certificación de la obra. Hacé click en "Cerrar" (en el celular, abrí el menú "⋯" y elegí "Cerrar presupuesto").',
+                '[data-tour="boton-cerrar"]', '[data-tour="boton-cerrar-mobile"]', '[data-tour="presupuesto-menu-mobile"]',
+              ),
             },
             {
               element: '[data-tour="cerrar-metodologia"]',
@@ -429,14 +467,11 @@ export default function DemoTour() {
           ],
           gantt: [
             {
-              element: enMobilOEscritorio('[data-tour="generar-gantt"]', '[data-tour="generar-gantt-mobile"]', '[data-tour="gantt-menu-mobile"]'),
-              onHighlighted: avanzarAlClickEn(accionMobilOEscritorio('[data-tour="generar-gantt"]', '[data-tour="generar-gantt-mobile"]')),
-              popover: {
-                title: "Generar el cronograma",
-                description: 'Hacé click en "Generar" (en el celular, en el menú "⋯"): arma todo el cronograma solo, tareas y fechas calculadas a partir de los ítems del presupuesto — nada de armar un Gantt a mano.',
-                side: "bottom",
-                showButtons: ["previous", "close"],
-              },
+              ...pasoMenuMobile(
+                "Generar el cronograma",
+                'Hacé click en "Generar" (en el celular, en el menú "⋯"): arma todo el cronograma solo, tareas y fechas calculadas a partir de los ítems del presupuesto — nada de armar un Gantt a mano.',
+                '[data-tour="generar-gantt"]', '[data-tour="generar-gantt-mobile"]', '[data-tour="gantt-menu-mobile"]',
+              ),
             },
             {
               element: '[data-tour="gantt-barras"]',
@@ -595,14 +630,11 @@ export default function DemoTour() {
           ],
           certificado: [
             {
-              element: enMobilOEscritorio('[data-tour="nuevo-certificado"]', '[data-tour="nuevo-certificado-mobile"]', '[data-tour="certificado-menu-mobile"]'),
-              onHighlighted: avanzarAlClickEn(accionMobilOEscritorio('[data-tour="nuevo-certificado"]', '[data-tour="nuevo-certificado-mobile"]')),
-              popover: {
-                title: "Certificar el avance de obra",
-                description: 'Cada cierto tiempo se certifica cuánto se avanzó, y eso define cuánto corresponde cobrarle al cliente. Hacé click en "Nuevo certificado" (en el celular, en el menú "⋯") para ver cómo se arma uno.',
-                side: "bottom",
-                showButtons: ["previous", "close"],
-              },
+              ...pasoMenuMobile(
+                "Certificar el avance de obra",
+                'Cada cierto tiempo se certifica cuánto se avanzó, y eso define cuánto corresponde cobrarle al cliente. Hacé click en "Nuevo certificado" (en el celular, en el menú "⋯") para ver cómo se arma uno.',
+                '[data-tour="nuevo-certificado"]', '[data-tour="nuevo-certificado-mobile"]', '[data-tour="certificado-menu-mobile"]',
+              ),
             },
             {
               element: '[data-tour="pct-avance-item"]',
@@ -670,12 +702,14 @@ export default function DemoTour() {
             // que apagarlo: confirmado a mano que un <svg> de pantalla
             // completa sigue recibiendo el click aunque su <path> interno
             // ya esté en "none" — el contenedor cuenta como "pintado" para
-            // el hit-test por su cuenta. La opacidad se deja intacta: el
-            // oscurecido con agujero de foco es el mismo efecto que tiene
-            // desktop (ver DemoTour.css sobre por qué no hace falta tocarla
-            // acá para que el menú/panel que se abre después se vea bien).
+            // el hit-test por su cuenta. La opacidad va junto con los
+            // clicks (ver DemoTour.css: se probó restaurar el oscurecido
+            // de desktop y volvieron varios bugs ya resueltos antes, por
+            // el agujero de foco de driver.js desalineándose contra lo
+            // que se abre después de un disparador).
             document.querySelectorAll(".driver-overlay, .driver-overlay path").forEach(p => {
               p.style.setProperty("pointer-events", "none");
+              p.style.setProperty("opacity", "0");
             });
           };
           desbloquear();

@@ -111,34 +111,21 @@
      pointer-events propio puede seguir capturando clicks sobre su caja
      completa en algunos motores (Safari/WebKit de iOS entre ellos),
      aunque el path de adentro ya esté en "none" — por las dudas, los dos.
-     La opacidad NO se toca acá: el oscurecido con el agujero de foco es
-     el mismo efecto que ya tiene el desktop, y pointer-events:none alcanza
-     para que deje pasar los toques — no hace falta volverlo invisible.
-     (Se probó apagar también la opacidad: resolvía el click pero perdía
-     el efecto de foco. Lo que tapaba al menú/panel no era la opacidad en
-     sí, era que el menú pintaba por DEBAJO del overlay — eso se arregla
-     subiendo el z-index de lo que se abre, no el del overlay, ver abajo.) */
+     La opacidad TAMBIÉN se apaga: se probó restaurar el oscurecido con
+     agujero de foco (como en desktop) subiendo el z-index de los
+     paneles/modales que se abren después de resaltar un disparador chico
+     (el botón "⋯", "Cerrar") — pero el agujero de driver.js se calcula
+     contra el disparador en el momento exacto del resaltado, no contra lo
+     que se abre después, y quedó desalineado en varios pasos más (volvió
+     "Agregar ítem" sin cerrarse solo, "Más herramientas" sin reaccionar,
+     el cartel apuntando a un lugar que ya no es donde hay que tocar). En
+     vez de perseguir ese cálculo paso por paso, se vuelve a lo que SÍ
+     funcionaba confirmado en el teléfono real: pantalla normal, sin
+     oscurecer nada, el tour se explica solo por el texto del cartel. */
   .driver-fade .driver-overlay,
   .driver-fade .driver-overlay path {
     pointer-events: none !important;
-  }
-
-  /* El agujero que recorta el fondo oscuro se calcula contra el elemento
-     resaltado en ESE momento — pero varios pasos resaltan un disparador
-     chico (el botón "⋯", "Cerrar") y lo que hay que usar de verdad recién
-     existe DESPUÉS de tocarlo (el menú desplegable, el modal de detalle
-     de una tarea). Ese contenido nuevo queda fuera del agujero y pintado
-     por debajo del overlay (z-index 10000) — técnicamente tocable gracias
-     a la regla de arriba, pero se ve opacado/tapado. En vez de perseguir
-     el recorte, estos paneles se elevan por encima del overlay ellos
-     mismos: quedan tan "a la vista" como el agujero de foco, sin
-     oscurecerse. El resto de la pantalla atrás sigue oscuro, igual que en
-     desktop. (El menú "⋯" ya resuelve esto en el propio componente,
-     MobileMenu.js — acá van los paneles/modales que no pasan por ahí.) */
-  body.driver-fade .sidebar-presupuesto.open,
-  body.driver-fade .panel-lateral,
-  body.driver-fade [data-tour="cerrar-tarea-detalle"] {
-    z-index: 1000000 !important;
+    opacity: 0 !important;
   }
 }
 
