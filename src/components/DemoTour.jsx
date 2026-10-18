@@ -17,6 +17,16 @@ export default function DemoTour() {
   const driverActivoRef = useRef(null); // instancia en pantalla, para no duplicar si se aprieta "Retomar"
   const desbloqueoMobilRef = useRef(null); // MutationObserver que neutraliza el bloqueo de interacción de driver.js en el celular (ver más abajo)
   const [mostrarBoton, setMostrarBoton] = useState(false);
+  // "Retomar la guía" es para cuando el tour está cerrado (se tocó la X o
+  // se perdió el popover) — mientras el tour está corriendo de verdad no
+  // hace falta, y al revés: estorba. Es un botón fijo abajo a la izquierda
+  // y varios pasos en mobile terminan con contenido real justo ahí (el
+  // menú "⋯" con "Cerrar presupuesto"/"Generar desde presupuesto", la
+  // cuadrilla de una tarea en el Gantt) — tenerlo siempre encima, aunque
+  // ya se le subió el z-index al menú por arriba de este botón, seguía
+  // siendo un elemento de más estorbando esa esquina. Se oculta mientras
+  // el tour está activo y vuelve a aparecer si se cierra.
+  const [tourEnCurso, setTourEnCurso] = useState(false);
 
   useEffect(() => {
     if (sessionStorage.getItem("obras_tour_demo") !== "1") { setMostrarBoton(false); return; }
@@ -206,7 +216,7 @@ export default function DemoTour() {
           // persona se salteó el paso anterior sin hacer la acción), el
           // tour no se queda esperando para siempre: pasa solo al siguiente.
           skipMissingElement: true,
-          onCloseClick: () => { tourDriver.destroy(); },
+          onCloseClick: () => { tourDriver.destroy(); setTourEnCurso(false); },
         };
 
         // Varios pasos necesitan saber si están en el breakpoint mobile
@@ -223,7 +233,8 @@ export default function DemoTour() {
             {
               popover: {
                 title: "Bienvenido a FAIM Obras",
-                description: "Armamos una obra de ejemplo para mostrarte, en vivo, cómo se arma un presupuesto completo: desde el primer ítem hasta la planificación y los certificados.",
+                description: "Armamos una obra de ejemplo para mostrarte, en vivo, cómo se arma un presupuesto completo: desde el primer ítem hasta la planificación y los certificados."
+                  + (esMobil ? " El sistema funciona en el celular, pero para este recorrido guiado te va a resultar más cómodo desde una computadora." : ""),
               },
             },
             {
@@ -434,16 +445,18 @@ export default function DemoTour() {
                 title: "Cada barra es una tarea",
                 description: "Su duración no es un número inventado: sale de la cantidad de ese ítem en el presupuesto y del rendimiento de la cuadrilla que lo hace — por eso un ítem con más cantidad tarda más días. Se pueden arrastrar para ajustar a mano, y encadenar una con otra para armar dependencias.",
                 side: "right",
-              },
-            },
-            {
-              element: enMobilOEscritorio('[data-tour="gantt-horas"]', '[data-tour="gantt-horas-mobile"]', '[data-tour="gantt-menu-mobile"]'),
-              onHighlighted: avanzarAlClickEn(accionMobilOEscritorio('[data-tour="gantt-horas"]', '[data-tour="gantt-horas-mobile"]'), 800),
-              popover: {
-                title: "Traé las horas de mano de obra",
-                description: 'Sin esto el plazo queda fijo. Hacé click en "Horas" (en el celular, en el menú "⋯"): trae la mano de obra del análisis de costos de cada ítem, para que sumar o sacar gente de la cuadrilla sí mueva las fechas.',
-                side: "bottom",
-                showButtons: ["previous", "close"],
+                // "Traer horas" (que antes era su propio paso, con su propio
+                // click por el menú "⋯") solo le da al paso siguiente el
+                // dato que necesita para que sumar gente mueva la fecha —
+                // no aporta nada mostrado como acción explícita, así que se
+                // dispara solo al avanzar, en vez de pedirle al visitante un
+                // click más. El botón de escritorio existe en el DOM aunque
+                // esté oculto por CSS en mobile, así que clickearlo anda
+                // igual sin importar el tamaño de pantalla.
+                onNextClick: (el, step, { driver }) => {
+                  document.querySelector('[data-tour="gantt-horas"]')?.click();
+                  setTimeout(() => driver.moveNext(), 800);
+                },
               },
             },
             {
@@ -486,6 +499,11 @@ export default function DemoTour() {
                 title: "Mirá la fecha moverse",
                 description: 'Apretá "+" para sumar una persona a la cuadrilla — mirá arriba: el plazo de esta tarea se acorta solo, al toque.',
                 showButtons: ["previous", "close"],
+                // En mobile el modal de detalle de tarea ocupa casi toda la
+                // pantalla, y el cartel por defecto queda flotando encima
+                // del "+" que hay que tocar de verdad — mismo motivo que
+                // los paneles de cómputo/análisis más arriba.
+                popoverClass: esMobil ? "demo-tour-passthrough" : undefined,
               },
             },
             {
@@ -626,6 +644,7 @@ export default function DemoTour() {
         tourDriver = driver({ ...baseConfig, steps: segmentos[segmento] });
         driverActivoRef.current = tourDriver;
         tourDriver.drive();
+        setTourEnCurso(true);
 
         // driver.js (la librería, no este código) le pone a <body> la
         // clase "driver-active" mientras el tour corre, y su propio CSS
@@ -676,7 +695,7 @@ export default function DemoTour() {
     })();
   }, [location.pathname, navigate]);
 
-  if (!mostrarBoton) return null;
+  if (!mostrarBoton || tourEnCurso) return null;
   return (
     <button
       onClick={() => arrancarRef.current?.()}
