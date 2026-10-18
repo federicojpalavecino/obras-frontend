@@ -272,10 +272,10 @@ export default function DemoTour() {
               element: '[data-tour="agregar-item-panel"]',
               onHighlighted: () => { capturarFilasExistentes(); avanzarAlClickEn('[data-tour="lista-items"]')(); },
               popover: {
-                title: "Agregar un ítem al presupuesto",
+                title: "Más de 400 tareas, ya cargadas",
                 description: esMobil
-                  ? 'Buscá y tocá un ítem de la lista para agregarlo.'
-                  : 'Buscá, por ejemplo, "contrapiso" o "revoque interior", o elegí cualquier ítem de la lista. Hacé click sobre uno para agregarlo.',
+                  ? 'No arrancás de cero: hay más de 400 tareas de obra ya cargadas, cada una con su precio y su composición. Buscá o tocá cualquiera de la lista para agregarla.'
+                  : 'Buscá, por ejemplo, "contrapiso" o "revoque interior" — hay más de 400 tareas de obra ya cargadas, cada una con su precio y su composición. No armás nada desde cero: elegís de la lista y seguís. Hacé click sobre un ítem para agregarlo.',
                 side: esMobil ? "bottom" : "right",
                 showButtons: ["previous", "close"],
                 // En mobile el panel ocupa toda la pantalla: no hay dónde
@@ -318,7 +318,7 @@ export default function DemoTour() {
               onHighlighted: avanzarAlClickEn(enFilaNueva('[data-tour="boton-computo"]')),
               popover: {
                 title: "La calculadora de cómputos",
-                description: 'Si la cantidad sale de medir distintos sectores (frente, patio, cisterna), hacé click en "cómputo": sumás cada medida por separado y el total se carga solo.',
+                description: 'Si la cantidad sale de medir varios sectores (frente, patio, cisterna), no hace falta la libreta ni la planilla aparte: hacé click en "cómputo" y cargá cada medición acá mismo — queda guardada, y el total se suma solo.',
                 side: "left",
                 showButtons: ["previous", "close"],
               },
@@ -327,7 +327,7 @@ export default function DemoTour() {
               element: '[data-tour="panel-computo"]',
               popover: {
                 title: "Un total por cada sector",
-                description: "Cada fila es una medición — alto, ancho, largo, lo que corresponda según la unidad — y el sistema las suma todas. Cerramos este panel y seguimos.",
+                description: "Cada fila es una medición — alto, ancho, largo, lo que corresponda según la unidad — y el sistema las suma todas. Queda todo guardado acá: si mañana hay que revisar de dónde salió ese número, está a mano, no en una hoja suelta. Cerramos este panel y seguimos.",
                 // En mobile este panel es una hoja que sube desde abajo
                 // (hasta 82dvh): "left" no tiene dónde ir y tapa las filas.
                 // Arriba del todo queda libre, por eso "top" ahí.
@@ -341,8 +341,8 @@ export default function DemoTour() {
             },
             {
               popover: {
-                title: "¿De dónde salen los precios?",
-                description: "Los materiales tienen precios de referencia que se actualizan solos, y la mano de obra toma como referencia los valores de UOCRA. Si trabajás con tus propios proveedores o costos, podés cargar tus propios valores y esos pisan a los de referencia.",
+                title: "Un catálogo de más de 800 materiales",
+                description: "Cada análisis se arma con materiales de un catálogo de más de 800 ítems, con precios de referencia que se actualizan solos, y con la mano de obra a los valores oficiales de UOCRA — ya con las cargas sociales incluidas. Si trabajás con tus propios proveedores o costos, los tuyos pisan a los de referencia.",
               },
             },
             {
@@ -350,7 +350,7 @@ export default function DemoTour() {
               onHighlighted: avanzarAlClickEn(enFilaNueva('[data-tour="nombre-item"]')),
               popover: {
                 title: "El análisis de costos de un ítem",
-                description: "Hacé click en el nombre del ítem para ver exactamente de qué está hecho: qué materiales lleva, cuánta mano de obra y qué equipo.",
+                description: "Hacé click en el nombre del ítem para ver exactamente de qué está hecho: qué materiales lleva (del catálogo), cuánta mano de obra y qué equipo.",
                 side: "right",
                 showButtons: ["previous", "close"],
               },
@@ -370,7 +370,7 @@ export default function DemoTour() {
               element: '[data-tour="analisis-secciones"]',
               popover: {
                 title: "Editable línea por línea",
-                description: "Podés agregar, sacar o cambiar cualquier material, hora de mano de obra o uso de equipo — el costo del ítem (y el del presupuesto entero) se actualiza al toque.",
+                description: "Podés agregar, sacar o cambiar cualquier material, hora de mano de obra o uso de equipo — el costo del ítem (y el del presupuesto entero) se actualiza al toque. Es tu análisis, no uno fijo.",
                 side: esMobil ? "top" : "left",
                 popoverClass: esMobil ? "demo-tour-passthrough" : undefined,
                 // El análisis de costos (igual que el panel de cómputo) se
@@ -395,7 +395,7 @@ export default function DemoTour() {
               element: '.totales-bar',
               popover: {
                 title: "El resumen de todo el presupuesto",
-                description: "Material, mano de obra, costo de ejecución, precio sin IVA, el IVA, el total con IVA y el margen — los siete, a la vista y recalculados solos con cada ítem que agregás.",
+                description: "Material, mano de obra, costo de ejecución, precio sin IVA, el IVA, el total con IVA y el margen — los siete, a la vista y recalculados solos con cada ítem que agregás. Nada de fórmulas rotas en una planilla aparte.",
                 side: "top",
               },
             },
@@ -421,7 +421,7 @@ export default function DemoTour() {
             {
               popover: {
                 title: "Presupuesto cerrado",
-                description: "A partir de ahora están disponibles la planificación de la obra, la curva de inversión, el listado de materiales y la certificación. Vamos a recorrerlas.",
+                description: "A partir de ahora están disponibles la planificación de la obra, la curva de inversión, el listado de materiales y la certificación — todo conectado a este mismo presupuesto, sin cargar nada dos veces. Vamos a recorrerlas.",
                 doneBtnText: "Ver la planificación",
                 onDoneClick: () => navigate(rutaGantt),
               },
@@ -433,7 +433,7 @@ export default function DemoTour() {
               onHighlighted: avanzarAlClickEn(accionMobilOEscritorio('[data-tour="generar-gantt"]', '[data-tour="generar-gantt-mobile"]')),
               popover: {
                 title: "Generar el cronograma",
-                description: 'Hacé click en "Generar" (en el celular, en el menú "⋯"): arma las tareas y las fechas automáticamente, a partir de los ítems del presupuesto.',
+                description: 'Hacé click en "Generar" (en el celular, en el menú "⋯"): arma todo el cronograma solo, tareas y fechas calculadas a partir de los ítems del presupuesto — nada de armar un Gantt a mano.',
                 side: "bottom",
                 showButtons: ["previous", "close"],
               },
@@ -631,7 +631,7 @@ export default function DemoTour() {
               element: '[data-tour="certificado-titulo"]',
               popover: {
                 title: "Así quedan los entregables de la obra",
-                description: "Presupuesto, planificación, curva de inversión, materiales y certificados — todo en un solo lugar, conectado. Vamos a verlo junto.",
+                description: "Presupuesto, planificación, curva de inversión, materiales y certificados — todo en un solo lugar, conectado, sin cargar la misma información dos veces. Dejás de perseguir números en tres programas distintos: es lo que necesitás para gestionar una obra de punta a punta.",
                 side: "right",
                 doneBtnText: "Ver el resumen",
                 onDoneClick: () => navigate(`/cotizador/presupuesto/${presuId}/resumen-demo`),
