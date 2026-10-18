@@ -654,6 +654,17 @@ export default function App() {
 
   useEffect(()=>{
     const restore = async () => {
+      // Entrar a /demo tiene que mostrar SIEMPRE el flujo de demo, nunca
+      // una sesión real que haya quedado guardada en este navegador (la de
+      // quien prueba la demo desde su propia cuenta, por ejemplo): sin este
+      // corte, este mismo efecto seguía de largo más abajo, encontraba esa
+      // sesión real en localStorage y la restauraba — pisando EntradaDemo
+      // (y su cartel de "mejor desde una PC") con el login de siempre,
+      // antes de que la persona llegue a verlo.
+      if (["/demo", "/demo/"].includes(window.location.pathname)) {
+        setLoading(false);
+        return;
+      }
       // La sesion del tenant demo no tiene que sobrevivir a un refresh (este
       // efecto solo corre una vez al abrir la app — una navegacion normal
       // adentro de React Router no lo vuelve a disparar): ni retomando el
