@@ -703,14 +703,11 @@ export default function DemoTour() {
             // que apagarlo: confirmado a mano que un <svg> de pantalla
             // completa sigue recibiendo el click aunque su <path> interno
             // ya esté en "none" — el contenedor cuenta como "pintado" para
-            // el hit-test por su cuenta. La opacidad va junto con los
-            // clicks (ver DemoTour.css: se probó restaurar el oscurecido
-            // de desktop y volvieron varios bugs ya resueltos antes, por
-            // el agujero de foco de driver.js desalineándose contra lo
-            // que se abre después de un disparador).
+            // el hit-test por su cuenta. La opacidad se deja intacta: ver
+            // DemoTour.css para el oscurecido tipo desktop y por qué ya no
+            // rompe el cierre del panel de agregar ítem.
             document.querySelectorAll(".driver-overlay, .driver-overlay path").forEach(p => {
               p.style.setProperty("pointer-events", "none");
-              p.style.setProperty("opacity", "0");
             });
           };
           desbloquear();

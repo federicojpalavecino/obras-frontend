@@ -111,21 +111,37 @@
      pointer-events propio puede seguir capturando clicks sobre su caja
      completa en algunos motores (Safari/WebKit de iOS entre ellos),
      aunque el path de adentro ya esté en "none" — por las dudas, los dos.
-     La opacidad TAMBIÉN se apaga: se probó restaurar el oscurecido con
-     agujero de foco (como en desktop) subiendo el z-index de los
-     paneles/modales que se abren después de resaltar un disparador chico
-     (el botón "⋯", "Cerrar") — pero el agujero de driver.js se calcula
-     contra el disparador en el momento exacto del resaltado, no contra lo
-     que se abre después, y quedó desalineado en varios pasos más (volvió
-     "Agregar ítem" sin cerrarse solo, "Más herramientas" sin reaccionar,
-     el cartel apuntando a un lugar que ya no es donde hay que tocar). En
-     vez de perseguir ese cálculo paso por paso, se vuelve a lo que SÍ
-     funcionaba confirmado en el teléfono real: pantalla normal, sin
-     oscurecer nada, el tour se explica solo por el texto del cartel. */
+     La opacidad NO se toca: el oscurecido con agujero de foco es el mismo
+     efecto que tiene desktop, y pointer-events:none ya alcanza para que
+     se pueda tocar lo de abajo. (Primer intento de esto: se perdió por
+     completo, ver más abajo por qué y cómo se evita ahora.) */
   .driver-fade .driver-overlay,
   .driver-fade .driver-overlay path {
     pointer-events: none !important;
-    opacity: 0 !important;
+  }
+
+  /* El agujero que recorta el fondo oscuro se calcula contra el elemento
+     resaltado en el momento exacto del resaltado — pero varios pasos
+     resaltan un disparador chico (el botón "⋯", "Cerrar") cuyo panel/menú
+     real recién existe DESPUÉS de tocarlo, fuera de ese agujero. Para esos
+     casos el cartel ya se reposiciona solo o queda fijo arriba (ver más
+     abajo y DemoTour.jsx), así que lo único que falta es que el PANEL en
+     sí no quede oscurecido por detrás del overlay (z-index 10000): se
+     eleva por encima de él.
+     OJO con la causa del bug anterior: esta regla iba antes atada a
+     ".sidebar-presupuesto.open" — y al cerrar, React saca la clase "open"
+     en el mismo instante en que arranca la transición de 250ms que lo
+     desliza fuera de pantalla. El z-index caía de 1000000 a 200 (por
+     debajo del overlay) DE GOLPE, mientras el panel todavía se veía
+     deslizándose — se leía como "no se cierra". Acá va SIN atar a ".open":
+     el z-index quede fijo mientras dura el tour entero, abierto o cerrado
+     — cerrado ya está fuera de pantalla (translateX), así que un z-index
+     alto ahí no cambia nada visualmente, pero evita el salto a mitad de
+     la animación. */
+  body.driver-fade .sidebar-presupuesto,
+  body.driver-fade .panel-lateral,
+  body.driver-fade [data-tour="cerrar-tarea-detalle"] {
+    z-index: 1000000 !important;
   }
 }
 
