@@ -670,13 +670,12 @@ export default function DemoTour() {
             // que apagarlo: confirmado a mano que un <svg> de pantalla
             // completa sigue recibiendo el click aunque su <path> interno
             // ya esté en "none" — el contenedor cuenta como "pintado" para
-            // el hit-test por su cuenta. La opacidad va junto con los
-            // clicks (ver DemoTour.css): el menú "⋯" se abre por fuera
-            // del agujero recortado, así que sin esto queda tapado por
-            // el fondo oscuro aunque ya se pueda tocar.
+            // el hit-test por su cuenta. La opacidad se deja intacta: el
+            // oscurecido con agujero de foco es el mismo efecto que tiene
+            // desktop (ver DemoTour.css sobre por qué no hace falta tocarla
+            // acá para que el menú/panel que se abre después se vea bien).
             document.querySelectorAll(".driver-overlay, .driver-overlay path").forEach(p => {
               p.style.setProperty("pointer-events", "none");
-              p.style.setProperty("opacity", "0");
             });
           };
           desbloquear();
