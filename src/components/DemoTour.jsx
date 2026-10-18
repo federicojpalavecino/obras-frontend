@@ -544,8 +544,9 @@ export default function DemoTour() {
               element: '[data-tour="gantt-herramientas"]',
               popover: {
                 title: "Más herramientas de planificación",
-                description: '"Vincular" encadena una tarea con otra para que una dependa de la anterior, "Días perdidos" carga lluvia o feriados, y "Obra real" compara lo planificado contra lo que pasó de verdad.',
+                description: '"Vincular" encadena una tarea con otra para que una dependa de la anterior, "Días perdidos" carga lluvia o feriados, y "Obra real" compara lo planificado contra lo que pasó de verdad. Tocá "Siguiente" para seguir.',
                 side: "bottom",
+                popoverClass: esMobil ? "demo-tour-passthrough" : undefined,
               },
             },
             {

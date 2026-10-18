@@ -132,13 +132,34 @@
 /* En el celular, varios pasos resaltan un panel que ocupa toda la pantalla
    (el drawer de "agregar ítem", el panel de cómputo, el de análisis de
    costos, el detalle de una tarea del Gantt): no hay dónde poner el cartel
-   sin tapar parte del contenido real que hay que tocar o scrollear. En vez
-   de perseguir una posición exacta, el cartel deja pasar los clicks a
-   través suyo — tape lo que tape, el tap llega igual a lo que está debajo.
-   Sus propios botones (Atrás/cerrar) quedan como excepción, para poder
-   seguir usándolos. */
-.driver-fade .demo-tour-passthrough {
-  pointer-events: none !important;
+   sin tapar parte del contenido real que hay que tocar o scrollear. El
+   click ya pasa a través suyo (pointer-events:none más abajo), pero eso
+   solo resuelve que SEA tocable — si el cartel queda pintado justo encima
+   del botón real, la persona no lo VE para saber dónde tocar (reportado:
+   "el cartel tapa el +"). En vez de perseguir dónde driver.js decide
+   ponerlo (cambia según el contenido, se probó "side" para cada caso y
+   seguía fallando en algún paso), se lo fija siempre arriba de todo en una
+   franja angosta — nunca compite por el mismo espacio que lo que hay que
+   tocar, esté donde esté. Sus propios botones (Atrás/cerrar) quedan como
+   excepción, para poder seguir usándolos. */
+@media (max-width: 900px) {
+  .driver-fade .demo-tour-passthrough {
+    pointer-events: none !important;
+    position: fixed !important;
+    top: 10px !important;
+    left: 10px !important;
+    right: 10px !important;
+    bottom: auto !important;
+    max-width: none !important;
+    width: auto !important;
+    transform: none !important;
+  }
+  /* La flechita apunta hacia donde driver.js calculó que iba a quedar el
+     cartel originalmente — al fijarlo arriba a mano, esa flecha queda
+     apuntando a cualquier lado. Mejor sin ella que mal puesta. */
+  .driver-fade .demo-tour-passthrough .driver-popover-arrow {
+    display: none !important;
+  }
 }
 .driver-fade .demo-tour-passthrough .driver-popover-close-btn,
 .driver-fade .demo-tour-passthrough .driver-popover-footer {
