@@ -2,7 +2,12 @@
 // Mismo backend y mismo login (/admin/login, get_admin_user) que el panel de
 // admin — solo que acá vive sola, sin el resto de la gestión de cuentas, para
 // poder tenerla en un dominio/página aparte (ej: faimobras.online).
+// Dinámica de uso calcada de WhatsApp/Mensajes.jsx: una sola pantalla a la
+// vez (lista de conversaciones O la conversación abierta, con "volver"), para
+// que funcione igual de bien instalada en el celular que en escritorio.
 import { useState, useEffect, useRef } from "react";
+import { Bell, BellOff, ChevronLeft, Send } from "lucide-react";
+import { pushSoportado, pushEstado, activarPushAdmin } from "../pushAdmin";
 
 const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
 
@@ -43,7 +48,7 @@ function fmtHora(iso) {
   return d.toLocaleString("es-AR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
 }
 
-function PanelBotWhatsApp({ token }) {
+function PanelBotWhatsApp({ token, onLogout }) {
   const [leads, setLeads]           = useState([]);
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [busqueda, setBusqueda]     = useState("");
@@ -52,6 +57,7 @@ function PanelBotWhatsApp({ token }) {
   const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [textoHumano, setTextoHumano] = useState("");
   const [enviando, setEnviando]     = useState(false);
+  const [permisoPush, setPermisoPush] = useState(pushEstado());
   const chatRef = useRef(null);          // contenedor con scroll de la conversación
   const ultimoLeadScrolleado = useRef(null);
   const cantMensajesPrevia = useRef(0);
@@ -180,73 +186,54 @@ function PanelBotWhatsApp({ token }) {
     return (l.nombre || "").toLowerCase().includes(q) || (l.telefono || "").includes(q) || (l.email || "").toLowerCase().includes(q);
   });
 
-  return (
-    <div style={{ display:"flex", gap:16, alignItems:"flex-start" }}>
-      {/* Lista de leads */}
-      <div style={{ width:320, flexShrink:0, background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
-        <div style={{ padding:12, borderBottom:`1px solid ${C.border}`, display:"flex", flexDirection:"column", gap:8 }}>
-          <input value={busqueda} onChange={e=>setBusqueda(e.target.value)} placeholder="Buscar por nombre, tel o email..."
-            style={{ padding:"8px 10px", border:`1px solid ${C.border}`, borderRadius:8, fontSize:13, outline:"none" }} />
-          <select value={filtroEstado} onChange={e=>setFiltroEstado(e.target.value)}
-            style={{ padding:"8px 10px", border:`1px solid ${C.border}`, borderRadius:8, fontSize:13, outline:"none", cursor:"pointer" }}>
-            <option value="todos">Todos los estados</option>
-            {ESTADOS_LEAD_BOT.map(e => <option key={e} value={e}>{e.replace("_"," ")}</option>)}
-          </select>
-        </div>
-        <div style={{ maxHeight:560, overflowY:"auto" }}>
-          {loadingLista ? (
-            <div style={{ padding:20, textAlign:"center", color:C.muted, fontSize:13 }}>Cargando...</div>
-          ) : leadsFiltrados.length === 0 ? (
-            <div style={{ padding:20, textAlign:"center", color:C.muted, fontSize:13 }}>Sin leads</div>
-          ) : leadsFiltrados.map(l => (
-            <div key={l.id} onClick={()=>abrirLead(l.id)}
-              style={{ padding:"10px 12px", borderBottom:`1px solid ${C.border}`, cursor:"pointer",
-                background: seleccionado?.id === l.id ? C.surface2 : "transparent" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
-                <span style={{ fontSize:13, fontWeight:700, color:C.text }}>{l.nombre || l.telefono}</span>
-                {!l.bot_activo && <span title="Bot pausado" style={{ fontSize:11 }}>⏸</span>}
-              </div>
-              <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>{l.telefono}</div>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:6 }}>
-                <BadgeEstadoLead estado={l.estado} />
-                <span style={{ fontSize:10, color:C.muted }}>{fmtHora(l.ultimo_mensaje_at)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+  const abrir = (l) => { setSeleccionado(null); abrirLead(l.id); };
+  const volverALista = () => { setSeleccionado(null); cargarLista(); };
 
-      {/* Detalle / conversación */}
-      <div style={{ flex:1, background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, minHeight:400 }}>
-        {!seleccionado ? (
-          <div style={{ padding:40, textAlign:"center", color:C.muted, fontSize:13 }}>Elegí un lead de la lista para ver la conversación</div>
-        ) : loadingDetalle ? (
-          <div style={{ padding:40, textAlign:"center", color:C.muted, fontSize:13 }}>Cargando...</div>
+  const pedirPush = async () => {
+    const r = await activarPushAdmin(token);
+    setPermisoPush(pushEstado());
+    if (!r.ok && r.motivo === "sin_permiso") {
+      alert("El navegador no te dejó activar notificaciones. Podés habilitarlas desde los permisos del sitio.");
+    }
+  };
+
+  // ── Pantalla de conversación (una por vez, como WhatsApp) ──────────────────
+  if (seleccionado || loadingDetalle) {
+    return (
+      <div style={{ display:"flex", flexDirection:"column", height:"100dvh", background:C.bg, fontFamily:"'Syne',sans-serif" }}>
+        <div style={{ padding:"10px 14px", borderBottom:`1px solid ${C.border}`, background:C.surface,
+          display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+          <button onClick={volverALista} title="Volver"
+            style={{ display:"flex", alignItems:"center", background:"none", border:"none", cursor:"pointer", color:C.text, padding:4, flexShrink:0 }}>
+            <ChevronLeft size={22} />
+          </button>
+          {seleccionado && (
+            <>
+              <div style={{ flex:1, minWidth:120 }}>
+                <div style={{ fontWeight:800, fontSize:14.5, color:C.text }}>{seleccionado.nombre || "Sin nombre"}</div>
+                <div style={{ fontSize:11.5, color:C.muted }}>{seleccionado.telefono}{seleccionado.email ? ` · ${seleccionado.email}` : ""}</div>
+              </div>
+              <select value={seleccionado.estado} onChange={e=>cambiarEstadoLead(e.target.value)}
+                style={{ padding:"6px 8px", border:`1px solid ${C.border}`, borderRadius:8, fontSize:12, cursor:"pointer" }}>
+                {ESTADOS_LEAD_BOT.map(e => <option key={e} value={e}>{e.replace("_"," ")}</option>)}
+              </select>
+              <button onClick={togglePausa}
+                style={{ padding:"6px 10px", fontSize:12, fontWeight:700, borderRadius:8, cursor:"pointer", whiteSpace:"nowrap",
+                  background: seleccionado.bot_activo ? "#fef2f2" : "#f0fdf4",
+                  color: seleccionado.bot_activo ? C.red : C.green,
+                  border: `1px solid ${seleccionado.bot_activo ? "#fecaca" : "#bbf7d0"}` }}>
+                {seleccionado.bot_activo ? "⏸ Pausar" : "▶ Reactivar"}
+              </button>
+            </>
+          )}
+        </div>
+
+        {loadingDetalle ? (
+          <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:C.muted, fontSize:13 }}>Cargando...</div>
         ) : (
           <>
-            <div style={{ padding:"14px 16px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:10 }}>
-              <div>
-                <div style={{ fontWeight:800, fontSize:15, color:C.text }}>{seleccionado.nombre || "Sin nombre"}</div>
-                <div style={{ fontSize:12, color:C.muted }}>{seleccionado.telefono}{seleccionado.email ? ` · ${seleccionado.email}` : ""}</div>
-              </div>
-              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                <select value={seleccionado.estado} onChange={e=>cambiarEstadoLead(e.target.value)}
-                  style={{ padding:"6px 10px", border:`1px solid ${C.border}`, borderRadius:8, fontSize:12, cursor:"pointer" }}>
-                  {ESTADOS_LEAD_BOT.map(e => <option key={e} value={e}>{e.replace("_"," ")}</option>)}
-                </select>
-                <button onClick={togglePausa}
-                  style={{ padding:"6px 12px", fontSize:12, fontWeight:700, borderRadius:8, cursor:"pointer",
-                    background: seleccionado.bot_activo ? "#fef2f2" : "#f0fdf4",
-                    color: seleccionado.bot_activo ? C.red : C.green,
-                    border: `1px solid ${seleccionado.bot_activo ? "#fecaca" : "#bbf7d0"}` }}>
-                  {seleccionado.bot_activo ? "⏸ Pausar bot" : "▶ Reactivar bot"}
-                </button>
-              </div>
-            </div>
-
             {seleccionado.archivos?.length > 0 && (
-              <div style={{ padding:"10px 16px", borderBottom:`1px solid ${C.border}`, display:"flex", gap:8, flexWrap:"wrap" }}>
-                <span style={{ fontSize:12, color:C.muted, fontWeight:700 }}>Archivos:</span>
+              <div style={{ padding:"8px 14px", borderBottom:`1px solid ${C.border}`, background:C.surface, display:"flex", gap:8, flexWrap:"wrap" }}>
                 {seleccionado.archivos.map((a) => (
                   <button key={a.id} onClick={() => abrirArchivo(a.id)}
                     style={{ fontSize:12, color:C.accent2, border:"none", cursor:"pointer", fontWeight: a.tipo === "comprobante" ? 700 : 400,
@@ -257,45 +244,115 @@ function PanelBotWhatsApp({ token }) {
               </div>
             )}
 
-            <div ref={chatRef} style={{ padding:16, display:"flex", flexDirection:"column", gap:10, maxHeight:380, overflowY:"auto" }}>
+            <div ref={chatRef} style={{ flex:1, overflowY:"auto", padding:14, display:"flex", flexDirection:"column", gap:8 }}>
               {seleccionado.mensajes.length === 0 ? (
-                <div style={{ color:C.muted, fontSize:13, textAlign:"center" }}>Todavía no hay mensajes</div>
+                <div style={{ color:C.muted, fontSize:13, textAlign:"center", marginTop:20 }}>Todavía no hay mensajes</div>
               ) : seleccionado.mensajes.map((m,i) => {
                 const deLead = m.direccion === "in";
                 return (
-                  <div key={m.id || i} style={{ display:"flex", alignItems:"center", gap:6, justifyContent: deLead ? "flex-start" : "flex-end" }}>
+                  <div key={m.id || i} style={{ display:"flex", alignItems:"center", gap:4, justifyContent: deLead ? "flex-start" : "flex-end" }}>
                     {!deLead && m.id && (
                       <button onClick={() => borrarMensaje(m)} title="Borrar mensaje"
-                        style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:C.muted, padding:2, opacity:0.6 }}>🗑</button>
+                        style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:C.muted, padding:2, opacity:0.5 }}>🗑</button>
                     )}
-                    <div style={{ maxWidth:"70%", padding:"8px 12px", borderRadius:12, fontSize:13,
-                      background: deLead ? C.surface2 : (m.autor === "humano" ? "#eef2ff" : "#f0fdf4"),
-                      color: C.text }}>
-                      {m.tipo !== "texto" && <div style={{ fontSize:10, color:C.muted, textTransform:"uppercase", marginBottom:2 }}>{m.tipo}{m.autor === "humano" ? " · humano" : m.autor === "bot" ? " · bot" : ""}</div>}
-                      <div>{m.contenido || (m.media_url ? "[archivo adjunto]" : "")}</div>
-                      <div style={{ fontSize:10, color:C.muted, marginTop:4, textAlign:"right" }}>{fmtHora(m.created_at)}</div>
+                    <div style={{ maxWidth:"78%", padding:"8px 12px", borderRadius:14, fontSize:13.5, lineHeight:1.4,
+                      background: deLead ? C.surface : (m.autor === "humano" ? C.accent : "#f0fdf4"),
+                      color: deLead ? C.text : (m.autor === "humano" ? "#fff" : C.text),
+                      border: deLead ? `1px solid ${C.border}` : "none" }}>
+                      {m.tipo !== "texto" && <div style={{ fontSize:10, opacity:0.75, textTransform:"uppercase", marginBottom:2 }}>{m.tipo}{m.autor === "humano" ? " · humano" : m.autor === "bot" ? " · bot" : ""}</div>}
+                      <div style={{ whiteSpace:"pre-wrap" }}>{m.contenido || (m.media_url ? "[archivo adjunto]" : "")}</div>
+                      <div style={{ fontSize:10, opacity:0.7, marginTop:3, textAlign:"right" }}>{fmtHora(m.created_at)}</div>
                     </div>
                     {deLead && m.id && (
                       <button onClick={() => borrarMensaje(m)} title="Borrar mensaje"
-                        style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:C.muted, padding:2, opacity:0.6 }}>🗑</button>
+                        style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:C.muted, padding:2, opacity:0.5 }}>🗑</button>
                     )}
                   </div>
                 );
               })}
             </div>
 
-            <div style={{ padding:12, borderTop:`1px solid ${C.border}`, display:"flex", gap:8 }}>
+            <div style={{ borderTop:`1px solid ${C.border}`, background:C.surface, padding:10, display:"flex", gap:8 }}>
               <input value={textoHumano} onChange={e=>setTextoHumano(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") enviarComoHumano(); }}
-                placeholder="Responder como humano (esto no pausa el bot — pausalo con el botón de arriba si no querés que siga respondiendo)..."
-                style={{ flex:1, padding:"9px 12px", border:`1px solid ${C.border}`, borderRadius:8, fontSize:13, outline:"none" }} />
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); enviarComoHumano(); } }}
+                placeholder="Responder como humano..."
+                style={{ flex:1, padding:"10px 14px", borderRadius:20, border:`1px solid ${C.border}`, background:C.surface2, color:C.text, fontFamily:"inherit", fontSize:14, outline:"none" }} />
               <button onClick={enviarComoHumano} disabled={enviando || !textoHumano.trim()}
-                style={{ padding:"9px 18px", background:C.accent, color:"white", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", opacity: enviando ? 0.6 : 1 }}>
-                Enviar
+                style={{ width:40, height:40, borderRadius:"50%", border:"none", cursor: textoHumano.trim() ? "pointer" : "default", flexShrink:0,
+                  background: textoHumano.trim() ? C.accent : C.surface2, color: textoHumano.trim() ? "#fff" : C.muted,
+                  display:"flex", alignItems:"center", justifyContent:"center", opacity: enviando ? 0.6 : 1 }}>
+                <Send size={16} />
               </button>
             </div>
           </>
         )}
+      </div>
+    );
+  }
+
+  // ── Pantalla de lista (conversaciones, más reciente arriba) ────────────────
+  return (
+    <div style={{ display:"flex", flexDirection:"column", height:"100dvh", background:C.bg, fontFamily:"'Syne',sans-serif" }}>
+      <div style={{ padding:"12px 16px", borderBottom:`1px solid ${C.border}`, background:C.surface, display:"flex", alignItems:"center", gap:12 }}>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:17, fontWeight:800, color:C.text }}>Chat del bot</div>
+          <div style={{ fontSize:11, color:C.muted, fontFamily:"'IBM Plex Mono',monospace" }}>FAIM OBRAS</div>
+        </div>
+        {pushSoportado() && permisoPush !== "granted" && (
+          <button onClick={pedirPush} title="Activar notificaciones"
+            style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 10px", borderRadius:18, cursor:"pointer",
+              fontFamily:"inherit", fontSize:12, fontWeight:600, border:`1px solid ${C.accent}`, background:"rgba(5,150,105,.08)", color:C.accent }}>
+            <Bell size={13} /> Notificaciones
+          </button>
+        )}
+        {onLogout && (
+          <button onClick={onLogout} style={{ fontSize:12, color:C.muted, background:"none", border:"none", cursor:"pointer" }}>Salir</button>
+        )}
+      </div>
+
+      {pushSoportado() && permisoPush !== "granted" && (
+        <div style={{ padding:"7px 16px", background:"rgba(217,119,6,.08)", color:C.warn, fontSize:11.5, display:"flex", alignItems:"center", gap:6 }}>
+          <BellOff size={12} /> Si instalaste esta página como app en el celular, activá las notificaciones para enterarte de las derivaciones sin tener que estar mirando.
+        </div>
+      )}
+
+      <div style={{ padding:10, borderBottom:`1px solid ${C.border}`, background:C.surface, display:"flex", flexDirection:"column", gap:8 }}>
+        <input value={busqueda} onChange={e=>setBusqueda(e.target.value)} placeholder="Buscar por nombre, tel o email..."
+          style={{ padding:"9px 12px", border:`1px solid ${C.border}`, borderRadius:10, fontSize:13.5, outline:"none", background:C.surface2 }} />
+        <select value={filtroEstado} onChange={e=>setFiltroEstado(e.target.value)}
+          style={{ padding:"8px 10px", border:`1px solid ${C.border}`, borderRadius:10, fontSize:13, outline:"none", cursor:"pointer", background:C.surface2 }}>
+          <option value="todos">Todos los estados</option>
+          {ESTADOS_LEAD_BOT.map(e => <option key={e} value={e}>{e.replace("_"," ")}</option>)}
+        </select>
+      </div>
+
+      <div style={{ flex:1, overflowY:"auto" }}>
+        {loadingLista ? (
+          <div style={{ padding:30, textAlign:"center", color:C.muted, fontSize:13.5 }}>Cargando...</div>
+        ) : leadsFiltrados.length === 0 ? (
+          <div style={{ padding:30, textAlign:"center", color:C.muted, fontSize:13.5 }}>Sin leads</div>
+        ) : leadsFiltrados.map(l => (
+          <button key={l.id} onClick={()=>abrir(l)}
+            style={{ width:"100%", background:"none", border:"none", borderBottom:`1px solid ${C.border}`,
+              padding:"13px 16px", cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ width:38, height:38, borderRadius:"50%", background:C.surface2, border:`1px solid ${C.border}`,
+              display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:C.muted, flexShrink:0,
+              fontFamily:"'IBM Plex Mono', monospace" }}>
+              {(l.nombre || l.telefono || "??").trim().slice(0,2).toUpperCase()}
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <span style={{ fontSize:14, fontWeight:700, color:C.text }}>{l.nombre || l.telefono}</span>
+                {!l.bot_activo && <span title="Bot pausado" style={{ fontSize:11 }}>⏸</span>}
+              </div>
+              <div style={{ fontSize:12, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{l.telefono}</div>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:5, flexShrink:0 }}>
+              <span style={{ fontSize:10.5, color:C.muted }}>{fmtHora(l.ultimo_mensaje_at)}</span>
+              <BadgeEstadoLead estado={l.estado} />
+            </div>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -360,18 +417,5 @@ export default function BotChatPanel() {
     </div>
   );
 
-  return (
-    <div style={{ minHeight:"100dvh", background:C.bg, fontFamily:"'Syne',sans-serif" }}>
-      <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"12px 24px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-          <div style={{ fontSize:18, fontWeight:800, color:C.accent }}>FAIM OBRAS</div>
-          <span style={{ fontSize:12, color:C.muted, fontFamily:"'IBM Plex Mono',monospace" }}>Chat del bot</span>
-        </div>
-        <button onClick={logout} style={{ fontSize:12, color:C.muted, background:"none", border:"none", cursor:"pointer" }}>Cerrar sesión</button>
-      </div>
-      <div style={{ maxWidth:1200, margin:"0 auto", padding:"24px 16px" }}>
-        <PanelBotWhatsApp token={token} />
-      </div>
-    </div>
-  );
+  return <PanelBotWhatsApp token={token} onLogout={logout} />;
 }
