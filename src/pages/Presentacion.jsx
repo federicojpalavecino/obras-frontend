@@ -25,6 +25,7 @@ const CSS = `
   background:var(--ground); color:var(--ink); font-family:var(--body);
   font-size:16.5px; line-height:1.5; -webkit-font-smoothing:antialiased;
   height:100dvh; width:100vw; overflow:hidden; position:fixed; inset:0;
+  overscroll-behavior:none;
 }
 .pv *{box-sizing:border-box}
 .pv h1,.pv h2,.pv h3{text-wrap:balance;margin:0;font-family:var(--display)}
@@ -32,7 +33,7 @@ const CSS = `
 .pv h1 .hi{color:var(--accent)}
 .pv h2{font-size:clamp(34px,9vw,68px);line-height:.98;font-weight:800;letter-spacing:-.035em;margin-bottom:14px}
 .pv .lead{font-size:clamp(15px,2.8vw,20px);color:var(--ink-soft);max-width:46ch;margin:0}
-.pv .sub{color:var(--ink-soft);max-width:54ch;margin:0 0 30px;font-size:clamp(15px,2.6vw,19px)}
+.pv .sub{color:var(--ink-soft);max-width:54ch;margin:0 0 clamp(16px,3.5vh,30px);font-size:clamp(15px,2.6vw,19px)}
 .pv .tag{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);display:inline-flex;align-items:center;gap:9px;margin-bottom:14px}
 .pv .tag::before{content:'';width:22px;height:2px;background:var(--accent);border-radius:2px}
 .pv .marca{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.32em;text-transform:uppercase}
@@ -49,11 +50,11 @@ const CSS = `
    contenedor se corre en X. Así IntersectionObserver (lo usan las demos
    en vivo) sigue sabiendo cuál está realmente a la vista, sin reescribir
    esa lógica. */
-.pv .track{display:flex;height:100dvh;width:100%;
+.pv .track{display:flex;height:100dvh;width:100%;touch-action:pan-y;
   transition:transform .55s cubic-bezier(.22,.7,.2,1);will-change:transform}
 .pv .slide{flex:0 0 100vw;width:100vw;height:100dvh;overflow:hidden;
   display:flex;flex-direction:column;align-items:stretch;justify-content:center;
-  padding:76px 26px 64px;position:relative}
+  padding:clamp(56px,9vh,76px) 26px clamp(50px,8vh,64px);position:relative}
 .pv .slide.night{background:var(--night);color:var(--night-ink)}
 .pv .slide-in{max-width:1080px;margin:0 auto;width:100%}
 .pv .slide-in.txt{max-width:760px}
@@ -98,11 +99,24 @@ const CSS = `
   z-index:31;transition:width .5s cubic-bezier(.22,.7,.2,1)}
 @media (max-width:640px){
   .pv .arrow{display:none}
-  .pv .slide{padding:70px 20px 76px}
+  .pv .slide{padding:clamp(52px,9vh,70px) 20px clamp(46px,8vh,60px)}
+}
+/* Pantallas bajas (celular en apaisado, notebooks chicas con la barra de
+   favoritos abierta, etc.): nada de scroll, así que achica todo lo que se
+   pueda y saca lo decorativo antes que cortar el contenido principal. */
+@media (max-height:700px){
+  .pv h1{font-size:clamp(30px,8vw,52px);margin-bottom:10px}
+  .pv h2{font-size:clamp(26px,7vw,44px);margin-bottom:8px}
+  .pv .sub{margin-bottom:14px}
+  .pv .hero-mock{display:none}
+  .pv .destaque{display:none}
+}
+@media (max-height:560px){
+  .pv .cifras{display:none}
 }
 
 /* ── CTAs ─────────────────────────────────────────────────────────────── */
-.pv .ctas{display:flex;gap:13px;flex-wrap:wrap;margin-top:28px;align-items:center}
+.pv .ctas{display:flex;gap:13px;flex-wrap:wrap;margin-top:clamp(16px,3.5vh,28px);align-items:center}
 .pv .cta{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;text-decoration:none;padding:17px 30px;border-radius:40px;font-weight:700;font-size:16px;letter-spacing:-.008em;transition:transform .16s ease,box-shadow .16s ease}
 .pv .cta:hover{transform:translateY(-1px) scale(1.015);box-shadow:0 10px 30px rgba(5,150,105,.4)}
 .pv .cta-2{display:inline-flex;align-items:center;gap:8px;color:var(--night-ink);text-decoration:none;padding:17px 26px;border-radius:40px;border:1px solid var(--night-line);font-weight:600;font-size:15.5px;transition:border-color .16s ease,color .16s ease}
@@ -113,7 +127,7 @@ const CSS = `
 
 /* ── Cifras de portada ────────────────────────────────────────────────── */
 .pv .cifras{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
-  margin-top:30px;padding-top:18px;border-top:1px solid var(--night-line);max-width:460px}
+  margin-top:clamp(16px,3.5vh,30px);padding-top:16px;border-top:1px solid var(--night-line);max-width:460px}
 .pv .cifra .n{font-family:var(--mono);font-size:clamp(20px,4.6vw,27px);font-weight:600;color:var(--accent);line-height:1;font-variant-numeric:tabular-nums}
 .pv .cifra .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--night-soft);margin-top:6px;line-height:1.3}
 
@@ -147,7 +161,7 @@ const CSS = `
 .pv .frame{background:#0b100d;border:1px solid #2b3a33;border-radius:16px;padding:9px 9px 11px;
   box-shadow:0 22px 50px rgba(0,0,0,.4);max-width:360px;margin:0 auto}
 .pv .stand{width:44%;height:7px;margin:0 auto;border-radius:0 0 7px 7px;background:#1a241f;border:1px solid #2b3a33;border-top:none}
-.pv .hero-mock{margin-top:28px}
+.pv .hero-mock{margin-top:clamp(14px,3vh,28px)}
 .pv .stack{display:flex;align-items:flex-end;gap:0;justify-content:center}
 .pv .stack .lap{flex:0 1 auto;min-width:0;position:relative;z-index:1}
 .pv .stack .phone{flex:0 0 118px;width:118px;margin-left:-10px;margin-bottom:-14px;z-index:3;
@@ -233,7 +247,7 @@ const CSS = `
 .pv .eslabon .barra i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px}
 .pv .eslabon.act .barra i{width:100%;transition:width 1.5s linear}
 .pv .eslabon.paso .barra i{width:100%}
-.pv .destaque{margin-top:26px;font-size:clamp(15px,2.4vw,18px);max-width:620px;margin-left:auto;margin-right:auto;
+.pv .destaque{margin-top:clamp(14px,3vh,26px);font-size:clamp(14px,2.4vw,18px);max-width:620px;margin-left:auto;margin-right:auto;
   color:var(--ink-soft);line-height:1.4}
 .pv .destaque b{color:var(--ink);font-weight:800}
 @media (max-width:640px){ .pv .eslabon{flex:1 1 42%} }
@@ -259,8 +273,8 @@ const CSS = `
 .pv .precio-grande{font-family:var(--mono);font-size:clamp(50px,13vw,84px);font-weight:700;letter-spacing:-.04em;color:var(--ink);line-height:1}
 .pv .precio-unidad{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
 .pv .precio-sub{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
-.pv .precio-list{list-style:none;margin:26px 0 0;padding:0;display:inline-flex;flex-direction:column;
-  gap:11px;text-align:left}
+.pv .precio-list{list-style:none;margin:clamp(14px,3vh,26px) 0 0;padding:0;display:inline-flex;flex-direction:column;
+  gap:9px;text-align:left}
 .pv .precio-list li{padding-left:20px;position:relative;font-size:14px;color:var(--ink-soft)}
 .pv .precio-list li::before{content:'✓';position:absolute;left:0;color:var(--accent);font-weight:700}
 .pv .precio-list li b{color:var(--ink)}
@@ -579,14 +593,16 @@ export default function Presentacion() {
   }, [n]);
 
   // Sin scroll de página: estas diapositivas ocupan toda la pantalla solas.
+  // overscrollBehavior además de overflow:hidden, porque Safari en iOS
+  // puede rebotar (bounce) igual en los bordes aunque overflow esté
+  // apagado — overscroll-behavior es lo que corta ese rebote de verdad.
   useEffect(() => {
-    const prevHtml = document.documentElement.style.overflow;
-    const prevBody = document.body.style.overflow;
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
+    const el = document.documentElement, b = document.body;
+    const prev = [el.style.overflow, b.style.overflow, el.style.overscrollBehavior, b.style.overscrollBehavior];
+    el.style.overflow = 'hidden'; b.style.overflow = 'hidden';
+    el.style.overscrollBehavior = 'none'; b.style.overscrollBehavior = 'none';
     return () => {
-      document.documentElement.style.overflow = prevHtml;
-      document.body.style.overflow = prevBody;
+      [el.style.overflow, b.style.overflow, el.style.overscrollBehavior, b.style.overscrollBehavior] = prev;
     };
   }, []);
 
