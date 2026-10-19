@@ -926,9 +926,12 @@ export default function App() {
     return <AdminSuperPanel />;
   }
 
-  // Chat del bot de WhatsApp — página propia (antes era una pestaña del admin),
-  // para poder tenerla sola en otro dominio/página (ej: faimobras.online).
-  if (window.location.pathname === "/bot" || window.location.pathname === "/bot-chat") {
+  // Chat del bot de WhatsApp — página propia (antes era una pestaña del admin).
+  // faimobras.online es un dominio aparte, dedicado solo a esto: ahí se muestra
+  // sin importar la ruta (así entrar a la raíz ya cae directo en el bot, sin
+  // pasar por la pantalla de login/registro de FAIM OBRAS).
+  const esDominioBot = window.location.hostname === "faimobras.online" || window.location.hostname === "www.faimobras.online";
+  if (esDominioBot || window.location.pathname === "/bot" || window.location.pathname === "/bot-chat") {
     return <BotChatPanel />;
   }
 
