@@ -138,8 +138,15 @@
      — cerrado ya está fuera de pantalla (translateX), así que un z-index
      alto ahí no cambia nada visualmente, pero evita el salto a mitad de
      la animación. */
+     ".modal-overlay" (el genérico de toda la app — elegir rubro, emitir
+     certificado, etc., z-index 1000) va en la misma lista por el mismo
+     motivo: sin esto, el modal de "¿En qué rubro va?" quedaba oscurecido
+     y, si el toque sobre su botón fallaba por eso, la cadena nunca
+     llegaba a cerrar la lista de ítems de atrás — se leía como "la lista
+     no se oculta" cuando el problema real estaba un paso después. */
   body.driver-fade .sidebar-presupuesto,
   body.driver-fade .panel-lateral,
+  body.driver-fade .modal-overlay,
   body.driver-fade [data-tour="cerrar-tarea-detalle"] {
     z-index: 1000000 !important;
   }
