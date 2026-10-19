@@ -265,6 +265,27 @@ const CSS = `
 @media (max-width:640px){ .pv .grilla{grid-template-columns:1fr 1fr;column-gap:18px;row-gap:22px} }
 @media (max-width:420px){ .pv .grilla{grid-template-columns:1fr} }
 
+/* ── Tres cosas: cada tarjeta con su propia prueba, no un adorno ─────────
+   Un numero que cambia en vivo convence mas que una lista de features. */
+.pv .item .fig{margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.pv .fig-t{display:flex;align-items:baseline;gap:9px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.pv .fig-t .antes{font-size:14px;color:var(--bad);text-decoration:line-through;opacity:.75}
+.pv .fig-t .flecha{color:var(--ink-soft);font-size:12px}
+.pv .fig-t .desp{font-size:clamp(20px,4vw,26px);font-weight:700;color:var(--accent);letter-spacing:-.02em}
+.pv .fig-p{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-family:var(--mono)}
+.pv .fig-p .m{font-size:clamp(18px,3.4vw,23px);font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.pv .fig-p .f{font-size:10.5px;color:var(--ink-soft);letter-spacing:.04em}
+.pv .fig-c{display:flex;align-items:center;gap:5px}
+.pv .fig-c .n{width:9px;height:9px;border-radius:50%;background:var(--panel-2);flex-shrink:0;transition:background .3s ease,transform .3s ease}
+.pv .fig-c .n.on{background:var(--accent);transform:scale(1.25)}
+.pv .fig-c .l{flex:1;height:2px;background:var(--panel-2);border-radius:2px;overflow:hidden}
+.pv .fig-c .l i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s linear}
+.pv .fig-c .l.on i{width:100%}
+.pv .fig-lbl{font-size:11px;color:var(--ink-soft);margin-top:9px;font-family:var(--mono);letter-spacing:.03em}
+.pv .catalogo{margin-top:clamp(20px,4vh,34px);text-align:center;font-size:clamp(14px,2.4vw,16.5px);
+  color:var(--ink-soft);max-width:560px;margin-left:auto;margin-right:auto}
+.pv .catalogo b{color:var(--ink);font-weight:800}
+
 /* ── Precio ───────────────────────────────────────────────────────────── */
 .pv .precio-card{max-width:520px;margin:0 auto;width:100%;text-align:center}
 .pv .precio-promo{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:20px;margin-bottom:18px}
@@ -298,15 +319,6 @@ const ITEMS = [
   ['LOSA CERÁMICA CON VIGUETAS', 'm²', '96,00', 3264000],
   ['REVOQUE GRUESO Y FINO INTERIOR', 'm²', '310,00', 2635000],
   ['CUBIERTA DE CHAPA C-25', 'm²', '112,00', 3696000],
-];
-
-const MODULOS = [
-  ['Cotización', 'Cotizador', 'Catálogo con análisis real. Cómputo integrado.'],
-  ['Cotización', 'Análisis de costos', 'Catálogo global más tus propios precios.'],
-  ['Obra', 'Planificación', 'Gantt con camino crítico y curva de inversión.'],
-  ['Obra', 'Certificados', 'Avance vinculado al presupuesto, sin rehacer nada.'],
-  ['Administración', 'Control financiero', 'Ingresos, egresos y personal por período.'],
-  ['Cliente', 'Portal de clientes', 'Tu cliente ve avance y cuenta corriente.'],
 ];
 
 const CADENA = [
@@ -410,6 +422,75 @@ function Cadena() {
           <span className="barra"><i /></span>
         </div>
       ))}
+    </div>
+  );
+}
+
+const PRECIOS_EJEMPLO = [['$ 612', '12/05/2026'], ['$ 745', '03/07/2026'], ['$ 820', '07/08/2026']];
+
+function TresCosas() {
+  const caja = useRef(null);
+  const visible = useEnPantalla(caja, 0.3);
+  const corre = visible && !reducido();
+
+  // 1) El tiempo de cotizar: dos días de planilla contra un rato en el sistema.
+  const [rapido, setRapido] = useState(false);
+  useEffect(() => {
+    if (!corre) { setRapido(true); return; }
+    setRapido(false);
+    const t = setInterval(() => setRapido(v => !v), 2600);
+    return () => clearInterval(t);
+  }, [corre]);
+
+  // 2) El precio con su fecha: se actualiza y queda fechado.
+  const pi = useCiclo(PRECIOS_EJEMPLO.length, 2200, corre);
+  const [precio, fecha] = corre ? PRECIOS_EJEMPLO[pi] : PRECIOS_EJEMPLO[PRECIOS_EJEMPLO.length - 1];
+
+  // 3) La cadena: un dato que pasa por los módulos sin recargarse.
+  const paso = useCiclo(CADENA.length, 900, corre);
+
+  return (
+    <div className="grilla stag" ref={caja}>
+      <div className="item" style={{ '--i': 0 }}>
+        <div className="t">Cotizás más rápido</div>
+        <div className="d">El análisis ya está armado: elegís, cargás la cantidad y el precio sale solo.</div>
+        <div className="fig">
+          <div className="fig-t">
+            <span className="antes">2 días</span>
+            <span className="flecha">→</span>
+            <span className="desp">{rapido ? '14 min' : '2 días'}</span>
+          </div>
+          <div className="fig-lbl">un presupuesto de 40 ítems</div>
+        </div>
+      </div>
+
+      <div className="item" style={{ '--i': 1 }}>
+        <div className="t">Cotizás mejor</div>
+        <div className="d">Precios con fuente y fecha. De un vistazo sabés cuál conviene revisar.</div>
+        <div className="fig">
+          <div className="fig-p">
+            <span className="m">{precio}</span>
+            <span className="f">{fecha}</span>
+          </div>
+          <div className="fig-lbl">ladrillo hueco 15 · cada precio con su fecha</div>
+        </div>
+      </div>
+
+      <div className="item" style={{ '--i': 2 }}>
+        <div className="t">No perdés el hilo</div>
+        <div className="d">Del presupuesto al cobro, sin volver a cargar nada.</div>
+        <div className="fig">
+          <div className="fig-c">
+            {CADENA.map(([t], i) => (
+              <React.Fragment key={t}>
+                {i > 0 && <span className={'l' + (!corre || paso >= i ? ' on' : '')}><i /></span>}
+                <span className={'n' + (!corre || paso >= i ? ' on' : '')} title={t} />
+              </React.Fragment>
+            ))}
+          </div>
+          <div className="fig-lbl">presupuesto → análisis → plazo → cobro</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -707,19 +788,15 @@ export default function Presentacion() {
           </div>
         </section>
 
-        {/* ── 5. QUÉ INCLUYE ───────────────────────────────────────────── */}
+        {/* ── 5. POR QUÉ IMPORTA ───────────────────────────────────────── */}
         <section className={'slide' + (i === 4 ? ' active' : '')}>
           <div className="slide-in txt stag">
-            <div className="tag" style={{ '--i': 0 }}>Qué incluye</div>
-            <h2 style={{ '--i': 1, marginBottom: 20 }}>Todo. En un solo lugar.</h2>
-            <div className="grilla" style={{ '--i': 2 }}>
-              {MODULOS.map(([k, t, d]) => (
-                <div className="item" key={t}>
-                  <span className="k">{k}</span>
-                  <div className="t">{t}</div>
-                  <div className="d">{d}</div>
-                </div>
-              ))}
+            <div className="tag" style={{ '--i': 0 }}>Por qué importa</div>
+            <h2 style={{ '--i': 1, marginBottom: 20 }}>Tres cosas que cambian la semana</h2>
+            <div style={{ '--i': 2 }}><TresCosas /></div>
+            <div className="catalogo" style={{ '--i': 3 }}>
+              Todo sale de un catálogo de <b>+400 ítems de obra</b> y <b>+800 materiales</b> con
+              análisis de costo ya cargado — no lo armás vos, ya está.
             </div>
           </div>
         </section>
