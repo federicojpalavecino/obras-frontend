@@ -286,6 +286,26 @@ const CSS = `
   color:var(--ink-soft);max-width:560px;margin-left:auto;margin-right:auto}
 .pv .catalogo b{color:var(--ink);font-weight:800}
 
+/* ── Cinta de capacidades: movimiento continuo, no una lista quieta ──────
+   Para meter muchas cosas (dias perdidos, asistente 24/7, stock, flujo de
+   caja...) sin que se sienta como una enumeracion: dos cintas se desplazan
+   solas, en sentido contrario, en loop infinito. Nadie necesita leerlas
+   todas de una — la sensacion de "hay mucho, y se mueve" es el punto. */
+.pv .marquee-wrap{max-width:100%;overflow:hidden;width:100vw;margin-left:calc(50% - 50vw);
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+.pv .marquee-wrap + .marquee-wrap{margin-top:16px}
+.pv .marquee{display:flex;gap:14px;width:max-content;animation:marqueeL 38s linear infinite;
+  padding:0 20px}
+.pv .marquee.rev{animation-name:marqueeR}
+@keyframes marqueeL{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes marqueeR{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+.pv .mchip{flex:0 0 auto;font-family:var(--display);font-weight:700;letter-spacing:-.01em;
+  font-size:clamp(14px,2.4vw,18px);padding:13px 24px;border-radius:40px;
+  background:var(--panel);color:var(--ink);white-space:nowrap}
+.pv .mchip.ac{background:var(--accent);color:#fff}
+@media (prefers-reduced-motion:reduce){ .pv .marquee{animation:none} }
+
 /* ── Precio ───────────────────────────────────────────────────────────── */
 .pv .precio-card{max-width:520px;margin:0 auto;width:100%;text-align:center}
 .pv .precio-promo{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:20px;margin-bottom:18px}
@@ -327,6 +347,20 @@ const CADENA = [
   ['Planificación', 'Gantt con camino crítico.'],
   ['Certificados', 'Avance sobre el presupuesto.'],
   ['Cobranzas', 'Contrato y cuenta corriente.'],
+];
+
+// Fila de arriba de la cinta de capacidades (desplaza a la izquierda).
+const CAPACIDADES_A = [
+  'Presupuestos en minutos', 'Catálogo de +400 ítems', '+800 materiales con precio',
+  'Precios actualizados cada mes', 'Gantt con camino crítico', 'Días de lluvia y feriados',
+  'El plazo se recalcula solo', 'Curva de inversión',
+];
+// Fila de abajo (desplaza a la derecha, para que no se sientan como una
+// sola cinta repetida sino dos capas de movimiento).
+const CAPACIDADES_B = [
+  'Listado de materiales', 'Certificaciones de avance', 'Contratos de obra',
+  'Flujo de caja del estudio', 'Personal, herramientas y stock', 'Portal para tus clientes',
+  'Asistente virtual 24/7', 'Gestión total, un solo lugar',
 ];
 
 const TAREAS = [
@@ -427,6 +461,19 @@ function Cadena() {
 }
 
 const PRECIOS_EJEMPLO = [['$ 612', '12/05/2026'], ['$ 745', '03/07/2026'], ['$ 820', '07/08/2026']];
+
+function Marquee({ items, reverse }) {
+  const dup = [...items, ...items];
+  return (
+    <div className="marquee-wrap">
+      <div className={'marquee' + (reverse ? ' rev' : '')}>
+        {dup.map((t, idx) => (
+          <span className={'mchip' + (idx % 3 === 0 ? ' ac' : '')} key={idx}>{t}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function TresCosas() {
   const caja = useRef(null);
@@ -647,6 +694,7 @@ function GanttDemo() {
       <div className="g-foot">
         <span className="chip crit">Camino crítico</span>
         <span className="chip">Horas del análisis de costos</span>
+        <span className="chip">Días de lluvia y feriados</span>
         <span style={{ flex: 1, minWidth: 160 }}>
           {tocado ? 'Eso mismo hacés en el sistema, con tu obra.' : 'Tocá los botones y mirá moverse la fecha.'}
         </span>
@@ -661,7 +709,7 @@ const btnCrew = {
   fontSize: 15, lineHeight: 1, fontFamily: 'inherit', padding: 0,
 };
 
-const SLIDES = ['hero', 'problema', 'como', 'plazo', 'incluye', 'precio', 'cierre'];
+const SLIDES = ['hero', 'problema', 'como', 'plazo', 'incluye', 'todo', 'precio', 'cierre'];
 
 export default function Presentacion() {
   const [i, setI] = useState(0);
@@ -783,7 +831,8 @@ export default function Presentacion() {
           <div className="slide-in txt stag">
             <div className="tag" style={{ '--i': 0 }}>Decisiones con datos</div>
             <h2 style={{ '--i': 1 }}>El plazo se calcula. Vos no.</h2>
-            <p className="sub" style={{ '--i': 2 }}>Sumás o sacás gente, y la fecha se mueve sola.</p>
+            <p className="sub" style={{ '--i': 2 }}>Sumás gente, cargás un día de lluvia o un feriado — la
+              fecha se recalcula sola, siempre.</p>
             <div style={{ '--i': 3 }}><GanttDemo /></div>
           </div>
         </section>
@@ -801,8 +850,20 @@ export default function Presentacion() {
           </div>
         </section>
 
-        {/* ── 6. PRECIO ─────────────────────────────────────────────────── */}
+        {/* ── 6. TODO INCLUIDO (cinta en movimiento) ───────────────────── */}
         <section className={'slide' + (i === 5 ? ' active' : '')}>
+          <div className="slide-in txt stag">
+            <div className="tag" style={{ '--i': 0 }}>Todo incluido</div>
+            <h2 style={{ '--i': 1, marginBottom: 26 }}>La gestión total, en un solo lugar</h2>
+          </div>
+          <div className="stag" style={{ width: '100%' }}>
+            <div style={{ '--i': 2 }}><Marquee items={CAPACIDADES_A} /></div>
+            <div style={{ '--i': 3 }}><Marquee items={CAPACIDADES_B} reverse /></div>
+          </div>
+        </section>
+
+        {/* ── 7. PRECIO ─────────────────────────────────────────────────── */}
+        <section className={'slide' + (i === 6 ? ' active' : '')}>
           <div className="slide-in txt stag">
             <div className="tag" style={{ '--i': 0 }}>Precio</div>
             <h2 style={{ '--i': 1 }}>Un plan. Todo adentro.</h2>
@@ -829,8 +890,8 @@ export default function Presentacion() {
           </div>
         </section>
 
-        {/* ── 7. CIERRE ─────────────────────────────────────────────────── */}
-        <section className={'slide night' + (i === 6 ? ' active' : '')}>
+        {/* ── 8. CIERRE ─────────────────────────────────────────────────── */}
+        <section className={'slide night' + (i === 7 ? ' active' : '')}>
           <div className="slide-in stag" style={{ textAlign: 'center' }}>
             <div className="tag" style={{ '--i': 0, justifyContent: 'center' }}>Empezá ahora</div>
             <h2 style={{ '--i': 1 }}>Probalo con una obra tuya</h2>
