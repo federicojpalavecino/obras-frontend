@@ -166,13 +166,19 @@
    tocar, esté donde esté. Sus propios botones (Atrás/cerrar) quedan como
    excepción, para poder seguir usándolos. */
 @media (max-width: 900px) {
+  /* Abajo, no arriba: arriba es justo donde está lo primero que hay que
+     ver — los primeros resultados de la lista, el título y las primeras
+     opciones del modal de rubro (reportado: "el cartel tapa la elección
+     de rubros y los primeros ítems"). Abajo normalmente hay menos
+     contenido crítico (el final de una lista larga, scrolleable) que
+     arriba (lo primero que se ve sin tocar nada). */
   .driver-fade .demo-tour-passthrough {
     pointer-events: none !important;
     position: fixed !important;
-    top: 10px !important;
+    bottom: 10px !important;
     left: 10px !important;
     right: 10px !important;
-    bottom: auto !important;
+    top: auto !important;
     max-width: none !important;
     width: auto !important;
     transform: none !important;

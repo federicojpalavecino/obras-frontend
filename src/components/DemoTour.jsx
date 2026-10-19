@@ -342,6 +342,9 @@ export default function DemoTour() {
                 title: "¿En qué rubro va?",
                 description: "El sistema propone agruparlo en su rubro de catálogo. Hacé click para confirmarlo — después se puede mover a otro rubro cuando quieras.",
                 showButtons: ["previous", "close"],
+                // El modal es chico y centrado — en mobile el cartel por
+                // defecto queda tapando el título y las opciones de rubro.
+                popoverClass: esMobil ? "demo-tour-passthrough" : undefined,
               },
             },
             {
