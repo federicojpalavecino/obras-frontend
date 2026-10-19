@@ -613,9 +613,8 @@ export default function Presentacion() {
             <h1 style={{ '--i': 1 }}>Cotizá una obra en <span className="hi">minutos</span>, no en días.</h1>
             <p className="lead" style={{ '--i': 2 }}>
               El sistema de gestión para estudios de arquitectura e ingeniería.
-              Todo se calcula solo y queda conectado: dejás de perder horas en
-              planillas y tomás cada decisión con los números reales de la obra,
-              al instante.
+              Ganás tiempo, no lo perdés: todo se calcula solo, en un solo lugar,
+              desde cualquier pantalla.
             </p>
             <div className="ctas" style={{ '--i': 3 }}>
               <a className="cta" href="/demo">Probar la demo guiada →</a>
@@ -646,10 +645,9 @@ export default function Presentacion() {
         {/* ── 2. EL PROBLEMA ───────────────────────────────────────────── */}
         <section className={'slide' + (i === 1 ? ' active' : '')}>
           <div className="slide-in txt stag">
-            <div className="tag" style={{ '--i': 0 }}>El problema</div>
-            <h2 style={{ '--i': 1 }}>Cotizar bien cuesta demasiado tiempo</h2>
-            <p className="sub" style={{ '--i': 2 }}>Y cuando por fin está lista, el Excel queda huérfano: el
-              certificado se rehace, el plazo se estima aparte, la cobranza vive en otro archivo.</p>
+            <div className="tag" style={{ '--i': 0 }}>Antes / Después</div>
+            <h2 style={{ '--i': 1 }}>Dejá de perder la semana en Excel</h2>
+            <p className="sub" style={{ '--i': 2 }}>Lo mismo, pero automático.</p>
             <div style={{ '--i': 3 }}><Comparacion /></div>
           </div>
         </section>
@@ -657,16 +655,13 @@ export default function Presentacion() {
         {/* ── 3. CÓMO FUNCIONA ─────────────────────────────────────────── */}
         <section className={'slide' + (i === 2 ? ' active' : '')}>
           <div className="slide-in txt stag">
-            <div className="tag" style={{ '--i': 0 }}>Cómo funciona</div>
-            <h2 style={{ '--i': 1 }}>Cargás una vez. Sirve para todo lo demás.</h2>
-            <p className="sub" style={{ '--i': 2 }}>No son módulos sueltos que se parecen entre sí: es el
-              mismo dato recorriendo la obra de punta a punta, para que decidas con números reales
-              y no a ojo.</p>
+            <div className="tag" style={{ '--i': 0 }}>Un solo lugar</div>
+            <h2 style={{ '--i': 1 }}>Cargás una vez. Listo.</h2>
+            <p className="sub" style={{ '--i': 2 }}>El mismo dato recorre toda la obra, solo.</p>
             <div style={{ '--i': 3 }}><Cadena /></div>
             <div className="destaque" style={{ '--i': 4 }}>
-              <b>Un ejemplo concreto.</b> Sumás gente a una tarea y el sistema recalcula su duración
-              con las horas de tu propio análisis, corre lo que depende de ella y te da la nueva
-              fecha de fin de obra. Sin tocar una planilla.
+              <b>Por ejemplo:</b> sumás una persona a una tarea y el plazo entero se recalcula y
+              reacomoda solo. Nadie toca una planilla.
             </div>
           </div>
         </section>
@@ -674,10 +669,9 @@ export default function Presentacion() {
         {/* ── 4. EL PLAZO SE CALCULA ───────────────────────────────────── */}
         <section className={'slide' + (i === 3 ? ' active' : '')}>
           <div className="slide-in txt stag">
-            <div className="tag" style={{ '--i': 0 }}>El plazo</div>
-            <h2 style={{ '--i': 1 }}>¿Lo estimás a ojo? No hace falta.</h2>
-            <p className="sub" style={{ '--i': 2 }}>Toma las horas de mano de obra de tu análisis de
-              costos, las divide por la cuadrilla y las reparte en los días que se trabajan por semana.</p>
+            <div className="tag" style={{ '--i': 0 }}>Decisiones con datos</div>
+            <h2 style={{ '--i': 1 }}>El plazo se calcula. Vos no.</h2>
+            <p className="sub" style={{ '--i': 2 }}>Sumás o sacás gente, y la fecha se mueve sola.</p>
             <div style={{ '--i': 3 }}><GanttDemo /></div>
           </div>
         </section>
@@ -686,7 +680,7 @@ export default function Presentacion() {
         <section className={'slide' + (i === 4 ? ' active' : '')}>
           <div className="slide-in txt stag">
             <div className="tag" style={{ '--i': 0 }}>Qué incluye</div>
-            <h2 style={{ '--i': 1, marginBottom: 20 }}>Todo en un solo lugar, conectado</h2>
+            <h2 style={{ '--i': 1, marginBottom: 20 }}>Todo. En un solo lugar.</h2>
             <div className="grilla" style={{ '--i': 2 }}>
               {MODULOS.map(([k, t, d]) => (
                 <div className="item" key={t}>
@@ -703,9 +697,8 @@ export default function Presentacion() {
         <section className={'slide' + (i === 5 ? ' active' : '')}>
           <div className="slide-in txt stag">
             <div className="tag" style={{ '--i': 0 }}>Precio</div>
-            <h2 style={{ '--i': 1 }}>Un solo plan, con todo adentro</h2>
-            <p className="sub" style={{ '--i': 2 }}>No hay versión básica ni módulos aparte. Lo único
-              que mueve el precio es cuánta gente del estudio entra.</p>
+            <h2 style={{ '--i': 1 }}>Un plan. Todo adentro.</h2>
+            <p className="sub" style={{ '--i': 2 }}>Nada de versiones básicas ni módulos aparte.</p>
             <div className="precio-card" style={{ '--i': 3 }}>
               <span className="precio-promo">★ {pesos(PRECIO_PROMO)}/mes los primeros 3 meses</span>
               <div className="precio-num">
@@ -717,7 +710,7 @@ export default function Presentacion() {
               <ul className="precio-list">
                 <li><b>{USUARIOS_BASE} usuarios</b> del estudio incluidos, + {pesos(PRECIO_EXTRA)} c/u extra</li>
                 <li><b>Clientes sin límite</b>, sin costo adicional</li>
-                <li><b>Catálogo incluido:</b> +400 ítems y +800 materiales con análisis</li>
+                <li><b>Catálogo incluido:</b> análisis de costos ya cargado, no armás nada de cero</li>
                 <li><b>Sin permanencia</b> — débito por MercadoPago, lo das de baja cuando quieras</li>
               </ul>
             </div>
@@ -731,11 +724,11 @@ export default function Presentacion() {
         {/* ── 7. CIERRE ─────────────────────────────────────────────────── */}
         <section className={'slide night' + (i === 6 ? ' active' : '')}>
           <div className="slide-in stag" style={{ textAlign: 'center' }}>
-            <div className="tag" style={{ '--i': 0, justifyContent: 'center' }}>El paso siguiente</div>
+            <div className="tag" style={{ '--i': 0, justifyContent: 'center' }}>Empezá ahora</div>
             <h2 style={{ '--i': 1 }}>Probalo con una obra tuya</h2>
             <p className="lead" style={{ '--i': 2, margin: '0 auto' }}>
-              La demo guiada arma un presupuesto en vivo delante tuyo, de punta a punta.
-              Si ya sabés que es lo que necesitás, te registrás directo.
+              La demo arma un presupuesto en vivo, delante tuyo. O si ya sabés que es
+              lo que necesitás, te registrás directo.
             </p>
             <div className="ctas" style={{ '--i': 3, justifyContent: 'center' }}>
               <a className="cta" href="/demo">Probar la demo guiada →</a>
@@ -743,7 +736,7 @@ export default function Presentacion() {
             </div>
             <div style={{ '--i': 4 }}>
               <a className="cta-3" href="https://wa.me/5493625548783" target="_blank" rel="noreferrer">
-                o hablá con el asistente por WhatsApp
+                o escribinos por WhatsApp
               </a>
             </div>
             <div className="datos" style={{ '--i': 5 }}>
