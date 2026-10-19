@@ -141,7 +141,32 @@ const CSS = `
   box-shadow:0 22px 50px rgba(0,0,0,.4);max-width:360px;margin:0 auto}
 .pv .stand{width:44%;height:7px;margin:0 auto;border-radius:0 0 7px 7px;background:#1a241f;border:1px solid #2b3a33;border-top:none}
 .pv .hero-mock{margin-top:28px}
-@media (max-width:640px){ .pv .hero-mock{display:none} }
+.pv .stack{display:flex;align-items:flex-end;gap:0;justify-content:center}
+.pv .stack .lap{flex:0 1 auto;min-width:0;position:relative;z-index:1}
+.pv .stack .phone{flex:0 0 118px;width:118px;margin-left:-10px;margin-bottom:-14px;z-index:3;
+  animation:floatY 6s ease-in-out infinite}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.pv .frame.phone-f{border-radius:20px;padding:7px 6px 12px;position:relative}
+.pv .frame.phone-f::after{content:'';position:absolute;left:50%;transform:translateX(-50%);bottom:5px;
+  width:38%;height:3px;border-radius:3px;background:#2b3a33}
+.pv .notch{width:34%;height:4px;border-radius:4px;background:#2b3a33;margin:0 auto 6px}
+.pv .frame .app{box-shadow:none;border:none;border-radius:9px}
+.pv .m-head{padding:8px 9px;border-bottom:1px solid var(--line)}
+.pv .m-title{font-size:10px;font-weight:800;letter-spacing:-.01em}
+.pv .m-sub{font-family:var(--mono);font-size:7.5px;color:#9aa8a1;letter-spacing:.06em}
+.pv .m-item{padding:7px 9px;border-bottom:1px solid #f1f4f2;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.pv .m-item .t{font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv .m-item .s{font-family:var(--mono);font-size:7.5px;color:#9aa8a1}
+.pv .m-item .v{font-family:var(--mono);font-size:9px;color:var(--accent);font-weight:600;white-space:nowrap}
+.pv .m-tot{padding:8px 9px;background:var(--accent-soft)}
+.pv .m-tot .k{font-family:var(--mono);font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);display:block}
+.pv .m-tot .v{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--accent);
+  font-variant-numeric:tabular-nums;display:block;white-space:nowrap;margin-top:2px}
+.pv .hero-mock .solo-movil{display:none;max-width:200px;margin:0 auto}
+@media (max-width:640px){
+  .pv .hero-mock .stack{display:none}
+  .pv .hero-mock .solo-movil{display:block}
+}
 
 /* ── Gantt animado ──────────────────────────────────────────────────────── */
 .pv .gantt{background:#fff;border:1px solid var(--line);border-radius:15px;padding:18px;box-shadow:0 8px 26px var(--shadow);max-width:620px;margin:0 auto;width:100%}
@@ -417,6 +442,29 @@ function AppCotizador() {
   );
 }
 
+function AppMovil() {
+  return (
+    <div className="app">
+      <div className="m-head">
+        <div className="m-title">Vivienda unifamiliar</div>
+        <div className="m-sub">6 ÍTEMS · 4 RUBROS</div>
+      </div>
+      {[['Mampostería', '184,00 m²', '$ 3.312.000'],
+        ['Cubierta de chapa', '112,00 m²', '$ 3.696.000'],
+        ['Revoques', '310,00 m²', '$ 2.635.000']].map(([t, s, v]) => (
+        <div className="m-item" key={t}>
+          <div style={{ minWidth: 0 }}>
+            <div className="t">{t}</div>
+            <div className="s">{s}</div>
+          </div>
+          <div className="v">{v}</div>
+        </div>
+      ))}
+      <div className="m-tot"><span className="k">Total</span><span className="v">$ 23.295.000</span></div>
+    </div>
+  );
+}
+
 function GanttDemo() {
   const [personas, setPersonas] = useState(CUADRILLA_MIN);
   const [tocado, setTocado] = useState(false);
@@ -565,21 +613,32 @@ export default function Presentacion() {
             <h1 style={{ '--i': 1 }}>Cotizá una obra en <span className="hi">minutos</span>, no en días.</h1>
             <p className="lead" style={{ '--i': 2 }}>
               El sistema de gestión para estudios de arquitectura e ingeniería.
-              Presupuestos con análisis de costos reales, y todo lo que viene
-              después —plazos, certificados, cobranzas— sale del mismo lugar.
+              Todo se calcula solo y queda conectado: dejás de perder horas en
+              planillas y tomás cada decisión con los números reales de la obra,
+              al instante.
             </p>
             <div className="ctas" style={{ '--i': 3 }}>
               <a className="cta" href="/demo">Probar la demo guiada →</a>
               <a className="cta-2" href="/?registro=1">Registrarme →</a>
             </div>
             <div className="cifras" style={{ '--i': 4 }}>
-              {[['436', 'ítems con análisis'], ['829', 'materiales'], ['1', 'carga, todo vinculado']].map(([v, l]) => (
-                <div className="cifra" key={l}><div className="n">{v}</div><div className="l">{l}</div></div>
+              {[['Automático', 'costos y plazos, calculados solos'], ['Un solo lugar', 'presupuesto, obra y cobranza'], ['Cualquier pantalla', 'PC, tablet o celular']].map(([v, l]) => (
+                <div className="cifra" key={l}><div className="n" style={{ fontSize: 'clamp(13px,2.6vw,16px)' }}>{v}</div><div className="l">{l}</div></div>
               ))}
             </div>
             <div className="hero-mock" style={{ '--i': 5 }}>
-              <div className="frame"><AppCotizador /></div>
-              <div className="stand" />
+              <div className="stack">
+                <div className="lap">
+                  <div className="frame"><AppCotizador /></div>
+                  <div className="stand" />
+                </div>
+                <div className="phone">
+                  <div className="frame phone-f"><div className="notch" /><AppMovil /></div>
+                </div>
+              </div>
+              <div className="solo-movil">
+                <div className="frame phone-f"><div className="notch" /><AppMovil /></div>
+              </div>
             </div>
           </div>
         </section>
@@ -601,7 +660,8 @@ export default function Presentacion() {
             <div className="tag" style={{ '--i': 0 }}>Cómo funciona</div>
             <h2 style={{ '--i': 1 }}>Cargás una vez. Sirve para todo lo demás.</h2>
             <p className="sub" style={{ '--i': 2 }}>No son módulos sueltos que se parecen entre sí: es el
-              mismo dato recorriendo la obra de punta a punta.</p>
+              mismo dato recorriendo la obra de punta a punta, para que decidas con números reales
+              y no a ojo.</p>
             <div style={{ '--i': 3 }}><Cadena /></div>
             <div className="destaque" style={{ '--i': 4 }}>
               <b>Un ejemplo concreto.</b> Sumás gente a una tarea y el sistema recalcula su duración
@@ -626,7 +686,7 @@ export default function Presentacion() {
         <section className={'slide' + (i === 4 ? ' active' : '')}>
           <div className="slide-in txt stag">
             <div className="tag" style={{ '--i': 0 }}>Qué incluye</div>
-            <h2 style={{ '--i': 1, marginBottom: 20 }}>Todo lo que hoy tenés repartido en archivos</h2>
+            <h2 style={{ '--i': 1, marginBottom: 20 }}>Todo en un solo lugar, conectado</h2>
             <div className="grilla" style={{ '--i': 2 }}>
               {MODULOS.map(([k, t, d]) => (
                 <div className="item" key={t}>
@@ -653,7 +713,7 @@ export default function Presentacion() {
                 <span className="precio-grande">{pesos(PRECIO_PROMO)}</span>
                 <span className="precio-unidad">POR MES · ARS</span>
               </div>
-              <div className="precio-sub">Después, {pesos(PRECIO_BASE)}/mes. IVA no incluido.</div>
+              <div className="precio-sub">IVA no incluido.</div>
               <ul className="precio-list">
                 <li><b>{USUARIOS_BASE} usuarios</b> del estudio incluidos, + {pesos(PRECIO_EXTRA)} c/u extra</li>
                 <li><b>Clientes sin límite</b>, sin costo adicional</li>
@@ -682,12 +742,11 @@ export default function Presentacion() {
               <a className="cta-2" href="/?registro=1">Registrarme →</a>
             </div>
             <div style={{ '--i': 4 }}>
-              <a className="cta-3" href="https://wa.me/5493482305155" target="_blank" rel="noreferrer">
-                o escribinos por WhatsApp
+              <a className="cta-3" href="https://wa.me/5493625548783" target="_blank" rel="noreferrer">
+                o hablá con el asistente por WhatsApp
               </a>
             </div>
             <div className="datos" style={{ '--i': 5 }}>
-              WhatsApp <b>+54 9 3482 30-5155</b><br />
               Email <b>contacto.faimobras@gmail.com</b><br />
               Web <b>faimobras.com</b>
             </div>
