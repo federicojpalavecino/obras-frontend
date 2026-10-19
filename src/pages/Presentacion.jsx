@@ -103,13 +103,21 @@ const CSS = `
 }
 /* Pantallas bajas (celular en apaisado, notebooks chicas con la barra de
    favoritos abierta, etc.): nada de scroll, así que achica todo lo que se
-   pueda y saca lo decorativo antes que cortar el contenido principal. */
+   pueda y saca lo decorativo antes que cortar el contenido principal.
+   OJO: el mockup de la portada solo se esconde en mobile (max-width:899px,
+   donde va apilado debajo del texto y sí pide altura) — en desktop vive en
+   su propia columna al costado (ver más abajo) y una ventana de escritorio
+   normal, sin maximizar, puede perfectamente medir menos de 700px de alto
+   sin que eso sea un problema: esconderlo ahí dejaba la mitad de la
+   portada vacía ("la animación se fue a cualquier lado"). */
 @media (max-height:700px){
   .pv h1{font-size:clamp(30px,8vw,52px);margin-bottom:10px}
   .pv h2{font-size:clamp(26px,7vw,44px);margin-bottom:8px}
   .pv .sub{margin-bottom:14px}
-  .pv .hero-mock{display:none}
   .pv .destaque{display:none}
+}
+@media (max-height:700px) and (max-width:899px){
+  .pv .hero-mock{display:none}
 }
 @media (max-height:560px){
   .pv .cifras{display:none}
@@ -780,23 +788,22 @@ export default function Presentacion() {
         {/* ── 1. PORTADA ────────────────────────────────────────────────── */}
         <section className={'slide night' + (i === 0 ? ' active' : '')}>
           <div className="slide-in hero stag">
-            <span className="tag" style={{ '--i': 0, color: 'var(--accent)' }}>FAIM OBRAS</span>
-            <h1 style={{ '--i': 1 }}>Cotizá una obra en <span className="hi">minutos</span>, no en días.</h1>
-            <p className="lead" style={{ '--i': 2 }}>
+            <h1 style={{ '--i': 0 }}>Cotizá una obra en <span className="hi">minutos</span>, no en días.</h1>
+            <p className="lead" style={{ '--i': 1 }}>
               El sistema de gestión para estudios de arquitectura e ingeniería.
               Ganás tiempo, no lo perdés: todo se calcula solo, en un solo lugar,
               desde cualquier pantalla.
             </p>
-            <div className="ctas" style={{ '--i': 3 }}>
+            <div className="ctas" style={{ '--i': 2 }}>
               <a className="cta" href="/demo">Probar la demo guiada →</a>
               <a className="cta-2" href="/?registro=1">Registrarme →</a>
             </div>
-            <div className="cifras" style={{ '--i': 4 }}>
+            <div className="cifras" style={{ '--i': 3 }}>
               {[['Automático', 'costos y plazos, calculados solos'], ['Un solo lugar', 'presupuesto, obra y cobranza'], ['Cualquier pantalla', 'PC, tablet o celular']].map(([v, l]) => (
                 <div className="cifra" key={l}><div className="n" style={{ fontSize: 'clamp(13px,2.6vw,16px)' }}>{v}</div><div className="l">{l}</div></div>
               ))}
             </div>
-            <div className="hero-mock" style={{ '--i': 5 }}>
+            <div className="hero-mock" style={{ '--i': 4 }}>
               <div className="stack">
                 <div className="lap">
                   <div className="frame"><AppCotizador /></div>
