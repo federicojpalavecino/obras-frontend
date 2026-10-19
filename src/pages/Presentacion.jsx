@@ -28,14 +28,21 @@ const CSS = `
 }
 .pv *{box-sizing:border-box}
 .pv h1,.pv h2,.pv h3{text-wrap:balance;margin:0;font-family:var(--display)}
-.pv h1{font-size:clamp(32px,8vw,58px);line-height:1.02;font-weight:800;letter-spacing:-.038em;margin:0 0 14px}
+.pv h1{font-size:clamp(38px,10vw,84px);line-height:.98;font-weight:800;letter-spacing:-.04em;margin:0 0 18px}
 .pv h1 .hi{color:var(--accent)}
-.pv h2{font-size:clamp(22px,5.4vw,34px);font-weight:800;letter-spacing:-.025em;margin-bottom:8px}
-.pv .lead{font-size:clamp(14.5px,2.6vw,18px);color:var(--ink-soft);max-width:48ch;margin:0}
-.pv .sub{color:var(--ink-soft);max-width:60ch;margin:0 0 20px;font-size:clamp(13.5px,2.2vw,15.5px)}
-.pv .tag{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);display:inline-flex;align-items:center;gap:9px;margin-bottom:11px}
+.pv h2{font-size:clamp(34px,9vw,68px);line-height:.98;font-weight:800;letter-spacing:-.035em;margin-bottom:14px}
+.pv .lead{font-size:clamp(15px,2.8vw,20px);color:var(--ink-soft);max-width:46ch;margin:0}
+.pv .sub{color:var(--ink-soft);max-width:54ch;margin:0 0 30px;font-size:clamp(15px,2.6vw,19px)}
+.pv .tag{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);display:inline-flex;align-items:center;gap:9px;margin-bottom:14px}
 .pv .tag::before{content:'';width:22px;height:2px;background:var(--accent);border-radius:2px}
 .pv .marca{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.32em;text-transform:uppercase}
+/* Un resplandor radial detrás de cada diapositiva — el mismo recurso de la
+   portada, repetido en todas: nada de fondo plano, que se sienta una sola
+   pieza continua, no una serie de tarjetas una atrás de la otra. */
+.pv .slide::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(120% 70% at 85% -10%,rgba(5,150,105,.14),transparent 60%)}
+.pv .slide.night::before{background:radial-gradient(120% 70% at 85% -10%,rgba(5,150,105,.26),transparent 60%)}
+.pv .slide-in{position:relative;z-index:1}
 
 /* ── Armazón de diapositivas ──────────────────────────────────────────────
    Todas las pantallas viven en el DOM a la vez, una al lado de la otra; el
@@ -95,10 +102,10 @@ const CSS = `
 }
 
 /* ── CTAs ─────────────────────────────────────────────────────────────── */
-.pv .ctas{display:flex;gap:11px;flex-wrap:wrap;margin-top:22px;align-items:center}
-.pv .cta{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#fff;text-decoration:none;padding:14px 24px;border-radius:11px;font-weight:700;font-size:14.5px;letter-spacing:-.008em;transition:transform .16s ease,box-shadow .16s ease}
-.pv .cta:hover{transform:translateY(-1px);box-shadow:0 8px 26px rgba(5,150,105,.34)}
-.pv .cta-2{display:inline-flex;align-items:center;gap:7px;color:var(--night-ink);text-decoration:none;padding:14px 20px;border-radius:11px;border:1px solid var(--night-line);font-weight:600;font-size:14px;transition:border-color .16s ease,color .16s ease}
+.pv .ctas{display:flex;gap:13px;flex-wrap:wrap;margin-top:28px;align-items:center}
+.pv .cta{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;text-decoration:none;padding:17px 30px;border-radius:40px;font-weight:700;font-size:16px;letter-spacing:-.008em;transition:transform .16s ease,box-shadow .16s ease}
+.pv .cta:hover{transform:translateY(-1px) scale(1.015);box-shadow:0 10px 30px rgba(5,150,105,.4)}
+.pv .cta-2{display:inline-flex;align-items:center;gap:8px;color:var(--night-ink);text-decoration:none;padding:17px 26px;border-radius:40px;border:1px solid var(--night-line);font-weight:600;font-size:15.5px;transition:border-color .16s ease,color .16s ease}
 .pv .cta-2:hover{border-color:var(--accent);color:var(--accent)}
 .pv .slide:not(.night) .cta-2{color:var(--ink);border-color:var(--line)}
 .pv .cta-3{font-size:12.5px;color:var(--night-soft);text-decoration:underline;text-underline-offset:3px}
@@ -187,64 +194,74 @@ const CSS = `
 .pv .chip{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid var(--line);color:var(--ink-soft)}
 .pv .chip.crit{border-color:#fecaca;color:#dc2626;background:#fef2f2}
 
-/* ── Comparación ──────────────────────────────────────────────────────── */
-.pv .comp{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:760px;margin:0 auto;width:100%}
-.pv .col{border:1px solid var(--line);border-radius:15px;padding:18px;background:var(--panel)}
-.pv .col.si{background:var(--accent-soft);border-color:var(--accent-line)}
-.pv .col h3{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin-bottom:13px;color:var(--ink-soft)}
-.pv .col.si h3{color:var(--accent)}
-.pv .col ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
-.pv .col li{padding-left:22px;position:relative;font-size:13px;line-height:1.42;transition:opacity .45s ease,transform .45s ease}
-.pv .col.no li::before{content:'—';position:absolute;left:0;color:var(--bad);font-weight:700}
-.pv .col.si li::before{content:'✓';position:absolute;left:0;color:var(--accent);font-weight:700}
-.pv .comp.vivo li{opacity:.34}
-.pv .comp.vivo li.act{opacity:1;transform:translateX(3px)}
-.pv .col.no li.act::before{color:var(--bad)}
-.pv .par{display:block;height:2px;border-radius:2px;background:var(--line);margin:13px 0 0;overflow:hidden}
-.pv .par i{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width .35s linear}
-@media (max-width:640px){
-  .pv .comp{grid-template-columns:1fr;gap:10px}
-  .pv .col{padding:14px}
-  .pv .col ul{gap:7px}
-}
+/* ── Contraste: un par antes/después a la vez, grande ────────────────────
+   Reemplaza la tabla de dos columnas de antes (se leía como una grilla de
+   feature comparison, no como un argumento). Ahora es una sola idea por
+   vez, tipografía grande, con el signo de más/menos haciendo de puntuación
+   visual — más cerca de cómo Apple contrasta "antes" y "ahora". */
+.pv .contraste{max-width:680px;margin:0 auto;width:100%;text-align:center}
+.pv .contraste .fila{min-height:clamp(170px,32vh,230px);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:18px;animation:contrasteIn .5s cubic-bezier(.2,.7,.3,1) both}
+@keyframes contrasteIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.pv .contraste .antes{font-weight:800;letter-spacing:-.025em;line-height:1.14;
+  font-size:clamp(21px,4.6vw,32px);color:var(--ink-soft);opacity:.6}
+.pv .contraste .antes::before{content:'✕ ';color:var(--bad)}
+.pv .contraste .flecha{width:28px;height:28px;border-radius:50%;background:var(--accent-soft);
+  color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px}
+.pv .contraste .despues{font-weight:800;letter-spacing:-.025em;line-height:1.14;
+  font-size:clamp(23px,5vw,36px);color:var(--ink)}
+.pv .contraste .despues::before{content:'✓ ';color:var(--accent)}
+.pv .contraste .puntos{display:flex;gap:7px;justify-content:center;margin-top:28px}
+.pv .contraste .punto{width:6px;height:6px;border-radius:50%;background:var(--line);
+  transition:background .25s,transform .25s}
+.pv .contraste .punto.on{background:var(--accent);transform:scale(1.5)}
 
 /* ── Cadena ───────────────────────────────────────────────────────────── */
-.pv .cadena{display:flex;gap:10px;flex-wrap:wrap;counter-reset:paso;max-width:900px;margin:0 auto;justify-content:center}
-.pv .eslabon{flex:1 1 150px;max-width:190px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px 14px;
-  transition:border-color .4s ease,background .4s ease,transform .4s ease}
-.pv .eslabon::before{counter-increment:paso;content:counter(paso);font-family:var(--mono);font-size:10px;font-weight:600;color:var(--accent);display:block;margin-bottom:7px}
-.pv .eslabon .t{font-weight:700;font-size:13.5px;margin-bottom:4px;letter-spacing:-.012em}
-.pv .eslabon .d{font-size:11.5px;color:var(--ink-soft);line-height:1.4}
-.pv .cadena.vivo .eslabon{opacity:.55}
-.pv .cadena.vivo .eslabon.act{opacity:1;border-color:var(--accent-line);background:var(--accent-soft);transform:translateY(-3px)}
+.pv .cadena{display:flex;gap:4px;flex-wrap:wrap;counter-reset:paso;max-width:960px;margin:0 auto;justify-content:center}
+.pv .eslabon{flex:1 1 150px;max-width:190px;padding:14px 12px;border-radius:13px;
+  transition:background .4s ease,transform .4s ease,opacity .4s ease}
+.pv .eslabon::before{counter-increment:paso;content:counter(paso);font-family:var(--mono);
+  font-size:clamp(20px,3.2vw,26px);font-weight:700;color:var(--line);display:block;margin-bottom:9px;
+  transition:color .4s ease}
+.pv .eslabon.act::before,.pv .eslabon.paso::before{color:var(--accent)}
+.pv .eslabon .t{font-weight:800;font-size:14px;margin-bottom:4px;letter-spacing:-.015em}
+.pv .eslabon .d{font-size:12px;color:var(--ink-soft);line-height:1.4}
+.pv .cadena.vivo .eslabon{opacity:.45}
+.pv .cadena.vivo .eslabon.act{opacity:1;background:var(--accent-soft);transform:translateY(-4px)}
 .pv .cadena.vivo .eslabon.paso{opacity:1}
 .pv .eslabon .barra{display:block;height:2px;background:var(--line);border-radius:2px;margin-top:10px;overflow:hidden}
 .pv .eslabon .barra i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px}
 .pv .eslabon.act .barra i{width:100%;transition:width 1.5s linear}
 .pv .eslabon.paso .barra i{width:100%}
-.pv .destaque{margin-top:22px;padding:16px 20px;background:var(--panel-2);border-left:3px solid var(--accent);border-radius:0 12px 12px 0;font-size:13.5px;max-width:700px;margin-left:auto;margin-right:auto}
-.pv .destaque b{color:var(--accent)}
+.pv .destaque{margin-top:26px;font-size:clamp(15px,2.4vw,18px);max-width:620px;margin-left:auto;margin-right:auto;
+  color:var(--ink-soft);line-height:1.4}
+.pv .destaque b{color:var(--ink);font-weight:800}
 @media (max-width:640px){ .pv .eslabon{flex:1 1 42%} }
 
 /* ── Módulos ──────────────────────────────────────────────────────────── */
-.pv .grilla{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;max-width:900px;margin:0 auto;width:100%}
-.pv .item{border:1px solid var(--line);border-radius:13px;padding:16px;background:var(--panel)}
-.pv .item .k{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-soft);display:block;margin-bottom:7px}
-.pv .item .t{font-weight:700;font-size:13.5px;margin-bottom:5px;letter-spacing:-.012em}
-.pv .item .d{font-size:12px;color:var(--ink-soft);line-height:1.42}
-@media (max-width:640px){ .pv .grilla{grid-template-columns:1fr 1fr;gap:9px} .pv .item{padding:12px} }
+/* Sin tarjetas con borde: columnas separadas por una línea fina y aire,
+   el título hace de protagonista — se lee como una lista editorial, no
+   como una grilla de pricing-page. */
+.pv .grilla{display:grid;grid-template-columns:repeat(3,1fr);column-gap:34px;row-gap:28px;
+  max-width:920px;margin:0 auto;width:100%}
+.pv .item{padding-top:16px;border-top:1px solid var(--line)}
+.pv .item .k{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:8px}
+.pv .item .t{font-weight:800;font-size:clamp(15px,2.4vw,18px);margin-bottom:5px;letter-spacing:-.018em}
+.pv .item .d{font-size:13px;color:var(--ink-soft);line-height:1.45}
+@media (max-width:640px){ .pv .grilla{grid-template-columns:1fr 1fr;column-gap:18px;row-gap:22px} }
 @media (max-width:420px){ .pv .grilla{grid-template-columns:1fr} }
 
 /* ── Precio ───────────────────────────────────────────────────────────── */
-.pv .precio-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 28px;max-width:520px;margin:0 auto;width:100%}
-.pv .precio-promo{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:20px;margin-bottom:14px}
-.pv .precio-num{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.pv .precio-tachado{font-family:var(--mono);font-size:17px;color:var(--ink-soft);text-decoration:line-through;opacity:.7}
-.pv .precio-grande{font-family:var(--mono);font-size:clamp(34px,8vw,46px);font-weight:600;letter-spacing:-.03em;color:var(--ink)}
+.pv .precio-card{max-width:520px;margin:0 auto;width:100%;text-align:center}
+.pv .precio-promo{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:20px;margin-bottom:18px}
+.pv .precio-num{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;justify-content:center}
+.pv .precio-tachado{font-family:var(--mono);font-size:19px;color:var(--ink-soft);text-decoration:line-through;opacity:.7}
+.pv .precio-grande{font-family:var(--mono);font-size:clamp(50px,13vw,84px);font-weight:700;letter-spacing:-.04em;color:var(--ink);line-height:1}
 .pv .precio-unidad{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
 .pv .precio-sub{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
-.pv .precio-list{list-style:none;margin:18px 0 0;padding:16px 0 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:9px}
-.pv .precio-list li{padding-left:20px;position:relative;font-size:13px;color:var(--ink-soft)}
+.pv .precio-list{list-style:none;margin:26px 0 0;padding:0;display:inline-flex;flex-direction:column;
+  gap:11px;text-align:left}
+.pv .precio-list li{padding-left:20px;position:relative;font-size:14px;color:var(--ink-soft)}
 .pv .precio-list li::before{content:'✓';position:absolute;left:0;color:var(--accent);font-weight:700}
 .pv .precio-list li b{color:var(--ink)}
 
@@ -349,19 +366,17 @@ function Comparacion() {
   const caja = useRef(null);
   const visible = useEnPantalla(caja, 0.2);
   const corre = visible && !reducido();
-  const act = useCiclo(PARES.length, 2400, corre);
-  const cls = (i) => (corre ? (i === act ? 'act' : '') : 'act');
+  const act = useCiclo(PARES.length, 2800, corre);
+  const [antes, despues] = PARES[act];
   return (
-    <div className={'comp' + (corre ? ' vivo' : '')} ref={caja}>
-      <div className="col no">
-        <h3>Con Excel</h3>
-        <ul>{PARES.map(([a], i) => <li key={a} className={cls(i)}>{a}</li>)}</ul>
-        <span className="par"><i style={{ width: corre ? ((act + 1) / PARES.length * 100) + '%' : '100%' }} /></span>
+    <div className="contraste" ref={caja}>
+      <div className="fila" key={act}>
+        <div className="antes">{antes}</div>
+        <div className="flecha">↓</div>
+        <div className="despues">{despues}</div>
       </div>
-      <div className="col si">
-        <h3>Con FAIM OBRAS</h3>
-        <ul>{PARES.map(([, b], i) => <li key={b} className={cls(i)}>{b}</li>)}</ul>
-        <span className="par"><i style={{ width: corre ? ((act + 1) / PARES.length * 100) + '%' : '100%' }} /></span>
+      <div className="puntos">
+        {PARES.map((_, idx) => <span key={idx} className={'punto' + (idx === act ? ' on' : '')} />)}
       </div>
     </div>
   );
