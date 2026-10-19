@@ -54,7 +54,12 @@ const CSS = `
   transition:transform .55s cubic-bezier(.22,.7,.2,1);will-change:transform}
 .pv .slide{flex:0 0 100vw;width:100vw;height:100dvh;overflow:hidden;
   display:flex;flex-direction:column;align-items:stretch;justify-content:center;
-  padding:clamp(56px,9vh,76px) 26px clamp(50px,8vh,64px);position:relative}
+  /* El minimo del padding de arriba (84px) no es arbitrario: tiene que
+     cubrir siempre la barra fija (.topbar, ~61px de alto) con margen, o
+     el titulo de la diapositiva activa le queda pisado encima — pasaba de
+     verdad en celulares bajos, donde el min anterior (56px) quedaba por
+     debajo de esos 61px. */
+  padding:clamp(84px,11vh,100px) 26px clamp(50px,8vh,64px);position:relative}
 .pv .slide.night{background:var(--night);color:var(--night-ink)}
 .pv .slide-in{max-width:1080px;margin:0 auto;width:100%}
 .pv .slide-in.txt{max-width:760px}
@@ -99,7 +104,7 @@ const CSS = `
   z-index:31;transition:width .5s cubic-bezier(.22,.7,.2,1)}
 @media (max-width:640px){
   .pv .arrow{display:none}
-  .pv .slide{padding:clamp(52px,9vh,70px) 20px clamp(46px,8vh,60px)}
+  .pv .slide{padding:clamp(84px,11vh,96px) 20px clamp(46px,8vh,60px)}
 }
 /* Pantallas bajas (celular en apaisado, notebooks chicas con la barra de
    favoritos abierta, etc.): nada de scroll, así que achica todo lo que se
@@ -618,25 +623,55 @@ function AppCotizador() {
   );
 }
 
+const ITEMS_MOVIL = [
+  ['Mampostería', '184,00 m²', 3312000],
+  ['Cubierta de chapa', '112,00 m²', 3696000],
+  ['Revoques', '310,00 m²', 2635000],
+];
+
+// En desktop el mockup de la compu arma el presupuesto en vivo — en el
+// celular el mockup del teléfono se había quedado estático (reportado:
+// "la animación no se mueve"). Mismo patrón que AppCotizador: los ítems
+// entran de a uno, el total sube, y hace una pausa arriba y abajo del
+// ciclo antes de volver a arrancar.
 function AppMovil() {
+  const [n, setN] = useState(reducido() ? ITEMS_MOVIL.length : 0);
+  useEffect(() => {
+    if (reducido()) return;
+    const PASOS = ITEMS_MOVIL.length + 3;
+    let paso = 0;
+    const t = setInterval(() => {
+      paso = (paso + 1) % PASOS;
+      setN(Math.min(paso, ITEMS_MOVIL.length));
+    }, 850);
+    return () => clearInterval(t);
+  }, []);
+
+  const visibles = ITEMS_MOVIL.slice(0, n);
+  const total = visibles.reduce((a, it) => a + it[2], 0);
+  const completo = n === ITEMS_MOVIL.length;
+
   return (
     <div className="app">
       <div className="m-head">
         <div className="m-title">Vivienda unifamiliar</div>
         <div className="m-sub">6 ÍTEMS · 4 RUBROS</div>
       </div>
-      {[['Mampostería', '184,00 m²', '$ 3.312.000'],
-        ['Cubierta de chapa', '112,00 m²', '$ 3.696.000'],
-        ['Revoques', '310,00 m²', '$ 2.635.000']].map(([t, s, v]) => (
-        <div className="m-item" key={t}>
-          <div style={{ minWidth: 0 }}>
-            <div className="t">{t}</div>
-            <div className="s">{s}</div>
+      <div style={{ minHeight: ITEMS_MOVIL.length * 36 }}>
+        {visibles.map(([t, s, v]) => (
+          <div className="m-item row-in" key={t}>
+            <div style={{ minWidth: 0 }}>
+              <div className="t">{t}</div>
+              <div className="s">{s}</div>
+            </div>
+            <div className="v">{money(v)}</div>
           </div>
-          <div className="v">{v}</div>
-        </div>
-      ))}
-      <div className="m-tot"><span className="k">Total</span><span className="v">$ 23.295.000</span></div>
+        ))}
+      </div>
+      <div className="m-tot">
+        <span className="k">Total {!completo && '· calculando…'}</span>
+        <span className="v">{money(total)}{!completo && <span className="caret" />}</span>
+      </div>
     </div>
   );
 }
