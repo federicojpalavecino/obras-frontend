@@ -162,6 +162,17 @@ const CSS = `
   box-shadow:0 22px 50px rgba(0,0,0,.4);max-width:360px;margin:0 auto}
 .pv .stand{width:44%;height:7px;margin:0 auto;border-radius:0 0 7px 7px;background:#1a241f;border:1px solid #2b3a33;border-top:none}
 .pv .hero-mock{margin-top:clamp(14px,3vh,28px)}
+/* En desktop, todo apilado en una sola columna (texto + mockup, uno debajo
+   del otro) no entraba en la altura de una ventana común — con los
+   titulos grandes, se cortaba o quedaba apretado ("no se ve bien en la
+   compu"). De 900px para arriba pasa a dos columnas lado a lado, como en
+   la version con scroll de antes: usa el ancho que sobra en vez de pedirle
+   altura a la pantalla. */
+@media (min-width:900px){
+  .pv .slide-in.hero{display:grid;grid-template-columns:1.05fr .95fr;column-gap:52px;align-items:center}
+  .pv .slide-in.hero > *{grid-column:1}
+  .pv .slide-in.hero > .hero-mock{grid-column:2;grid-row:1/-1;align-self:center;margin-top:0}
+}
 .pv .stack{display:flex;align-items:flex-end;gap:0;justify-content:center}
 .pv .stack .lap{flex:0 1 auto;min-width:0;position:relative;z-index:1}
 .pv .stack .phone{flex:0 0 118px;width:118px;margin-left:-10px;margin-bottom:-14px;z-index:3;
@@ -768,7 +779,7 @@ export default function Presentacion() {
 
         {/* ── 1. PORTADA ────────────────────────────────────────────────── */}
         <section className={'slide night' + (i === 0 ? ' active' : '')}>
-          <div className="slide-in stag">
+          <div className="slide-in hero stag">
             <span className="tag" style={{ '--i': 0, color: 'var(--accent)' }}>FAIM OBRAS</span>
             <h1 style={{ '--i': 1 }}>Cotizá una obra en <span className="hi">minutos</span>, no en días.</h1>
             <p className="lead" style={{ '--i': 2 }}>
