@@ -523,7 +523,15 @@ export default function DemoTour() {
                     // se alcance a ver un momento, que es todo el punto.
                     setTimeout(() => {
                       document.querySelector('[data-tour="cerrar-tarea-detalle"]')?.click();
-                      tourDriver.moveNext();
+                      // En mobile, los dos pasos que siguen ("Más
+                      // herramientas" y "Los parámetros del cálculo") no
+                      // existen — son paneles solo de escritorio — así que
+                      // moveNext() los saltaba en cascada y el tour
+                      // terminaba solo ahí, sin llegar nunca a la curva de
+                      // inversión (el onDoneClick de ese último paso nunca
+                      // se disparaba). Se salta directo.
+                      if (esMobil) { tourDriver.destroy(); navigate(rutaCurva); }
+                      else tourDriver.moveNext();
                     }, 900);
                   }
                 };
@@ -541,16 +549,41 @@ export default function DemoTour() {
               },
             },
             {
-              element: '[data-tour="gantt-herramientas"]',
+              // Esta barra es SOLO de escritorio (".header-actions-desktop",
+              // display:none en mobile — en el celular estas mismas
+              // herramientas están en el menú "⋯"). Con un selector de
+              // texto plano, driver.js intentaba resaltar un elemento
+              // invisible y el cartel nunca llegaba a aparecer — mismo
+              // motivo que "agregar-item-trigger-mobile" más arriba, acá
+              // en el sentido inverso (el elemento solo existe/vale en
+              // desktop, no en mobile). skipMissingElement salta este paso
+              // entero en el celular.
+              element: () => {
+                const el = document.querySelector('[data-tour="gantt-herramientas"]');
+                return el && el.offsetParent !== null ? el : null;
+              },
               popover: {
                 title: "Más herramientas de planificación",
-                description: '"Vincular" encadena una tarea con otra para que una dependa de la anterior, "Días perdidos" carga lluvia o feriados, y "Obra real" compara lo planificado contra lo que pasó de verdad. Tocá "Siguiente" para seguir.',
+                description: '"Vincular" encadena una tarea con otra para que una dependa de la anterior, "Días perdidos" carga lluvia o feriados, y "Obra real" compara lo planificado contra lo que pasó de verdad.',
                 side: "bottom",
-                popoverClass: esMobil ? "demo-tour-passthrough" : undefined,
               },
             },
             {
-              element: '[data-tour="gantt-config"]',
+              // Mismo motivo que "gantt-herramientas": este panel de
+              // configuración NI SIQUIERA SE RENDERIZA en mobile
+              // ({!esCelular ? ... }, no es solo CSS) — en el celular esto
+              // ya no era "el cartel no aparece": al ser el ÚLTIMO paso del
+              // segmento, si se saltaba por elemento faltante no quedaba
+              // NADA después a donde saltar, y el tour terminaba solo, sin
+              // avanzar nunca a la curva de inversión (el onDoneClick de
+              // acá abajo nunca llegaba a dispararse). Por eso el salto a
+              // la curva en mobile se resuelve antes, en el paso de la
+              // cuadrilla (ver más arriba) — este paso queda tal cual para
+              // desktop, donde sí se llega normalmente.
+              element: () => {
+                const el = document.querySelector('[data-tour="gantt-config"]');
+                return el && el.offsetParent !== null ? el : null;
+              },
               popover: {
                 title: "Los parámetros del cálculo",
                 description: "Desde cuándo arranca la obra, cuántas horas se trabaja por día y si se trabaja sábados o domingos — estos tres valores son los que alimentan el cálculo de todas las fechas de arriba.",
