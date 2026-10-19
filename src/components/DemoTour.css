@@ -137,7 +137,7 @@
      el z-index quede fijo mientras dura el tour entero, abierto o cerrado
      — cerrado ya está fuera de pantalla (translateX), así que un z-index
      alto ahí no cambia nada visualmente, pero evita el salto a mitad de
-     la animación. */
+     la animación.
      ".modal-overlay" (el genérico de toda la app — elegir rubro, emitir
      certificado, etc., z-index 1000) va en la misma lista por el mismo
      motivo: sin esto, el modal de "¿En qué rubro va?" quedaba oscurecido
