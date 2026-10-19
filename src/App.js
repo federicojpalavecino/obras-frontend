@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, MessageSquare, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X, Package, Gift, Zap, CreditCard, PlayCircle } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
+import BotChatPanel from "./pages/BotChatPanel";
 import ConfigCuenta from "./pages/ConfigCuenta";
 import ControlFinanciero from "./pages/ControlFinanciero";
 import Panol from './pages/Panol';
@@ -923,6 +924,12 @@ export default function App() {
   // Super admin panel — rutas directas
   if (window.location.pathname === "/admin-panel" || window.location.pathname === "/admin") {
     return <AdminSuperPanel />;
+  }
+
+  // Chat del bot de WhatsApp — página propia (antes era una pestaña del admin),
+  // para poder tenerla sola en otro dominio/página (ej: faimobras.online).
+  if (window.location.pathname === "/bot" || window.location.pathname === "/bot-chat") {
+    return <BotChatPanel />;
   }
 
   // Presentación comercial — pública, sin login. Es el link que se le manda a

@@ -1349,10 +1349,7 @@ export default function AdminPanel() {
           <button style={tabStyle("precios")} onClick={()=>setTab("precios")}>Precios</button>
           <button style={tabStyle("anuncio")} onClick={()=>setTab("anuncio")}>Anuncio</button>
           <button style={tabStyle("flujo")} onClick={()=>setTab("flujo")}>Flujo</button>
-          <button style={tabStyle("bot")} onClick={()=>setTab("bot")}>Bot WhatsApp</button>
         </div>
-
-        {tab === "bot" && <PanelBotWhatsApp token={token} />}
 
         {tab === "anuncio" && <PanelAnuncio token={token} />}
 
