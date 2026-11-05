@@ -1098,6 +1098,7 @@ ${firma}
   const subtotalMo = (rubro) => (rubro.lineas || []).reduce((s, l) => s + (Number(l.costo_mo) || 0), 0);
   const totalMat = (data.rubros || []).reduce((s, r) => s + subtotalMat(r), 0);
   const totalMo = (data.rubros || []).reduce((s, r) => s + subtotalMo(r), 0);
+  const totalGestion = (data.rubros || []).reduce((s, r) => s + (r.lineas || []).reduce((s2, l) => s2 + (Number(l.honorario_gestion_mat) || 0), 0), 0);
 
   return (
     <>
@@ -2013,6 +2014,7 @@ ${firma}
                 {[
                   { label: 'Material', val: totalMat, color: 'var(--mat)', size: 12 },
                   { label: 'M. Obra', val: totalMo, color: 'var(--mo)', size: 12 },
+                  ...(totalGestion > 0 ? [{ label: 'Gestión', val: totalGestion, color: 'var(--accent2)', size: 12 }] : []),
                   { label: 'Costo Ejec', val: totales?.total_ejecucion, color: 'var(--ejec)', size: 13 },
                   { label: 'Precio s/IVA', val: totales?.total_precio_sin_iva, color: 'var(--precio)', size: 13 },
                   { label: 'IVA', val: totales?.total_iva, color: 'var(--muted)', size: 12 },
