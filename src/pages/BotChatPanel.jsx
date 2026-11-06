@@ -48,7 +48,7 @@ function fmtHora(iso) {
   return d.toLocaleString("es-AR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
 }
 
-function PanelBotWhatsApp({ token, onLogout }) {
+function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
   const [leads, setLeads]           = useState([]);
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [busqueda, setBusqueda]     = useState("");
@@ -99,6 +99,7 @@ function PanelBotWhatsApp({ token, onLogout }) {
       const qs = filtroEstado !== "todos" ? `?estado=${filtroEstado}` : "";
       const r = await fetch(`${API}/whatsapp/admin/leads${qs}`, { headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) setLeads(await r.json());
+      else if (r.status === 401) return onSesionExpirada();
     } catch {}
     if (!silencioso) setLoadingLista(false);
   };
@@ -108,6 +109,7 @@ function PanelBotWhatsApp({ token, onLogout }) {
     try {
       const r = await fetch(`${API}/whatsapp/admin/leads/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) setSeleccionado(await r.json());
+      else if (r.status === 401) return onSesionExpirada();
     } catch {}
     if (!silencioso) setLoadingDetalle(false);
   };
@@ -365,6 +367,7 @@ export default function BotChatPanel() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPass, setLoginPass]   = useState("");
   const [loginError, setLoginError] = useState("");
+  const [sesionExpirada, setSesionExpirada] = useState(false);
 
   useEffect(() => {
     const t = localStorage.getItem("obras_admin_token");
@@ -383,6 +386,7 @@ export default function BotChatPanel() {
         const data = await res.json();
         localStorage.setItem("obras_admin_token", data.token);
         setToken(data.token);
+        setSesionExpirada(false);
       } else setLoginError("Credenciales incorrectas");
     } catch { setLoginError("Error de conexión"); }
   };
@@ -392,6 +396,16 @@ export default function BotChatPanel() {
     setToken(null);
   };
 
+  // El backend devuelve 401 cuando el token guardado ya no es válido (venció
+  // a los 7 días, o quedó firmado con un JWT_SECRET viejo tras un redeploy).
+  // Antes esto fallaba en silencio: la lista/conversación quedaba vacía sin
+  // avisar nada, como si "no cargaran los mensajes".
+  const sesionExpiradaHandler = () => {
+    localStorage.removeItem("obras_admin_token");
+    setToken(null);
+    setSesionExpirada(true);
+  };
+
   if (loading) return null;
 
   if (!token) return (
@@ -399,6 +413,7 @@ export default function BotChatPanel() {
       <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:48, width:320, boxShadow:"0 4px 24px rgba(0,0,0,0.06)" }}>
         <div style={{ fontSize:22, fontWeight:800, color:C.accent, marginBottom:4 }}>FAIM OBRAS</div>
         <div style={{ fontSize:11, color:C.muted, marginBottom:32, fontFamily:"'IBM Plex Mono',monospace", letterSpacing:"2px" }}>CHAT DEL BOT</div>
+        {sesionExpirada && <div style={{ color:C.warn, fontSize:13, marginBottom:16, textAlign:"center" }}>Tu sesión expiró. Volvé a ingresar.</div>}
         <div style={{ marginBottom:12 }}>
           <label style={{ display:"block", fontSize:11, color:C.muted, marginBottom:5, fontWeight:600, letterSpacing:"1px", textTransform:"uppercase" }}>Email</label>
           <input value={loginEmail} onChange={e=>setLoginEmail(e.target.value)} type="email"
@@ -417,5 +432,5 @@ export default function BotChatPanel() {
     </div>
   );
 
-  return <PanelBotWhatsApp token={token} onLogout={logout} />;
+  return <PanelBotWhatsApp token={token} onLogout={logout} onSesionExpirada={sesionExpiradaHandler} />;
 }
