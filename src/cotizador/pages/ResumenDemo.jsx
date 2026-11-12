@@ -11,9 +11,13 @@ const C = { bg: "#f8f9fa", surface: "#ffffff", surface2: "#f1f3f5", border: "#e0
 const fmt = (n) => "$ " + Math.round(n || 0).toLocaleString("es-AR");
 
 // Mismo precio promo que la pantalla real post-registro (ver App.js,
-// PantallaVentaPostRegistro): $35.000 los primeros 3 meses vs $57.000 base.
+// PantallaVentaPostRegistro): $35.000 los primeros 2 meses (cambio confirmado
+// por Federico, 2026-11-11; antes 3) vs $57.000 base. Página sin acceso a
+// /suscripcion/estado en este componente (demo, no tenant real) — si el monto
+// o los meses cambian, actualizar acá también.
 const PRECIO_BASE = 57000;
 const PRECIO_PROMO = 35000;
+const PROMO_MESES = 2;
 
 const WHATSAPP = "5493625548783"; // asistente de WhatsApp (mismo numero del bot)
 const WHATSAPP_MSG_DEMO = encodeURIComponent("Hola! Estoy probando la demo de FAIM OBRAS y tengo una consulta.");
@@ -270,7 +274,7 @@ export default function ResumenDemo({ onRegistrarme }) {
               </div>
               <div style={{ fontSize: 13 }}>
                 <span style={{ textDecoration: "line-through", opacity: 0.55 }}>{fmt(PRECIO_BASE)}</span>
-                {" "}<strong style={{ color: "#6ee7b7", fontSize: 16 }}>{fmt(PRECIO_PROMO)}/mes</strong> los primeros 3 meses · débito automático
+                {" "}<strong style={{ color: "#6ee7b7", fontSize: 16 }}>{fmt(PRECIO_PROMO)}/mes</strong> los primeros {PROMO_MESES} meses · débito automático
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, background: "rgba(0,0,0,0.2)", padding: "7px 14px", borderRadius: 10 }}>

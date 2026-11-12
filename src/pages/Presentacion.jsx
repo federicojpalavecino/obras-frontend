@@ -9,8 +9,18 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const PRECIO_BASE = 57000;
 const PRECIO_EXTRA = 7000;
-const PRECIO_PROMO = 35000; // primeros 3 meses — mismo valor que whatsapp_bot/config.PROMO_PRECIO
+// Primeros 2 meses (cambio confirmado por Federico, 2026-11-11; antes 3) — mismo valor
+// que whatsapp_bot/config.PROMO_PRECIO. Página estática: si la promo se corta o cambia
+// de monto, actualizar acá también (no lee /suscripcion/estado, a diferencia de la
+// pantalla de checkout post-registro en App.js).
+const PRECIO_PROMO = 35000;
+const PROMO_MESES = 2;
 const USUARIOS_BASE = 2;
+// Mismo número que usa el bot de WhatsApp (ADMIN_WHATSAPP_NUMBER / WHATSAPP_COMPROBANTES
+// en App.js) — las demos están retiradas temporalmente, así que sus CTAs coordinan la
+// videollamada comercial de 20 minutos en vez de abrir la demo.
+const WHATSAPP_COMERCIAL = "5493625548783";
+const WA_VIDEOLLAMADA = `https://wa.me/${WHATSAPP_COMERCIAL}?text=${encodeURIComponent("Hola! Quiero coordinar una videollamada de 20 minutos para ver cómo presupuestar con FAIM.")}`;
 
 const CSS = `
 .pv{
@@ -830,7 +840,7 @@ export default function Presentacion() {
               desde cualquier pantalla.
             </p>
             <div className="ctas" style={{ '--i': 2 }}>
-              <a className="cta" href="/demo">Probar la demo guiada →</a>
+              <a className="cta" href={WA_VIDEOLLAMADA} target="_blank" rel="noreferrer">Coordinar videollamada de 20 min →</a>
               <a className="cta-2" href="/?registro=1">Registrarme →</a>
             </div>
             <div className="cifras" style={{ '--i': 3 }}>
@@ -922,7 +932,7 @@ export default function Presentacion() {
             <h2 style={{ '--i': 1 }}>Un plan. Todo adentro.</h2>
             <p className="sub" style={{ '--i': 2 }}>Nada de versiones básicas ni módulos aparte.</p>
             <div className="precio-card" style={{ '--i': 3 }}>
-              <span className="precio-promo">★ {pesos(PRECIO_PROMO)}/mes los primeros 3 meses</span>
+              <span className="precio-promo">★ {pesos(PRECIO_PROMO)}/mes los primeros {PROMO_MESES} meses</span>
               <div className="precio-num">
                 <span className="precio-tachado">{pesos(PRECIO_BASE)}</span>
                 <span className="precio-grande">{pesos(PRECIO_PROMO)}</span>
@@ -938,7 +948,7 @@ export default function Presentacion() {
             </div>
             <div className="ctas" style={{ '--i': 4, justifyContent: 'center' }}>
               <a className="cta" href="/?registro=1">Registrarme con la promo →</a>
-              <a className="cta-2" href="/demo">Prefiero ver la demo primero →</a>
+              <a className="cta-2" href={WA_VIDEOLLAMADA} target="_blank" rel="noreferrer">Prefiero coordinar una llamada antes →</a>
             </div>
           </div>
         </section>
@@ -949,11 +959,11 @@ export default function Presentacion() {
             <div className="tag" style={{ '--i': 0, justifyContent: 'center' }}>Empezá ahora</div>
             <h2 style={{ '--i': 1 }}>Probalo con una obra tuya</h2>
             <p className="lead" style={{ '--i': 2, margin: '0 auto' }}>
-              La demo arma un presupuesto en vivo, delante tuyo. O si ya sabés que es
-              lo que necesitás, te registrás directo.
+              En una videollamada de 20 minutos armamos un presupuesto en vivo, delante
+              tuyo. O si ya sabés que es lo que necesitás, te registrás directo.
             </p>
             <div className="ctas" style={{ '--i': 3, justifyContent: 'center' }}>
-              <a className="cta" href="/demo">Probar la demo guiada →</a>
+              <a className="cta" href={WA_VIDEOLLAMADA} target="_blank" rel="noreferrer">Coordinar videollamada de 20 min →</a>
               <a className="cta-2" href="/?registro=1">Registrarme →</a>
             </div>
             <div style={{ '--i': 4 }}>

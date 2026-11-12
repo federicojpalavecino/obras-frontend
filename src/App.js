@@ -108,16 +108,30 @@ function SuscripcionVencida({ suscripcion, onLogout }) {
 // de tutoría aparece después, cuando ya pagó (ver AvisoAgendarReunion).
 const WHATSAPP_COMPROBANTES = "5493625548783"; // mismo numero configurado en el bot (ADMIN_WHATSAPP_NUMBER)
 
-function PantallaVentaPostRegistro({ tenant, token, onContinuar, onLogout }) {
+// "2026-11-30T23:59:00-03:00" → "30 de noviembre". Solo para mostrar una fecha real que
+// ya vino del servidor (suscripcion.promo_exclusiva_vence) — nunca se inventa acá.
+function fechaCorta(iso) {
+  try {
+    return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "long", timeZone: "America/Argentina/Buenos_Aires" });
+  } catch { return null; }
+}
+
+function PantallaVentaPostRegistro({ tenant, token, suscripcion, onContinuar, onLogout }) {
   const [vista, setVista] = useState("inicio"); // inicio | transferencia
   const [loading, setLoading] = useState(false);
-  const precioBase = tenant?.precio_mensual || 57000;
-  const precioPromo = Math.round(precioBase * (35000 / 57000) / 10) * 10; // mismo precio promo que whatsapp_bot/config.PROMO_PRECIO
+  const precioBase = tenant?.precio_mensual || suscripcion?.precio_mensual || 57000;
+  // Fuente de verdad del servidor (GET /suscripcion/estado): nunca se calcula la promo
+  // en el cliente ni se asume que sigue siendo la misma campaña de siempre. Si el
+  // servidor dice que no hay promo vigente (venció o no corresponde), no se muestra.
+  const promoVigente = !!suscripcion?.promo_vigente;
+  const precioPromo = promoVigente ? suscripcion.promo_precio : null;
+  const mesesPromo = promoVigente ? suscripcion.promo_meses_debito_automatico : null;
+  const venceTexto = promoVigente ? fechaCorta(suscripcion.promo_exclusiva_vence) : null;
 
   const suscribirse = async () => {
     setLoading(true);
     try {
-      const res = await api.post('/suscripcion/crear?promo=true', {}, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.post(`/suscripcion/crear?promo=${promoVigente}`, {}, { headers: { Authorization: `Bearer ${token}` } });
       const data = res.data;
       if (data.init_point) window.location.href = data.init_point;
       else if (data.ya_suscripto) onContinuar();
@@ -149,18 +163,31 @@ function PantallaVentaPostRegistro({ tenant, token, onContinuar, onLogout }) {
 
         {vista === "inicio" ? (
           <>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.red, color: "#fff", fontSize: 12, fontWeight: 800, padding: "6px 14px", borderRadius: 20, margin: "0 auto 18px", animation: "faimPulse 1.8s ease-in-out infinite" }}>
-              <Zap size={13} strokeWidth={2.5} /> $ {precioPromo.toLocaleString("es-AR")}/MES LOS PRIMEROS 3 MESES · SOLO HOY
-            </div>
+            {promoVigente && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.red, color: "#fff", fontSize: 12, fontWeight: 800, padding: "6px 14px", borderRadius: 20, margin: "0 auto 18px", animation: "faimPulse 1.8s ease-in-out infinite" }}>
+                <Zap size={13} strokeWidth={2.5} /> $ {precioPromo.toLocaleString("es-AR")}/MES LOS PRIMEROS {mesesPromo} MESES
+                {venceTexto ? ` · PROMO EXCLUSIVA HASTA EL ${venceTexto.toUpperCase()}` : ""}
+              </div>
+            )}
 
             <div style={{ textAlign: "center", marginBottom: 20 }}>
-              <div style={{ fontSize: 16, color: C.muted, textDecoration: "line-through", fontFamily: "'IBM Plex Mono', monospace" }}>
-                $ {precioBase.toLocaleString("es-AR")} /mes
-              </div>
-              <div style={{ fontSize: 44, fontWeight: 800, color: C.accent, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "-1px", animation: "faimFloat 2.6s ease-in-out infinite" }}>
-                $ {precioPromo.toLocaleString("es-AR")}
-              </div>
-              <div style={{ fontSize: 12, color: C.muted }}>tus primeros 3 meses con débito automático · después $ {precioBase.toLocaleString("es-AR")}/mes</div>
+              {promoVigente ? (
+                <>
+                  <div style={{ fontSize: 16, color: C.muted, textDecoration: "line-through", fontFamily: "'IBM Plex Mono', monospace" }}>
+                    $ {precioBase.toLocaleString("es-AR")} /mes
+                  </div>
+                  <div style={{ fontSize: 44, fontWeight: 800, color: C.accent, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "-1px", animation: "faimFloat 2.6s ease-in-out infinite" }}>
+                    $ {precioPromo.toLocaleString("es-AR")}
+                  </div>
+                  <div style={{ fontSize: 12, color: C.muted }}>
+                    tus primeros {mesesPromo} meses con débito automático · después $ {precioBase.toLocaleString("es-AR")}/mes
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize: 44, fontWeight: 800, color: C.accent, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "-1px" }}>
+                  $ {precioBase.toLocaleString("es-AR")} <span style={{ fontSize: 16, color: C.muted }}>/mes</span>
+                </div>
+              )}
             </div>
 
             <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
@@ -181,7 +208,7 @@ function PantallaVentaPostRegistro({ tenant, token, onContinuar, onLogout }) {
             </div>
 
             <button onClick={suscribirse} disabled={loading} style={{ width: "100%", padding: 15, borderRadius: 12, border: "none", cursor: "pointer", background: C.accent, color: "#fff", fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.7 : 1, animation: loading ? "none" : "faimGlow 2.2s ease-in-out infinite", marginBottom: 10 }}>
-              <CreditCard size={17} strokeWidth={2.5} /> {loading ? "Generando link..." : "Suscribirme ahora con débito automático"}
+              <CreditCard size={17} strokeWidth={2.5} /> {loading ? "Generando link..." : promoVigente ? "Suscribirme ahora con débito automático" : "Suscribirme con débito automático"}
             </button>
             <button onClick={() => setVista("transferencia")} style={{ width: "100%", padding: 11, borderRadius: 12, border: `1px solid ${C.border}`, cursor: "pointer", background: "transparent", color: C.text, fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 13.5, marginBottom: 14 }}>
               Prefiero pagar por transferencia
@@ -195,10 +222,14 @@ function PantallaVentaPostRegistro({ tenant, token, onContinuar, onLogout }) {
         ) : (
           <>
             <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12, padding: "16px 18px", marginBottom: 18 }}>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>Con el precio promo, solo tu primer mes (después $ {precioBase.toLocaleString("es-AR")}/mes):</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>
+                {promoVigente
+                  ? `Con el precio promo, solo tu primer mes (después $ ${precioBase.toLocaleString("es-AR")}/mes):`
+                  : "Monto a transferir:"}
+              </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <span style={{ fontSize: 13, color: C.muted }}>Monto</span>
-                <span style={{ fontSize: 18, fontWeight: 800, fontFamily: "'IBM Plex Mono', monospace" }}>$ {precioPromo.toLocaleString("es-AR")}</span>
+                <span style={{ fontSize: 18, fontWeight: 800, fontFamily: "'IBM Plex Mono', monospace" }}>$ {(promoVigente ? precioPromo : precioBase).toLocaleString("es-AR")}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 13, color: C.muted }}>Alias</span>
@@ -543,7 +574,11 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
         <Route path="/cotizador/gantt/:id" element={rutaSi(tienePermiso("presupuestos"), <Gantt />)}/>
         <Route path="/cotizador/presupuesto/:id/curva" element={rutaSi(tienePermiso("presupuestos"), <CurvaInversion />)}/>
         <Route path="/cotizador/presupuesto/:id/materiales" element={rutaSi(tienePermiso("presupuestos"), <ListadoMateriales />)}/>
-        <Route path="/cotizador/presupuesto/:id/resumen-demo" element={rutaSi(tienePermiso("presupuestos"), <ResumenDemo onRegistrarme={() => {
+        {/* Solo el tenant demo (es_demo): evita que un estudio real llegue por
+            URL directa a la pantalla de venta del tour, con su cuenta regresiva
+            de promo a propósito ficticia (ver ResumenDemo.jsx) — la demo está
+            retirada temporalmente, pero el componente se conserva intacto. */}
+        <Route path="/cotizador/presupuesto/:id/resumen-demo" element={rutaSi(tienePermiso("presupuestos") && tenant?.es_demo, <ResumenDemo onRegistrarme={() => {
           sessionStorage.removeItem("obras_tour_demo");
           sessionStorage.removeItem("obras_tour_presupuesto_id");
           sessionStorage.setItem("obras_tour_registro", "1");
@@ -565,6 +600,35 @@ function AppInner({user, tenant, onLogout, onTenantUpdate}) {
       </ErrorBoundary>
       <Asistente />
       <Deshacer />
+    </div>
+  );
+}
+
+// ── Página comercial para /demo y /demo-portal (demos retiradas) ───────────
+// Las dos demos (tour guiado y portal de cliente) se retiraron temporalmente
+// (pedido de Federico, 2026-11-11): no se borró nada (EntradaDemo, DemoPortal,
+// /demo/entrar en el backend siguen ahí para reconstruirlas), pero ningún link
+// viejo tiene que terminar en un error crudo ni intentar crear una sesión de
+// demo. Esto reemplaza esas rutas por una invitación real a la videollamada
+// comercial de 20 minutos, por el mismo WhatsApp que ya usa el bot.
+function DemoRetiradaComercial() {
+  const msg = encodeURIComponent(
+    "Hola! Quería ver la demo de FAIM OBRAS. ¿Coordinamos una videollamada de 20 minutos para ver cómo presupuestar?"
+  );
+  return (
+    <div style={{ background: "#f8f9fa", minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Syne', sans-serif" }}>
+      <div style={{ width: "100%", maxWidth: 420, background: "#fff", borderRadius: 16, padding: 32, textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.08)" }}>
+        <div style={{ fontSize: 32, fontWeight: 800, color: "#059669", letterSpacing: "-1px", marginBottom: 10 }}>FAIM OBRAS</div>
+        <div style={{ fontSize: 14, color: "#1a1a2e", lineHeight: 1.6, marginBottom: 22 }}>
+          Por ahora no tenemos la demo libre disponible, pero te mostramos en una videollamada
+          de 20 minutos cómo presupuestar con FAIM, sin ningún compromiso.
+        </div>
+        <a href={`https://wa.me/${WHATSAPP_COMPROBANTES}?text=${msg}`} target="_blank" rel="noreferrer"
+          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", boxSizing: "border-box", padding: 14, borderRadius: 12, border: "none", cursor: "pointer", background: "#25D366", color: "#fff", fontWeight: 800, fontSize: 15, textDecoration: "none", marginBottom: 14 }}>
+          <MessageCircle size={17} strokeWidth={2.5} /> Coordinar videollamada por WhatsApp
+        </a>
+        <a href="/" style={{ fontSize: 13, color: "#6b7280" }}>Volver al inicio</a>
+      </div>
     </div>
   );
 }
@@ -918,7 +982,7 @@ export default function App() {
   // Link directo a la demo guiada (lo que se comparte en ads/WhatsApp): entra
   // sola, sin pasar por el botón del login.
   if (!user && ["/demo", "/demo/"].includes(window.location.pathname)) {
-    return <EntradaDemo onEntrar={entrarDemo} error={error} />;
+    return <DemoRetiradaComercial />;
   }
 
   // Super admin panel — rutas directas
@@ -944,7 +1008,7 @@ export default function App() {
   // Demo del portal de clientes — también pública. Muestra con datos ficticios
   // lo que ve el cliente del estudio, sin pedir usuario.
   if (["/demo-portal", "/demo-portal/", "/portal-demo", "/portal-demo/"].includes(window.location.pathname)) {
-    return <DemoPortal />;
+    return <DemoRetiradaComercial />;
   }
 
   if (loading) return (
@@ -963,13 +1027,16 @@ export default function App() {
         <div style={{fontSize:42,fontWeight:800,color:"#059669",letterSpacing:"-1px",marginBottom:4}}>FAIM OBRAS</div>
         <div style={{fontSize:12,color:"#6b7280",marginBottom:20,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"2px"}}>GESTIÓN PARA ESTUDIOS Y EMPRESAS</div>
 
-        {/* CTA de la demo: el camino de menor fricción, así que va primero y
-            bien visible — no un link chiquito abajo del login. */}
-        <button onClick={entrarDemo} disabled={demoLoading} style={{width:"100%",padding:"16px",marginBottom:10,borderRadius:14,border:"none",cursor:"pointer",background:"linear-gradient(135deg, #059669 0%, #047857 100%)",color:"#fff",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15.5,display:"flex",alignItems:"center",justifyContent:"center",gap:9,opacity:demoLoading?0.75:1,animation:demoLoading?"none":"faimDemoGlow 2.2s ease-in-out infinite"}}>
-          <PlayCircle size={20} strokeWidth={2.25} />
-          {demoLoading ? "Entrando a la demo..." : "Probar la demo guiada"}
-        </button>
-        <div style={{textAlign:"center",fontSize:11.5,color:"#9ca3af",marginBottom:22}}>Sin registrarte · con datos de ejemplo · 5 minutos</div>
+        {/* La demo guiada está retirada temporalmente (ver DemoRetiradaComercial):
+            en su lugar, la invitación de menor fricción es coordinar la
+            videollamada de 20 minutos por WhatsApp. */}
+        <a href={`https://wa.me/${WHATSAPP_COMPROBANTES}?text=${encodeURIComponent("Hola! Quiero coordinar una videollamada de 20 minutos para ver cómo presupuestar con FAIM.")}`}
+          target="_blank" rel="noreferrer"
+          style={{width:"100%",boxSizing:"border-box",padding:"16px",marginBottom:10,borderRadius:14,border:"none",cursor:"pointer",background:"linear-gradient(135deg, #059669 0%, #047857 100%)",color:"#fff",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15.5,display:"flex",alignItems:"center",justifyContent:"center",gap:9,textDecoration:"none",animation:"faimDemoGlow 2.2s ease-in-out infinite"}}>
+          <MessageCircle size={20} strokeWidth={2.25} />
+          Coordinar videollamada de 20 minutos
+        </a>
+        <div style={{textAlign:"center",fontSize:11.5,color:"#9ca3af",marginBottom:22}}>Te mostramos cómo presupuestar con FAIM · sin compromiso</div>
 
         {/* Tabs */}
         <div style={{display:"flex",gap:4,marginBottom:24,background:"#f1f3f5",borderRadius:8,padding:4}}>
@@ -1046,7 +1113,7 @@ export default function App() {
   } catch {}
 
   if (recienRegistrado || (promoVigente && user && suscripcion && suscripcion.trial_vencido)) {
-    return <PantallaVentaPostRegistro tenant={tenant} token={localStorage.getItem("obras_token")} onContinuar={() => setRecienRegistrado(false)} onLogout={handleLogout} />;
+    return <PantallaVentaPostRegistro tenant={tenant} token={localStorage.getItem("obras_token")} suscripcion={suscripcion} onContinuar={() => setRecienRegistrado(false)} onLogout={handleLogout} />;
   }
 
   // Subscription wall — only for JWT users
