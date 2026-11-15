@@ -118,6 +118,102 @@ function fechaCorta(iso) {
   } catch { return null; }
 }
 
+function ResultadoPago({ suscripcion }) {
+  const [estado, setEstado] = useState(suscripcion?.plan === "activo" ? "activo" : "verificando");
+  const [intento, setIntento] = useState(0);
+  const ruta = window.location.pathname.replace(/\/$/, "");
+  const token = localStorage.getItem("obras_token");
+  const retornoFallido = ruta.endsWith("/fallo");
+  const textoRetorno = ruta.endsWith("/fallo")
+    ? "MercadoPago no confirmó este pago. Si ves un cobro aprobado en tu cuenta, no vuelvas a pagarlo hasta verificarlo."
+    : ruta.endsWith("/pendiente")
+      ? "MercadoPago todavía no confirmó el pago. No lo repitas; vamos a consultar el estado de tu cuenta."
+      : "Estamos esperando la confirmación de MercadoPago para habilitar tu cuenta.";
+
+  useEffect(() => {
+    if (!token) {
+      setEstado("sin_sesion");
+      return;
+    }
+    if (suscripcion?.plan === "activo") {
+      setEstado("activo");
+      return;
+    }
+    let vigente = true;
+    let temporizador;
+    let consultas = 0;
+    setEstado("verificando");
+    const consultar = async () => {
+      try {
+        const { data } = await api.get("/suscripcion/estado");
+        if (!vigente) return;
+        if (data.plan === "activo") {
+          setEstado("activo");
+          return;
+        }
+        if (retornoFallido) {
+          setEstado("fallo");
+          return;
+        }
+      } catch (error) {
+        if (!vigente) return;
+        if (error.response?.status === 401) {
+          setEstado("sin_sesion");
+          return;
+        }
+        if (retornoFallido) {
+          setEstado("fallo");
+          return;
+        }
+      }
+      consultas += 1;
+      if (consultas >= 10) {
+        setEstado("pendiente");
+        return;
+      }
+      temporizador = setTimeout(consultar, 3000);
+    };
+    consultar();
+    return () => {
+      vigente = false;
+      if (temporizador) clearTimeout(temporizador);
+    };
+  }, [token, intento, suscripcion?.plan, retornoFallido]);
+
+  const titulo = estado === "activo" ? "Tu cuenta está activa"
+    : estado === "sin_sesion" ? "Iniciá sesión para consultar tu pago"
+      : estado === "fallo" ? "No se completó el pago"
+      : estado === "pendiente" ? "El pago todavía no figura acreditado"
+        : "Estamos confirmando tu pago";
+  const detalle = estado === "activo"
+    ? "MercadoPago confirmó la suscripción y ya podés entrar a FAIM OBRAS."
+    : estado === "sin_sesion"
+      ? "Entrá con el email de la cuenta que registraste para consultar el estado."
+      : estado === "fallo"
+        ? "MercadoPago no confirmó este pago. Podés volver a tu cuenta y elegir cómo continuar. Si ves un cobro aprobado, no lo repitas hasta verificarlo."
+      : estado === "pendiente"
+        ? "No vuelvas a pagar por ahora. La acreditación puede demorar; si ya pasó un rato, escribinos y lo revisamos."
+        : textoRetorno;
+
+  return (
+    <div style={{background:C.bg,minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'Syne',sans-serif"}}>
+      <div style={{width:"100%",maxWidth:460,background:C.surface,border:`1px solid ${C.border}`,borderRadius:18,padding:32,boxShadow:"0 8px 30px rgba(0,0,0,.07)",textAlign:"center"}}>
+        <div style={{fontSize:13,fontWeight:800,color:C.accent,letterSpacing:2,marginBottom:12}}>FAIM OBRAS</div>
+        <div style={{fontSize:24,fontWeight:800,color:C.text,marginBottom:10}}>{titulo}</div>
+        <p style={{fontSize:14,lineHeight:1.6,color:C.muted,margin:"0 0 22px"}}>{detalle}</p>
+        {estado === "pendiente" && token && (
+          <button onClick={() => { setEstado("verificando"); setIntento(n => n + 1); }} style={{width:"100%",padding:12,marginBottom:10,border:`1px solid ${C.border}`,borderRadius:10,background:C.surface,color:C.text,fontWeight:700,cursor:"pointer"}}>
+            Volver a consultar
+          </button>
+        )}
+        <a href="/" style={{display:"block",padding:13,borderRadius:10,background:C.accent,color:"#fff",textDecoration:"none",fontWeight:800}}>
+          {estado === "sin_sesion" ? "Ir a iniciar sesión" : "Continuar a FAIM OBRAS"}
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function PantallaVentaPostRegistro({ tenant, token, suscripcion, onContinuar, onLogout }) {
   const [vista, setVista] = useState("inicio"); // inicio | transferencia
   const [loading, setLoading] = useState(false);
@@ -1020,6 +1116,12 @@ export default function App() {
       FAIM OBRAS
     </div>
   );
+
+  // MercadoPago vuelve a estas rutas (recurrente, éxito, rechazo o pendiente).
+  // El retorno solo inicia la consulta: la activación siempre la confirma el backend.
+  if (["/suscripcion/resultado", "/suscripcion/exito", "/suscripcion/fallo", "/suscripcion/pendiente"].includes(window.location.pathname.replace(/\/$/, ""))) {
+    return <ResultadoPago suscripcion={suscripcion} />;
+  }
 
   // Login / Registro screen
   // Show landing if accessing root without being logged in
