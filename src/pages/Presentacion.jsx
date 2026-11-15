@@ -842,6 +842,7 @@ export default function Presentacion() {
             <div className="ctas" style={{ '--i': 2 }}>
               <a className="cta" href={WA_VIDEOLLAMADA} target="_blank" rel="noreferrer">Coordinar videollamada de 20 min →</a>
               <a className="cta-2" href="/?registro=1">Registrarme →</a>
+              <a className="cta-2" href="/demo">Probar un presupuesto de ejemplo →</a>
             </div>
             <div className="cifras" style={{ '--i': 3 }}>
               {[['Automático', 'costos y plazos, calculados solos'], ['Un solo lugar', 'presupuesto, obra y cobranza'], ['Cualquier pantalla', 'PC, tablet o celular']].map(([v, l]) => (

@@ -60,8 +60,8 @@ export default function Landing() {
           <button onClick={goApp} style={{ padding: '13px 32px', borderRadius: 10, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, fontFamily: "'Syne', sans-serif" }}>
             Crear cuenta →
           </button>
-          <a href="#funcionalidades" style={{ padding: '13px 32px', borderRadius: 10, border: `1px solid ${C.border2}`, color: C.muted, textDecoration: 'none', fontSize: 15, display: 'inline-flex', alignItems: 'center' }}>
-            Ver funcionalidades
+          <a href="/demo" style={{ padding: '13px 32px', borderRadius: 10, border: `1px solid ${C.border2}`, color: C.muted, textDecoration: 'none', fontSize: 15, display: 'inline-flex', alignItems: 'center' }}>
+            Probar un presupuesto de ejemplo
           </a>
         </div>
         <div style={{ marginTop: 16, fontSize: 12, color: C.muted }}>

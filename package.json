@@ -16,7 +16,8 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test"
+    "test": "react-scripts test",
+    "test:demo": "react-scripts test --watchAll=false --setupFilesAfterEnv --runTestsByPath src/demo/modelo.test.js"
   },
   "browserslist": {
     "production": [

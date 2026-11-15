@@ -9,16 +9,16 @@ const fmt = (n) => {
 
 const fmtPct = (n) => n != null ? n.toFixed(1) + '%' : '—';
 
-export default function PrintPresupuesto({ data, modo }) {
+export default function PrintPresupuesto({ data, modo, empresa }) {
   if (!data) return null;
   const { totales, coeficientes, rubros } = data;
   const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
   const cerrado = data.estado === 'cerrado';
   const esComercial = modo === 'comercial';
   // Tenant info from session
-  const _session = (() => { try { return JSON.parse(localStorage.getItem('obras_session') || '{}'); } catch { return {}; } })();
-  const tenantNombre = _session?.tenant?.nombre || 'FAIM OBRAS';
-  const tenantLogo = _session?.tenant?.logo_url || null;
+  const _session = empresa ? {} : (() => { try { return JSON.parse(localStorage.getItem('obras_session') || '{}'); } catch { return {}; } })();
+  const tenantNombre = empresa?.nombre || _session?.tenant?.nombre || 'FAIM OBRAS';
+  const tenantLogo = empresa ? empresa.logo_url : _session?.tenant?.logo_url || null;
 
   return (
     <div className="print-container" style={{ background: 'white', color: '#111', fontFamily: 'Arial, sans-serif' }}>
@@ -37,7 +37,7 @@ export default function PrintPresupuesto({ data, modo }) {
             </div>
           </div>
           <div className="print-fecha">
-            <div>{localidadYFecha(hoy)}</div>
+            <div>{empresa ? hoy : localidadYFecha(hoy)}</div>
             {cerrado && data.fecha_cierre && (
               <div style={{ marginTop: 4, fontSize: 9, color: '#888' }}>
                 Cerrado: {new Date(data.fecha_cierre).toLocaleDateString('es-AR')}
@@ -108,7 +108,7 @@ export default function PrintPresupuesto({ data, modo }) {
                 );
               })}
               <tr className="print-row-subtotal">
-                <td colSpan={esComercial ? 4 : 8} style={{ color: '#666', fontSize: 9 }}>
+                <td colSpan={esComercial ? 3 : 7} style={{ color: '#666', fontSize: 9 }}>
                   Subtotal {rubro.numero} — {rubro.nombre}
                 </td>
                 {!esComercial && <td className="print-num print-col-ejec">{fmt(rubro.subtotal_ejecucion)}</td>}

@@ -7,6 +7,12 @@ el código — y hay que corregir este archivo en el mismo commit.
 
 Última verificación contra producción: **11/08/2026**.
 
+**Actualización de demo (noviembre de 2026):** `/demo` ahora contiene un recorrido
+aislado para presupuestar, usar precios propios y obtener el documento comercial
+y el listado de materiales. Usa ejemplos ilustrativos locales; no inicia sesión
+en un tenant demo ni toca datos de estudios. Las demos anteriores se conservaron.
+Ver [DEMO_PRESUPUESTOS.md](DEMO_PRESUPUESTOS.md) para alcance, pruebas y métricas.
+
 ---
 
 ## En una línea

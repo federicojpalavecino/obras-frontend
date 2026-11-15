@@ -1309,10 +1309,29 @@ export default function AdminPanel() {
         )}
 
         {/* Embudo de la demo pública */}
+        {demoStats?.demo_v2 && (
+          <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"18px", marginBottom:18 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:5 }}>Demo de presupuesto — recorrido y próximos pasos</div>
+            <p style={{fontSize:11,color:C.muted,margin:'0 0 17px'}}>Una vez por pestaña y acción. WhatsApp cuenta clics; los registros se cuentan solo cuando se crea la cuenta. No son ventas confirmadas.</p>
+            {[
+              ['Últimos 7 días', demoStats.demo_v2.ultimos_7_dias],
+              ['Últimos 30 días', demoStats.demo_v2.ultimos_30_dias],
+              ['Total', demoStats.demo_v2.total],
+            ].map(([nombre, d]) => <div key={nombre} style={{borderTop:`1px solid ${C.border}`,paddingTop:13,marginTop:12}}>
+              <div style={{fontSize:11,fontWeight:600,color:C.muted,marginBottom:10}}>{nombre}</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(100px,1fr))',gap:12}}>
+                {[["Visitas",d.visitas],["Probaron cambios",d.interactuaron],["Vieron el documento",d.documento],["Vieron materiales",d.materiales],
+                  ["Pidieron imprimir",d.imprimir],["Clic a WhatsApp",d.whatsapp],["Clic a registro",d.registro_click],["Cuentas creadas",d.registros_completados]].map(([label,n]) =>
+                  <div key={label}><strong style={{fontSize:21,color:C.accent}}>{n}</strong><div style={{fontSize:10,color:C.muted}}>{label}</div></div>)}
+              </div>
+              <div style={{fontSize:11,color:C.muted,marginTop:12}}>Visita → cuenta creada: <strong>{d.conversion_registro_pct}%</strong></div>
+            </div>)}
+          </div>
+        )}
         {demoStats && (
           <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:"16px 18px", marginBottom:24 }}>
             <div style={{ fontSize:12, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.5px", marginBottom:12 }}>
-              Demo pública — faimobras.com/demo
+              Histórico anterior — visitas de demo y registros generales
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:16 }}>
               {[

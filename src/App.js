@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { FileText, TrendingUp, Calendar, Users, Lock, Settings, MessageCircle, MessageSquare, ChevronRight, LogOut, Check, AlertTriangle, Sparkles, X, Package, Gift, Zap, CreditCard, PlayCircle } from "lucide-react";
 import AdminSuperPanel from "./pages/AdminSuperPanel";
@@ -36,6 +36,8 @@ import Asistente from "./components/Asistente";
 import Deshacer from "./components/Deshacer";
 import ErrorBoundary from "./components/ErrorBoundary";
 import api from "./cotizador/api";
+
+const DemoPresupuesto = lazy(() => import('./demo/DemoPresupuesto'));
 
 const C = {
   bg:"#f8f9fa", surface:"#ffffff", surface2:"#f1f3f5",
@@ -922,7 +924,10 @@ export default function App() {
     }
     setRegLoading(true);
     try {
-      const res = await api.post('/auth/register', { nombre_estudio: regEstudio.trim(), nombre_usuario: regNombre.trim(), email: email.toLowerCase().trim(), password: pass });
+      const demoSesion = new URLSearchParams(window.location.search).get('demo_sesion');
+      const atribucionDemo = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(demoSesion || '')
+        ? { demo_sesion: demoSesion } : {};
+      const res = await api.post('/auth/register', { nombre_estudio: regEstudio.trim(), nombre_usuario: regNombre.trim(), email: email.toLowerCase().trim(), password: pass, ...atribucionDemo });
       const data = res.data;
       if (data) {
         const token = data.token;
@@ -979,10 +984,9 @@ export default function App() {
     setUser(null); setClienteInfo(null); setEstudioInfo(null); setSuscripcion(null); setTenant(null);
   };
 
-  // Link directo a la demo guiada (lo que se comparte en ads/WhatsApp): entra
-  // sola, sin pasar por el botón del login.
-  if (!user && ["/demo", "/demo/"].includes(window.location.pathname)) {
-    return <DemoRetiradaComercial />;
+  // Demo aislada: no obtiene tokens de demo ni reemplaza la sesión del estudio.
+  if (["/demo", "/demo/"].includes(window.location.pathname)) {
+    return <Suspense fallback={<div style={{ padding: 40, color: '#047857', fontFamily: 'sans-serif' }}>Preparando tu presupuesto de ejemplo…</div>}><DemoPresupuesto /></Suspense>;
   }
 
   // Super admin panel — rutas directas
@@ -1037,6 +1041,7 @@ export default function App() {
           Coordinar videollamada de 20 minutos
         </a>
         <div style={{textAlign:"center",fontSize:11.5,color:"#9ca3af",marginBottom:22}}>Te mostramos cómo presupuestar con FAIM · sin compromiso</div>
+        <a href="/demo" style={{display:'block',textAlign:'center',color:'#047857',fontSize:12,fontWeight:600,marginBottom:22}}>O probá un presupuesto de ejemplo, sin registrarte →</a>
 
         {/* Tabs */}
         <div style={{display:"flex",gap:4,marginBottom:24,background:"#f1f3f5",borderRadius:8,padding:4}}>
