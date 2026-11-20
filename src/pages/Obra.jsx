@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Printer, TrendingUp, Award, BarChart2, FileText, DollarSign, Users, ShoppingCart, CheckCircle } from "lucide-react";
+import { ArrowLeft, Printer, TrendingUp, Award, BarChart2, FileText, DollarSign, Users, ShoppingCart, CheckCircle, Paperclip } from "lucide-react";
 import api from "../cotizador/api";
 import MenuAcciones from "../shared/MenuAcciones";
 import VideoTutorial from "../components/VideoTutorial";
@@ -341,7 +341,7 @@ export default function Obra({ user } = {}) {
   // El archivo va del navegador al bucket sin pasar por el backend: un plano
   // de 20 MB atravesando FastAPI le come memoria al mismo proceso que atiende
   // el cotizador. El backend solo firma y despues registra la fila.
-  const subirArchivo = async (file) => {
+  const subirArchivo = async (file, extra = {}) => {
     if (!file) return;
     if (file.size > (almacen.max_mb || 60) * 1024 * 1024) {
       showToast(`El archivo supera los ${almacen.max_mb} MB`); return;
@@ -365,6 +365,7 @@ export default function Obra({ user } = {}) {
       await api.post(`/presupuestos/${id}/archivos`, {
         clave: firma.clave, nombre: file.name, mime: firma.mime,
         tipo: file.type === "application/pdf" ? "plano" : "foto",
+        ...extra,
       });
       showToast("✓ Archivo subido"); cargar();
     } catch (e) {
@@ -372,6 +373,15 @@ export default function Obra({ user } = {}) {
     }
     setSubiendo(null);
   };
+
+  // El presupuesto (u otro papel) que mandó el contratista, como punto de
+  // control de lo que llegó realmente: mismo bucket que planos/fotos, pero
+  // atado al subcontrato en vez de suelto en la obra.
+  const subirArchivoSubcontrato = (file, sub) => subirArchivo(file, {
+    subcontrato_id: sub.id, tipo: "documento",
+    nota: `Presupuesto de ${sub.nombre_contratista}`,
+  });
+  const archivosDeSub = (subId) => archivos.filter(a => a.subcontrato_id === subId);
 
   const cambiarVisibilidad = async (a) => {
     await api.patch(`/presupuestos/${id}/archivos/${a.id}`, { visible_cliente: !a.visible_cliente });
@@ -1436,6 +1446,40 @@ ${extraPagosSub}
                     ))}
                   </div>
                 )}
+                {/* Presupuesto que mandó el contratista: punto de control de lo que llegó */}
+                <div style={{ background: C.surface2, borderRadius: 8, padding: "10px 12px", marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: .3 }}>
+                      Presupuesto del contratista
+                    </div>
+                    {almacen.configurado && (
+                      <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 700, color: C.accent2, cursor: subiendo ? "wait" : "pointer", opacity: subiendo ? .6 : 1 }}>
+                        <Paperclip size={12} strokeWidth={1.75} /> {subiendo ? "Subiendo…" : "Adjuntar"}
+                        <input type="file" accept="application/pdf,image/*" disabled={!!subiendo}
+                          onChange={e => { subirArchivoSubcontrato(e.target.files?.[0], s); e.target.value = ""; }}
+                          style={{ display: "none" }} />
+                      </label>
+                    )}
+                  </div>
+                  {archivosDeSub(s.id).length === 0 ? (
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>Todavía no mandó nada — imagen o PDF.</div>
+                  ) : (
+                    <div style={{ marginTop: 6 }}>
+                      {archivosDeSub(s.id).map(a => (
+                        <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "4px 0", fontSize: 12.5 }}>
+                          <span onClick={() => setVerArchivo(a)} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", color: C.accent2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <FileText size={13} strokeWidth={1.75} /> {a.nombre}
+                          </span>
+                          <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                            <span style={{ color: C.muted }}>{String(a.created_at).slice(0, 10)}</span>
+                            <button onClick={() => borrarArchivo(a)}
+                              style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 15, lineHeight: 1, padding: "0 2px" }}>×</button>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => { setShowPagoSub(s.id); setPagoSubForm({ monto: "", fecha: today(), concepto: "Pago parcial", forma_pago: "transferencia", pct_avance_al_pagar: "" }); }} style={{ ...btn(C.warn), fontSize: 12 }}>+ Registrar pago</button>
                   {s.tipo_pago === "por_avance" && (
