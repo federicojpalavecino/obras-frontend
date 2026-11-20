@@ -1096,6 +1096,8 @@ export default function AdminPanel() {
   const [usuariosEdit, setUsuariosEdit] = useState({}); // { [tid]: valor } — cupos de usuarios incluidos
   const [usuariosSaving, setUsuariosSaving] = useState({});
   const [usuariosSaved, setUsuariosSaved]   = useState({});
+  const [waEdit, setWaEdit]     = useState({}); // { [tid]: telefono } — WhatsApp vinculado a mano
+  const [waSaving, setWaSaving] = useState({});
 
   useEffect(() => {
     const t = localStorage.getItem("obras_admin_token");
@@ -1198,6 +1200,33 @@ export default function AdminPanel() {
       }
     } catch { alert("Error de conexión"); }
     setUsuariosSaving(s => ({ ...s, [tid]: false }));
+  };
+
+  const guardarWhatsapp = async (tid, telefono) => {
+    setWaSaving(s => ({ ...s, [tid]: true }));
+    try {
+      const res = await fetch(`${API}/admin/tenants/${tid}/whatsapp`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ telefono }),
+      });
+      if (res.ok) {
+        setWaEdit(p => { const n = { ...p }; delete n[tid]; return n; });
+        await cargar(token);
+      } else {
+        const e = await res.json().catch(() => ({}));
+        alert("Error al vincular el WhatsApp: " + (e.detail || res.status));
+      }
+    } catch { alert("Error de conexión"); }
+    setWaSaving(s => ({ ...s, [tid]: false }));
+  };
+
+  const quitarWhatsapp = async (tid) => {
+    if (!window.confirm("¿Quitar el WhatsApp vinculado de esta cuenta?")) return;
+    await fetch(`${API}/admin/tenants/${tid}/whatsapp`, {
+      method: "DELETE", headers: { Authorization: `Bearer ${token}` }
+    });
+    cargar(token);
   };
 
   const guardarTrial = async (tid, fecha) => {
@@ -1428,7 +1457,27 @@ export default function AdminPanel() {
                 const trialISO = aISO(t.trial_hasta);
                 return (
                 <div key={t.id} style={{ display:"grid", gridTemplateColumns:"1.4fr 1.6fr 0.8fr 1fr 1.1fr 1fr 1.2fr auto", gap:0, padding:"12px 16px", borderBottom: i < tenantsFiltrados.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center", background: t.activo===false ? "#fef2f2" : "white" }}>
-                  <div style={{ fontWeight:600, fontSize:14, color:C.text }}>{t.nombre}</div>
+                  <div>
+                    <div style={{ fontWeight:600, fontSize:14, color:C.text }}>{t.nombre}</div>
+                    <div style={{ display:"flex", gap:4, alignItems:"center", marginTop:4 }}>
+                      <span style={{ fontSize:9.5, color:C.muted, whiteSpace:"nowrap" }}>WhatsApp</span>
+                      <input type="text" placeholder="54911..."
+                        value={waEdit[t.id] !== undefined ? waEdit[t.id] : (t.whatsapp_vinculado || "")}
+                        onChange={e => setWaEdit(p => ({ ...p, [t.id]: e.target.value }))}
+                        style={{ width:84, padding:"2px 5px", border:`1px solid ${C.border}`, borderRadius:5, fontSize:10, fontFamily:"'IBM Plex Mono',monospace", outline:"none", boxSizing:"border-box" }} />
+                      {waEdit[t.id] !== undefined && waEdit[t.id] !== (t.whatsapp_vinculado || "") ? (
+                        <button onClick={() => guardarWhatsapp(t.id, waEdit[t.id])} disabled={waSaving[t.id]}
+                          style={{ padding:"2px 6px", borderRadius:5, border:"none", fontSize:9.5, fontWeight:700, cursor:"pointer", background:C.accent, color:"white" }}>
+                          {waSaving[t.id] ? "..." : "OK"}
+                        </button>
+                      ) : t.whatsapp_vinculado ? (
+                        <button onClick={() => quitarWhatsapp(t.id)}
+                          style={{ padding:"2px 6px", borderRadius:5, border:"none", fontSize:9.5, fontWeight:700, cursor:"pointer", background:"#fef2f2", color:C.red }}>
+                          Quitar
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                   <div style={{ fontSize:13, color:C.muted }}>{t.email_admin}</div>
                   <div><Badge plan={t.plan_estado} /></div>
                   <div>
