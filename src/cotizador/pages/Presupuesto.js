@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   getPresupuesto, actualizarPresupuesto, cerrarPresupuesto, reabrirPresupuesto,
-  getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea, moverRubro, eliminarRubro,
+  getCategorias, getItems, agregarLinea, actualizarLinea, eliminarLinea, moverRubro, moverLinea, eliminarRubro,
   duplicarPresupuesto, getVariacionPrecios, actualizarPrecios
 } from '../api';
 import api from '../api';
@@ -1048,6 +1048,15 @@ ${firma}
     }
   };
 
+  const handleMoverLinea = async (linea_id, direccion) => {
+    try {
+      await moverLinea(id, linea_id, direccion);
+      await cargar(true);
+    } catch(e) {
+      alert('Error: ' + (e.response?.data?.detail || e.message));
+    }
+  };
+
   const handleEliminarRubro = async (rubro) => {
     // Items libres viejos (de antes de `crear_rubro_vacio`) pueden no tener
     // categoria_numero: en ese caso el rubro se identifica solo por nombre.
@@ -1856,7 +1865,7 @@ ${firma}
                             )}
                           </td>
                         </tr>
-                        {rubro.lineas?.map(linea => {
+                        {rubro.lineas?.map((linea, idxLinea) => {
                           const isSelected = lineaSeleccionada?.id === linea.id;
                           return (
                             <tr key={linea.id} className="fila-item" data-linea-id={linea.id}
@@ -1865,6 +1874,17 @@ ${firma}
                               <td style={{ ...td, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }} className="col-cod">{linea.tipo === 'libre' ? '—' : linea.item_obra_id}</td>
                               <td style={td} className="celda-nombre">
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    {!cerrado && (
+                                      <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 0.7, flexShrink: 0 }}>
+                                        <span title="Subir ítem"
+                                          style={{ fontSize: 9, color: idxLinea === 0 ? 'var(--border2)' : 'var(--muted)', cursor: idxLinea === 0 ? 'default' : 'pointer', opacity: idxLinea === 0 ? 0.35 : 1 }}
+                                          onClick={e => { e.stopPropagation(); if (idxLinea > 0) handleMoverLinea(linea.id, 'arriba'); }}>▲</span>
+                                        <span title="Bajar ítem"
+                                          style={{ fontSize: 9, color: idxLinea === rubro.lineas.length - 1 ? 'var(--border2)' : 'var(--muted)', cursor: idxLinea === rubro.lineas.length - 1 ? 'default' : 'pointer', opacity: idxLinea === rubro.lineas.length - 1 ? 0.35 : 1 }}
+                                          onClick={e => { e.stopPropagation(); if (idxLinea < rubro.lineas.length - 1) handleMoverLinea(linea.id, 'abajo'); }}>▼</span>
+                                      </span>
+                                    )}
+                                    <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--border2)', flexShrink: 0 }}>{linea.item_numero}</span>
                                     <div style={{ position: 'relative', flexShrink: 0 }}>
                                       <button
                                         onClick={e => { e.stopPropagation(); if (!cerrado) setMarcaPickerId(marcaPickerId === linea.id ? null : linea.id); }}

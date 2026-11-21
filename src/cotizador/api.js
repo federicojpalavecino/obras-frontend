@@ -99,6 +99,8 @@ export const agregarLinea = (pid, data) => api.post(`/presupuestos/${pid}/lineas
 export const actualizarLinea = (pid, lid, data) => api.put(`/presupuestos/${pid}/lineas/${lid}`, data);
 export const eliminarLinea = (pid, lid, forzar) =>
   api.delete(`/presupuestos/${pid}/lineas/${lid}`, { params: forzar ? { forzar: true } : {} });
+export const moverLinea = (pid, lineaId, direccion) =>
+  api.post(`/presupuestos/${pid}/lineas/mover`, { linea_id: lineaId, direccion });
 
 // RUBROS
 export const crearRubroVacio = (pid, data) => api.post(`/presupuestos/${pid}/rubros`, data);
