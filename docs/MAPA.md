@@ -13,6 +13,10 @@ y el listado de materiales. Usa ejemplos ilustrativos locales; no inicia sesión
 en un tenant demo ni toca datos de estudios. Las demos anteriores se conservaron.
 Ver [DEMO_PRESUPUESTOS.md](DEMO_PRESUPUESTOS.md) para alcance, pruebas y métricas.
 
+**Plan de la próxima versión (2026-11-21):** diagnóstico completo del sistema
+(deuda técnica, UX, gaps contra el resto del mercado) y plan por fases para
+Codex. Ver [PLAN_NUEVA_VERSION.md](PLAN_NUEVA_VERSION.md).
+
 ---
 
 ## En una línea
