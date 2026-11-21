@@ -97,12 +97,14 @@ export const actualizarPrecios = (id) => api.post(`/presupuestos/${id}/actualiza
 // LÍNEAS
 export const agregarLinea = (pid, data) => api.post(`/presupuestos/${pid}/lineas`, data);
 export const actualizarLinea = (pid, lid, data) => api.put(`/presupuestos/${pid}/lineas/${lid}`, data);
-export const eliminarLinea = (pid, lid) => api.delete(`/presupuestos/${pid}/lineas/${lid}`);
+export const eliminarLinea = (pid, lid, forzar) =>
+  api.delete(`/presupuestos/${pid}/lineas/${lid}`, { params: forzar ? { forzar: true } : {} });
 
 // RUBROS
 export const crearRubroVacio = (pid, data) => api.post(`/presupuestos/${pid}/rubros`, data);
-export const eliminarRubro = (pid, categoriaNumero, categoriaNombre) =>
-  api.delete(`/presupuestos/${pid}/rubros/${categoriaNumero || 0}`, { params: categoriaNombre ? { categoria_nombre: categoriaNombre } : {} });
+export const eliminarRubro = (pid, categoriaNumero, categoriaNombre, forzar) =>
+  api.delete(`/presupuestos/${pid}/rubros/${categoriaNumero || 0}`,
+    { params: { ...(categoriaNombre ? { categoria_nombre: categoriaNombre } : {}), ...(forzar ? { forzar: true } : {}) } });
 export const moverRubro = (pid, categoriaNumero, direccion) =>
   api.post(`/presupuestos/${pid}/rubros/mover`, { categoria_numero: categoriaNumero, direccion });
 

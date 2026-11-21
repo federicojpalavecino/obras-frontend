@@ -757,7 +757,21 @@ export default function Presupuesto() {
     const prev = buscarLinea(linea_id);
     let computo = null;
     try { computo = localStorage.getItem(`computo_${id}_${linea_id}`); } catch {}
-    await eliminarLinea(id, linea_id);
+    try {
+      await eliminarLinea(id, linea_id);
+    } catch (e) {
+      // Ítem ya certificado: el backend avisa en vez de tirar un error crudo.
+      // Se le ofrece al usuario forzarlo (saca el ítem del certificado y
+      // recalcula su total) en vez de dejarlo sin poder borrar nada.
+      const detalle = e.response?.data?.detail || '';
+      if (e.response?.status === 400 && /certificado/i.test(detalle)) {
+        if (!window.confirm(detalle + '\n\n¿Eliminarlo de todas formas?')) return;
+        await eliminarLinea(id, linea_id, true);
+      } else {
+        alert('No se pudo eliminar: ' + (detalle || e.message));
+        return;
+      }
+    }
     if (prev) {
       registrar({
         etiqueta: `Ítem «${prev.nombre_override || prev.nombre_item || prev.nombre_libre}» eliminado`,
@@ -1041,10 +1055,22 @@ ${firma}
     if (!window.confirm(`¿Eliminar el rubro "${rubro.nombre}" y sus ${rubro.lineas.length} ítem(s)?`)) return;
     try {
       await eliminarRubro(id, categoriaNumero, rubro.nombre);
-      await cargar(true);
     } catch(e) {
-      alert('Error: ' + (e.response?.data?.detail || e.message));
+      const detalle = e.response?.data?.detail || '';
+      if (e.response?.status === 400 && /certificado/i.test(detalle)) {
+        if (!window.confirm(detalle + '\n\n¿Eliminarlo de todas formas?')) return;
+        try {
+          await eliminarRubro(id, categoriaNumero, rubro.nombre, true);
+        } catch (e2) {
+          alert('Error: ' + (e2.response?.data?.detail || e2.message));
+          return;
+        }
+      } else {
+        alert('Error: ' + (detalle || e.message));
+        return;
+      }
     }
+    await cargar(true);
   };
 
   // Tambien por rubro: el que escribe "albanileria" quiere los items de ese
