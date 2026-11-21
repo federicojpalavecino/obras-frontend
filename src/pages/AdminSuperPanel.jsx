@@ -1440,6 +1440,11 @@ export default function AdminPanel() {
             </div>
 
             <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
+              {/* En el celu el grid de 8 columnas no entra: esto lo deja scrollable
+                  horizontal en vez de aplastar las columnas (Activar/Suspender
+                  quedaba fuera de la pantalla y sin forma de tocarlo). */}
+              <div style={{ overflowX:"auto", WebkitOverflowScrolling:"touch" }}>
+              <div style={{ minWidth:760 }}>
               <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1.6fr 0.8fr 1fr 1.1fr 1fr 1.2fr auto", gap:0, borderBottom:`1px solid ${C.border}`, padding:"10px 16px", background:C.surface2 }}>
                 {["Estudio","Email","Plan","Categoría","Trial hasta","Usuarios","Precio/mes","Acciones"].map(h => (
                   <div key={h} style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.5px" }}>{h}</div>
@@ -1544,6 +1549,8 @@ export default function AdminPanel() {
                 </div>
                 );
               })}
+              </div>
+              </div>
             </div>
             <div style={{ fontSize:12, color:C.muted, marginTop:8 }}>{tenantsFiltrados.length} cuenta{tenantsFiltrados.length!==1?"s":""}</div>
           </>
