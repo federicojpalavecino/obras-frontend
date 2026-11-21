@@ -1098,6 +1098,15 @@ export default function AdminPanel() {
   const [usuariosSaved, setUsuariosSaved]   = useState({});
   const [waEdit, setWaEdit]     = useState({}); // { [tid]: telefono } — WhatsApp vinculado a mano
   const [waSaving, setWaSaving] = useState({});
+  // El grid de 8 columnas no entra en una pantalla de celular ni scrolleando:
+  // en mobile se arma como tarjetas apiladas, con los mismos botones de
+  // Activar/Suspender siempre a la vista en vez de depender de un swipe.
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     const t = localStorage.getItem("obras_admin_token");
@@ -1439,10 +1448,71 @@ export default function AdminPanel() {
               </button>
             </div>
 
+            {isMobile ? (
+              <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
+                {loading ? (
+                  <div style={{ padding:32, textAlign:"center", color:C.muted }}>Cargando...</div>
+                ) : tenantsFiltrados.length === 0 ? (
+                  <div style={{ padding:32, textAlign:"center", color:C.muted }}>No hay cuentas</div>
+                ) : tenantsFiltrados.map((t, i) => {
+                  const precioVal = precioEdit[t.id] !== undefined ? precioEdit[t.id] : String(Math.round(t.precio_mensual || 0));
+                  const precioChanged = parseFloat(precioVal || 0) !== Math.round(t.precio_mensual || 0);
+                  const trialISO = aISO(t.trial_hasta);
+                  return (
+                    <div key={t.id} style={{ padding:14, borderBottom: i < tenantsFiltrados.length-1 ? `1px solid ${C.border}` : "none", background: t.activo===false ? "#fef2f2" : "white" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", gap:8, alignItems:"flex-start" }}>
+                        <div>
+                          <div style={{ fontWeight:600, fontSize:15, color:C.text }}>{t.nombre}</div>
+                          <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{t.email_admin}</div>
+                        </div>
+                        <Badge plan={t.plan_estado} />
+                      </div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:10, fontSize:11, color:C.muted, marginTop:8 }}>
+                        <span>Trial hasta {trialISO || "—"}</span>
+                        <span>{t.cant_usuarios ?? 0} usuario{(t.cant_usuarios ?? 0) === 1 ? "" : "s"}</span>
+                        <span>$ {Math.round(t.precio_mensual || 0).toLocaleString("es-AR")}/mes</span>
+                      </div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:10 }}>
+                        {t.plan_estado !== "activo" && (
+                          <button onClick={()=>cambiarPlan(t.id,"activo")}
+                            style={{ padding:"7px 12px", fontSize:12, fontWeight:700, background:"#f0fdf4", border:"1px solid #bbf7d0", color:C.green, borderRadius:6, cursor:"pointer" }}>
+                            Activar
+                          </button>
+                        )}
+                        {t.plan_estado !== "trial" && (
+                          <button onClick={()=>cambiarPlan(t.id,"trial")}
+                            style={{ padding:"7px 12px", fontSize:12, fontWeight:700, background:"#fffbeb", border:"1px solid #fde68a", color:C.warn, borderRadius:6, cursor:"pointer" }}>
+                            Trial
+                          </button>
+                        )}
+                        <button onClick={()=>toggleActivo(t.id)}
+                          style={{ padding:"7px 12px", fontSize:12, fontWeight:700, background:"#f1f5f9", border:"1px solid #e2e8f0", color:"#64748b", borderRadius:6, cursor:"pointer" }}>
+                          {t.activo===false ? "Habilitar" : "Suspender"}
+                        </button>
+                        <button onClick={()=>eliminarTenant(t.id, t.nombre)}
+                          style={{ padding:"7px 12px", fontSize:12, fontWeight:700, background:"#fef2f2", border:"1px solid #fecaca", color:C.red, borderRadius:6, cursor:"pointer" }}>
+                          Eliminar
+                        </button>
+                      </div>
+                      <div style={{ display:"flex", gap:6, alignItems:"center", marginTop:10 }}>
+                        <span style={{ fontSize:12, color:C.muted }}>$</span>
+                        <input type="number" value={precioVal}
+                          onChange={e => setPrecioEdit(p => ({ ...p, [t.id]: e.target.value }))}
+                          style={{ flex:1, padding:"6px 8px", border:`1px solid ${precioChanged ? C.accent : C.border}`, borderRadius:6, fontSize:13, fontFamily:"'IBM Plex Mono',monospace", outline:"none", boxSizing:"border-box" }} />
+                        <button onClick={() => guardarPrecio(t.id, precioVal)} disabled={precioSaving[t.id] || !precioChanged}
+                          style={{ padding:"6px 12px", borderRadius:6, border:"none", fontSize:12, fontWeight:700, cursor: precioChanged ? "pointer" : "default", background: precioSaved[t.id] ? C.green : precioChanged ? C.accent : C.surface2, color: precioSaved[t.id] || precioChanged ? "white" : C.muted, opacity: precioSaving[t.id] ? 0.6 : 1 }}>
+                          {precioSaved[t.id] ? "✓" : precioSaving[t.id] ? "..." : "OK"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
             <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
-              {/* En el celu el grid de 8 columnas no entra: esto lo deja scrollable
-                  horizontal en vez de aplastar las columnas (Activar/Suspender
-                  quedaba fuera de la pantalla y sin forma de tocarlo). */}
+              {/* En pantallas angostas de escritorio el grid de 8 columnas puede no
+                  entrar: scrollea horizontal en vez de aplastar las columnas. En
+                  mobile se usa directamente la vista de tarjetas de arriba. */}
               <div style={{ overflowX:"auto", WebkitOverflowScrolling:"touch" }}>
               <div style={{ minWidth:760 }}>
               <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1.6fr 0.8fr 1fr 1.1fr 1fr 1.2fr auto", gap:0, borderBottom:`1px solid ${C.border}`, padding:"10px 16px", background:C.surface2 }}>
@@ -1552,6 +1622,7 @@ export default function AdminPanel() {
               </div>
               </div>
             </div>
+            )}
             <div style={{ fontSize:12, color:C.muted, marginTop:8 }}>{tenantsFiltrados.length} cuenta{tenantsFiltrados.length!==1?"s":""}</div>
           </>
         )}
