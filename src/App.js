@@ -215,7 +215,6 @@ function ResultadoPago({ suscripcion }) {
 }
 
 function PantallaVentaPostRegistro({ tenant, token, suscripcion, onContinuar, onLogout }) {
-  const [vista, setVista] = useState("inicio"); // inicio | transferencia
   const [loading, setLoading] = useState(false);
   const precioBase = tenant?.precio_mensual || suscripcion?.precio_mensual || 57000;
   // Fuente de verdad del servidor (GET /suscripcion/estado): nunca se calcula la promo
@@ -259,8 +258,7 @@ function PantallaVentaPostRegistro({ tenant, token, suscripcion, onContinuar, on
           <div style={{ fontSize: 14, color: C.muted, marginTop: 4 }}>¡Tu cuenta ya está lista{tenant?.nombre ? `, ${tenant.nombre}` : ""}!</div>
         </div>
 
-        {vista === "inicio" ? (
-          <>
+        <>
             {promoVigente && (
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.red, color: "#fff", fontSize: 12, fontWeight: 800, padding: "6px 14px", borderRadius: 20, margin: "0 auto 18px", animation: "faimPulse 1.8s ease-in-out infinite" }}>
                 <Zap size={13} strokeWidth={2.5} /> $ {precioPromo.toLocaleString("es-AR")}/MES LOS PRIMEROS {mesesPromo} MESES
@@ -308,49 +306,12 @@ function PantallaVentaPostRegistro({ tenant, token, suscripcion, onContinuar, on
             <button onClick={suscribirse} disabled={loading} style={{ width: "100%", padding: 15, borderRadius: 12, border: "none", cursor: "pointer", background: C.accent, color: "#fff", fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.7 : 1, animation: loading ? "none" : "faimGlow 2.2s ease-in-out infinite", marginBottom: 10 }}>
               <CreditCard size={17} strokeWidth={2.5} /> {loading ? "Generando link..." : promoVigente ? "Suscribirme ahora con débito automático" : "Suscribirme con débito automático"}
             </button>
-            <button onClick={() => setVista("transferencia")} style={{ width: "100%", padding: 11, borderRadius: 12, border: `1px solid ${C.border}`, cursor: "pointer", background: "transparent", color: C.text, fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 13.5, marginBottom: 14 }}>
-              Prefiero pagar por transferencia
-            </button>
             <div style={{ textAlign: "center" }}>
               <button onClick={onLogout} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Syne', sans-serif" }}>
                 Cerrar sesión
               </button>
             </div>
           </>
-        ) : (
-          <>
-            <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12, padding: "16px 18px", marginBottom: 18 }}>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>
-                {promoVigente
-                  ? `Con el precio promo, solo tu primer mes (después $ ${precioBase.toLocaleString("es-AR")}/mes):`
-                  : "Monto a transferir:"}
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 13, color: C.muted }}>Monto</span>
-                <span style={{ fontSize: 18, fontWeight: 800, fontFamily: "'IBM Plex Mono', monospace" }}>$ {(promoVigente ? precioPromo : precioBase).toLocaleString("es-AR")}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 13, color: C.muted }}>Alias</span>
-                <span style={{ fontSize: 15, fontWeight: 800, color: C.accent, fontFamily: "'IBM Plex Mono', monospace" }}>Faimobras.app</span>
-              </div>
-            </div>
-            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6, marginBottom: 18 }}>
-              Hacé la transferencia y mandanos el comprobante por WhatsApp — en cuanto lo recibamos, te activamos la cuenta.
-            </div>
-            <a href={`https://wa.me/${WHATSAPP_COMPROBANTES}?text=${encodeURIComponent("Hola! Te mando el comprobante de la transferencia de FAIM OBRAS.")}`} target="_blank" rel="noreferrer"
-              style={{ width: "100%", boxSizing: "border-box", padding: 15, borderRadius: 12, border: "none", cursor: "pointer", background: "#25D366", color: "#fff", fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 10, textDecoration: "none" }}>
-              <MessageCircle size={17} strokeWidth={2.5} /> Mandar comprobante por WhatsApp
-            </a>
-            <button onClick={() => setVista("inicio")} style={{ width: "100%", padding: 11, borderRadius: 12, border: `1px solid ${C.border}`, cursor: "pointer", background: "transparent", color: C.text, fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 13.5, marginBottom: 14 }}>
-              ← Volver a la suscripción automática
-            </button>
-            <div style={{ textAlign: "center" }}>
-              <button onClick={onLogout} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Syne', sans-serif" }}>
-                Cerrar sesión
-              </button>
-            </div>
-          </>
-        )}
       </div>
     </div>
   );
