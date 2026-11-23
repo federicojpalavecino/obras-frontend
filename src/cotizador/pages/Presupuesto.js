@@ -8,7 +8,7 @@ import {
   duplicarPresupuesto, getVariacionPrecios, actualizarPrecios
 } from '../api';
 import api from '../api';
-import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Lock, Unlock, Search, Plus, FileText, BarChart2, X, Printer, TrendingUp, Package, Building2, Settings, Eye, Check, Edit2, Trash2, AlignLeft, Clipboard } from 'lucide-react';
 // Paleta fija para marcar ítems en la pantalla del presupuesto (ej. "falta
 // cómputo", "precio a confirmar"): el color no tiene un significado fijo, lo
 // define cada estudio a su gusto.
@@ -92,6 +92,8 @@ export default function Presupuesto() {
   const [coefsOpen, setCoefsOpen] = useState(false); // coeficientes panel collapsed by default
   const [observaciones, setObservaciones] = useState(''); // observación general del presupuesto
   const [obsOpen, setObsOpen] = useState(false);
+  const [introduccion, setIntroduccion] = useState(''); // texto que va ANTES del listado de items
+  const [introOpen, setIntroOpen] = useState(false);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false); // mobile header menu
   const [editandoNombreId, setEditandoNombreId] = useState(null); // id de línea en edición de nombre
   const [nombreEditVal, setNombreEditVal] = useState('');
@@ -156,6 +158,7 @@ export default function Presupuesto() {
         dias_vigencia: res.data.dias_vigencia || 30,
       });
       setObservaciones(res.data.observaciones || '');
+      setIntroduccion(res.data.introduccion || '');
       if (res.data.cliente_id) {
         api.get('/proyectos', { params: { cliente_id: res.data.cliente_id } })
           .then(r => setProyectos(Array.isArray(r.data) ? r.data : []))
@@ -356,7 +359,8 @@ export default function Presupuesto() {
   const hayModalAbierto = !!(
     modalLibre || lineaSeleccionada || computoLinea || lineaSeleccionadaAdic ||
     computoAdicLinea || modalNuevoRubro || modalAdicional || modalCierre ||
-    modalNuevaTarea || editandoNombreId || editandoRubroNum || agregandoTarea || editandoTareaId
+    modalNuevaTarea || editandoNombreId || editandoRubroNum || agregandoTarea || editandoTareaId ||
+    obsOpen || introOpen
   );
   const hayModalAbiertoRef = useRef(hayModalAbierto);
   hayModalAbiertoRef.current = hayModalAbierto;
@@ -902,6 +906,7 @@ footer{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;ju
     ${cerrado && data.fecha_cierre ? `<div style="font-size:8pt;color:#888;margin-top:3px">Cerrado: ${new Date(data.fecha_cierre).toLocaleDateString('es-AR')}</div>` : ''}
   </div>
 </div>
+${introduccion ? '<div style="margin-bottom:18px;white-space:pre-wrap;font-size:10pt;line-height:1.5">' + introduccion + '</div>' : ''}
 <table>
   <thead><tr>${thCod}<th>Ítem</th><th class="c">Unid.</th><th class="r">Cant.</th>${thInterno}<th class="r">P. Unitario</th><th class="r">Total</th>${thPct}</tr></thead>
   <tbody>${rubrosHTML}</tbody>
@@ -990,6 +995,53 @@ ${firma}
 </body></html>`;
 
     imprimirHTML(html, { titulo: data.nombre_obra || 'Presupuesto', esperar: 600 });
+  };
+
+  // Para estudios que ya tienen su propia plantilla de Word con logo y
+  // membrete: copian esta tabla y la pegan ahí en vez de usar la impresión
+  // de FAIM. Va como tabla HTML real (no texto con tabs) para que Word la
+  // pegue como tabla, con fallback a texto si el navegador no soporta
+  // ClipboardItem.
+  const handleCopiarTabla = async () => {
+    if (!data) return;
+    const { totales, rubros } = data;
+    const fmt = (n) => { if (!n && n !== 0) return '—'; if (n === 0) return '$ 0'; return '$ ' + Math.round(n).toLocaleString('es-AR'); };
+    const filasHTML = (rubros || []).map(rubro => {
+      const filas = (rubro.lineas || []).map(linea => {
+        const precioUnit = linea.cantidad > 0 ? linea.precio_venta_con_iva / linea.cantidad : linea.precio_venta_con_iva;
+        return `<tr>
+          <td>${esc(linea.nombre_override || linea.nombre_item || linea.nombre_libre || '')}</td>
+          <td align="center">${esc(linea.unidad_item || linea.unidad_libre || '')}</td>
+          <td align="right">${linea.cantidad}</td>
+          <td align="right">${fmt(precioUnit)}</td>
+          <td align="right"><b>${fmt(linea.precio_venta_con_iva)}</b></td>
+        </tr>`;
+      }).join('');
+      return `<tr><td colspan="5" style="font-weight:bold;background:#f1f1f1">${esc(rubro.numero + ' — ' + rubro.nombre)}</td></tr>${filas}`;
+    }).join('');
+    const html = `<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:10pt">
+      <thead><tr style="background:#1a1a1a;color:#fff"><th>Ítem</th><th>Unid.</th><th>Cant.</th><th>P. Unitario</th><th>Total</th></tr></thead>
+      <tbody>${filasHTML}
+        <tr><td colspan="4" align="right" style="font-weight:bold">TOTAL</td><td align="right" style="font-weight:bold">${fmt(totales?.total_precio_con_iva)}</td></tr>
+      </tbody>
+    </table>`;
+    const texto = (rubros || []).map(rubro => {
+      const filas = (rubro.lineas || []).map(l => `${l.nombre_override || l.nombre_item || l.nombre_libre || ''}\t${l.unidad_item || l.unidad_libre || ''}\t${l.cantidad}\t${fmt(l.precio_venta_con_iva)}`).join('\n');
+      return `${rubro.numero} — ${rubro.nombre}\n${filas}`;
+    }).join('\n\n') + `\n\nTOTAL\t\t\t${fmt(totales?.total_precio_con_iva)}`;
+    try {
+      if (window.ClipboardItem) {
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([texto], { type: 'text/plain' }),
+        })]);
+      } else {
+        await navigator.clipboard.writeText(texto);
+      }
+      alert('Tabla copiada. Pegala con Ctrl+V en tu plantilla de Word.');
+    } catch (e) {
+      alert('No se pudo copiar: ' + e.message);
+    }
   };
   const toggleLinea = (linea) => { setLineaSeleccionada(lineaSeleccionada?.id === linea.id ? null : linea); };
 
@@ -1167,6 +1219,9 @@ ${firma}
               <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--border2)' }} onClick={() => handleImprimir('interno')}><Printer size={12} strokeWidth={1.5} /> Interno</button>
               {!esServicio && <button className="btn btn-secondary btn-sm" style={{ borderRadius: 0 }} onClick={imprimirComputoGeneral} title="Imprimir cómputo de cantidades">∑ Cómputo</button>}
             </div>
+            <button className="btn btn-secondary btn-sm" onClick={handleCopiarTabla} title="Copiar la tabla de ítems para pegarla en tu propia plantilla (Word, etc.)">
+              <Clipboard size={12} strokeWidth={1.5} /> Copiar tabla
+            </button>
             {/* El listado sale del cómputo y los análisis, que existen igual
                 con el presupuesto abierto — no hace falta cerrar para ver qué
                 comprar. Por eso vive afuera del grupo de gestión, que sí
@@ -1232,6 +1287,7 @@ ${firma}
                 onClick: () => { setSidebarOpen(true); setCoefsOpen(true); } },
               { label: 'Imprimir — Cliente', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('comercial') },
               { label: 'Imprimir — Interno', icon: <Printer size={18} strokeWidth={1.5} />, onClick: () => handleImprimir('interno') },
+              { label: 'Copiar tabla', icon: <Clipboard size={18} strokeWidth={1.5} />, onClick: handleCopiarTabla },
               // El listado sale del cómputo y los análisis, que existen con el
               // presupuesto abierto o cerrado — no hace falta cerrar para ver
               // qué comprar.
@@ -2102,6 +2158,35 @@ ${firma}
                 onCantidadChange={(lineaId, cant) => { cargar(true); }} />
             )}
           </div>
+        </div>
+
+        {/* INTRODUCCIÓN — botón flotante, apilado arriba de Observaciones */}
+        <div style={{ position: 'fixed', bottom: 140, right: 28, zIndex: 40 }}>
+          {introOpen && (
+            <div style={{ position: 'absolute', bottom: 48, right: 0, width: 320, background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.18)', padding: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--muted)', marginBottom: 8 }}>Introducción</div>
+              {!cerrado ? (
+                <textarea
+                  value={introduccion}
+                  onChange={e => setIntroduccion(e.target.value)}
+                  onBlur={() => { if (coefs) actualizarPresupuesto(id, { introduccion: introduccion || null }); }}
+                  placeholder="Alcance, plazo, forma de pago..."
+                  rows={5}
+                  autoFocus
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 6, color: 'var(--text)', fontSize: 12, fontFamily: 'inherit', resize: 'vertical' }}
+                />
+              ) : (
+                <div style={{ fontSize: 12, color: 'var(--text)', whiteSpace: 'pre-wrap', padding: '8px 10px', background: 'var(--bg)', borderRadius: 6, border: '1px solid var(--border)', minHeight: 60 }}>{introduccion || 'Sin introducción'}</div>
+              )}
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>Aparece antes del listado de ítems, en ambas impresiones</div>
+            </div>
+          )}
+          <button
+            onClick={() => setIntroOpen(v => !v)}
+            title="Introducción"
+            style={{ width: 40, height: 40, borderRadius: '50%', background: introduccion ? 'var(--accent)' : 'var(--surface)', border: '1px solid var(--border2)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: introduccion ? '#fff' : 'var(--muted)' }}>
+            <AlignLeft size={16} strokeWidth={1.5} />
+          </button>
         </div>
 
         {/* OBSERVACIONES — botón flotante */}
