@@ -276,7 +276,7 @@ function PantallaVentaPostRegistro({ tenant, token, suscripcion, onContinuar, on
                     $ {precioPromo.toLocaleString("es-AR")}
                   </div>
                   <div style={{ fontSize: 12, color: C.muted }}>
-                    tus primeros {mesesPromo} meses con débito automático · después $ {precioBase.toLocaleString("es-AR")}/mes
+                    tus primeros {mesesPromo} meses, con cualquier medio de pago · después $ {precioBase.toLocaleString("es-AR")}/mes
                   </div>
                 </>
               ) : (
@@ -304,7 +304,7 @@ function PantallaVentaPostRegistro({ tenant, token, suscripcion, onContinuar, on
             </div>
 
             <button onClick={suscribirse} disabled={loading} style={{ width: "100%", padding: 15, borderRadius: 12, border: "none", cursor: "pointer", background: C.accent, color: "#fff", fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.7 : 1, animation: loading ? "none" : "faimGlow 2.2s ease-in-out infinite", marginBottom: 10 }}>
-              <CreditCard size={17} strokeWidth={2.5} /> {loading ? "Generando link..." : promoVigente ? "Suscribirme ahora con débito automático" : "Suscribirme con débito automático"}
+              <CreditCard size={17} strokeWidth={2.5} /> {loading ? "Generando link..." : promoVigente ? "Suscribirme ahora" : "Suscribirme"}
             </button>
             <div style={{ textAlign: "center" }}>
               <button onClick={onLogout} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Syne', sans-serif" }}>
