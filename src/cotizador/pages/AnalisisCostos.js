@@ -22,6 +22,10 @@ export default function AnalisisCostos() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [categorias, setCategorias] = useState([]);
+  // Lista completa (sistema + propios), sin el filtro de "Todo/Del sistema/Nuestro"
+  // de la vista: para elegir rubro al crear un ítem nuevo, que no depende de qué
+  // estés mirando (podés archivar tu ítem propio bajo un rubro del sistema).
+  const [categoriasTodas, setCategoriasTodas] = useState([]);
   const [items, setItems] = useState([]);
   const [itemDetalle, setItemDetalle] = useState(null);
   const [materiales, setMateriales] = useState([]);
@@ -50,6 +54,7 @@ export default function AnalisisCostos() {
   const [editLinea, setEditLinea] = useState(null); // {tipo, id, valor}
 
   useEffect(() => { cargar(); }, [origen]);
+  useEffect(() => { api.get('/maestros/categorias').then(r => setCategoriasTodas(r.data)).catch(() => {}); }, []);
 
   const cargar = async () => {
     setLoading(true);
@@ -483,7 +488,7 @@ export default function AnalisisCostos() {
               <select className="input" value={nuevoItem.categoria_id}
                 onChange={e => setNuevoItem(p => ({ ...p, categoria_id: e.target.value }))}>
                 <option value="">Seleccionar rubro...</option>
-                {categorias.map(c => <option key={c.id} value={c.id}>{c.codigo || c.numero ? `${c.codigo || c.numero}. ` : ""}{c.nombre}</option>)}
+                {categoriasTodas.map(c => <option key={c.id} value={c.id}>{c.codigo || c.numero ? `${c.codigo || c.numero}. ` : ""}{c.nombre}</option>)}
               </select>
             </div>
             <div className="modal-actions">
