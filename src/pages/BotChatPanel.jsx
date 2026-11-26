@@ -259,45 +259,24 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
   const abrir = (l) => { abrioNuevaConversacion.current = true; setSeleccionado(null); abrirLead(l.id); };
   const volverALista = () => { setSeleccionado(null); cargarLista(true); };
 
-  // Volver deslizando desde el borde izquierdo, como el gesto nativo de iOS. Se mueve la
-  // pantalla directo con el dedo (sin pasar por React) para que no se sienta con demora, y
-  // solo arranca si el toque empieza pegado al borde, igual que hace iOS.
-  const convRef = useRef(null);
-  const swipeRef = useRef({ activo: false, startX: 0, startY: 0, dx: 0 });
+  // Volver deslizando desde el borde izquierdo, como el gesto nativo de iOS. Solo se mide
+  // el gesto (sin mover nada con el dedo mientras se desliza, eso tocaba el DOM a mitad del
+  // toque y quedaba la pantalla rota en iOS) y recién al soltar, si corresponde, se navega.
+  const swipeRef = useRef({ activo: false, startX: 0, startY: 0 });
 
   const onTouchStartConv = (e) => {
     const t = e.touches[0];
     if (t.clientX > 24) return;
-    swipeRef.current = { activo: true, startX: t.clientX, startY: t.clientY, dx: 0 };
+    swipeRef.current = { activo: true, startX: t.clientX, startY: t.clientY };
   };
-  const onTouchMoveConv = (e) => {
-    const s = swipeRef.current;
-    if (!s.activo) return;
-    const t = e.touches[0];
-    const dx = t.clientX - s.startX;
-    const dy = t.clientY - s.startY;
-    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
-      s.activo = false;
-      if (convRef.current) convRef.current.style.transform = "";
-      return;
-    }
-    if (dx > 0 && convRef.current) {
-      s.dx = dx;
-      convRef.current.style.transform = `translateX(${dx}px)`;
-    }
-  };
-  const onTouchEndConv = () => {
+  const onTouchEndConv = (e) => {
     const s = swipeRef.current;
     if (!s.activo) return;
     s.activo = false;
-    const el = convRef.current;
-    if (s.dx > 90) {
-      volverALista();
-    } else if (el) {
-      el.style.transition = "transform 0.2s ease";
-      el.style.transform = "";
-      setTimeout(() => { if (el) el.style.transition = ""; }, 220);
-    }
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s.startX;
+    const dy = t.clientY - s.startY;
+    if (dx > 60 && Math.abs(dy) < 50) volverALista();
   };
 
   const pedirPush = async () => {
@@ -312,7 +291,7 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
   // ── Pantalla de conversación (una por vez, como WhatsApp) ──────────────────
   if (seleccionado || loadingDetalle) {
     return (
-      <div ref={convRef} onTouchStart={onTouchStartConv} onTouchMove={onTouchMoveConv} onTouchEnd={onTouchEndConv}
+      <div onTouchStart={onTouchStartConv} onTouchEnd={onTouchEndConv}
         style={{ display:"flex", flexDirection:"column", height:"100dvh", background:C.bg, fontFamily:"'Syne',sans-serif" }}>
         <div style={{ padding:"10px 14px", borderBottom:`1px solid ${C.border}`, background:C.surface,
           display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
