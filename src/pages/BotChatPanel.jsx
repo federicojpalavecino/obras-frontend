@@ -391,10 +391,15 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
             </div>
 
             <div style={{ borderTop:`1px solid ${C.border}`, background:C.surface, padding:10, display:"flex", gap:8 }}>
-              <input value={textoHumano} onChange={e=>setTextoHumano(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); enviarComoHumano(); } }}
-                placeholder="Responder como humano..."
-                style={{ flex:1, padding:"10px 14px", borderRadius:20, border:`1px solid ${C.border}`, background:C.surface2, color:C.text, fontFamily:"inherit", fontSize:14, outline:"none" }} />
+              <textarea value={textoHumano} onChange={e=>setTextoHumano(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) { e.preventDefault(); enviarComoHumano(); }
+                  // Shift+Enter o Ctrl+Enter: dejar pasar el Enter normal, que inserta el salto de línea.
+                }}
+                placeholder="Responder como humano... (Shift+Ctrl+Enter para bajar de línea)"
+                rows={1}
+                style={{ flex:1, padding:"10px 14px", borderRadius:20, border:`1px solid ${C.border}`, background:C.surface2, color:C.text,
+                  fontFamily:"inherit", fontSize:14, outline:"none", resize:"none", maxHeight:120, overflowY:"auto", lineHeight:1.4 }} />
               <button onClick={enviarComoHumano} disabled={enviando || !textoHumano.trim()}
                 style={{ width:40, height:40, borderRadius:"50%", border:"none", cursor: textoHumano.trim() ? "pointer" : "default", flexShrink:0,
                   background: textoHumano.trim() ? C.accent : C.surface2, color: textoHumano.trim() ? "#fff" : C.muted,
