@@ -5,8 +5,8 @@
 // Dinámica de uso calcada de WhatsApp/Mensajes.jsx: una sola pantalla a la
 // vez (lista de conversaciones O la conversación abierta, con "volver"), para
 // que funcione igual de bien instalada en el celular que en escritorio.
-import { useState, useEffect, useRef } from "react";
-import { Bell, BellOff, ChevronLeft, Send } from "lucide-react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { Bell, BellOff, ChevronLeft, Send, Star } from "lucide-react";
 import { pushSoportado, pushEstado, activarPushAdmin } from "../pushAdmin";
 
 const API = process.env.REACT_APP_API_URL || "https://obras-backend-production.up.railway.app";
@@ -58,26 +58,51 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
   const [textoHumano, setTextoHumano] = useState("");
   const [enviando, setEnviando]     = useState(false);
   const [permisoPush, setPermisoPush] = useState(pushEstado());
+  const [marcados, setMarcados] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("bot_leads_marcados") || "{}"); }
+    catch { return {}; }
+  });
   const chatRef = useRef(null);          // contenedor con scroll de la conversación
-  const ultimoLeadScrolleado = useRef(null);
+  const listaRef = useRef(null);         // contenedor con scroll de la lista de chats
+  const scrollListaGuardado = useRef(0);
+  const abrioNuevaConversacion = useRef(false); // fuerza ir al final al entrar, incluso reabriendo el mismo chat
   const cantMensajesPrevia = useRef(0);
+
+  const toggleMarcado = (id) => {
+    setMarcados(prev => {
+      const next = { ...prev };
+      if (next[id]) delete next[id]; else next[id] = true;
+      localStorage.setItem("bot_leads_marcados", JSON.stringify(next));
+      return next;
+    });
+  };
 
   useEffect(() => { cargarLista(); }, [filtroEstado]);
 
-  // Como en WhatsApp: al abrir una conversación se ve el último mensaje. Cuando entra uno
-  // nuevo (polling) baja solo, salvo que el usuario esté leyendo más arriba.
-  useEffect(() => {
+  // Como en WhatsApp: al abrir una conversación (incluso una ya vista antes) se ve el
+  // último mensaje, nunca el principio. Cuando entra uno nuevo por polling baja solo,
+  // salvo que el usuario esté leyendo más arriba. useLayoutEffect para que el salto pase
+  // antes de pintar, sin que se llegue a ver un instante el tope de la conversación.
+  useLayoutEffect(() => {
     const el = chatRef.current;
     if (!el || !seleccionado) return;
     const cant = seleccionado.mensajes?.length || 0;
-    const abrioOtro = ultimoLeadScrolleado.current !== seleccionado.id;
     const cercaDelFinal = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-    if (abrioOtro || (cant > cantMensajesPrevia.current && cercaDelFinal)) {
+    if (abrioNuevaConversacion.current || (cant > cantMensajesPrevia.current && cercaDelFinal)) {
       el.scrollTop = el.scrollHeight;
+      abrioNuevaConversacion.current = false;
     }
-    ultimoLeadScrolleado.current = seleccionado.id;
     cantMensajesPrevia.current = cant;
   }, [seleccionado]);
+
+  // La lista pierde el scroll al entrar a una conversación porque es una pantalla
+  // distinta (se desmonta del todo). Al volver, se restaura la posición en la que se
+  // había quedado, para no tener que volver a buscar el chat.
+  useEffect(() => {
+    if (!seleccionado && !loadingLista && listaRef.current) {
+      listaRef.current.scrollTop = scrollListaGuardado.current;
+    }
+  }, [seleccionado, loadingLista]);
 
   // Polling: la lista de leads y la conversación abierta se refrescan solas,
   // para no depender de que alguien recargue la página a mano para ver un
@@ -188,8 +213,8 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
     return (l.nombre || "").toLowerCase().includes(q) || (l.telefono || "").includes(q) || (l.email || "").toLowerCase().includes(q);
   });
 
-  const abrir = (l) => { setSeleccionado(null); abrirLead(l.id); };
-  const volverALista = () => { setSeleccionado(null); cargarLista(); };
+  const abrir = (l) => { abrioNuevaConversacion.current = true; setSeleccionado(null); abrirLead(l.id); };
+  const volverALista = () => { setSeleccionado(null); cargarLista(true); };
 
   const pedirPush = async () => {
     const r = await activarPushAdmin(token);
@@ -215,6 +240,11 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
                 <div style={{ fontWeight:800, fontSize:14.5, color:C.text }}>{seleccionado.nombre || "Sin nombre"}</div>
                 <div style={{ fontSize:11.5, color:C.muted }}>{seleccionado.telefono}{seleccionado.email ? ` · ${seleccionado.email}` : ""}</div>
               </div>
+              <button onClick={() => toggleMarcado(seleccionado.id)}
+                title={marcados[seleccionado.id] ? "Quitar marca" : "Marcar para escribir mañana"}
+                style={{ background:"none", border:"none", cursor:"pointer", padding:4, display:"flex", flexShrink:0 }}>
+                <Star size={19} fill={marcados[seleccionado.id] ? C.warn : "none"} color={marcados[seleccionado.id] ? C.warn : C.muted} />
+              </button>
               <select value={seleccionado.estado} onChange={e=>cambiarEstadoLead(e.target.value)}
                 style={{ padding:"6px 8px", border:`1px solid ${C.border}`, borderRadius:8, fontSize:12, cursor:"pointer" }}>
                 {ESTADOS_LEAD_BOT.map(e => <option key={e} value={e}>{e.replace("_"," ")}</option>)}
@@ -328,14 +358,16 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
         </select>
       </div>
 
-      <div style={{ flex:1, overflowY:"auto" }}>
+      <div ref={listaRef} onScroll={e => { scrollListaGuardado.current = e.currentTarget.scrollTop; }}
+        style={{ flex:1, overflowY:"auto" }}>
         {loadingLista ? (
           <div style={{ padding:30, textAlign:"center", color:C.muted, fontSize:13.5 }}>Cargando...</div>
         ) : leadsFiltrados.length === 0 ? (
           <div style={{ padding:30, textAlign:"center", color:C.muted, fontSize:13.5 }}>Sin leads</div>
         ) : leadsFiltrados.map(l => (
-          <button key={l.id} onClick={()=>abrir(l)}
-            style={{ width:"100%", background:"none", border:"none", borderBottom:`1px solid ${C.border}`,
+          <div key={l.id} onClick={()=>abrir(l)} role="button" tabIndex={0}
+            onKeyDown={e => { if (e.key === "Enter") abrir(l); }}
+            style={{ width:"100%", background: marcados[l.id] ? "#fffbeb" : "none", border:"none", borderBottom:`1px solid ${C.border}`,
               padding:"13px 16px", cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:12 }}>
             <div style={{ width:38, height:38, borderRadius:"50%", background:C.surface2, border:`1px solid ${C.border}`,
               display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:C.muted, flexShrink:0,
@@ -350,10 +382,17 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
               <div style={{ fontSize:12, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{l.telefono}</div>
             </div>
             <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:5, flexShrink:0 }}>
-              <span style={{ fontSize:10.5, color:C.muted }}>{fmtHora(l.ultimo_mensaje_at)}</span>
+              <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                <span style={{ fontSize:10.5, color:C.muted }}>{fmtHora(l.ultimo_mensaje_at)}</span>
+                <button onClick={e => { e.stopPropagation(); toggleMarcado(l.id); }}
+                  title={marcados[l.id] ? "Quitar marca" : "Marcar para escribir mañana"}
+                  style={{ background:"none", border:"none", cursor:"pointer", padding:2, display:"flex" }}>
+                  <Star size={14} fill={marcados[l.id] ? C.warn : "none"} color={marcados[l.id] ? C.warn : C.muted} />
+                </button>
+              </div>
               <BadgeEstadoLead estado={l.estado} />
             </div>
-          </button>
+          </div>
         ))}
       </div>
     </div>
