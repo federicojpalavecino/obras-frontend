@@ -23,16 +23,18 @@ export async function activarPushAdmin(token) {
   try {
     const reg = await navigator.serviceWorker.register("/service-worker.js");
     await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      const r = await fetch(`${API}/push/vapid-public-key`);
-      const data = await r.json();
-      if (!data?.public_key) return { ok: false, motivo: "sin_vapid" };
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(data.public_key),
-      });
-    }
+    // Fuerza una suscripción nueva en vez de reusar la que ya hubiera: una suscripción
+    // vieja puede haber quedado muerta (ícono reinstalado, expiración silenciosa de iOS)
+    // sin que el navegador avise, y reusarla manda siempre al mismo endpoint que no entrega.
+    const previa = await reg.pushManager.getSubscription();
+    if (previa) await previa.unsubscribe();
+    const r = await fetch(`${API}/push/vapid-public-key`);
+    const data = await r.json();
+    if (!data?.public_key) return { ok: false, motivo: "sin_vapid" };
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(data.public_key),
+    });
     const json = sub.toJSON();
     await fetch(`${API}/whatsapp/admin/push/suscribir`, {
       method: "POST",

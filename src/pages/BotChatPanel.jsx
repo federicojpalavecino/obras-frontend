@@ -22,6 +22,9 @@ const C = {
 // Leads comerciales de FAIM OBRAS (no son de ningún tenant). El backend los
 // protege con get_admin_user, no con get_tenant_id.
 const ESTADOS_LEAD_BOT = ["nuevo", "calificando", "cotizado", "esperando_pago", "cliente", "perdido", "derivado"];
+// Clientes son otra categoría, no un paso más del embudo de venta: tienen su propio botón,
+// separado del desplegable de estados de prospecto.
+const ESTADOS_FILTRO = ESTADOS_LEAD_BOT.filter(e => e !== "cliente");
 
 function BadgeEstadoLead({ estado }) {
   const colors = {
@@ -60,6 +63,13 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
   const [permisoPush, setPermisoPush] = useState(pushEstado());
   const [marcados, setMarcados] = useState(() => {
     try { return JSON.parse(localStorage.getItem("bot_leads_marcados") || "{}"); }
+    catch { return {}; }
+  });
+  // Última vez que un humano (no el bot) miró la conversación de cada lead, por su
+  // propio ultimo_mensaje_at (que solo avanza con mensajes entrantes). Si el lead
+  // escribió después de esa marca, está "no visto" aunque el bot ya le haya contestado.
+  const [vistos, setVistos] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("bot_leads_vistos") || "{}"); }
     catch { return {}; }
   });
   const chatRef = useRef(null);          // contenedor con scroll de la conversación
@@ -104,6 +114,20 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
     }
   }, [seleccionado, loadingLista]);
 
+  // Mientras la conversación está abierta, cada mensaje entrante que llega (por polling
+  // de la lista) queda marcado como visto. Si se cierra sin leer, la marca se queda en el
+  // último mensaje visto y la lista la muestra como pendiente, aunque el bot ya respondió.
+  useEffect(() => {
+    if (!seleccionado) return;
+    const lead = leads.find(l => l.id === seleccionado.id);
+    if (!lead?.ultimo_mensaje_at || vistos[seleccionado.id] === lead.ultimo_mensaje_at) return;
+    setVistos(prev => {
+      const next = { ...prev, [seleccionado.id]: lead.ultimo_mensaje_at };
+      localStorage.setItem("bot_leads_vistos", JSON.stringify(next));
+      return next;
+    });
+  }, [leads, seleccionado]);
+
   // Polling: la lista de leads y la conversación abierta se refrescan solas,
   // para no depender de que alguien recargue la página a mano para ver un
   // mensaje nuevo entrar.
@@ -138,6 +162,25 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
     } catch {}
     if (!silencioso) setLoadingDetalle(false);
   };
+
+  // Las imágenes se ven en la burbuja del mensaje, no solo como adjunto para abrir aparte.
+  // El endpoint pide el token de admin, así que no alcanza con un <img src>: se bajan como
+  // blob (como abrirArchivo) y se cachean por id de archivo.
+  const [imagenes, setImagenes] = useState({});
+
+  useEffect(() => {
+    setImagenes(prev => { Object.values(prev).forEach(u => URL.revokeObjectURL(u)); return {}; });
+  }, [seleccionado?.id]);
+
+  useEffect(() => {
+    (seleccionado?.archivos || []).filter(a => a.mime_type?.startsWith("image/")).forEach(a => {
+      if (imagenes[a.id]) return;
+      fetch(`${API}/whatsapp/admin/archivos/${a.id}`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => (r.ok ? r.blob() : null))
+        .then(blob => { if (blob) setImagenes(prev => ({ ...prev, [a.id]: URL.createObjectURL(blob) })); })
+        .catch(() => {});
+    });
+  }, [seleccionado?.archivos]);
 
   // Borra un mensaje del panel y de la memoria del bot. No lo saca del WhatsApp del
   // cliente: la API de WhatsApp Business no permite "eliminar para todos".
@@ -219,9 +262,10 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
   const pedirPush = async () => {
     const r = await activarPushAdmin(token);
     setPermisoPush(pushEstado());
-    if (!r.ok && r.motivo === "sin_permiso") {
+    if (r.ok) alert("Listo, quedaste suscripto de nuevo. Probá mandarte un push de prueba.");
+    else if (r.motivo === "sin_permiso") {
       alert("El navegador no te dejó activar notificaciones. Podés habilitarlas desde los permisos del sitio.");
-    }
+    } else alert("No se pudo renovar la suscripción. Probá de nuevo en un rato.");
   };
 
   // ── Pantalla de conversación (una por vez, como WhatsApp) ──────────────────
@@ -281,18 +325,39 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
                 <div style={{ color:C.muted, fontSize:13, textAlign:"center", marginTop:20 }}>Todavía no hay mensajes</div>
               ) : seleccionado.mensajes.map((m,i) => {
                 const deLead = m.direccion === "in";
+                const archivoImg = seleccionado.archivos?.find(a => a.mensaje_id === m.id && a.mime_type?.startsWith("image/"));
+                // El corchete es la etiqueta interna para el agente ("[El lead envió una
+                // imagen] <caption>"); acá ya se ve la imagen, así que solo interesa el resto.
+                const textoLimpio = archivoImg ? (m.contenido || "").replace(/^\[[^\]]+\]\s*/, "") : m.contenido;
                 return (
                   <div key={m.id || i} style={{ display:"flex", alignItems:"center", gap:4, justifyContent: deLead ? "flex-start" : "flex-end" }}>
                     {!deLead && m.id && (
                       <button onClick={() => borrarMensaje(m)} title="Borrar mensaje"
                         style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:C.muted, padding:2, opacity:0.5 }}>🗑</button>
                     )}
-                    <div style={{ maxWidth:"78%", padding:"8px 12px", borderRadius:14, fontSize:13.5, lineHeight:1.4,
+                    <div style={{ maxWidth:"78%", padding: m.tipo === "reaction" ? "4px 10px" : "8px 12px", borderRadius:14, fontSize:13.5, lineHeight:1.4,
                       background: deLead ? C.surface : (m.autor === "humano" ? C.accent : "#f0fdf4"),
                       color: deLead ? C.text : (m.autor === "humano" ? "#fff" : C.text),
                       border: deLead ? `1px solid ${C.border}` : "none" }}>
-                      {m.tipo !== "texto" && <div style={{ fontSize:10, opacity:0.75, textTransform:"uppercase", marginBottom:2 }}>{m.tipo}{m.autor === "humano" ? " · humano" : m.autor === "bot" ? " · bot" : ""}</div>}
-                      <div style={{ whiteSpace:"pre-wrap" }}>{m.contenido || (m.media_url ? "[archivo adjunto]" : "")}</div>
+                      {m.tipo === "reaction" ? (
+                        <div style={{ fontSize:24, lineHeight:1.2 }}>{m.contenido || "🙂"}</div>
+                      ) : (
+                        <>
+                          {m.tipo !== "texto" && !archivoImg && <div style={{ fontSize:10, opacity:0.75, textTransform:"uppercase", marginBottom:2 }}>{m.tipo}{m.autor === "humano" ? " · humano" : m.autor === "bot" ? " · bot" : ""}</div>}
+                          {archivoImg && (
+                            imagenes[archivoImg.id] ? (
+                              <img src={imagenes[archivoImg.id]} alt="Imagen enviada" onClick={() => abrirArchivo(archivoImg.id)}
+                                style={{ maxWidth:220, maxHeight:280, borderRadius:10, display:"block", cursor:"pointer", marginBottom: textoLimpio ? 4 : 0 }} />
+                            ) : (
+                              <div style={{ width:180, height:120, borderRadius:10, background:C.surface2, display:"flex",
+                                alignItems:"center", justifyContent:"center", color:C.muted, fontSize:11, marginBottom: textoLimpio ? 4 : 0 }}>Cargando imagen...</div>
+                            )
+                          )}
+                          {(textoLimpio || (!archivoImg && m.media_url)) && (
+                            <div style={{ whiteSpace:"pre-wrap" }}>{textoLimpio || "[archivo adjunto]"}</div>
+                          )}
+                        </>
+                      )}
                       <div style={{ fontSize:10, opacity:0.7, marginTop:3, textAlign:"right" }}>{fmtHora(m.created_at)}</div>
                     </div>
                     {deLead && m.id && (
@@ -330,11 +395,12 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
           <div style={{ fontSize:17, fontWeight:800, color:C.text }}>Chat del bot</div>
           <div style={{ fontSize:11, color:C.muted, fontFamily:"'IBM Plex Mono',monospace" }}>FAIM OBRAS</div>
         </div>
-        {pushSoportado() && permisoPush !== "granted" && (
-          <button onClick={pedirPush} title="Activar notificaciones"
+        {pushSoportado() && (
+          <button onClick={pedirPush}
+            title={permisoPush === "granted" ? "Volver a activar: por si la suscripción quedó vieja y no te llegan" : "Activar notificaciones"}
             style={{ display:"flex", alignItems:"center", gap:5, padding:"6px 10px", borderRadius:18, cursor:"pointer",
               fontFamily:"inherit", fontSize:12, fontWeight:600, border:`1px solid ${C.accent}`, background:"rgba(5,150,105,.08)", color:C.accent }}>
-            <Bell size={13} /> Notificaciones
+            <Bell size={13} /> {permisoPush === "granted" ? "Renovar notif." : "Notificaciones"}
           </button>
         )}
         {onLogout && (
@@ -351,11 +417,20 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
       <div style={{ padding:10, borderBottom:`1px solid ${C.border}`, background:C.surface, display:"flex", flexDirection:"column", gap:8 }}>
         <input value={busqueda} onChange={e=>setBusqueda(e.target.value)} placeholder="Buscar por nombre, tel o email..."
           style={{ padding:"9px 12px", border:`1px solid ${C.border}`, borderRadius:10, fontSize:13.5, outline:"none", background:C.surface2 }} />
-        <select value={filtroEstado} onChange={e=>setFiltroEstado(e.target.value)}
-          style={{ padding:"8px 10px", border:`1px solid ${C.border}`, borderRadius:10, fontSize:13, outline:"none", cursor:"pointer", background:C.surface2 }}>
-          <option value="todos">Todos los estados</option>
-          {ESTADOS_LEAD_BOT.map(e => <option key={e} value={e}>{e.replace("_"," ")}</option>)}
-        </select>
+        <div style={{ display:"flex", gap:8 }}>
+          <select value={filtroEstado} onChange={e=>setFiltroEstado(e.target.value)}
+            style={{ flex:1, padding:"8px 10px", border:`1px solid ${C.border}`, borderRadius:10, fontSize:13, outline:"none", cursor:"pointer", background:C.surface2 }}>
+            <option value="todos">Todos los estados</option>
+            {ESTADOS_FILTRO.map(e => <option key={e} value={e}>{e.replace("_"," ")}</option>)}
+          </select>
+          <button onClick={() => setFiltroEstado(filtroEstado === "cliente" ? "todos" : "cliente")}
+            style={{ padding:"8px 14px", borderRadius:10, fontSize:13, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap",
+              border:`1px solid ${filtroEstado === "cliente" ? C.accent : C.border}`,
+              background: filtroEstado === "cliente" ? C.accent : C.surface2,
+              color: filtroEstado === "cliente" ? "#fff" : C.text }}>
+            Clientes
+          </button>
+        </div>
       </div>
 
       <div ref={listaRef} onScroll={e => { scrollListaGuardado.current = e.currentTarget.scrollTop; }}
@@ -364,7 +439,9 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
           <div style={{ padding:30, textAlign:"center", color:C.muted, fontSize:13.5 }}>Cargando...</div>
         ) : leadsFiltrados.length === 0 ? (
           <div style={{ padding:30, textAlign:"center", color:C.muted, fontSize:13.5 }}>Sin leads</div>
-        ) : leadsFiltrados.map(l => (
+        ) : leadsFiltrados.map(l => {
+          const noVisto = !!l.ultimo_mensaje_at && (!vistos[l.id] || new Date(l.ultimo_mensaje_at) > new Date(vistos[l.id]));
+          return (
           <div key={l.id} onClick={()=>abrir(l)} role="button" tabIndex={0}
             onKeyDown={e => { if (e.key === "Enter") abrir(l); }}
             style={{ width:"100%", background: marcados[l.id] ? "#fffbeb" : "none", border:"none", borderBottom:`1px solid ${C.border}`,
@@ -376,7 +453,8 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
             </div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <span style={{ fontSize:14, fontWeight:700, color:C.text }}>{l.nombre || l.telefono}</span>
+                {noVisto && <span title="Sin leer" style={{ width:9, height:9, borderRadius:"50%", background:C.accent2, flexShrink:0 }} />}
+                <span style={{ fontSize:14, fontWeight: noVisto ? 800 : 700, color:C.text }}>{l.nombre || l.telefono}</span>
                 {!l.bot_activo && <span title="Bot pausado" style={{ fontSize:11 }}>⏸</span>}
               </div>
               <div style={{ fontSize:12, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{l.telefono}</div>
@@ -393,7 +471,8 @@ function PanelBotWhatsApp({ token, onLogout, onSesionExpirada }) {
               <BadgeEstadoLead estado={l.estado} />
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
